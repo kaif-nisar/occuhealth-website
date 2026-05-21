@@ -1,0 +1,246 @@
+<div class="withdrawal-admin-page">
+    <style>
+        .withdrawal-admin-page {
+            padding: 24px;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .withdrawal-admin-page h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 22px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #0f172a;
+        }
+
+        .withdrawal-admin-page h1 i {
+            color: #059669;
+            font-size: 30px;
+        }
+
+        .withdrawal-admin-page .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .withdrawal-admin-page .overview-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 18px 20px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .withdrawal-admin-page .overview-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: #fff;
+            font-size: 20px;
+        }
+
+        .withdrawal-admin-page .overview-text {
+            display: grid;
+            gap: 4px;
+        }
+
+        .withdrawal-admin-page .overview-text .label {
+            font-size: 13px;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .withdrawal-admin-page .overview-text .value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .withdrawal-admin-page .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 18px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .withdrawal-admin-page label {
+            display: block;
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .withdrawal-admin-page select,
+        .withdrawal-admin-page input {
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background: #ffffff;
+            font-size: 14px;
+            color: #0f172a;
+            min-width: 200px;
+        }
+
+        .withdrawal-admin-page button {
+            border: 0;
+            border-radius: 12px;
+            padding: 12px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .withdrawal-admin-page button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+        }
+
+        .withdrawal-admin-page .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9, #0369a1);
+            color: #fff;
+        }
+
+        .withdrawal-admin-page .btn-approve {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: #fff;
+        }
+
+        .withdrawal-admin-page .btn-reject {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #fff;
+        }
+
+        .withdrawal-admin-page .panel {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 20px;
+            padding: 20px;
+            overflow-x: auto;
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+        }
+
+        .withdrawal-admin-page table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        .withdrawal-admin-page th,
+        .withdrawal-admin-page td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            text-align: left;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .withdrawal-admin-page th {
+            background: #0f172a;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .withdrawal-admin-page tbody tr:hover {
+            background: rgba(15, 23, 42, 0.04);
+        }
+
+        .withdrawal-admin-page .muted {
+            color: #64748b;
+        }
+
+        @media (max-width: 900px) {
+            .withdrawal-admin-page .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .withdrawal-admin-page select,
+            .withdrawal-admin-page input {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+
+    <h1><i class="fas fa-hand-holding-dollar"></i> Withdrawal Requests</h1>
+    <div class="overview-grid">
+        <div class="overview-card">
+            <div class="overview-icon"><i class="fas fa-clock"></i></div>
+            <div class="overview-text">
+                <span class="label">Pending requests</span>
+                <span class="value">23</span>
+            </div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon"><i class="fas fa-wallet"></i></div>
+            <div class="overview-text">
+                <span class="label">Pending amount</span>
+                <span class="value">₹45,600</span>
+            </div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="overview-text">
+                <span class="label">Completed today</span>
+                <span class="value">12</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div>
+            <label for="withdrawalStatusFilter">Status</label>
+            <select id="withdrawalStatusFilter">
+                <option value="pending">Pending</option>
+                <option value="">All</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <button type="button" class="btn-primary" id="loadWithdrawalsBtn">Load</button>
+    </div>
+
+    <div class="panel">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Amount</th>
+                    <th>Bank Details</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="withdrawalRequestRows">
+                <tr><td colspan="7" class="muted">Loading requests...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

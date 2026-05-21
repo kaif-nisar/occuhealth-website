@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/fevicon.jpg" />
+    <title>OCCU Health Franchisee Login</title>
+    <meta name="description"
+        content="Login page for OCCU Health franchisees to access their dashboard and manage bookings.">
+
+    <style>
+        body {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            background-image: url(high-angle-science-elements-composition.jpg);
+            background-size: cover;
+            background-color: #f5f5f5;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            width: 800px;
+            margin-left: 200px;
+        }
+
+        .lottie-container {
+            width: 50%;
+            height: 100%;
+        }
+
+        .form-container {
+            padding: 40px;
+            width: 50%;
+            position: relative;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 0px;
+            border: 2px solid #0072ff;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #00c6ff;
+            outline: none;
+        }
+
+        label {
+            transition: 0.2s;
+            color: #aaa;
+            margin-bottom: 1rem;
+        }
+
+        input:focus+label,
+        input:not(:placeholder-shown)+label {
+            top: -10px;
+            left: 10px;
+            font-size: 12px;
+            color: #0072ff;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #0072ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 16px;
+            margin: 5px 0px;
+        }
+
+        button:hover {
+            background: #00c6ff;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #role {
+            width: 100%;
+            padding: 10px 0px;
+            border: 2px solid #0072ff;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width: 768px) {
+            .lottie-container {
+                display: none;
+            }
+
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .form-container {
+                display: inline;
+                align-items: center;
+                justify-content: center;
+                position: absolute;
+                right: 50px;
+            }
+        }
+
+        /* Modal styles */
+        #forgotPasswordModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            text-align: center;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <title>OccuHealth Login</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.7.6/lottie.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="lottie-container" id="lottie"></div>
+        <div class="form-container">
+            <h2>OccuHealth Login</h2>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="username" id="username" name="username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+                <div class="error" id="errorMessage"></div>
+            </form>
+            <p><a href="#" id="forgotPasswordLink">Forgot Password?</a></p>
+        </div>
+    </div>
+
+    <!-- Modal for Forgot Password -->
+    <div id="forgotPasswordModal" style="display:none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reset Password</h2>
+            <input type="email" id="resetEmail" placeholder="Enter your email" required>
+            <button id="resetPasswordButton">Send Reset Link</button>
+            <div class="error" id="resetErrorMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        // Load Lottie animation
+        const animation = lottie.loadAnimation({
+            container: document.getElementById('lottie'),
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'Animation - 1731414043375.json'
+        });
+
+        // Function to verify access token
+        async function verifyAccessToken() {
+            try {
+                const response = await fetch('/api/verify-token', {
+                    method: 'GET',
+                    credentials: 'include' // Include cookies with the request
+                });
+
+                if (!response.ok) {
+                    throw new Error('Unauthorized access');
+                }
+
+                const data = await response.json();
+                return data.isAuthorized;
+            } catch (error) {
+                console.error('Access Token Verification Failed:', error);
+                return false;
+            }
+        }
+
+        const BASE_URL = window.location.origin; // Dynamically get the base URL
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            let email = username;
+            // Check if email and password are entered
+            if (!username || !password) {
+                alert("Please enter both email and password.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/login-admin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',  // Important: Allows cookies to be sent
+                    body: JSON.stringify({ email, username, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.status === 403) {
+                    alert("Your account is inactive. Please contact support.");
+                    return;
+                }
+
+                if (response.status === 401) {
+                    alert("Incorrect password. Please try again.");
+                    return;
+                }
+
+                if (response.status === 404) {
+                    alert("User  not found. Please check your email.");
+                    return;
+                }
+
+                if (!response.ok) {
+                    alert(data.message || "Login failed. Please try again.");
+                    return;
+                }
+
+                if (data.success) {
+                    console.log('Login successful');
+                    const isAuthorized = await verifyAccessToken();
+
+                    if (!isAuthorized) {
+                        alert('You are not authorized to access this page.');
+                        return;
+                    }
+                    
+                    if (data.userData.myrole === 'staff') {
+                        data.userData.myrole = data.userData.role;
+                    }
+                    // Redirect based on role
+                    const roleRedirects = {
+                        'admin': 'admin/admin.html',
+                        'superFranchisee': 'superFranchisee/superFranchisee.html',
+                        'franchisee': 'franchisee/franchisee.html',
+                        'subFranchisee': 'subFranchisee/subFranchisee.html'
+                    };
+
+                    if (roleRedirects[data.userData.myrole]) {
+                        window.location.href = `${BASE_URL}/${roleRedirects[data.userData.myrole]}`;
+                    } else {
+                        console.error('Unknown role:', data.userData.myrole);
+                    }
+                }
+            } catch (error) {
+                console.error('Error during login:', error);
+                alert("Something went wrong. Please try again later.");
+            }
+        });
+
+        // Forgot Password functionality
+        document.getElementById('forgotPasswordLink').addEventListener('click', function () {
+            document.getElementById('forgotPasswordModal').style.display = 'flex';
+        });
+
+        document.querySelector('.close').addEventListener('click', function () {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+        });
+
+        document.getElementById('resetPasswordButton').addEventListener('click', async function (e) {
+            const email = document.getElementById('resetEmail').value.trim();
+            if (!email) {
+                document.getElementById('resetErrorMessage').innerText = "Please enter your email.";
+                return;
+            }
+
+            e.target.disabled = true;
+            e.target.textContent = "Sending...";
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/forgotPassword`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert("Password reset link sent to your email.");
+                    document.getElementById('forgotPasswordModal').style.display = 'none';
+                } else {
+                    document.getElementById('resetErrorMessage').innerText = data.message || "Failed to send reset link.";
+                }
+            } catch (error) {
+                console.error('Error during password reset:', error);
+                document.getElementById('resetErrorMessage').innerText = "Something went wrong. Please try again later.";
+            } finally {
+                e.target.disabled = false;
+                e.target.textContent = "Send Reset Link";
+            }
+        });
+
+    </script>
+</body>
+
+</html>

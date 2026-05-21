@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Occuhealth</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://www.occuhelth.com/temp/fevicon.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tiny.cloud/1/x3tepslopr7zsv4tj23hy7s7yen4n3xprs8ekz4w9jds1ohm/tinymce/5/tinymce.min.js"
+        referrerpolicy="origin"></script>
+
+</head>
+<body>
+    <!-- Nav bar Start here -->
+    <div class="top-navbar" id="top-navbar">
+        <div class="navbar">
+            <div class="logo-div">
+                <a href="#" data-page="dashboard" class="nav-item">
+                    <div class="logo"><img id="logo" src="logoPng.png" , alt="logo" width="190px"
+                            style="padding: 10px;"></div>
+                </a>
+            </div>
+            <div class="toggle-div" id="toggle-div" onclick="toggleSidebar()"><i class="fa-solid fa-sliders"></i></div>
+            <div class="inner-nav">
+                <div class="options-div">
+                    <ul>
+                        <li>
+                            <a href="#" data-page="dashboard" class="nav-item">
+                                <div class="dashboard-div">
+                                    Dashboard
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" data-page="allcases" class="nav-item">
+                                <div class="cases">
+                                    Cases
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <div class="lab-div">
+                                Lab
+                            </div>
+                        </li>
+
+                        <li>
+                            <a href="#" data-page="samples" class="nav-item">
+                                <div class="samples-div">
+                                    Samples
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="help-div">
+                    <i class="fa-solid fa-headphones"></i>
+                    <span>Help</span>
+                </div>
+                <div class="video-div">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <div class="bar-div">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <div class="alert-div">
+                    <i class="fa-regular fa-bell"></i>
+                </div>
+                <div class="user-div">
+                    <i class="fa-regular fa-user"></i>
+                </div>
+            </div>
+        </div>
+        <!-- slide navigation  -->
+    </div>
+    <nav class="left-navbar" id="left-navbar">
+
+        <!-- New Section for toggle left side page      -->
+        <div class="toggle" id="toggle">
+            <div class="left-panel">
+                <div class="">
+                    <p class="name_text"></p>
+                    <p class="name_text nt1">(ADMIN)</p>
+                </div>
+            </div>
+            <ul class="panel_list">
+                <li class="m_dashbord">
+                    <a class="m_dash nav-item" d="hove" data-page="dashboard" data-page-title="Add Test">
+                        <span class="dash dash_icon">
+                            <i class="fa-solid fa-house"></i>
+                        </span>
+                        <span class="dash_text dash">
+                            Dashboard
+                        </span>
+                    </a>
+                </li>
+                <li class="m_dashbord">
+                    <a onclick="loadContent('\\dashboard\\Analytics.html')" class="m_dash">
+                        <span class="dash dash_icon">
+                            <i class="fa-solid fa-house"></i>
+                        </span>
+                        <span class="dash_text dash">
+                            Analytics
+                        </span>
+                    </a>
+                </li>
+        </div>
+        <div class="booking bookf">
+            <div class="booking-inner">
+                <span class="book_po">BOOKING</span>
+                <div class="hr-line"></div>
+            </div>
+        </div>
+        <li class="m_dashbord" id="vk">
+            <p class="m_dash" onclick="toggleSubItems('subItem001')">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-people-roof"></i>
+                </span>
+                <span class="dash_text dash">
+                    Samples
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItem001">
+            <li id="vk">
+                <a href="#" data-page="allcases" class="nav-item">
+                    <div class="cases">
+                        Cases
+                    </div>
+                </a>
+            </li>
+            <li id="vk">
+                <a href="#" data-page="samples" class="nav-item">
+                    <div class="samples-div">
+                        Samples
+                    </div>
+                </a>
+            </li>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItem')">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-people-roof"></i>
+                </span>
+                <span class="dash_text dash">
+                    Test
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItem">
+            <!-- Sub Section inside div -->
+
+            <li class="m_dashbord Dash">
+                <a class="hove dash nav-item" id="hove" data-page="test" data-page-title="Add Test">
+
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Test
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a class="hove dash nav-item" id="hove" data-page="addTestDocument" data-page-title="Add Test">
+
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Document
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a class="hove dash nav-item" id="hove" data-page="testPackage" data-page-title="Add Test">
+
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Test Packages
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a class="hove dash nav-item" id="hove" data-page="testPanels" data-page-title="Add Test">
+
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Test Panels
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a class="hove dash nav-item" id="hove" data-page="category" data-page-title="Add Test">
+
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            category
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <div class="booking bookf">
+            <div class="booking-inner">
+                <span class="book_po">Manage</span>
+                <div class="hr-line"></div>
+            </div>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems5')">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-user-nurse"></i>
+                </span>
+                <span class="dash_text dash">
+                    Manage Doctors
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems5">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Add_doctor" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Doctor
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="List_doctor" class="hove dash nav-item" id="hove" data-page-title="List doctor">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            List Doctor
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems6')">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-user-nurse"></i>
+                </span>
+                <span class="dash_text dash">
+                    Manage Lab
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems6">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Add_lab" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Lab
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="List_lab" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            List Lab
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <div class="booking bookf">
+            <div class="booking-inner">
+                <span class="book_po">MY FRANCHISEE</span>
+                <div class="hr-line"></div>
+            </div>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems-3893')">
+                <span class="dash dash_icon">
+                    <i class="fa-sharp fa-solid fa-microchip"></i>
+                </span>
+                <span class="dash_text dash">
+                    Generate Bill
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems-3893">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="generatebill" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            New Bill
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <li>
+            <a href="#" data-page="generatecertificate" class="nav-item">
+                <div class="dashboard-div generatecer">
+                    <span class="dash dash_icon">
+                        <i class="fa-sharp fa-solid fa-microchip"></i>
+                    </span>
+                    Generate certificate
+                </div>
+            </a>
+        </li>
+        <!-- <div class="subItem" id="subItems-certificate">
+            <li class="m_dashbord Dash">
+                
+            </li>
+        </div> -->
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems-b')">
+                <span class="dash dash_icon">
+                    <i class="fa-sharp fa-solid fa-microchip"></i>
+                </span>
+                <span class="dash_text dash">
+                    My Franchisee
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems-b">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Add_franchisse" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Franchisee
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="List_franchisse" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            List Franchisee
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Accounts" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Accounts
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems-c')" data-page-title="">
+                <span class="dash dash_icon">
+                    <i class="fa-sharp fa-solid fa-microchip"></i>
+                </span>
+                <span class="dash_text dash">
+                    Franchisee Price
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems-c">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Assign_price" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Assign Pricing
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Bulk_pricing" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Bulk Pricing
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Transfer_pricing" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Transfer Pricing
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems-d')">
+                <span class="dash dash_icon">
+                    <i class="fa-sharp fa-solid fa-microchip"></i>
+                </span>
+                <span class="dash_text dash">
+                    Franchisee Credits
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems-d">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Assign_credit" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Assign Credit
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Credit_history" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Credit History
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <div class="booking bookf">
+            <div class="booking-inner">
+                <span class="book_po">STAFF</span>
+                <div class="hr-line"></div>
+            </div>
+        </div>
+        <li class="m_dashbord">
+            <p class="m_dash" onclick="toggleSubItems('subItems-e')">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-people-roof"></i>
+                </span>
+                <span class="dash_text dash">
+                    My Staff
+                </span>
+                <span class="icu toggle-symbol">&#9654;</span>
+            </p>
+        </li>
+        <div class="subItem" id="subItems-e">
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="Add_staff" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            Add Staff
+                        </span>
+                    </div>
+                </a>
+            </li>
+            <li class="m_dashbord Dash">
+                <a href="#" data-page="List_staff" class="hove dash nav-item" id="hove" data-page-title="">
+                    <div class="contar">
+                        <span class="dash_icon icon_v">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </span>
+                        <span class="dash_text text_v">
+                            List Staff
+                        </span>
+                    </div>
+                </a>
+            </li>
+        </div>
+        <div class="booking bookf">
+            <div class="booking-inner">
+                <span class="book_po">SETTINGS</span>
+                <div class="hr-line"></div>
+            </div>
+        </div>
+        <li class="m_dashbord">
+            <a href="#" data-page="Update_profile" class="m_dash nav-item" data-page-title="">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-gear"></i>
+                </span>
+                <span class="dash_text dash">
+                    Update Profile
+                </span>
+            </a>
+        </li>
+        <li class="m_dashbord">
+            <a href="#" data-page="update_password" class="m_dash nav-item" data-page-title="">
+                <span class="dash dash_icon">
+                    <i class="fa-solid fa-gear"></i>
+                </span>
+                <span class="dash_text dash">
+                    Change Password
+                </span>
+            </a>
+        </li>
+        <li class="m_dashbord">
+            <a class="m_dash" id="logoutButton">
+                <span class="dash dash_icon">
+                    <i class="fa-sharp fa-solid fa-power-off"></i>
+                </span>
+                <span class="dash_text dash">
+                    LogOut
+                </span>
+            </a>
+        </li>
+        </ul>
+        </div>
+
+
+
+    </nav>
+
+    <div class="content-box" id="content-box">
+        <div class="inner-box" id="inner-box"></div>
+        <!-- Content render hoga -->
+    </div>
+    <div class="loader-bg">
+        <div class="loader">
+            <div class="liquid"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+            <div class="bubble"></div>
+          </div>
+    </div>
+    <script src="admin.js"></script>
+</body>
+
+</html>

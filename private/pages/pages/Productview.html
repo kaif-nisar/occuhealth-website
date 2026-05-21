@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Wireless Headphones | Product Page</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --text-color: #1f2937;
+            --light-gray: #f3f4f6;
+            --medium-gray: #e5e7eb;
+            --dark-gray: #6b7280;
+            --success-color: #10b981;
+        }
+
+        .container-view {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .product-page {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        /* Product Gallery */
+        .product-gallery {
+            position: relative;
+        }
+
+        .main-slider {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider-container {
+            display: flex;
+            transition: transform 0.5s ease;
+            height: 500px;
+        }
+
+        .slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slider-nav {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 5px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .thumbnail:hover {
+            border-color: var(--accent-color);
+        }
+
+        .thumbnail.active {
+            border-color: var(--primary-color);
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: var(--text-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .slider-btn:hover {
+            background-color: white;
+        }
+
+        .slider-prev {
+            left: 15px;
+        }
+
+        .slider-next {
+            right: 15px;
+        }
+
+        /* Product Info */
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .product-brand {
+            color: var(--dark-gray);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .product-price {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .current-price {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .original-price {
+            font-size: 1.2rem;
+            color: var(--dark-gray);
+            text-decoration: line-through;
+        }
+
+        .discount-badge {
+            background-color: var(--success-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .product-description {
+            margin: 25px 0;
+            line-height: 1.7;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--light-gray);
+        }
+
+        .product-meta {
+            margin-top: 30px;
+            border-top: 1px solid var(--medium-gray);
+            padding-top: 20px;
+        }
+
+        .meta-item {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .meta-label {
+            width: 120px;
+            color: var(--dark-gray);
+        }
+
+        .meta-value {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .stars {
+            color: #fbbf24;
+        }
+
+        .review-count {
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+
+        .availability {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #dcfce7;
+            color: #166534;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .quantity-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--light-gray);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .quantity-btn:hover {
+            background-color: var(--medium-gray);
+        }
+
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            font-size: 1rem;
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .product-page {
+                grid-template-columns: 1fr;
+            }
+
+            .slider-container {
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container-view {
+                padding: 10px;
+            }
+
+            .slider-container {
+                height: 300px;
+            }
+
+            .product-title {
+                font-size: 1.5rem;
+            }
+
+            .current-price {
+                font-size: 1.5rem;
+            }
+
+            .product-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        button.disabled {
+            background-color: #d1d5db !important;
+            color: #6b7280 !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-view">
+        <div class="product-page">
+            <!-- Product Gallery -->
+            <div class="product-gallery">
+                <div class="main-slider">
+                    <div class="slider-container" id="slider">
+                        <!-- Slides will be added dynamically -->
+                    </div>
+                    <button class="slider-btn slider-prev" id="prevBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="slider-btn slider-next" id="nextBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="slider-nav" id="thumbnails">
+                    <!-- Thumbnails will be added dynamically -->
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="product-info">
+                <h1 class="product-title">Premium Wireless Headphones Pro X</h1>
+                <span class="product-brand">by AudioMaster</span>
+
+                <span class="availability">In Stock (25 available)</span>
+
+                <div class="product-price">
+                    <span class="current-price">$199.99</span>
+                    <span class="original-price">$249.99</span>
+                    <span class="discount-badge">20% OFF</span>
+                </div>
+
+                <div class="quantity-selector">
+                    <button class="quantity-btn" id="decreaseQty">-</button>
+                    <input type="number" class="quantity-input" id="quantity" value="1" min="1" max="10">
+                    <button class="quantity-btn" id="increaseQty">+</button>
+                </div>
+
+                <p class="product-description">
+                    Experience crystal-clear sound with our Premium Wireless Headphones Pro X. Featuring active noise
+                    cancellation, 40mm dynamic drivers, and 30-hour battery life. The ergonomic design ensures comfort
+                    for extended listening sessions. Perfect for music lovers and professionals alike.
+                </p>
+
+                <div class="product-actions">
+                    <button class="btn btn-primary" id="buyNowBtn">
+                        <i class="fas fa-bolt"></i> Buy Now
+                    </button>
+                    <button class="btn btn-secondary" id="addToCartBtn">
+                        <i class="fas fa-shopping-cart"></i> Add to Cart
+                    </button>
+                </div>
+
+                <div class="product-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Brand:</span>
+                        <span class="meta-value">AudioMaster</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Model:</span>
+                        <span class="meta-value">Pro X 2023</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Connectivity:</span>
+                        <span class="meta-value">Bluetooth 5.2, 3.5mm Jack</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Battery Life:</span>
+                        <span class="meta-value">Up to 30 hours</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Weight:</span>
+                        <span class="meta-value">245g</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Warranty:</span>
+                        <span class="meta-value">2 years</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

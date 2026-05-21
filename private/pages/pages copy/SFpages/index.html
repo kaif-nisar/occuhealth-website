@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="index_home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+        integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+</head>
+
+<body>
+    <Section>
+        <!-- Upper Body Section Header section -->
+        <header>
+            <nav class="fra_navbar">
+                <div class="nav_length">
+                    <div class="logo dc">
+                        <img src="Picsart_24-09-05_14-36-44-166.png" width="190px"
+                            loading="lazy">
+                        <button onclick="tp()" class="logo_toggle dip"><i id="logo"
+                                class="fa-solid fa-sliders"></i></button>
+                    </div>
+                    <div class="full_scr dc">
+                        <button class="ful_sc dip" id="fullscreen-button"><i id="logo1"
+                                class="fa-solid fa-expand"></i></button>
+                    </div>
+                    <div class="after-full-div">
+                        <div class="search-bar-div">
+                            <i class="fa-solid fa-xmark" id="hide-search"></i>
+                            <input type="text" placeholder="Search here">
+                        </div>
+                        <div class="search dc">
+                            <button class="search_ic dip" id="show-search"><i id="search_ic"
+                                    class=" fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                        <div class="wallet dc">
+                            <p class="wallter_text">Credits : 1235</p>
+                        </div>
+                        <div class="bag dc">
+                            <button class="bag_ic dip"><i id="bag" class="fa-solid fa-clipboard"></i></button>
+                        </div>
+                        <div class="payment dc">
+                            <button onclick="loadContent('/online_payment.html')" class="dip">
+                                <p class="payment_text">₹ Online payment</p>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="last-div">
+                        <div class="user dc">
+                            <button class="user_ic dip"><i id="user" class="fa-solid fa-user"></i></button>
+                        </div>
+                        <div class="support dc">
+                            <button class="support_text" id="cus-care-icon"><i id="headphone" class="fa-solid fa-headphones"></i>
+                                <p class="Customer">Customer Care</p>
+                            </button>
+                        </div>
+                        <div class="log dc">
+                            <button class="log_ic dip" id="poweroff-icon"><i id="power" class="fa-solid fa-power-off"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+    </Section>
+
+    <section>
+        <div class="containerr">
+            <!-- New Section for toggle left side page      -->
+            <div class="toggle" id="toggle">
+                <div class="left-panel">
+                    <div class="name">
+                        <p class="name_text">DEVBHOOMI PATH LAB Mr. RAJEEV GOYAL</p>
+                        <p class="name_text nt1">(Super Franchisee)</p>
+                    </div>
+                </div>
+                <ul class="panel_list">
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('Dashboard.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-house"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Dashboard
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('Analytics.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-house"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Analytics
+                            </span>
+                        </a>
+                    </li>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">BOOKING</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a onclick="toggleSubItems('subItem')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-people-roof"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Manage Booking
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItem">
+                        <!-- Sub Section inside div -->
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('new_booking.html')" target="iframe"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        New Booking
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('test_booking.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Booking
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('pending-booking.html')"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Panding Booking
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('testin_progress.html')"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Test in Progress
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('report_complete.html')"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Report Complete
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('test-addition.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Test Addition
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-people-roof"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Manage Reports
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems">
+                        <!-- New section for subitem manage reports   -->
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('download_reports.html')"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Download Reports
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('all-reports.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        All Reports
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Search_booking.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Search Booking
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">NOTIFICATION</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('Barcode_mismatch.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-globe"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Barcode Mismatch
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('Hold.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-globe"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Hold
+                            </span>
+                        </a>
+                    </li> 
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('clinical.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-globe"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Clinical
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                        <a onclick="loadContent('Test_cancelled.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-globe"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Cancellations
+                            </span>
+                        </a>
+                    </li>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">BILLING</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems2')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Generate Bill
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems2">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('New_Bill.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        New Bill
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('New_Bill.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        MRP Bill
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Billing_list.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Billing List
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord" id="on-pay">
+                        <a onclick="loadContent('online_payment.html')" class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Online Payment
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems3')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Payment History
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems3">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Razor_pay.html')" class="m_dash">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Rozar Pay
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Razor_pay.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Paytm Payment
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems4')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Track Ledger
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems4">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Account_summary.html')"
+                                class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Account Summary
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('ledger_list.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Ledger List
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Billing_list.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Billing List
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Report_usage.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Report Usage
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems5')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Manage Doctors
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems5">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Add_doctor.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Add Doctor
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('List_doctor.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Doctor
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems6')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Manage Lab
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems6">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Add_lab.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Add Lab
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('List_lab.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Lab
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems7')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Test Portfolio
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems7">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Test_list.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Test List
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Test_profile.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Test Profile
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Sample_report.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Sample Report
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems8')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-user-nurse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Commission
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems8">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('MY_commission.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        My Commission
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('List_commission.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Commission
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Commission_ledger.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Commission Ledger
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">INVENTORY</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems9')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-warehouse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Inventory
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems9">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Request_stock.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Request Stock
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Request_list.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Request List
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Recive_stock.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Recive Stock
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Supply_materials.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Supply Materials
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-a')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-warehouse"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Slide/Request
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-a">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Request.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Request
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Request_pending.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Request Panding
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('All_request.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        All Request
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">MY FRANCHISEE</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-b')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                My Franchisee
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-b">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Add_franchisse.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Add Franchisee
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('List_franchisse.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Franchisee
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Accounts.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Accounts
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-c')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Franchisee Price
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-c">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Assign_price.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Assign Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Bulk_pricing.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Bulk Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Transfer_pricing.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Transfer Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-d')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Franchisee Credits
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-d">
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Assign_credit.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Assign Credit
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                            <a onclick="loadContent('Credit_history.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Credit History
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">STAFF</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-e')">
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-people-roof"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                My Staff
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-e">
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('Add_staff.html')" class="hove dash" id="hove"> 
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Add Staff
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('Add_staff.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Staff
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">SUB FRANCHISEE</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-f')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Sub Franchisee
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-f">
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('Add_franchisse.html')" class="hove dash"
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Add Franchisee
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('List_franchisse.html')" class="hove dash" 
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        List Franchisee
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('Accounts.html')" class="hove dash" 
+                                id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Accounts
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-g')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Sub Franchisee Price
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-g">
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('sub_Assign_price.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Assign Test
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('sub_Bulk_pricing.html')" class="hove dash" id="hove"> 
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Bulk Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('sub_Bulk_pricingAll.html')" class="hove dash" id="hove"> 
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Bulk All Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('Transfer_pricing.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Transfer Pricing
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <li class="m_dashbord">
+                        <a class="m_dash" onclick="toggleSubItems('subItems-h')">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-microchip"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Sub Franchisee Credits
+                            </span>
+                            <span class="icu toggle-symbol">&#9654;</span>
+                        </a>
+                    </li>
+                    <div class="subItem" id="subItems-h">
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('sub_Assign_credit.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Assign Credit
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                        <li class="m_dashbord Dash">
+                             <a onclick="loadContent('sub_Credit_history.html')" class="hove dash" id="hove">
+                                <div class="contar">
+                                    <span class="dash_icon icon_v">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="dash_text text_v">
+                                        Credits History
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    </div>
+                    <div class="booking bookf">
+                        <div class="booking-inner">
+                            <span class="book_po">SETTINGS</span>
+                            <div class="hr-line"></div>
+                        </div>
+                    </div>
+                    <li class="m_dashbord">
+                         <a onclick="loadContent('Genrate_certificate.html')" class="m_dash"> 
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Generate Certificate
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                         <a onclick="loadContent('kyc_verfication.html')" class="m_dash"> 
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Kyc Verfication
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                         <a onclick="loadContent('Update_profile.html')" class="m_dash"> 
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Update Profile
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                         <a onclick="loadContent('update_password.html')" class="m_dash"> 
+                            <span class="dash dash_icon">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                Change Password
+                            </span>
+                        </a>
+                    </li>
+                    <li class="m_dashbord">
+                        <a class="m_dash">
+                            <span class="dash dash_icon">
+                                <i class="fa-sharp fa-solid fa-power-off"></i>
+                            </span>
+                            <span class="dash_text dash">
+                                LogOut
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+
+            <!-- New section for right container panel -->
+            <div id="right-container">
+                <!-- <iframe src="/Dashboard.html" style="width:100%;"></iframe> -->
+            </div>
+            <!-- <div class="user-1">
+                <div class="corner"></div>
+                <div class="user-1-inner"></div>
+            </div>
+            <div class="cus-care">
+                <div class="corner"></div>
+                <div class="user-1-inner"></div>
+            </div>
+            <div class="power-off">
+                <div class="corner power-c"></div>
+                <div class="user-1-inner"></div>
+            </div> -->
+        </div>
+    </section>
+
+    <section>
+
+    </section>
+
+    <script src="main (2).js"></script>
+</body>
+
+</html>

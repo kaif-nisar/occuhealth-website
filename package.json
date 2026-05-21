@@ -1,0 +1,57 @@
+{
+  "name": "superadmin_lab",
+  "version": "1.0.0",
+  "description": "A franchise-based lab management system",
+  "keywords": [
+    "\"keywords\":",
+    "[\"lab\"",
+    "\"management\"",
+    "\"franchise\"",
+    "\"booking\"",
+    "\"healthcare\"]"
+  ],
+  "license": "UNLICENSED",
+  "author": "prince panchal",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --max-old-space-size=2028 --expose-gc app.js",
+    "dev": "nodemon -r dotenv/config --experimental-json-modules app.js",
+    "sync": "browser-sync start --proxy localhost:3000 --files 'public/index.html, app.js, src/routes/user.routes.js' --port 3001 --reload-delay 1000",
+    "prod": "node --max-old-space-size=2048 app.js",
+    "db:indexes": "node scripts/create-db-indexes.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "canvas": "^3.1.0",
+    "cheerio": "^1.1.0",
+    "cloudinary": "^2.6.1",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jsbarcode": "^3.11.6",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.2",
+    "multer": "^2.0.1",
+    "node-cron": "^4.1.0",
+    "nodemailer": "^7.0.3",
+    "nodemon": "^3.1.10",
+    "p-queue": "^8.1.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.6.205",
+    "puppeteer": "^24.11.2",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.6",
+    "xss-clean": "^0.1.4"
+  },
+  "devDependencies": {
+    "browser-sync": "^3.0.4"
+  }
+}

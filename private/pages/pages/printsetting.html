@@ -1,0 +1,1010 @@
+<html>
+
+<head>
+    <title>Print Settings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+
+        .editorDiv {
+            height: 100%;
+            display: flex;
+        }
+
+        .container8989 {
+            width: 30%;
+            height: 100%;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+            position: fixed;
+            top: 2rem;
+        }
+
+        .header {
+            /* position: fixed; */
+            /* position: fixed; */
+            display: flex;
+            align-items: center;
+            padding: 10px 1.5%;
+            border-bottom: 1px solid #e0e0e0;
+            background-color: #f9f9f9;
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 97%;
+            height: 2rem;
+            z-index: 1000;
+        }
+
+        .header .close-btn {
+            font-size: 20px;
+            margin-right: 20px;
+            cursor: pointer;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .header .title {
+            font-size: 16px;
+            font-weight: bold;
+            flex-grow: 1;
+        }
+
+        .header .watch-video-btn {
+            background-color: #e0e7ff;
+            color: #1a73e8;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .accordion {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scrollbar-width: none;
+        }
+
+        .accordion-item {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .accordion-item button {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 15px;
+            text-align: left;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .accordion-item button .icon {
+            transition: transform 0.3s;
+        }
+
+        .accordion-item button.active .icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            display: none;
+            padding: 0 15px 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* .accordion-content.show {
+            display: block;
+        } */
+
+        .accordion-content.show {
+            display: block;
+            width: 100%;
+            /* margin: 0px; */
+            padding: 0px;
+        }
+
+        .showChangesDiv {
+            margin-top: calc(2rem + 10px);
+            width: 70%;
+            height: auto;
+            /* background-color: #666; */
+            margin-left: 30%;
+        }
+
+        .previewpdfcontainer {
+            width: 100%;
+            margin-top: 2rem;
+            padding-bottom: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #pdf-preview-div {
+            width: 485px;
+            height: 680px;
+            border: 1px solid rgb(86, 86, 86);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #pdf-preview-div iframe {
+            position: absolute;
+            right: -7px;
+            top: -3px;
+            width: 101%;
+            height: 200vh;
+            margin-top: -3.7rem;
+        }
+
+        .outerCheckBox {
+            width: 30.5rem;
+            margin-bottom: 0.2rem;
+            letter-spacing: 1px;
+        }
+
+        img {
+            margin: 10px;
+            border: 1px solid rgb(90, 90, 90);
+        }
+
+        .container278 {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .file-upload {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .file-upload img {
+            width: 70px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        /* .file-upload input[type="file"] {
+            display: none;
+        } */
+
+        .file-upload label {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            margin-bottom: 5px;
+        }
+
+        .input-group .input-wrapper {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 120px;
+        }
+
+        .input-group input {
+            width: 70px;
+            padding: 5px;
+            border: none;
+            text-align: left;
+        }
+
+        .input-group span {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border-left: 1px solid #ccc;
+            text-align: center;
+            width: 30px;
+        }
+
+        .more-settings {
+            color: #007bff;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .update-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 2rem;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container-sign {
+            margin: 20px;
+        }
+
+        .form-group2 {
+            margin-bottom: 15px;
+        }
+
+        .form-group2 label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group2 input[type="text"] {
+            width: 50%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .form-group2 input[type="file"] {
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .form-group2 .file-info {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .form-group2 textarea {
+            width: auto;
+            padding: 8px;
+            box-sizing: border-box;
+            height: 50px;
+        }
+
+        .form-group2 .checkbox-label {
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .form-group2 .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .form-group2 .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .form-row2 {
+            display: flex;
+            /* justify-content: space-between; */
+        }
+
+        .form-row2 .form-group2 {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .form-row .form-group2:last-child {
+            margin-right: 0;
+        }
+
+        .btn {
+            background-color: #007bff;
+        }
+
+        .fromgroup21 {
+            width: fit-content;
+            background-color: #007bff;
+            border-radius: 0.5rem;
+            height: auto;
+        }
+
+        .signUpdatebtn {
+            width: fit-content;
+            text-align: center;
+        }
+
+        /* container 3 css  */
+        .container3 {
+            /* max-width: 400px; */
+            margin: 20px;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group select {
+            width: 100px;
+            padding: 5px;
+            font-size: 16px;
+        }
+
+        .checkbox-group {
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+
+        .checkbox-group label {
+            font-weight: normal;
+        }
+
+        .general {
+            width: fit-content;
+            text-align: center;
+            background-color: #1a73e8;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* for tat css  */
+        .container4 {
+            margin: 20px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-label input {
+            margin-right: 10px;
+        }
+
+        .tatbtn {
+            width: fit-content;
+        }
+
+        .previewpdfcontainer {
+            height: 120vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            /* flex-direction: column; */
+        }
+
+        #message {
+            color: rgb(0, 55, 32);
+        }
+
+        .selected {
+            border: 2px solid red;
+        }
+
+        .image-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-container .delete-icon {
+            position: absolute;
+            top: 12px;
+            /* Adjust for spacing */
+            right: 12px;
+            /* Adjust for spacing */
+            background: red;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0.5;
+            /* Slight transparency */
+            transition: opacity 0.2s ease;
+        }
+
+        .image-container .delete-icon:hover {
+            opacity: 1;
+            /* Fully visible on hover */
+            background: darkred;
+        }
+
+        .update-button[disabled] {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .signDiv {
+            position: relative;
+            display: flex;
+            align-items: center;
+            /* justify-content: center; */
+        }
+
+        .signDiv div {
+            padding-left: 5px;
+        }
+
+        .signDiv img {
+            border: 1px solid rgb(255, 141, 141);
+        }
+
+        .deleteIcon {
+            position: absolute;
+            top: 12px;
+            /* Adjust for spacing */
+            right: 12px;
+            /* Adjust for spacing */
+            background: red;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0.5;
+            /* Slight transparency */
+            transition: opacity 0.2s ease;
+        }
+
+        .fontsizeandspacing {
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        /* #pdf-preview-div {
+            position: relative;
+        } */
+
+        .loaderDiv {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            position: absolute;
+            z-index: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .loaderInnerDiv {
+            margin-top: 4rem;
+        }
+
+        .measure-outer-div {
+            display: flex;
+            /* position: absolute; */
+            margin-top: 2rem;
+            padding: 0px 5px;
+            top: 3.1%;
+            height: 96%;
+            left: 0px;
+            z-index: 10;
+        }
+
+        /* arrow  */
+        .big-box {
+            /* position: absolute; */
+            height: 10%;
+            right: 0px;
+            top: 2px;
+            width: 100px;
+            display: flex;
+            align-items: center;
+        }
+
+        .numberlinebox {
+            width: 70%;
+            border-bottom: 2px solid red;
+            text-align: center;
+            background-color: white;
+        }
+
+        .blankbox {
+            width: 40%;
+            height: 100%;
+            border: 2px solid red;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+            border-right: none;
+        }
+
+        #footermeasurescalebigbox {
+            /* position: absolute; */
+            right: 0px;
+            height: 2.2cm;
+            right: 0px;
+            bottom: 2px;
+            width: 100px;
+            display: flex;
+            align-items: center;
+        }
+        .scale-heading-div {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .headerinformation,
+        .footerinformation,
+        .middleinformation {
+            width: 4.5rem;
+            font-size: 0.75rem;
+            padding-left: 1rem;
+            color: #666;
+        }
+
+        /* .middleinformation {
+            position: absolute;
+            top: 50%;
+            font-size: large;
+        } */
+
+        /* .footerinformation {
+            position: absolute;
+            bottom: 0px;
+        } */
+
+        #errormessage {
+            padding: 5px 10px;
+            border-radius: 5px;
+            background-color: rgb(255, 167, 167);
+            border: 1px solid red;
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            z-index: 100;
+            display: none;
+        }
+
+        .printspinnerbox {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f3f3f3;
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .printspinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #ccc;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 0.5s linear infinite;
+        }
+        .scale-div {
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="printspinnerbox">
+        <div class="printspinner"></div>
+    </div>
+    <div class="header">
+        <span class="close-btn" id="close-btn" title="Go Back">
+            &times;
+        </span>
+        <a href="/admin/admin.html?page=addvideo">
+            <button class="watch-video-btn"><i class="fas fa-play"></i> WATCH VIDEO</button>
+        </a>
+    </div>
+    <div id="errormessage">
+        hello my dear
+    </div>
+    <div class="editorDiv" id="editorDiv">
+        <div class="container8989">
+            <div class="accordion">
+                <div class="accordion-item">
+                    <button onclick="toggleAccordion(this)">
+                        Letterhead
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="container278">
+                            <div class="file-upload">
+                                <div id="images-div">
+                                </div>
+                                <!-- Delete button (initially hidden) -->
+                                <button id="delete-button" style="display: none;">Delete</button>
+                                <input type="file" id="fileInput" name="template" accept="image/*" />
+                                <div>
+                                    <p id="message"></p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="column">
+                                    <div class="input-group">
+                                        <label for="header-height">
+                                            Header height
+                                        </label>
+                                        <div class="input-wrapper">
+                                            <input id="header" type="text" />
+                                            <!-- <input id="header" type="text" oninput="validateField(this, 1, 10)" /> -->
+                                            <span>
+                                                cm
+                                            </span>
+                                        </div>
+                                        <p class="error-message" id="header-error"></p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <div class="input-group">
+                                        <label for="footer-height">
+                                            Footer height
+                                        </label>
+                                        <div class="input-wrapper">
+                                            <input id="footer" type="text" />
+                                            <!-- <input id="footer" type="text" oninput="validateField(this, 0, 5)" /> -->
+                                            <span>
+                                                cm
+                                            </span>
+                                        </div>
+                                        <p class="error-message" id="footer-error"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="more-settings" onclick="toggleAccordion(this)">
+                                More setting
+                                <i class="fas fa-chevron-down icon"></i>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="row">
+                                    <div class="column">
+                                        <div class="input-group">
+                                            <label for="header-height">
+                                                Margin right
+                                            </label>
+                                            <div class="input-wrapper">
+                                                <input id="margin-right" type="text" />
+                                                <!-- <input id="margin-right" type="text" value="10"oninput="validateField(this, 0, 4)" /> -->
+                                                <span>
+                                                    cm
+                                                </span>
+                                            </div>
+                                            <p class="error-message" id="margin-right-error"></p>
+                                        </div>
+                                    </div>
+                                    <div class="column">
+                                        <div class="input-group">
+                                            <label for="footer-height">
+                                                Margin left
+                                            </label>
+                                            <div class="input-wrapper">
+                                                <input id="margin-left" type="text" />
+                                                <!-- <input id="margin-left" type="text" value="10" oninput="validateField(this, 0, 4)" /> -->
+                                                <span>
+                                                    cm
+                                                </span>
+                                            </div>
+                                            <p class="error-message" id="margin-left-error"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="update-button" id="uploadTemplate">
+                                Update
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button onclick="toggleAccordion(this)">
+                        Signatures
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="container-sign">
+                            <div class="form-group2">
+                                <input type="checkbox" id="show-lab">
+                                <label for="show-signatures" class="checkbox-label">Show lab incharge signatures</label>
+                            </div>
+                            <div class="signaturediv">
+                                <div class="form-group2">
+                                    <label for="lab-info">Lab incharge sign</label>
+                                    <div class="signDiv">
+                                        <textarea id="lab-info" placeholder="Enter here" maxlength="75"></textarea>
+                                        <div id="labSignImgdiv"></div>
+                                    </div>
+                                    <input type="file" id="lab-sign-file">
+                                    <!-- <span class="file-info">No file chosen</span> -->
+                                </div>
+                            </div>
+                            <div class="form-group2">
+                                <input type="checkbox" id="show-doctor1">
+                                <label for="show-signatures" class="checkbox-label">Show Doctor 1 signatures</label>
+                            </div>
+                            <div class="signaturediv">
+                                <div class="form-group2">
+                                    <label for="firstdoctor-info" placeholder="Enter here">Doctor sign</label>
+                                    <div class="signDiv">
+                                        <textarea id="firstdoctor-info" placeholder="Enter here"
+                                            maxlength="75"></textarea>
+                                        <div id="firstSignImgdiv"></div>
+                                    </div>
+                                    <input type="file" id="doctor-left-file">
+                                    <!-- <span class="file-info">No file chosen</span> -->
+                                </div>
+                            </div>
+                            <div class="form-group2">
+                                <input type="checkbox" id="show-doctor2">
+                                <label for="show-signatures" class="checkbox-label">Show Doctor 2 signatures</label>
+                            </div>
+                            <div class="signaturediv">
+                                <div class="form-group2">
+                                    <label for="seconddoctor-info">Doctor sign</label>
+                                    <div class="signDiv">
+                                        <textarea id="seconddoctor-info" placeholder="Enter here"
+                                            maxlength="75"></textarea>
+                                        <div id="secondSignImgdiv"></div>
+                                    </div>
+                                    <input type="file" id="Doctor-Right-file">
+                                    <!-- <span class="file-info">No file chosen</span> -->
+                                </div>
+                            </div>
+                            <div class="update-button signUpdatebtn" id="updateSign">
+                                Update
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button onclick="toggleAccordion(this)">
+                        General
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="container3">
+                            <div class="fontsizeandspacing">
+                                <div class="form-group">
+                                    <label for="pdf-font-size">PDF font size</label>
+                                    <select id="pdf-font-size">
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                        <option value="13">13</option>
+                                        <option value="14">14</option>
+                                        <option value="15">15</option>
+                                        <option value="16">16</option>
+                                        <option value="17">17</option>
+                                        <option value="18">18</option>
+                                        <option value="19">19</option>
+                                        <option value="20">20</option>
+                                        <option value="21">21</option>
+                                        <option value="22">22</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="spacing">Spacing</label>
+                                    <select id="spacing">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="high-low-marker" checked>
+                                <label for="high-low-marker">Use high (H), low (L) marker for numeric test
+                                    results.</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="abnormal-results-red">
+                                <label for="abnormal-results-red">Show abnormal results in red.</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="abnormal-results-bold" checked>
+                                <label for="abnormal-results-bold">Show abnormal results in bold.</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="show-tests-ordered" checked>
+                                <label for="show-tests-ordered">Show tests ordered.</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="show-investigations" checked>
+                                <label for="show-investigations">Show Investigations in Header</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="enable-print-categories" checked>
+                                <label for="enable-print-categories">Enable print categories from new page option by
+                                    default.</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="use-nabl-report-format" checked>
+                                <label for="use-nabl-report-format">Use nabl report format (Not applicable for Lab
+                                    Report V2).</label>
+                            </div>
+                            <div class=".update-button general" id="updateGeneral">Update</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button onclick="toggleAccordion(this)">
+                        TAT info
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="container4">
+                            <div class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <label>Use sample collected on (not applicable for NABL format).</label>
+                            </div>
+                            <div class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <label>Use reported on (not applicable for NABL format)</label>
+                            </div>
+                            <div class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <label>Show registered on</label>
+                            </div>
+                            <div class="update-button tatbtn" id="update-button" disabled>Update</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- </div> -->
+
+        <div class="showChangesDiv">
+            <div class="previewpdfcontainer">
+                <div class="measure-outer-div" id="outermeasurebox">
+                    <div class="scale-heading-div">
+                        <div class="headerinformation">
+                            <div class="headermargininfo">
+                                <strong>Header margin :</strong>
+                                <span id="headermargininfospan"></span>
+                            </div>
+                            <div class="iconinfo"> + </div>
+                            <div class="contentareainfo">
+                                <strong>Header content :</strong>
+                                <span>3.2cm</span>
+                            </div>
+                        </div>
+                        <div class="middleinformation">
+                            <div class="contentareainfo">
+                                <strong>Main content</strong>
+                            </div>
+                        </div>
+                        <div class="footerinformation">
+                            <div class="headermargininfo">
+                                <strong>footer margin :</strong>
+                                <span id="footermargininfospan"></span>
+                            </div>
+                            <div class="iconinfo"> + </div>
+                            <div class="contentareainfo">
+                                <strong>footer content :</strong>
+                                <span>1.8cm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="scale-div">
+                        <div class="big-box" id="headermeasurescalebigbox">
+                            <div class="numberlinebox" id="headermeasurescale">
+                            </div>
+                            <div class="blankbox"></div>
+                        </div>
+                        <div class="big-box" id="middlemeasurescalebigbox">
+                            <div class="numberlinebox" id="middlemeasurescale">
+                                10 cm
+                            </div>
+                            <div class="blankbox"></div>
+                        </div>
+                        <div id="footermeasurescalebigbox">
+                            <div class="numberlinebox" id="footermeasurescale">
+                                2 cm
+                            </div>
+                            <div class="blankbox"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="iframe-withorwithout">
+                    <div class="outerCheckBox">
+                        <div class="checkBox">
+                            <input type="checkbox" id="check1" name="check1">
+                            <span>without letterhead pdf</span>
+                            <i class="fa-solid fa-circle-info" title="This Field is for PDF only"></i>
+                        </div>
+                    </div>
+                    <div id="pdf-preview-div">
+                        <div class="loaderDiv">
+                            <div class="loaderInnerDiv">
+                                <label for="loader">Loading Pdf...</label> <br>
+                                <progress id="loader"></progress>
+                            </div>
+                        </div>
+                        <iframe id="pdf-preview" title="PDF Preview"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="printsetting.js"></script>
+</body>
+
+</html>

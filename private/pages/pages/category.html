@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+
+    p {
+        font-size: 0.9em;
+        color: #555;
+    }
+
+    .filter-container {
+        margin: 20px 0;
+    }
+
+    .filter-container button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+
+    .filter-container button:hover {
+        background-color: #0056b3;
+    }
+
+    .categories {
+        margin: 10px 0;
+    }
+
+    .categories span {
+        display: inline-block;
+        margin: 5px;
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .categories span:hover {
+        background-color: #f0f0f0;
+    }
+
+    .search-container {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+        width: 50%;
+    }
+
+    .search-container input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    .search-container i {
+        margin-left: 10px;
+        color: #888;
+    }
+
+    .protip {
+        font-size: 0.9em;
+        color: #888;
+        margin-left: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    table th,
+    table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+    }
+
+    table th {
+        background-color: #f9f9f9;
+    }
+
+    .actions a {
+        margin-right: 10px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .actions a:hover {
+        text-decoration: underline;
+    }
+
+    /* Add smooth transition for all rows */
+    tbody tr {
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    /* Highlight the row being dragged */
+    tbody tr.dragging {
+        background-color: #bde0ff;
+        /* Light blue background for dragging row */
+        opacity: 0.8;
+        /* Slightly transparent */
+        transform: scale(1.02);
+        /* Slightly enlarge the row */
+    }
+
+    /* Indicate the drop target */
+    tbody tr.drop-target {
+        border: 2px dashed #007bff;
+        /* Dashed border for drop target */
+    }
+
+    .order i {
+        padding-right: 20px;
+    }
+
+    .order {
+        width: 10%;
+    }
+
+    table {
+        width: 80%;
+        border-collapse: collapse;
+    }
+
+    /* Keyframes for spinning animation */
+    @keyframes spin2 {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<body>
+    <div class="mall">
+    <h1>Categories</h1>
+
+    <div class="filter-container">
+        <a><button onclick="loadPage('addCategory')" class="add-new">+ Add new</button></a>
+    </div>
+
+    <div class="search-container">
+        <input type="text" placeholder="Search in page" id="searchInput" oninput="filterTable(event)">
+        <i class="fas fa-search" title="search categories by typing"></i>
+    </div>
+    <table id="categoriesTable">
+        <thead>
+            <tr>
+                <th class="order">ORDER</th>
+                <th>Name</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody id="tbodyid">
+
+        </tbody>
+    </table>
+    </div>
+    <script src="category.js"></script>
+</body>
+
+</html>

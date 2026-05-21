@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Bulk Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+        :root {
+            --bg:#f0f2f5;--surface:#ffffff;--border:#dde1e7;--text:#1a1d23;
+            --text-muted:#6b7280;--accent:#e63770;--accent-hover:#c42d5e;
+            --success:#16a34a;--header-bg:#0f172a;--row-odd:#fdf2f5;
+            --row-even:#ffffff;--skeleton:#e5e7eb;--skeleton-shine:#f3f4f6;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        .container{max-width:1400px;margin:0 auto;padding:24px}
+        .header{background:var(--header-bg);color:#fff;padding:20px 28px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+        .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+        .breadcrumb{font-size:12px;color:#94a3b8;margin-top:4px}
+        .franchisee-badge{display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:7px 14px;font-size:13px;color:#15803d;font-weight:500}
+        .controls-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+        .controls-card input[type="text"]{flex:1;min-width:260px;padding:9px 14px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:14px;background:#f8fafc;color:var(--text)}
+        .controls-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(230,55,112,.1)}
+        .trigger-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 22px;margin-bottom:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .trigger-row label{font-size:13px;font-weight:600;color:var(--text-muted)}
+        .trigger-row input[type="text"]{width:90px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;text-align:center;transition:border-color .15s}
+        .trigger-row input:focus{outline:none;border-color:var(--accent)}
+        #trigger-price.field-error{border:2px solid #e74c3c!important;background:#fff5f5}
+        #triggerError{display:none;font-size:12px;font-weight:600;margin:-4px 0 10px 22px;padding:6px 12px;border-radius:6px;background:#fff5f5;border:1px solid #fecaca;color:#c0392b;align-items:center;gap:6px}
+        #triggerError.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+        .btn{padding:9px 20px;border:none;border-radius:7px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;display:inline-flex;align-items:center;gap:7px}
+        .btn:active{transform:scale(.97)}
+        .btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-hover)}
+        .btn-success{background:var(--success);color:#fff}.btn-success:hover{background:#15803d}
+        #statsBar{display:none;align-items:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:8px 16px;margin-bottom:12px}
+        #statsBar b{color:var(--text)}.stat-override{color:#d97706;font-weight:600}
+        .stat-legend{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;color:#9ca3af}
+        .legend-box{width:12px;height:12px;background:#fffde7;border:1px solid #f59e0b;border-radius:2px}
+        .rate-list-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+        .rate-list-header{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+        .rate-list-header h2{font-size:15px;font-weight:700}
+        .search-wrap{position:relative;width:280px}
+        .search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px}
+        #searchTest{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px}
+        #searchTest:focus{outline:none;border-color:var(--accent)}
+        .rows-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--surface);cursor:pointer}
+        .rows-select:focus{outline:none;border-color:var(--accent)}
+        .table-wrapper{overflow-x:auto;position:relative;min-height:200px}
+        table{width:100%;border-collapse:collapse;table-layout:fixed}
+        thead{position:sticky;top:0;z-index:2}
+        th{background:var(--header-bg);color:#e2e8f0;padding:11px 12px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+        td{padding:9px 12px;font-size:13px;border-bottom:1px solid #f1f3f5;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0}
+        /* Test name column can wrap — long names need space */
+        td:nth-child(3){white-space:normal;word-break:break-word}
+        /* Commission input cell needs visible overflow for focus ring */
+        td:nth-child(6){overflow:visible}
+        tr:nth-child(even) td{background:var(--row-even)}
+        tr:hover td{background:#fff0f4!important}
+        tr.manually-overridden td{background:#fffde7!important}
+        tr.manually-overridden:hover td{background:#fef9c3!important}
+        th:nth-child(1),td:nth-child(1){width:4%;text-align:center}
+        th:nth-child(2),td:nth-child(2){width:14%}
+        th:nth-child(3),td:nth-child(3){width:20%}
+        th:nth-child(4),td:nth-child(4){width:8%}
+        th:nth-child(5),td:nth-child(5){width:8%}
+        th:nth-child(6),td:nth-child(6){width:9%}
+        th:nth-child(7),td:nth-child(7){width:10%}
+        th:nth-child(8),td:nth-child(8){width:14%}
+        th:nth-child(9),td:nth-child(9){width:9%}
+        input.commission-rate{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;background:#f8fafc;color:var(--text);box-sizing:border-box;transition:border-color .15s,background .15s}
+        input.commission-rate:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(230,55,112,.1)}
+        input.commission-rate.input-error{border:2px solid #e74c3c!important;background:#fff5f5}
+        input.commission-rate.input-warn{border:2px solid #f59e0b!important;background:#fffbeb}
+        input.commission-rate.input-ok{border:2px solid #16a34a!important;background:#f0fdf4}
+        .rate-override{position:relative}
+        .rate-override::after{content:'✎';position:absolute;top:2px;right:4px;font-size:10px;color:#d97706;pointer-events:none}
+        .final-price1{font-weight:600;color:var(--success);font-family:'IBM Plex Mono',monospace}
+        .test-mrp,.my-price,.assigned-price{font-family:'IBM Plex Mono',monospace}
+        .skeleton-row td{background:transparent!important}
+        .skeleton-cell{height:16px;border-radius:4px;background:linear-gradient(90deg,var(--skeleton) 25%,var(--skeleton-shine) 50%,var(--skeleton) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .no-results{display:none;flex-direction:column;align-items:center;justify-content:center;padding:56px 20px;color:var(--text-muted);gap:12px}
+        .no-results i{font-size:40px;color:#cbd5e1}
+        .no-results h3{font-size:16px;font-weight:600;color:#374151}
+        .no-results p{font-size:13px}
+        .pagination-bar{padding:14px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#fafbfc}
+        .page-info{font-size:13px;color:var(--text-muted)}.page-info span{font-weight:700;color:var(--text)}
+        .page-controls{display:flex;align-items:center;gap:4px}
+        .page-btn{width:34px;height:34px;border:1px solid var(--border);background:var(--surface);border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;color:var(--text);display:flex;align-items:center;justify-content:center;transition:all .15s}
+        .page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+        .page-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+        .page-btn:disabled{opacity:.35;cursor:not-allowed}
+        .save-row{padding:16px 22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:14px;background:#fafbfc}
+        #pageLoader{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font-size:14px;font-weight:600;backdrop-filter:blur(2px)}
+        .spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        #toast{position:fixed;bottom:28px;right:28px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;z-index:1000;opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;pointer-events:none;max-width:360px}
+        #toast.show{opacity:1;transform:translateY(0)}
+        #toast.success{background:var(--success)}
+        #toast.error{background:#dc2626}
+        #toast.warn{background:#d97706}
+    </style>
+</head>
+<body>
+<div id="pageLoader"><div class="spinner"></div><span id="loaderMsg">Loading data…</span></div>
+<div id="toast"></div>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1><i class="fas fa-tags" style="margin-right:8px;color:#f472b6"></i>Bulk Pricing</h1>
+            <div class="breadcrumb"><i class="fas fa-home"></i> Dashboard &rsaquo; Pricing List</div>
+        </div>
+        <div id="franchisee-badge" class="franchisee-badge" style="display:none">
+            <i class="fas fa-user-circle"></i><span id="franchisee-badge-text"></span>
+        </div>
+    </div>
+    <div class="controls-card">
+        <i class="fas fa-building" style="color:var(--text-muted)"></i>
+        <input type="text" id="franchisee-name" value="Loading…" readonly style="flex:1">
+    </div>
+    <div class="trigger-row">
+        <label><i class="fas fa-percent" style="margin-right:4px"></i> Apply Global Rate (%)</label>
+        <input type="text" id="trigger-price" placeholder="0 – 100">
+        <button class="btn btn-accent" id="changePriceBtn"><i class="fas fa-bolt"></i> Apply to All</button>
+        <span style="font-size:12px;color:var(--text-muted)">Sabhi rows par ek hi % lagao. Baad mein kisi bhi row ka Rate(%) alag se badal sakte hain.</span>
+    </div>
+    <div id="triggerError"><i class="fas fa-exclamation-circle"></i><span id="triggerErrorMsg"></span></div>
+    <div id="statsBar">
+        <span>Global Rate: <b id="statGlobalRate">—</b>%</span>
+        <span>Total Items: <b id="statTotal">—</b></span>
+        <span class="stat-override">Manually Overridden: <b id="statOverride">0</b></span>
+        <span class="stat-legend"><span class="legend-box"></span> = alag se badla hua row</span>
+    </div>
+    <div class="rate-list-card">
+        <div class="rate-list-header">
+            <h2><i class="fas fa-database" style="margin-right:8px;color:var(--accent)"></i> Rate List</h2>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span id="totalCount" style="font-size:12px;color:var(--text-muted)"></span>
+                <div class="search-wrap"><i class="fas fa-search"></i><input type="text" id="searchTest" placeholder="Search tests, panels, packages…"></div>
+                <select class="rows-select" id="rowsPerPage">
+                    <option value="25">25 rows</option><option value="50" selected>50 rows</option>
+                    <option value="100">100 rows</option><option value="200">200 rows</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>#</th><th>Test ID</th><th>Test Name</th><th>Test MRP</th><th>My Price</th><th>Rate (%)</th><th>Assigned Price</th><th>Franchisee ID</th><th>Final Price</th></tr></thead>
+                <tbody id="test-list"></tbody>
+            </table>
+            <div class="no-results" id="noResults">
+                <i class="fas fa-search-minus"></i><h3>No results found</h3><p id="noResultsMsg">No tests match your search.</p>
+            </div>
+        </div>
+        <div class="pagination-bar" id="paginationBar" style="display:none">
+            <div class="page-info">Showing <span id="pageFrom">–</span>–<span id="pageTo">–</span> of <span id="pageTotal">–</span> records</div>
+            <div class="page-controls" id="pageControls"></div>
+        </div>
+        <div class="save-row">
+            <span id="saveStatus" style="font-size:12px;color:var(--text-muted)"></span>
+            <button class="btn btn-success" id="saveBtn"><i class="fas fa-save"></i> Save All Changes</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

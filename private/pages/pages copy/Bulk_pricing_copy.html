@@ -1,0 +1,94 @@
+<html></html>
+<head>
+    <title>Bulk Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin-right: 5px;
+        }
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .search-bar select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .search-bar button {
+            background-color: #ff4b5c;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .search-bar button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bulk Pricing</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i>
+                <a href="#">Dashboard</a>
+                <span>&gt;</span>
+                <span>Pricing List</span>
+            </div>
+        </div>
+        <div class="search-bar">
+            <select id="franchiseeSelect" class="franchiseeSelect">
+            </select>
+            <button id="searchBtn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+    </div>
+</body>
+</html>

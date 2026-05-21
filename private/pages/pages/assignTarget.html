@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Monthly Target</title>
+    <!-- <link rel="stylesheet" href="../style.css"> -->
+    <style>
+        .target-form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .target-form .form-group {
+            margin-bottom: 20px;
+        }
+
+        .target-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .target-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s ease;
+        }
+
+        .month-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #f1c40f;
+            color: #fff;
+        }
+
+        .status-achieved {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .status-failed {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .target-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .target-list {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Target Assignment Form -->
+        <div class="target-form" id="assignTargetForm">
+            <h2>Assign Monthly Target</h2>
+            <div class="form-group">
+                <label for="franchisee">Select Franchisee</label>
+                <select id="franchisee" required>
+                    <option value="">Select Franchisee</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="targetMonth">Month & Year</label>
+                <input type="month" id="targetMonth" required>
+            </div>
+            <div class="form-group">
+                <label for="targetAmount">Target Amount (₹)</label>
+                <input type="number" id="targetAmount" required min="0" step="1000" placeholder="Enter target amount">
+            </div>
+            <div class="form-group">
+                <label for="remarks">Remarks</label>
+                <textarea id="remarks" rows="3" placeholder="Add any remarks or notes"></textarea>
+            </div>
+            <button type="button" id="submitTarget" class="btn-primary">Assign Target</button>
+        </div>
+
+        <!-- Target List and Progress -->
+        <div class="target-list">
+            <h2>Targets Overview</h2>
+            
+            <!-- Month selector -->
+            <div class="month-selector">
+                <select id="viewMonth">
+                    <!-- Will be populated with last 12 months -->
+                </select>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="target-summary">
+                <div class="summary-card">
+                    <h3>Total Target</h3>
+                    <div class="target-amount" id="totalTarget">₹0</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Achieved</h3>
+                    <div class="target-amount" id="totalAchieved">₹0</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Achievement Rate</h3>
+                    <div class="target-amount" id="achievementRate">0%</div>
+                </div>
+            </div>
+
+            <!-- Target Cards List -->
+            <div id="targetCards">
+                <!-- Target cards will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../admin.js"></script>
+    <script src="assignTarget.js"></script>
+</body>
+</html>

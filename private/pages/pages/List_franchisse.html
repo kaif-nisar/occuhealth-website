@@ -1,0 +1,150 @@
+<html>
+
+<head>
+    <title>
+        My Franchisee List
+    </title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <style>
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: #e3f2fd;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .search-container {
+            margin: 20px 0;
+        }
+
+        .search-container input {
+            padding: 8px;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #f8e8a0;
+        }
+
+        table td img {
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>
+                My Franchisee List
+            </h1>
+            <div class="breadcrumb">
+                <a href="#">
+                    <i class="fas fa-home">
+                    </i>
+                    Dashboard
+                </a>
+                &gt;
+                <a href="#">
+                    Franchisee
+                </a>
+            </div>
+        </div>
+        <br><br>
+        <h2>
+            My Franchisee List
+        </h2>
+        <div class="search-container">
+            <label for="search">
+                Search:
+            </label>
+            <input id="search" name="search" type="text" />
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            #
+                        </th>
+                        <th>
+                            Franchisee Name
+                        </th>
+                        <th>
+                            Contact
+                        </th>
+                        <th>
+                            City
+                        </th>
+                        <th>
+                            State
+                        </th>
+                        <th>
+                            Address
+                        </th>
+                        <th>
+                            Accounts
+                        </th>
+                        <th>
+                            Edit
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

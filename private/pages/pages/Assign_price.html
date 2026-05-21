@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Price</title>
+    <style>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+
+        .panel-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-wrapper input {
+            padding-right: 40px;
+        }
+
+        .search-wrapper .clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #95a5a6;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            display: none;
+        }
+
+        .search-wrapper input:not(:placeholder-shown) + .clear-btn {
+            display: block;
+        }
+
+        .search-results-info {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Left Panel - Test Details */
+        #test-details-content {
+            min-height: 200px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #95a5a6;
+            padding: 60px 20px;
+            font-size: 14px;
+        }
+
+        .test-detail {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .test-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .price-label {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .price-label span {
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .franchisee-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .altered-badge {
+            color: #e74c3c;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .altered-badge span {
+            font-weight: 600;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        select option {
+            padding: 10px;
+        }
+
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Test Details -->
+        <div class="panel">
+            <h2 class="panel-title">Test Details</h2>
+            <div id="test-details-content">
+                <div class="no-data">Select a test to view details</div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Form -->
+        <div class="panel">
+            <h2 class="panel-title">Assign Price to Franchisee</h2>
+            <form id="test-pricing-form">
+                <!-- Franchisee Selection -->
+                <div class="form-group">
+                    <label for="franchisee" class="required">Select Franchisee</label>
+                    <select id="franchisee" required>
+                        <option value="">Choose Franchisee</option>
+                    </select>
+                </div>
+
+                <!-- Test Search -->
+                <div class="form-group">
+                    <label for="testSearch">Search Test</label>
+                    <div class="search-wrapper">
+                        <input 
+                            type="text" 
+                            id="testSearch" 
+                            placeholder="Type to search tests, panels, packages..."
+                            autocomplete="off"
+                        >
+                        <button type="button" class="clear-btn" id="clearSearch">✕</button>
+                    </div>
+                    <div class="search-results-info" id="search-results-count"></div>
+                </div>
+
+                <!-- Test Selection -->
+                <div class="form-group">
+                    <label for="test" class="required">Select Test</label>
+                    <select id="test" required>
+                        <option value="">First select franchisee</option>
+                    </select>
+                </div>
+
+                <!-- Pricing Section -->
+                <div class="input-group">
+                    <div class="form-group">
+                        <label for="test-price">My price (Rs.)</label>
+                        <input 
+                            type="number" 
+                            id="test-price" 
+                            placeholder="0.00" 
+                            step="0.01"
+                            readonly
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="base-price" class="required">Assigned Price (Rs.)</label>
+                        <input 
+                            type="number" 
+                            id="base-price" 
+                            placeholder="0.00" 
+                            step="0.01"
+                            required
+                        >
+                        <div class="error-message" id="base-price-error">
+                            Assigned price cannot exceed base price!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <div class="form-group">
+                        <label for="percentage">Commission (%)</label>
+                        <input 
+                            type="number" 
+                            id="percentage" 
+                            placeholder="0.00" 
+                            step="0.01"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="final-price">MRP (Rs.)</label>
+                        <input 
+                            type="number" 
+                            id="final-price" 
+                            placeholder="0.00" 
+                            step="0.01"
+                            readonly
+                        >
+                    </div>
+                </div>
+
+                <!-- Additional Fields -->
+                <div class="form-group">
+                    <label for="TAT">TAT (Turnaround Time)</label>
+                    <input 
+                        type="text" 
+                        id="TAT" 
+                        placeholder="e.g., 24 hours, 2 days"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="remarks">Remarks</label>
+                    <textarea 
+                        id="remarks" 
+                        rows="4" 
+                        placeholder="Enter any additional notes or remarks..."
+                    ></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button" class="submit-btn" id="submitbtn">
+                    Assign Price
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

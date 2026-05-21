@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>report format</title>
+
+<head>
+    <title>Lab Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style id="stying">
+        .container-format1 {
+            width: 100%;
+            height: auto;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 10px 0px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            overflow: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding: 10px 25px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-details {
+            width: 100%;
+        }
+
+        .report-details-innerDiv2 {
+            position: relative;
+            width: 95%;
+            padding: 0px 5px;
+            margin: auto;
+        }
+
+        .format1left2 {
+            width: 90%;
+            display: inline-block;
+        }
+
+        .format1-right2 {
+            height: 100%;
+            position: absolute;
+            display: inline-block;
+            left: 55%;
+            transform: translateX(-50%);
+        }
+
+        .format1-registeration-tag2 {
+            width: 115px;
+            display: inline-grid;
+            justify-content: space-between;
+        }
+
+        .format1-registered-div2 {
+            width: 144%;
+            padding-top: 1px;
+            padding-bottom: 1px;
+        }
+
+        .format1-time-div {
+            width: 43%;
+            display: inline-flex;
+            justify-content: space-between;
+        }
+
+        .value {
+            width: 65%;
+        }
+
+        .format1-tags {
+            width: 110px;
+        }
+
+        .format1-tags strong {
+            width: 100%;
+        }
+
+        #barcodeImage {
+            height: 35px;
+            width: 100px;
+            margin-top: 5px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        th,
+        td {
+            text-align: left;
+        }
+
+        th {
+            font-size: 14px;
+            color: rgb(44, 44, 44);
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
+        }
+
+        td {
+            font-size: 13px;
+        }
+
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+
+        .test-table thead {
+            font-size: 16px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-pdf-div {
+            display: flex;
+            margin-top: 1rem;
+            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            z-index: 100;
+            bottom: 0px;
+            width: 100%;
+            background-color: white;
+        }
+
+        #downloadPDF,
+        #signOff,
+        #PDFsetting,
+        #BrowserPrint,
+        #sendReport {
+            padding: 0.5rem 1rem;
+            font-weight: bolder;
+            font-size: 1rem;
+            box-shadow: 1px 1px 10px 1px rgba(46, 46, 46, 0.329);
+            border: none;
+            border-radius: 5px;
+        }
+
+        #downloadPDF i,
+        #signOff i,
+        #PDFsetting i,
+        #BrowserPrint i,
+        #sendReport i {
+            margin-right: 8px;
+            font-size: 1.5rem;
+            color: rgba(255, 0, 0, 0.703);
+        }
+
+        #sendReport {
+            background-color: #2bff0066;
+            border: none;
+        }
+
+        #sendReport i {
+            color: #20b801;
+        }
+
+        #signOff {
+            background-color: #00b7ffb0;
+            border-radius: 5px;
+        }
+
+        #signOff i {
+            color: rgb(48, 48, 48);
+        }
+
+        h3 {
+            text-align: center;
+            margin: 0px;
+        }
+
+        .signed-off-div {
+            width: 100%;
+
+            bottom: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 4rem;
+            overflow: auto;
+            font-size: 10px;
+        }
+
+        .container2 {
+            width: 95%;
+            margin: 0px auto;
+        }
+
+        .popup-modal {
+            display: none;
+            position: fixed;
+            z-index: 500;
+            top: 0%;
+            width: 80%;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow-y: scroll;
+        }
+
+        .popup-content {
+            margin: auto;
+            margin-top: 10rem;
+            background: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-button {
+            font-size: 30px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-header button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .popup-header button:hover {
+            background-color: #0056b3;
+        }
+
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .input-container {
+            margin: 20px 0px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .input-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #218838;
+        }
+
+        #qrimg {
+            width: 100px;
+            height: 100px;
+        }
+
+        .format1-infor-div {
+            display: flex;
+            padding-top: 2px;
+            padding-bottom: 2px;
+        }
+
+        .sign {
+            display: none;
+        }
+
+        .details-row {
+            padding-left: 20px;
+            font-size: 10px;
+        }
+
+        h2 {
+            text-align: center;
+            background-color: #bcbcbc !important;
+            -webkit-print-color-adjust: exact;
+            /* ✅ This forces background color in PDF */
+            print-color-adjust: exact;
+            /* Modern fallback */
+        }
+
+        .headings {
+            margin: 10px 0px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        tbody {
+            border-bottom: 1px solid rgb(44, 44, 44);
+            font-size: 16px;
+            padding-top: 1rem;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .wrong i,
+        .delete-btn i {
+            font-weight: 700;
+            color: #7474746d;
+        }
+
+        .wrong i:hover,
+        .delete-btn i:hover {
+            font-weight: 700;
+            color: #2b2b2b;
+        }
+
+        .delete-btn i {
+            font-size: 1.5rem;
+            padding-left: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        th,
+        td {
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .deletion {
+            width: 1rem;
+        }
+
+        .test-name {
+            width: 40%;
+            margin: 0px;
+            padding: 0rem 0rem;
+            position: relative;
+        }
+
+        td {
+            padding-top: 2px;
+        }
+
+        .notes,
+        .remark-row,
+        .advice,
+        .remarks {
+            padding-left: 10px;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .notes span,
+        .remark-row span,
+        .advice span,
+        .remarks span {
+            margin-left: 55%;
+        }
+
+        .notes div,
+        .advice div,
+        .remarks div,
+        .remark-row div {
+            display: inline-block;
+            width: 60px;
+        }
+
+        .moreDetails {
+            margin-top: 1rem;
+        }
+
+        .moreDetails span {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        .moreDetails div {
+            padding-left: 16px;
+        }
+
+        .valuecell {
+            padding-left: 50px;
+        }
+
+        .high-low div {
+            width: 50px;
+            display: inline-block;
+        }
+
+        .high-low span {
+            display: inline-block;
+        }
+
+        .labInchargeDiv {
+            display: none;
+        }
+
+        th .valuecell {
+            padding-left: 0px;
+        }
+
+        #investDiv {
+            display: flex;
+        }
+
+        #loadingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .loader-format3 {
+            width: 25px;
+            height: 25px;
+            border: 5px solid #fff;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .downloadDiv {
+            margin: 0.5rem 0.25rem;
+            position: relative;
+            width: fit-content;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .signed-off-div2 {
+            width: 100%;
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .signed-off-div,
+        .container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .signed-off-div::-webkit-scrollbar,
+        .container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .qr-div {
+            display: flex;
+            justify-content: end;
+            align-items: center;
+            margin-right: 15%;
+        }
+
+        .format1-right3 {
+            position: absolute;
+            right: 70px;
+            top: 0px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .barcodenumersdiv {
+            text-align: center;
+            border-right: 1px solid rgb(46, 46, 46);
+            border-left: 1px solid rgb(46, 46, 46);
+            padding: 0px 5px;
+            width: 100px;
+            word-wrap: break-word;
+        }
+
+        .format3qrdiv {
+            display: none;
+        }
+
+        .textspan {
+            width: 150px;
+        }
+
+        .fixedheightdiv {
+            max-width: 45%;
+        }
+
+        /* ✅ Documented content styles - applies to ALL CKEditor content */
+        .documented-content {
+            overflow-x: auto;
+            word-wrap: break-word;
+            background: white;
+        }
+
+        /* ✅ Isolate tables inside documented content */
+        .documented-content table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            margin: 10px 0 !important;
+            width: 100% !important;
+            background: white !important;
+        }
+
+        .documented-content table td,
+        .documented-content table th {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            background: white !important;
+        }
+
+        .documented-content table thead th {
+            background-color: #e9ecef !important;
+            font-weight: 600;
+        }
+
+        /* ✅ Typography inside documented content */
+        .documented-content p {
+            margin: 8px 0;
+        }
+
+        .documented-content ul,
+        .documented-content ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .documented-content h1 {
+            font-size: 1.8em;
+            margin: 15px 0 10px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h2 {
+            font-size: 1.5em;
+            margin: 12px 0 8px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h3 {
+            font-size: 1.3em;
+            margin: 10px 0 6px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h4,
+        .documented-content h5,
+        .documented-content h6 {
+            margin: 8px 0 4px 0;
+            font-weight: bold;
+        }
+
+        /* ✅ Blockquotes */
+        .documented-content blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* ✅ Code blocks */
+        .documented-content pre {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .documented-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ✅ Images inside documented content */
+        .documented-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px 0;
+        }
+
+        /* ✅ Links */
+        .documented-content a {
+            color: #1a73e8;
+            text-decoration: underline;
+        }
+
+        /* ✅ Prevent documented content from breaking parent table */
+        td[colspan="4"] {
+            vertical-align: top;
+            padding: 0 !important;
+        }
+
+        /* ✅ Details row specific styling */
+        .details-row {
+            padding: 0 !important;
+            font-size: 13px;
+        }
+
+        .details-row .documented-content {
+            padding-left: 20px;
+        }
+
+        /* ✅ Interpretation styling */
+        .interpretation {
+            padding: 10px;
+        }
+
+        .interpretation p {
+            margin: 5px 0;
+        }
+
+        /* ✅ More details section */
+        .moreDetails .documented-content {
+            padding-left: 20px;
+        }
+
+        @media screen and (max-width: 956px) {
+            .high-low div {
+                text-align: center;
+            }
+
+            .report-details-innerDiv2 {
+                font-size: 12px;
+            }
+
+            td {
+                font-size: 11px;
+            }
+
+            .container22 {
+                min-width: 712px;
+            }
+
+            .signed-off-div {
+                width: 100%;
+            }
+
+            .signed-off-div2 {
+                min-width: 712px;
+            }
+
+            .downloadDiv button span {
+                display: none;
+            }
+
+            #downloadPDF i,
+            #signOff i,
+            #PDFsetting i,
+            #BrowserPrint i,
+            #sendReport i {
+                font-size: 1rem;
+                margin: 0px;
+            }
+
+            #downloadPDF,
+            #signOff,
+            #PDFsetting,
+            #BrowserPrint,
+            #sendReport {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .popup-modal {
+                width: 100%;
+            }
+
+            .popup-content {
+                width: 40rem;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media print {
+            .section * {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            table,
+            tr,
+            td,
+            p {
+                margin: 0 !important;
+                border-spacing: 0 !important;
+                border-collapse: collapse !important;
+                line-height: 1 !important;
+            }
+
+            table {
+                margin-top: 5px !important;
+            }
+
+            .format1-infor-div {
+                padding-top: 2px !important;
+                padding-bottom: 2px !important;
+            }
+
+            .format1-right2 {
+                left: 55%;
+            }
+
+            #qrimg {
+                width: 50x;
+                height: 80px;
+                right: 257px;
+            }
+
+            .format1-registeration-tag2 {
+                width: 90px;
+            }
+
+            #barcodeImage {
+                height: 20px;
+                width: 75px;
+            }
+
+            .registered-div2 {
+                padding-top: 1px !important;
+            }
+
+            .signed-off-div2 {
+                justify-content: space-between;
+            }
+
+            .textspan {
+                width: 200px;
+                font-size: 12px !important;
+            }
+
+            .processedstrong {
+                font-size: 16px !important;
+            }
+
+            .format3qrdiv {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="modal" class="modal" style="display: none;">
+        <div class="form-section">
+            <span class="close-btn" onclick="closeModal()">✖️</span> <!-- Close button -->
+            <div class="selectTypeDiv">
+                <label for="select-type">Select Type</label>
+                <select id="select-type" onchange="toggleForm(this)">
+                    <option value="numeric" selected>Numeric</option>
+                    <option value="text">Text</option>
+                </select>
+            </div>
+
+            <div id="form-container">
+                <div class="row-container">
+                    <span class="delete-btn" onclick="deleteRow(this)">🗑️</span>
+                    <div class="row-item">
+                        <label for="sex">Sex</label>
+                        <select name="sex" class="sex">
+                            <option value="Any">Any</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="min_age">Min. Age</label>
+                        <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
+                    </div>
+                    <div class="row-item">
+                        <label for="min_age_unit">Min Age Unit</label>
+                        <select name="min_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="max_age">Max. Age</label>
+                        <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="20">
+                    </div>
+                    <div class="row-item">
+                        <label for="max_age_unit">Max Age Unit</label>
+                        <select name="max_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="lower_value">Lower Value</label>
+                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value"
+                            value="2.1" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <label for="upper_value">Upper Value</label>
+                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value"
+                            value="17.7" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <label for="upper_value">Display report</label>
+                        <span class="display-report">2.1 - 17.7</span>
+                    </div>
+                </div>
+            </div>
+
+            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
+
+            <div class="add-more-btn" id="add-more-btn" onclick="addRow()">+ Add more</div>
+            <div class="submit-div">
+                <button id="submit-button"> Submit now</button>
+            </div>
+        </div>
+    </div>
+    <br><br>
+    <div class="container-format1" id="container">
+        <div class="container22">
+            <div class="header">
+                <h1>Lab Report</h1>
+                <span class="badge">booking Id. <span id="booking-registeration-number"></span></span>
+            </div>
+            <div class="report-details">
+                <div class="sign click qr-div format3qrdiv">
+                    <img id="qrimg"
+                        src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1730987604/vximbk8olbhmhmhp5ele.jpg">
+                    <strong class="processedstrong">PROCESSES AT :<br>
+                        OCCUHEALTH</strong>
+                </div>
+            </div>
+            <div class="container2" id="containerpdf">
+                <div class="table-div" id="tables-container">
+                    <div class="spinner-grow" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <br><br>
+            <h3>~~~~End report~~~~</h3>
+        </div>
+    </div>
+    <div class="signed-off-div">
+
+    </div>
+    </div>
+
+    <div class="download-pdf-div">
+        <div class="downloadDiv">
+            <button id="signOff"><i class="fa-solid fa-signature"></i><span>Sign off</span></button>
+            <div id="loadingOverlay">
+                <div class="loader-format3"></div>
+            </div>
+        </div>
+        <div class="downloadDiv">
+            <button id="downloadPDF" class="sign click"><i class="fa-solid fa-file-pdf"></i><span>Download
+                    PDF</span></button>
+            <div id="loadingOverlay">
+                <div class="loader-format3"></div>
+            </div>
+        </div>
+        <div class="downloadDiv">
+            <button id="sendReport" class="sign click"><i class="fa-solid fa-paper-plane"></i> <span>Send
+                    Report</span></button>
+            <div id="loadingOverlay">
+                <div class="loader-format3"></div>
+            </div>
+        </div>
+        <div class="downloadDiv">
+            <button id="BrowserPrint" class="sign click"><i class="fa-solid fa-print"></i> <span>Browser
+                    print</span></button>
+            <div id="loadingOverlay">
+                <div class="loader-format3"></div>
+            </div>
+        </div>
+        <div class="downloadDiv" id="printsettingbutton">
+            <a href="pages/pages/printsetting.html" id="PDFsettinganchr"><button id="PDFsetting" class="sign click"><i
+                        class="fa-solid fa-gear"></i>
+                    <span>print Settings</span></button>
+            </a>
+            <div id="loadingOverlay">
+                <div class="loader-format3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup Modal -->
+    <div id="popupModal" class="popup-modal">
+        <div class="popup-content">
+            <!-- Close Button -->
+            <!-- Buttons -->
+            <div class="popup-header">
+                <div class="share-buttons">
+                    <button id="smsButton">SMS</button>
+                    <button id="whatsappButton">WhatsApp</button>
+                    <button id="emailButton">Email</button>
+                    <button id="openPdfButton">Open PDF</button>
+                </div>
+                <div class="closeBtnDiv">
+                    <span class="close-button">&times;</span>
+                </div>
+            </div>
+            <!-- Input Field for WhatsApp/Email/SMS -->
+            <div id="inputField" class="input-container" style="display: none;">
+                <input id="contactInput" type="text" placeholder="Enter Phone Number or Email" />
+                <button id="sendButton">Send</button>
+            </div>
+            <!-- PDF Iframe -->
+            <iframe id="pdfFrame" src="" class="pdf-viewer"></iframe>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="reportFormat1.js"></script>
+</body>
+
+</html>

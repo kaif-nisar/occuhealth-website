@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModelStack Admin | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- <link rel="stylesheet" href="pages/adminPanel.css"> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tiny.cloud/1/x3tepslopr7zsv4tj23hy7s7yen4n3xprs8ekz4w9jds1ohm/tinymce/5/tinymce.min.js"
+        referrerpolicy="origin"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+            <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.css">
+    <script src="https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.umd.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #e63946;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --sidebar-width: 250px;
+            --header-height: 60px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            transition: var(--transition);
+            z-index: 1000;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo i {
+            margin-right: 10px;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border-left: 4px solid transparent;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .menu-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-item span {
+            flex: 1;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: var(--transition);
+        }
+
+        .header {
+            height: var(--header-height);
+            background-color: white;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .toggle-sidebar {
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            position: relative;
+            margin: 0 20px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-bar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .notification,
+        .messages {
+            position: relative;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+
+        .notification i,
+        .messages i {
+            font-size: 18px;
+            color: var(--gray);
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--warning);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .user-profile span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Content Container */
+        .content {
+            padding: 20px;
+        }
+
+        /* Loader */
+        /* .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: var(--gray);
+        } */
+
+        /* Common Elements Used Across Pages */
+        .page-title {
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .toggle-sidebar {
+                display: block;
+            }
+
+            .user-profile span {
+                display: none;
+            }
+        }
+
+        :root {
+            --base_scale: 5vh;
+            --floor: 15vh;
+            --color: #836ee5;
+        }
+
+        *,
+        *:before,
+        *:after {
+            box-sizing: border-box;
+        }
+
+        .loader {
+            background: #eee;
+            min-height: 100vh;
+            width: 100%;
+            padding-bottom: var(--floor);
+            border-bottom: var(--floor) solid #fff;
+            overflow-y: hidden;
+            position: fixed;
+            z-index: 1050;
+            display: none;
+        }
+
+        .shape {
+            position: absolute;
+            display: block;
+            left: 50%;
+            bottom: 0;
+            margin-left: calc(-1 * (var(--base_scale) / 2));
+            margin-bottom: var(--floor);
+        }
+
+        .shape.circle {
+            width: var(--base_scale);
+            height: var(--base_scale);
+            background: var(--color);
+            border-radius: 50%;
+        }
+
+        .shape.semi-circle {
+            height: calc(var(--base_scale) * 2);
+            width: var(--base_scale);
+            background: var(--color);
+            border-bottom-right-radius: calc(var(--base_scale) * 2);
+            border-top-right-radius: calc(var(--base_scale) * 2);
+        }
+
+        .shape.square {
+            width: var(--base_scale);
+            height: var(--base_scale);
+            background: var(--color);
+        }
+
+        .shape.rectangle {
+            width: calc(var(--base_scale) * 1.5);
+            height: var(--base_scale);
+            background: var(--color);
+        }
+
+        .shape.triangle {
+            width: 0;
+            height: 0;
+            border-bottom: var(--base_scale) solid var(--color);
+            border-right: var(--base_scale) solid transparent;
+        }
+
+        .shape.triangle-2 {
+            width: 0;
+            height: 0;
+            border-top: var(--base_scale) solid var(--color);
+            border-left: var(--base_scale) solid transparent;
+        }
+
+        .shape.bounce-up {
+            --bounce-variance: 0vh;
+            --bounce-height: calc(-1 * 50vh - calc(var(--base_scale) - var(--floor) + var(--bounce-variance)));
+            transition: transform 400ms cubic-bezier(0.215, 0.61, 0.355, 1);
+            transform: translateY(var(--bounce-height)) rotate(0deg);
+        }
+
+        .shape.bounce-down {
+            transition: transform 300ms cubic-bezier(0.6, 0.04, 0.98, 0.335);
+            transform: translateY(0) rotate(var(--rotation));
+        }
+
+        .main-content {
+            padding: 0px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 15%;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            display: none;
+            overflow: hidden;
+            outline: 0;
+            height: 70vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loader">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-layer-group"></i>
+                <span>OccuHealth</span>
+            </div>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-item active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item " data-page="expense">
+                <i class="fa-solid fa-money-bill-transfer"></i>
+                <span>Expense</span>
+            </div>
+            <div class="menu-item " data-page="budgetCategory">
+                <i class="fa-solid fa-money-bill-transfer"></i>
+                <span>Budget Category</span>
+            </div>
+            <div class="menu-item " data-page="addvideo">
+                <i class="fa-solid fa-video"></i>
+                <span>Add video</span>
+            </div>
+            <div class="menu-item" data-page="test">
+                <i class="fas fa-store"></i>
+                <span>Add Test</span>
+            </div>
+            <div class="menu-item" data-page="testPanels">
+                <i class="fas fa-store"></i>
+                <span>Add Panels</span>
+            </div>
+            <div class="menu-item" data-page="testPackage">
+                <i class="fas fa-store"></i>
+                <span>Add Package</span>
+            </div>
+            <div class="menu-item" data-page="testAssign">
+                <i class="fas fa-store"></i>
+                <span>Test Analysis</span>
+            </div>
+            <div class="menu-item" data-page="Add_staff">
+                <i class="fas fa-store"></i>
+                <span>Add Staff</span>
+            </div>
+            <div class="menu-item" data-page="staffActivity">
+                <i class="fas fa-store"></i>
+                <span>Staff Activity</span>
+            </div>
+            <div class="menu-item" data-page="category">
+                <i class="fas fa-store"></i>
+                <span>Add Category</span>
+            </div>
+            <div class="menu-item" data-page="models">
+                <i class="fas fa-cube"></i>
+                <span>Model Management</span>
+            </div>
+            <div class="menu-item" data-page="clients">
+                <i class="fas fa-users"></i>
+                <span>Client Management</span>
+            </div>
+            <div class="menu-item" data-page="withdrawal_requests">
+                <i class="fas fa-building-columns"></i>
+                <span>Withdrawal Requests</span>
+            </div>
+            <!-- <div class="menu-item" data-page="franchisee">
+                <i class="fas fa-store"></i>
+                <span>Franchisee Module</span>
+            </div> -->
+            <div class="menu-item" data-page="assignModel">
+                <i class="fas fa-store"></i>
+                <span>Assign Model</span>
+            </div>
+            <!-- <div class="menu-item" data-page="reports">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports & Analytics</span>
+            </div> -->
+            <!-- <div class="menu-item" data-page="register">
+                <i class="fas fa-chart-line"></i>
+                <span>Register</span>
+            </div> -->
+            <div class="menu-item" id="logout">
+                <i class="fas fa-chart-line"></i>
+                <span>logOut</span>
+            </div>
+            <!-- <div class="menu-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </div> -->
+        </nav>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="main-content">
+        <header class="header">
+            <div class="toggle-sidebar" id="toggle-sidebar">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search...">
+            </div>
+            <div class="user-menu">
+                <div class="notification">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="badge">5</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">AS</div>
+                    <span>Admin User</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Container - This is where the dynamic content will load -->
+        <main class="content" id="main-content">
+            <!-- Dynamic content will be loaded here -->
+        </main>
+        <script src="main.js"></script>
+</body>
+
+</html>

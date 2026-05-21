@@ -1,0 +1,162 @@
+<html></html>
+<head>
+    <title>Received Records</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e9f5fb;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .title {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-container .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .search-container .input-group i {
+            margin-right: 5px;
+            color: #666;
+        }
+        .search-container input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-container button {
+            background-color: #ff5b77;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .search-container button i {
+            margin-right: 5px;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .search-box input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .entries-info {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="title">Received Records</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> <a href="#">Dashboard</a> > Received Records
+        </div>
+        <br><br>
+        <div class="search-container">
+            <div class="input-group">
+                <i class="fas fa-calendar-alt"></i>
+                <label for="start">Start</label>
+                <input type="date" id="start" value="2024-09-02">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-calendar-alt"></i>
+                <label for="end">End</label>
+                <input type="date" id="end" value="2024-09-08">
+            </div>
+            <button><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="table-container">
+            <div class="search-box">
+                <label for="search">Search:</label>
+                <input type="text" id="search">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Supply Date</th>
+                        <th>Franchisee</th>
+                        <th>Material</th>
+                        <th>Supply Qty</th>
+                        <th>Supply Amount</th>
+                        <th>Supply Remarks</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-09-02</td>
+                        <td>Franchisee Name</td>
+                        <td>Material Name</td>
+                        <td>100</td>
+                        <td>$1000</td>
+                        <td>Remarks</td>
+                        <td>Status</td>
+                        <td>Action</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="entries-info">Showing 1 to 1 of 1 entries</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Product | E-Commerce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom styles */
+        .image-preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+
+        .image-preview-item {
+            position: relative;
+            height: 120px;
+            border: 2px dashed #d1d5db;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .remove-image {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background-color: rgba(239, 68, 68, 0.8);
+            color: white;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .drag-active {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Add New Product</h1>
+            <button onclick="loadPage('inventory')"
+                class="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition">
+                <i class="fas fa-arrow-left"></i>
+                Back to Products
+            </button>
+        </div>
+
+        <!-- Product Form -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <form id="productForm" class="p-6">
+                <!-- Basic Information Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Basic Information</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Product Name -->
+                        <div>
+                            <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">Product Name
+                                *</label>
+                            <input type="text" id="productName" name="productName" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-red-600 hidden" id="nameError">Product name is required</p>
+                        </div>
+
+                        <!-- SKU -->
+                        <div>
+                            <label for="productSKU" class="block text-sm font-medium text-gray-700 mb-1">SKU *</label>
+                            <input type="text" id="productSKU" name="productSKU" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-red-600 hidden" id="skuError">SKU is required</p>
+                        </div>
+
+                        <!-- Category -->
+                        <div>
+                            <label for="productCategory" class="block text-sm font-medium text-gray-700 mb-1">Category
+                                *</label>
+                            <select id="productCategory" name="productCategory" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select a category</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="Health care">Health care</option>
+                                <option value="home">Home & Kitchen</option>
+                                <option value="beauty">Beauty & Personal Care</option>
+                                <option value="sports">Sports & Outdoors</option>
+                                <option value="books">Books</option>
+                                <option value="toys">Toys & Games</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <p class="mt-1 text-xs text-red-600 hidden" id="categoryError">Category is required</p>
+                        </div>
+                        <div>
+                            <label for="productstatus" class="block text-sm font-medium text-gray-700 mb-1">Status
+                                *</label>
+                            <select id="productstatus" name="productstatus" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Pricing Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Pricing</h2>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <!-- Price -->
+                        <div>
+                            <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-1">Price
+                                *</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">₹</span>
+                                </div>
+                                <input type="number" id="productPrice" name="productPrice" step="0.01" min="0" required
+                                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <p class="mt-1 text-xs text-red-600 hidden" id="priceError">Valid price is required</p>
+                        </div>
+
+                        <!-- Compare at Price -->
+                        <div>
+                            <label for="productComparePrice"
+                                class="block text-sm font-medium text-gray-700 mb-1">Discount Price</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">₹</span>
+                                </div>
+                                <input type="number" id="productDiscountPrice" name="productDiscountPrice" step="0.01"
+                                    min="0"
+                                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="taxrate"
+                                class="block text-sm font-medium text-gray-700 mb-1">Tax rate</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">%</span>
+                                </div>
+                                <input type="number" id="taxrate" name="productDiscountPrice" step="0.01"
+                                    min="0"
+                                    class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Inventory Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Inventory</h2>
+                    <div class="grid md:grid-cols-1 gap-6">
+                        <!-- Stock Quantity -->
+                        <div>
+                            <label for="productStock" class="block text-sm font-medium text-gray-700 mb-1">Stock
+                                Quantity *</label>
+                            <input type="number" id="productStock" name="productStock" min="0" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="mt-1 text-xs text-red-600 hidden" id="stockError">Stock quantity is required</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Product Images Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Product Images</h2>
+
+                    <!-- Main Image Upload -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Main Product Image *</label>
+                        <div id="mainImageDropzone"
+                            class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition">
+                            <input type="file" id="mainImage" class="hidden" accept="image/*">
+                            <div id="mainImageContent" class="flex flex-col items-center justify-center">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-600">Drag & drop your main product image here, or click to
+                                    browse</p>
+                                <p class="text-xs text-gray-500 mt-2">Recommended size: 800x800px (1:1 ratio)</p>
+                            </div>
+                            <img id="mainImagePreview" class="hidden max-w-full max-h-64 object-contain"
+                                alt="Main product image preview">
+                        </div>
+                        <p class="mt-1 text-xs text-red-600 hidden" id="mainImageError">Main image is required</p>
+                    </div>
+
+                    <!-- Additional Images -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Additional Images</label>
+                        <div id="additionalImagesDropzone"
+                            class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition mb-4">
+                            <input type="file" id="additionalImages" class="hidden" accept="image/*" multiple>
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fas fa-images text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-600">Drag & drop additional product images here, or click to
+                                    browse</p>
+                                <p class="text-xs text-gray-500 mt-2">Upload up to 5 additional images</p>
+                            </div>
+                        </div>
+                        <div class="image-preview-container" id="additionalImagesPreview"></div>
+                    </div>
+                </section>
+
+                <!-- Description Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Description</h2>
+                    <div>
+                        <label for="productDescription" class="block text-sm font-medium text-gray-700 mb-1">Description
+                            *</label>
+                        <textarea id="productDescription" name="productDescription" rows="5" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Give your product a full description including features,
+                            benefits, and other relevant information.</p>
+                        <p class="mt-1 text-xs text-red-600 hidden" id="descriptionError">Description is required</p>
+                    </div>
+                </section>
+
+                <!-- Shipping Section -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">Shipping</h2>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <!-- Weight -->
+                        <div>
+                            <label for="productWeight"
+                                class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+                            <div class="relative">
+                                <input type="number" id="productWeight" name="productWeight" min="0" step="0.01"
+                                    class="w-full pl-16 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">kgs</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dimensions -->
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="relative">
+                                    <input type="number" id="productLength" name="productLength" min="0" step="0.01"
+                                        placeholder="Length"
+                                        class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500">cm</span>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" id="productWidth" name="productWidth" min="0" step="0.01"
+                                        placeholder="Width"
+                                        class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500">cm</span>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" id="productHeight" name="productHeight" min="0" step="0.01"
+                                        placeholder="Height"
+                                        class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500">cm</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-4 pt-6 border-t">
+                    <button type="button" onclick="loadPage('inventory')"
+                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,70 @@
+    <script>
+        document.getElementById('addCategoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const budget = document.getElementById('budget').value;
+            const nameError = document.getElementById('nameError');
+            const budgetError = document.getElementById('budgetError');
+            
+            // Reset errors
+            nameError.classList.add('hidden');
+            budgetError.classList.add('hidden');
+            
+            let isValid = true;
+            
+            if (!name) {
+                nameError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
+                budgetError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            if (!isValid) return;
+            
+            try {
+                // Simulating API call - replace with your actual endpoint
+                const response = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_AUTH_TOKEN' // Include your auth token
+                    },
+                    body: JSON.stringify({
+                        name,
+                        budget: parseFloat(budget)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccessModal('Category added successfully');
+                    document.getElementById('addCategoryForm').reset();
+                } else {
+                    throw new Error(result.message || 'Failed to add category');
+                }
+            } catch (error) {
+                showErrorModal(error.message);
+                console.error('Error:', error);
+            }
+        });
+        
+        function showSuccessModal(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+        
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+        
+        function hideModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('errorModal').classList.add('hidden');
+        }
+    </script>

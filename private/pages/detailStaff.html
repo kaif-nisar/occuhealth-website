@@ -1,0 +1,2393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModelStack Admin | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+:root {
+    --primary: #4361ee;
+    --primary-light: #4895ef;
+    --secondary: #3f37c9;
+    --success: #4cc9f0;
+    --warning: #f72585;
+    --danger: #e63946;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --gray: #6c757d;
+    --sidebar-width: 250px;
+    --header-height: 60px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --radius: 8px;
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f7fb;
+    color: var(--dark);
+    min-height: 100vh;
+    display: flex;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: var(--sidebar-width);
+    background: linear-gradient(180deg, var(--secondary) 0%, var(--primary) 100%);
+    color: white;
+    height: 100vh;
+    position: fixed;
+    transition: var(--transition);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo i {
+    margin-right: 10px;
+}
+
+.sidebar-menu {
+    padding: 20px 0;
+}
+
+.menu-item {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: var(--transition);
+    border-left: 4px solid transparent;
+}
+
+.menu-item:hover, .menu-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--success);
+}
+
+.menu-item i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-item span {
+    flex: 1;
+}
+
+/* Main Content Styles */
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    transition: var(--transition);
+}
+
+.header {
+    height: var(--header-height);
+    background-color: white;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.toggle-sidebar {
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+}
+
+.search-bar {
+    flex: 1;
+    max-width: 500px;
+    position: relative;
+    margin: 0 20px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 10px 15px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    outline: none;
+    transition: var(--transition);
+}
+
+.search-bar input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.search-bar i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+}
+
+.notification, .messages {
+    position: relative;
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.notification i, .messages i {
+    font-size: 18px;
+    color: var(--gray);
+}
+
+.badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--warning);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.user-profile span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Dashboard Content */
+.content {
+    padding: 20px;
+}
+
+.page-title {
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background-color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 24px;
+    color: white;
+}
+
+.clients-icon {
+    background-color: var(--primary);
+}
+
+.bookings-icon {
+    background-color: var(--secondary);
+}
+
+.models-icon {
+    background-color: var(--success);
+}
+
+.revenue-icon {
+    background-color: var(--warning);
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-card {
+    background-color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chart-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.chart-actions {
+    display: flex;
+}
+
+.chart-btn {
+    background-color: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px 10px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.chart-btn:hover {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.chart-container {
+    height: 300px;
+}
+
+/* Tables */
+.tables-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 20px;
+}
+
+@media (max-width: 1100px) {
+    .tables-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.table-card {
+    background-color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.table-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.table-actions a {
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.table-actions a i {
+    margin-left: 5px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+    font-weight: 600;
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+.table-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: var(--gray);
+    font-weight: bold;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 500;
+}
+
+.user-email {
+    color: var(--gray);
+    font-size: 12px;
+}
+
+.status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: rgba(76, 201, 240, 0.1);
+    color: var(--success);
+}
+
+.status-pending {
+    background-color: rgba(247, 37, 133, 0.1);
+    color: var(--warning);
+}
+
+.status-inactive {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--gray);
+}
+
+.action-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--gray);
+    transition: var(--transition);
+    margin-right: 5px;
+}
+
+.action-btn:hover {
+    color: var(--primary);
+}
+
+.notifications-section {
+    background-color: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-top: 20px;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.notification-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.notification-actions a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.icon-info {
+    background-color: var(--primary);
+}
+
+.icon-success {
+    background-color: var(--success);
+}
+
+.icon-warning {
+    background-color: var(--warning);
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-message {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.notification-time {
+    color: var(--gray);
+    font-size: 12px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal {
+    background-color: white;
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(-20px);
+    transition: var(--transition);
+}
+
+.modal-overlay.active .modal {
+    transform: translateY(0);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background-color: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--gray);
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    color: var(--danger);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .toggle-sidebar {
+        display: block;
+    }
+    
+    .stats-container {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    
+    .charts-container,
+    .tables-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .user-profile span {
+        display: none;
+    }
+}
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray);
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-secondary {
+            background-color: #f8f9fa;
+            color: var(--gray);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-cube"></i>
+                <span>ModelStack</span>
+            </div>
+        </div>
+        <div class="sidebar-menu">
+            <div class="menu-item active" data-section="dashboard">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item" data-section="model-management">
+                <i class="fas fa-layer-group"></i>
+                <span>Model Management</span>
+            </div>
+            <div class="menu-item" data-section="client-management">
+                <i class="fas fa-users"></i>
+                <span>Client Management</span>
+            </div>
+            <div class="menu-item" data-section="franchisee">
+                <i class="fas fa-store"></i>
+                <span>Franchisee Module</span>
+            </div>
+            <div class="menu-item" data-section="reports">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reports & Analytics</span>
+            </div>
+            <div class="menu-item" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-question-circle"></i>
+                <span>Help & Support</span>
+            </div>
+            <div class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="toggle-sidebar" id="toggle-sidebar">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search...">
+            </div>
+            <div class="user-menu">
+                <div class="notification">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="badge">5</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">JD</div>
+                    <span>John Doe</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="content" id="dashboard-section">
+            <h2 class="page-title">Dashboard</h2>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon clients-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">2,584</div>
+                        <div class="stat-label">Total Clients</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bookings-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">14,826</div>
+                        <div class="stat-label">Total Bookings</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon models-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">48</div>
+                        <div class="stat-label">Active Models</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon revenue-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">$124,856</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Revenue Overview</div>
+                        <div class="chart-actions">
+                            <button class="chart-btn active" data-period="weekly">Weekly</button>
+                            <button class="chart-btn" data-period="monthly">Monthly</button>
+                            <button class="chart-btn" data-period="yearly">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Model Usage</div>
+                        <div class="chart-actions">
+                            <button class="chart-btn active" data-type="all">All Models</button>
+                            <button class="chart-btn" data-type="layer">By Layer</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="modelUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tables-container">
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Recent Clients</div>
+                        <div class="table-actions">
+                            <a href="#">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Status</th>
+                                <th>Integration</th>
+                                <th>Last Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="table-avatar">AC</div>
+                                        <div class="user-info">
+                                            <div class="user-name">Acme Corp</div>
+                                            <div class="user-email">contact@acmecorp.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="status status-active">Active</span></td>
+                                <td><span class="integration-badge badge-api">API</span></td>
+                                <td>Today</td>
+                                <td>
+                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="table-avatar">GI</div>
+                                        <div class="user-info">
+                                            <div class="user-name">Global Industries</div>
+                                            <div class="user-email">info@globalind.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="status status-active">Active</span></td>
+                                <td><span class="integration-badge badge-embedded">Embedded</span></td>
+                                <td>Today</td>
+                                <td>
+                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="table-avatar">TS</div>
+                                        <div class="user-info">
+                                            <div class="user-name">Tech Solutions</div>
+                                            <div class="user-email">admin@techsol.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="status status-pending">Pending</span></td>
+                                <td><span class="integration-badge badge-none">None</span></td>
+                                <td>Yesterday</td>
+                                <td>
+                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="table-avatar">NE</div>
+                                        <div class="user-info">
+                                            <div class="user-name">New Enterprises</div>
+                                            <div class="user-email">contact@newent.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="status status-inactive">Inactive</span></td>
+                                <td><span class="integration-badge badge-api">API</span></td>
+                                <td>3 days ago</td>
+                                <td>
+                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Recent Bookings</div>
+                        <div class="table-actions">
+                            <a href="#">View All <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Client</th>
+                                <th>Model</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#BK-1234</td>
+                                <td>Acme Corp</td>
+                                <td>Predictive Analytics (4-Layer)</td>
+                                <td>Today</td>
+                                <td><span class="status status-active">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>#BK-1235</td>
+                                <td>Global Industries</td>
+                                <td>Data Processing (2-Layer)</td>
+                                <td>Today</td>
+                                <td><span class="status status-active">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>#BK-1236</td>
+                                <td>Tech Solutions</td>
+                                <td>NLP Engine (3-Layer)</td>
+                                <td>Yesterday</td>
+                                <td><span class="status status-pending">In Progress</span></td>
+                            </tr>
+                            <tr>
+                                <td>#BK-1237</td>
+                                <td>New Enterprises</td>
+                                <td>Basic Analysis (1-Layer)</td>
+                                <td>Yesterday</td>
+                                <td><span class="status status-inactive">Cancelled</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="notifications-section">
+                <div class="notification-header">
+                    <div class="notification-title">Notifications & Updates</div>
+                    <div class="notification-actions">
+                        <a href="#">Mark All as Read</a>
+                    </div>
+                </div>
+                <div class="notification-item">
+                    <div class="notification-icon icon-info">
+                        <i class="fas fa-info"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">New client <strong>FutureTech Inc.</strong> has registered.</div>
+                        <div class="notification-time">10 minutes ago</div>
+                    </div>
+                </div>
+                <div class="notification-item">
+                    <div class="notification-icon icon-success">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">Model <strong>Advanced Neural Network (4-Layer)</strong> deployment completed successfully.</div>
+                        <div class="notification-time">1 hour ago</div>
+                    </div>
+                </div>
+                <div class="notification-item">
+                    <div class="notification-icon icon-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">System update scheduled for tonight at 2:00 AM. Expected downtime: 30 minutes.</div>
+                        <div class="notification-time">3 hours ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Model Management Section -->
+        <div class="content model-management-section" id="model-management-section">
+            <h2 class="page-title">Model Management</h2>
+            
+            <div class="model-cards">
+                <div class="model-card">
+                    <div class="model-header">
+                        <div class="model-name">Basic Analysis</div>
+                        <div class="model-layer">1-Layer</div>
+                    </div>
+                    <div class="model-content">
+                        <div class="model-detail">
+                            <div class="detail-label">Price:</div>
+                            <div class="detail-value">$99/month</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Duration:</div>
+                            <div class="detail-value">Monthly</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value">Active</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Active Clients:</div>
+                            <div class="detail-value">423</div>
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="model-btn btn-edit">Edit Model</button>
+                        <button class="model-btn btn-delete">Delete</button>
+                    </div>
+                </div>
+                <div class="model-card">
+                    <div class="model-header">
+                        <div class="model-name">Data Processing</div>
+                        <div class="model-layer">2-Layer</div>
+                    </div>
+                    <div class="model-content">
+                        <div class="model-detail">
+                            <div class="detail-label">Price:</div>
+                            <div class="detail-value">$199/month</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Duration:</div>
+                            <div class="detail-value">Monthly</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value">Active</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Active Clients:</div>
+                            <div class="detail-value">287</div>
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="model-btn btn-edit">Edit Model</button>
+                        <button class="model-btn btn-delete">Delete</button>
+                    </div>
+                </div>
+                <div class="model-card">
+                    <div class="model-header">
+                        <div class="model-name">NLP Engine</div>
+                        <div class="model-layer">3-Layer</div>
+                    </div>
+                    <div class="model-content">
+                        <div class="model-detail">
+                            <div class="detail-label">Price:</div>
+                            <div class="detail-value">$349/month</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Duration:</div>
+                            <div class="detail-value">Monthly</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value">Active</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Active Clients:</div>
+                            <div class="detail-value">156</div>
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="model-btn btn-edit">Edit Model</button>
+                        <button class="model-btn btn-delete">Delete</button>
+                    </div>
+                </div>
+                <div class="model-card">
+                    <div class="model-header">
+                        <div class="model-name">Predictive Analytics</div>
+                        <div class="model-layer">4-Layer</div>
+                    </div>
+                    <div class="model-content">
+                        <div class="model-detail">
+                            <div class="detail-label">Price:</div>
+                            <div class="detail-value">$499/month</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Duration:</div>
+                            <div class="detail-value">Monthly</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value">Active</div>
+                        </div>
+                        <div class="model-detail">
+                            <div class="detail-label">Active Clients:</div>
+                            <div class="detail-value">98</div>
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="model-btn btn-edit">Edit Model</button>
+                        <button class="model-btn btn-delete">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="add-model-btn" id="add-model-btn">
+                <i class="fas fa-plus"></i>
+            </div>
+        </div>
+        
+        <!-- Client Management Section -->
+        <div class="content client-management-section" id="client-management-section">
+            <h2 class="page-title">Client Management</h2>
+            
+            <div class="client-list-header">
+                <div class="client-filters">
+                    <button class="filter-btn active">All Clients</button>
+                    <button class="filter-btn">Active</button>
+                    <button class="filter-btn">Pending</button>
+                    <button class="filter-btn">Inactive</button>
+                </div>
+                <button class="model-btn btn-edit">Add New Client</button>
+            </div>
+            
+            <div class="client-list">
+                <table class="client-table">
+                    <thead>
+                        <tr>
+                            <th>Client Name</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Integration</th>
+                            <th>Models</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Acme Corporation</td>
+                            <td>John Smith</td>
+                            <td>john@acmecorp.com</td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td><span class="integration-badge badge-api">API</span></td>
+                            <td>3</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Global Industries</td>
+                            <td>Sarah Johnson</td>
+                            <td>sarah@globalind.com</td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td><span class="integration-badge badge-embedded">Embedded</span></td>
+                            <td>2</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tech Solutions</td>
+                            <td>Mike Wilson</td>
+                            <td>mike@techsol.com</td>
+                            <td><span class="status status-pending">Pending</span></td>
+                            <td><span class="integration-badge badge-none">None</span></td>
+                            <td>1</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>New Enterprises</td>
+                            <td>Lisa Brown</td>
+                            <td>lisa@newent.com</td>
+                            <td><span class="status status-inactive">Inactive</span></td>
+                            <td><span class="integration-badge badge-api">API</span></td>
+                            <td>0</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Future Tech Inc</td>
+                            <td>Alex Taylor</td>
+                            <td>alex@futuretech.com</td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td><span class="integration-badge badge-embedded">Embedded</span></td>
+                            <td>4</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Franchisee Module Section -->
+        <div class="content franchisee-section" id="franchisee-section">
+            <h2 class="page-title">Franchisee Module</h2>
+            
+            <div class="franchisee-stats">
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">JW</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">John Wilson</div>
+                            <div class="franchisee-location">New York, USA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">48</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$24,586</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$4,917</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">MJ</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">Maria Johnson</div>
+                            <div class="franchisee-location">Los Angeles, USA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">36</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$19,384</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$3,877</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">RS</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">Robert Smith</div>
+                            <div class="franchisee-location">Chicago, USA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">42</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$22,156</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$4,431</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">KL</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">Kevin Lee</div>
+                            <div class="franchisee-location">San Francisco, USA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">29</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$15,723</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$3,145</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Commission Distribution</div>
+                    <div class="chart-actions">
+                        <button class="chart-btn active" data-period="monthly">Monthly</button>
+                        <button class="chart-btn" data-period="quarterly">Quarterly</button>
+                        <button class="chart-btn" data-period="yearly">Yearly</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="commissionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tables -->
+        <div class="tables-container">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Recent Clients</div>
+                    <div class="table-actions">
+                        <a href="#">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Status</th>
+                            <th>Integration</th>
+                            <th>Last Activity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="table-avatar">AB</div>
+                                    <div class="user-info">
+                                        <div class="user-name">Acme Business</div>
+                                        <div class="user-email">contact@acme.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td>API + Embedded</td>
+                            <td>Today, 13:45</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="table-avatar">TS</div>
+                                    <div class="user-info">
+                                        <div class="user-name">Tech Solutions Inc.</div>
+                                        <div class="user-email">info@techsolutions.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td>API Only</td>
+                            <td>Yesterday, 09:20</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="table-avatar">GL</div>
+                                    <div class="user-info">
+                                        <div class="user-name">Global Logistics</div>
+                                        <div class="user-email">support@globallogistics.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="status status-pending">Pending</span></td>
+                            <td>None</td>
+                            <td>Mar 28, 2025</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="table-avatar">FE</div>
+                                    <div class="user-info">
+                                        <div class="user-name">Future Electronics</div>
+                                        <div class="user-email">admin@futureelec.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="status status-inactive">Inactive</span></td>
+                            <td>Embedded Only</td>
+                            <td>Mar 25, 2025</td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Recent Bookings</div>
+                    <div class="table-actions">
+                        <a href="#">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Model</th>
+                            <th>Start Date</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Acme Business</td>
+                            <td>4-Layer Enterprise</td>
+                            <td>Apr 1, 2025</td>
+                            <td>3 Months</td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tech Solutions Inc.</td>
+                            <td>3-Layer Advanced</td>
+                            <td>Mar 29, 2025</td>
+                            <td>1 Month</td>
+                            <td><span class="status status-active">Active</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Global Logistics</td>
+                            <td>2-Layer Standard</td>
+                            <td>Apr 5, 2025</td>
+                            <td>2 Weeks</td>
+                            <td><span class="status status-pending">Scheduled</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Future Electronics</td>
+                            <td>1-Layer Basic</td>
+                            <td>Mar 15, 2025</td>
+                            <td>1 Month</td>
+                            <td><span class="status status-inactive">Completed</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-file-pdf"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Notifications Section -->
+        <div class="notifications-section">
+            <div class="notification-header">
+                <div class="notification-title">Recent Notifications</div>
+                <div class="notification-actions">
+                    <a href="#">Mark All as Read</a>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon icon-info">
+                    <i class="fas fa-info"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-message">
+                        <strong>Tech Solutions Inc.</strong> has renewed their subscription for the 3-Layer Advanced model.
+                    </div>
+                    <div class="notification-time">30 minutes ago</div>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon icon-success">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-message">
+                        <strong>New Franchisee:</strong> East Coast Analytics has been approved and added to your network.
+                    </div>
+                    <div class="notification-time">2 hours ago</div>
+                </div>
+            </div>
+            <div class="notification-item">
+                <div class="notification-icon icon-warning">
+                    <i class="fas fa-exclamation"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-message">
+                        <strong>System Update:</strong> New features will be deployed on April 5. No downtime expected.
+                    </div>
+                    <div class="notification-time">Yesterday</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Model Management Section -->
+    <div class="model-management-section content">
+        <h1 class="page-title">Model Management</h1>
+        
+        <div class="model-cards">
+            <div class="model-card">
+                <div class="model-header">
+                    <div class="model-name">Basic Model</div>
+                    <div class="model-layer">1-Layer</div>
+                </div>
+                <div class="model-content">
+                    <div class="model-detail">
+                        <div class="detail-label">Price:</div>
+                        <div class="detail-value">$499/month</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">1 week - 3 months</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Active Rentals:</div>
+                        <div class="detail-value">24</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Available Units:</div>
+                        <div class="detail-value">18</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Test Packages:</div>
+                        <div class="detail-value">2 (Basic, Standard)</div>
+                    </div>
+                </div>
+                <div class="model-actions">
+                    <button class="model-btn btn-edit">Edit Model</button>
+                    <button class="model-btn btn-delete">Delete</button>
+                </div>
+            </div>
+            
+            <div class="model-card">
+                <div class="model-header">
+                    <div class="model-name">Standard Model</div>
+                    <div class="model-layer">2-Layer</div>
+                </div>
+                <div class="model-content">
+                    <div class="model-detail">
+                        <div class="detail-label">Price:</div>
+                        <div class="detail-value">$999/month</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">1 month - 6 months</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Active Rentals:</div>
+                        <div class="detail-value">32</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Available Units:</div>
+                        <div class="detail-value">15</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Test Packages:</div>
+                        <div class="detail-value">3 (Basic, Standard, Advanced)</div>
+                    </div>
+                </div>
+                <div class="model-actions">
+                    <button class="model-btn btn-edit">Edit Model</button>
+                    <button class="model-btn btn-delete">Delete</button>
+                </div>
+            </div>
+            
+            <div class="model-card">
+                <div class="model-header">
+                    <div class="model-name">Advanced Model</div>
+                    <div class="model-layer">3-Layer</div>
+                </div>
+                <div class="model-content">
+                    <div class="model-detail">
+                        <div class="detail-label">Price:</div>
+                        <div class="detail-value">$1,999/month</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">3 months - 12 months</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Active Rentals:</div>
+                        <div class="detail-value">18</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Available Units:</div>
+                        <div class="detail-value">7</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Test Packages:</div>
+                        <div class="detail-value">4 (All Variants)</div>
+                    </div>
+                </div>
+                <div class="model-actions">
+                    <button class="model-btn btn-edit">Edit Model</button>
+                    <button class="model-btn btn-delete">Delete</button>
+                </div>
+            </div>
+            
+            <div class="model-card">
+                <div class="model-header">
+                    <div class="model-name">Enterprise Model</div>
+                    <div class="model-layer">4-Layer</div>
+                </div>
+                <div class="model-content">
+                    <div class="model-detail">
+                        <div class="detail-label">Price:</div>
+                        <div class="detail-value">$3,999/month</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Duration:</div>
+                        <div class="detail-value">6 months - 24 months</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Active Rentals:</div>
+                        <div class="detail-value">12</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Available Units:</div>
+                        <div class="detail-value">4</div>
+                    </div>
+                    <div class="model-detail">
+                        <div class="detail-label">Test Packages:</div>
+                        <div class="detail-value">5 (All Premium Variants)</div>
+                    </div>
+                </div>
+                <div class="model-actions">
+                    <button class="model-btn btn-edit">Edit Model</button>
+                    <button class="model-btn btn-delete">Delete</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="add-model-btn">
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
+    
+    <!-- Client Management Section -->
+    <div class="client-management-section content">
+        <h1 class="page-title">Client Management</h1>
+        
+        <div class="client-list-header">
+            <div class="client-filters">
+                <button class="filter-btn active">All Clients</button>
+                <button class="filter-btn">Active</button>
+                <button class="filter-btn">Pending</button>
+                <button class="filter-btn">Inactive</button>
+            </div>
+            <button class="chart-btn">
+                <i class="fas fa-plus"></i> Add New Client
+            </button>
+        </div>
+        
+        <div class="client-list">
+            <table class="client-table">
+                <thead>
+                    <tr>
+                        <th>Client Name</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Integration</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Acme Business</td>
+                        <td>contact@acme.com</td>
+                        <td><span class="status status-active">Active</span></td>
+                        <td><span class="integration-badge badge-api">API</span> <span class="integration-badge badge-embedded">Embedded</span></td>
+                        <td>5</td>
+                        <td>$21,995</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Tech Solutions Inc.</td>
+                        <td>info@techsolutions.com</td>
+                        <td><span class="status status-active">Active</span></td>
+                        <td><span class="integration-badge badge-api">API</span></td>
+                        <td>3</td>
+                        <td>$7,995</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Global Logistics</td>
+                        <td>support@globallogistics.com</td>
+                        <td><span class="status status-pending">Pending</span></td>
+                        <td><span class="integration-badge badge-none">None</span></td>
+                        <td>1</td>
+                        <td>$999</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Future Electronics</td>
+                        <td>admin@futureelec.com</td>
+                        <td><span class="status status-inactive">Inactive</span></td>
+                        <td><span class="integration-badge badge-embedded">Embedded</span></td>
+                        <td>0</td>
+                        <td>$0</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Northern Healthcare</td>
+                        <td>info@northernhealth.org</td>
+                        <td><span class="status status-active">Active</span></td>
+                        <td><span class="integration-badge badge-api">API</span> <span class="integration-badge badge-embedded">Embedded</span></td>
+                        <td>8</td>
+                        <td>$31,992</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Pacific Retail Group</td>
+                        <td>contact@pacificretail.com</td>
+                        <td><span class="status status-active">Active</span></td>
+                        <td><span class="integration-badge badge-embedded">Embedded</span></td>
+                        <td>4</td>
+                        <td>$15,996</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Franchisee Module -->
+    <div class="franchisee-section content">
+        <h1 class="page-title">Franchisee Management</h1>
+        
+        <div class="franchisee-stats">
+            <div class="franchisee-card">
+                <div class="franchisee-header">
+                    <div class="franchisee-avatar">EC</div>
+                    <div class="franchisee-info">
+                        <div class="franchisee-name">East Coast Analytics</div>
+                        <div class="franchisee-location">New York, NY</div>
+                    </div>
+                </div>
+                <div class="franchisee-stats-row">
+                    <div class="franchisee-stat">
+                        <div class="stat-number">12</div>
+                        <div class="stat-name">Clients</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">28</div>
+                        <div class="stat-name">Bookings</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">$27K</div>
+                        <div class="stat-name">Revenue</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">18%</div>
+                        <div class="stat-name">Commission</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="franchisee-card">
+                <div class="franchisee-header">
+                    <div class="franchisee-avatar">WC</div>
+                    <div class="franchisee-info">
+                        <div class="franchisee-name">West Coast Tech</div>
+                        <div class="franchisee-location">San Francisco, CA</div>
+                    </div>
+                </div>
+                <div class="franchisee-stats-row">
+                    <div class="franchisee-stat">
+                        <div class="stat-number">18</div>
+                        <div class="stat-name">Clients</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">42</div>
+                        <div class="stat-name">Bookings</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">$58K</div>
+                        <div class="stat-name">Revenue</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">21%</div>
+                        <div class="stat-name">Commission</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="franchisee-card">
+                <div class="franchisee-header">
+                    <div class="franchisee-avatar">MS</div>
+                    <div class="franchisee-info">
+                        <div class="franchisee-name">Midwest Solutions</div>
+                        <div class="franchisee-location">Chicago, IL</div>
+                    </div>
+                </div>
+                <div class="franchisee-stats-row">
+                    <div class="franchisee-stat">
+                        <div class="stat-number">9</div>
+                        <div class="stat-name">Clients</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">17</div>
+                        <div class="stat-name">Bookings</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">$21K</div>
+                        <div class="stat-name">Revenue</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">15%</div>
+                        <div class="stat-name">Commission</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="franchisee-card">
+                <div class="franchisee-header">
+                    <div class="franchisee-avatar">SE</div>
+                    <div class="franchisee-info">
+                        <div class="franchisee-name">Southeast Partners</div>
+                        <div class="franchisee-location">Miami, FL</div>
+                    </div>
+                </div>
+                <div class="franchisee-stats-row">
+                    <div class="franchisee-stat">
+                        <div class="stat-number">11</div>
+                        <div class="stat-name">Clients</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">24</div>
+                        <div class="stat-name">Bookings</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">$32K</div>
+                        <div class="stat-name">Revenue</div>
+                    </div>
+                    <div class="franchisee-stat">
+                        <div class="stat-number">19%</div>
+                        <div class="stat-name">Commission</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Commission Distribution</div>
+                <button class="chart-btn">
+                    <i class="fas fa-plus"></i> Add New Franchisee
+                </button>
+            </div>
+            <div class="chart-container">
+                <canvas id="franchiseeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reports Section -->
+    <div class="reports-section content">
+        <h1 class="page-title">Reports & Analytics</h1>
+        
+        <div class="reports-options">
+            <div class="report-option">
+                <div class="report-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="report-title">Revenue Reports</div>
+                <div class="report-description">
+                    Analyze revenue trends, model performance, and identify growth opportunities.
+                </div>
+                <a href="#" class="report-link">
+                    Generate Report <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="report-option">
+                <div class="report-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="report-title">Client Activity</div>
+                <div class="report-description">
+                    Track client usage patterns, test results, and engagement metrics.
+                </div>
+                <a href="#" class="report-link">
+                    Generate Report <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="report-option">
+                <div class="report-icon">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div class="report-title">Model Performance</div>
+                <div class="report-description">
+                    Evaluate model utilization, test results, and efficiency metrics.
+                </div>
+                <a href="#" class="report-link">
+                    Generate Report <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            
+            <div class="report-option">
+                <div class="report-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <div class="report-title">Franchisee Reports</div>
+                <div class="report-description">
+                    Assess franchisee performance, commission distribution, and growth metrics.
+                </div>
+                <a href="#" class="report-link">
+                    Generate Report <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Revenue Breakdown by Model Type</div>
+                <div class="chart-actions">
+                    <button class="chart-btn active" data-period="monthly">Monthly</button>
+                    <button class="chart-btn" data-period="quarterly">Quarterly</button>
+                    <button class="chart-btn" data-period="yearly">Yearly</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueByModelChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Model Usage Comparison</div>
+                    <div class="chart-actions">
+                        <button class="chart-btn active">Download CSV</button>
+                        <button class="chart-btn">Download PDF</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="modelUsageChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Client Growth Trend</div>
+                    <div class="chart-actions">
+                        <button class="chart-btn active">Download CSV</button>
+                        <button class="chart-btn">Download PDF</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="clientGrowthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Section -->
+    <h3>Add New Model</h3>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label class="form-label">Model Name</label>
+                <input type="text" class="form-input" placeholder="Enter model name">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Layer Type</label>
+                <select class="form-select">
+                    <option value="" disabled selected>Select layer type</option>
+                    <option value="1">1-Layer</option>
+                    <option value="2">2-Layer</option>
+                    <option value="3">3-Layer</option>
+                    <option value="4">4-Layer</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Rental Price</label>
+                <input type="number" class="form-input" placeholder="Enter price">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Rental Duration (days)</label>
+                <input type="number" class="form-input" placeholder="Enter duration">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Description</label>
+                <textarea class="form-input" rows="3" placeholder="Enter description"></textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Status</label>
+                <div class="switch-container">
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">Available</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="form-btn btn-cancel close-modal">Cancel</button>
+            <button class="form-btn btn-save">Save Model</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Test Package Modal -->
+<div class="modal-overlay" id="addPackageModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Create Test Package</h3>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label class="form-label">Package Name</label>
+                <input type="text" class="form-input" placeholder="Enter package name">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Associated Model</label>
+                <select class="form-select">
+                    <option value="" disabled selected>Select model</option>
+                    <option value="1">Advanced ML Model (4-Layer)</option>
+                    <option value="2">Intermediate Classifier (3-Layer)</option>
+                    <option value="3">Basic Predictor (2-Layer)</option>
+                    <option value="4">Simple Analyzer (1-Layer)</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Test Duration (days)</label>
+                <input type="number" class="form-input" placeholder="Enter duration">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Price</label>
+                <input type="number" class="form-input" placeholder="Enter price">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Description</label>
+                <textarea class="form-input" rows="3" placeholder="Enter description"></textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Status</label>
+                <div class="switch-container">
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span class="switch-label">Active</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="form-btn btn-cancel close-modal">Cancel</button>
+            <button class="form-btn btn-save">Create Package</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Franchisee Modal -->
+<div class="modal-overlay" id="addFranchiseeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add New Franchisee</h3>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label class="form-label">Franchisee Name</label>
+                <input type="text" class="form-input" placeholder="Enter franchisee name">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" placeholder="Enter email address">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Phone Number</label>
+                <input type="text" class="form-input" placeholder="Enter phone number">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" placeholder="Enter location">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Commission Rate (%)</label>
+                <input type="number" class="form-input" placeholder="Enter commission rate">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Agreement Start Date</label>
+                <input type="date" class="form-input">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Agreement End Date</label>
+                <input type="date" class="form-input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="form-btn btn-cancel close-modal">Cancel</button>
+            <button class="form-btn btn-save">Add Franchisee</button>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // DOM Elements
+    const sidebar = document.querySelector('.sidebar');
+    const toggleSidebarBtn = document.querySelector('.toggle-sidebar');
+    const menuItems = document.querySelectorAll('.menu-item');
+    const sections = document.querySelectorAll('.dashboard-section, .model-management-section, .client-management-section, .franchisee-section, .reports-section, .settings-section');
+    const modalOverlays = document.querySelectorAll('.modal-overlay');
+    const closeModalBtns = document.querySelectorAll('.close-modal');
+    const addModelBtn = document.querySelector('.add-model-btn');
+    const addPackageBtn = document.querySelector('.add-package-btn');
+    const addFranchiseeBtn = document.querySelector('.add-franchisee-btn');
+    
+    // Toggle Sidebar
+    toggleSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
+    
+    // Menu Item Click
+    menuItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+            // Remove active class from all menu items
+            menuItems.forEach(i => i.classList.remove('active'));
+            
+            // Add active class to clicked menu item
+            item.classList.add('active');
+            
+            // Hide all sections
+            sections.forEach(section => section.style.display = 'none');
+            
+            // Show corresponding section
+            sections[index].style.display = 'block';
+        });
+    });
+    
+    // Modal Functions
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }
+    
+    function closeAllModals() {
+        modalOverlays.forEach(modal => {
+            modal.classList.remove('active');
+        });
+    }
+    
+    // Close Modal Buttons
+    closeModalBtns.forEach(btn => {
+        btn.addEventListener('click', closeAllModals);
+    });
+    
+    // Close Modal when clicking outside
+    modalOverlays.forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeAllModals();
+            }
+        });
+    });
+    
+    // Open Modals
+    if (addModelBtn) {
+        addModelBtn.addEventListener('click', () => openModal('addModelModal'));
+    }
+    
+    if (addPackageBtn) {
+        addPackageBtn.addEventListener('click', () => openModal('addPackageModal'));
+    }
+    
+    if (addFranchiseeBtn) {
+        addFranchiseeBtn.addEventListener('click', () => openModal('addFranchiseeModal'));
+    }
+    
+    // Initialize Charts
+    function initCharts() {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [12500, 15000, 17800, 16500, 21000, 22000],
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderColor: '#4361ee',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#4361ee',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Model Usage Chart
+        const modelUsageCtx = document.getElementById('modelUsageChart').getContext('2d');
+        const modelUsageChart = new Chart(modelUsageCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['1-Layer', '2-Layer', '3-Layer', '4-Layer'],
+                datasets: [{
+                    data: [15, 25, 35, 25],
+                    backgroundColor: ['#4cc9f0', '#4895ef', '#4361ee', '#3f37c9'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        initCharts();
+        
+        // Simulate loading data
+        setTimeout(() => {
+            document.querySelector('.loader-container').style.display = 'none';
+            document.querySelector('.dashboard-section').style.display = 'block';
+        }, 1000);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Admin Details</title>
+  <style>
+    .edit-form {
+      background: #ffffff;
+      max-width: 800px;
+      margin: auto;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-form h2 {
+      margin-bottom: 1.5rem;
+      color: #333;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
+    .form-actions {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .form-actions button {
+      padding: 0.8rem 2rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .form-actions button:hover {
+      background: #0056b3;
+    }
+
+    .form-group-edit {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group-edit label {
+      margin-bottom: 8px;
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    .form-group-edit input {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .form-group-edit input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    .format-choice {
+      display: flex;
+      gap: 1.5rem;
+      flex-direction: row;
+    }
+
+    .format {
+      height: 150px;
+      width: 115px;
+      border: 1px solid grey;
+      border-radius: 2px;
+      background-size: contain;
+    }
+
+    .format input {
+      margin: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <form class="edit-form" id="adminEditForm">
+    <h2>Edit Admin User Details</h2>
+
+    <div class="form-group">
+      <label for="fullName">Full Name</label>
+      <input type="text" id="fullName" name="fullName" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="admin" selected>Admin</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="phoneNo">Phone Number</label>
+      <input type="text" id="phoneNo" name="phoneNo" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="state">State</label>
+      <input type="text" id="state" name="state" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="district">District</label>
+      <input type="text" id="district" name="district" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="pinCode">PIN Code</label>
+      <input type="text" id="pinCode" name="pinCode" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="address">Address</label>
+      <input type="text" id="address" name="address" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="wallet">Wallet Balance</label>
+      <input type="number" id="wallet" name="wallet" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="status">Account Status</label>
+      <select id="status" name="status">
+        <option value="active" >Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+
+    <label for="leaseTerms">Pdf Format</label>
+    <div class="form-group-edit format-choice">
+      <label for="format1">
+        <div class="format1 format">
+          <input type="radio" id="format1" name="format" value="reportFormat3">
+        </div>
+      </label>
+      <label for="format2">
+        <div class="format2 format">
+          <input type="radio" name="format" id="format2" value="reportFormat1">
+        </div>
+      </label>
+      <label for="format3">
+        <div class="format3 format">
+          <input type="radio" name="format" id="format3" value="reportFormat">
+        </div>
+      </label>
+    </div>
+    <div class="form-group-edit other-choice">
+      <label for="printsetting">
+        <input type="checkbox" id="printsetting" name="printsetting">
+        <span>Show print setting</span>
+      </label>
+      <label for="testdatabase">
+        <input type="checkbox" id="testdatabase" name="testdatabase">
+        <span>Show Test Database</span>
+      </label>
+      <label for="randomResult">
+        <input type="checkbox" id="randomResult" name="randomResult">
+        <span>Show Random Result</span>
+      </label>
+    </div>
+
+    <h2 style="margin-top: 2rem;">Subscription Info</h2>
+
+    <div class="form-group">
+      <label for="planType">Plan Type</label>
+      <select id="planType" name="planType">
+        <option value="monthly" selected>Monthly</option>
+        <option value="quaterly">Half Year</option>
+        <option value="yearly">Yearly</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="price">Subscription Price</label>
+      <input type="number" id="price" name="price" value="" />
+    </div>
+
+    <div class="form-group">
+      <label for="paymentStatus">Payment Status</label>
+      <select id="paymentStatus" name="paymentStatus">
+        <option value="paid" selected>Paid</option>
+        <option value="unpaid">Unpaid</option>
+      </select>
+    </div>
+
+    <!-- Manual activation / cash payment fields -->
+    <div class="form-group">
+      <label for="paymentAmount">Manual Payment Amount (cash)</label>
+      <input type="number" id="paymentAmount" name="paymentAmount" value="0" />
+    </div>
+
+    <div class="form-group">
+      <label for="paymentMethod">Payment Method</label>
+      <select id="paymentMethod" name="paymentMethod">
+        <option value="cash" selected>Cash</option>
+        <option value="upi">UPI</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="manual">Manual</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="manualActivate" name="manualActivate" />
+        Mark tenant as manually activated (received cash)
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit">Save Changes</button>
+    </div>
+  </form>
+
+</body>
+
+</html>

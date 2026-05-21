@@ -1,0 +1,200 @@
+<html></html>
+<head>
+    <title>KYC Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #888888;
+        }
+        .breadcrumb a {
+            color: #888888;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin: 0 5px;
+        }
+        .complete {
+            color: green;
+            font-weight: bold;
+        }
+        .form-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            width: 20%;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 75%;
+            padding: 8px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+        }
+        .form-group textarea {
+            resize: vertical;
+        }
+        .form-group .half-width {
+            width: 48%;
+        }
+        .form-group .half-width input {
+            width: 100%;
+        }
+        .form-group .half-width select {
+            width: 100%;
+        }
+        .form-group .half-width textarea {
+            width: 100%;
+        }
+        .form-group .half-width label {
+            width: 100%;
+        }
+        .form-group .half-width {
+            display: inline-block;
+        }
+        .form-group .half-width:nth-child(odd) {
+            margin-right: 4%;
+        }
+        .form-group .half-width:nth-child(even) {
+            margin-left: 0;
+        }
+        .form-group .full-width {
+            width: 100%;
+        }
+        .form-group .full-width input {
+            width: 100%;
+        }
+        .form-group .full-width textarea {
+            width: 100%;
+        }
+        .form-group .full-width label {
+            width: 100%;
+        }
+        .btn-update {
+            background-color: #ff4d4d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-update:hover {
+            background-color: #ff3333;
+        }
+        .small-text {
+            font-size: 12px;
+            color: #888888;
+        }
+        .large-text {
+            font-size: 18px;
+            color: #000000;
+        }
+        .new-box {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>KYC Verification</h1>
+                <div class="breadcrumb">
+                    <a href="#">Dashboard</a> <i class="fa fa-chevron-right"></i> <a href="#">Franchisee</a>
+                </div>
+            </div>
+            <div class="complete">✔ Complete</div>
+        </div>
+        <div class="form-group">
+            <label for="name">Enter Name</label>
+            <input type="text" id="name" value="Mr. Abdul Ahad">
+        </div>
+        <div class="form-group">
+            <div class="half-width">
+                <label for="age">Enter Age</label>
+                <input type="text" id="age" value="23">
+            </div>
+            <div class="half-width">
+                <label for="gender">Gender</label>
+                <select id="gender">
+                    <option value="male" selected>Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="half-width">
+                <label for="phone">Phone No</label>
+                <input type="text" id="phone" value="9520034895">
+            </div>
+            <div class="half-width">
+                <label for="email">Email ID</label>
+                <input type="email" id="email" value="ahadsidd5@gmail.com">
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="half-width">
+                <label for="kyc-address">KYC Address</label>
+                <textarea id="kyc-address" rows="3">Dharadun chok Khalampura dr pathan wali gali</textarea>
+            </div>
+            <div class="half-width">
+                <label for="permanent-address">Permanent Address</label>
+                <textarea id="permanent-address" rows="3">Dharadun chok Khalampura dr pathan wali gali</textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="half-width">
+                <label for="pincode">Office Pincode</label>
+                <input type="text" id="pincode" value="247001">
+            </div>
+            <div class="half-width">
+                <label for="office-address">Office Address</label>
+                <textarea id="office-address" rows="3">Dharadun chok Khalampura dr pathan wali gali saharanpur</textarea>
+            </div>
+        </div>
+        <div class="form-group">
+            <button class="btn-update">Update</button>
+        </div>
+        <div class="new-box">
+            <p class="small-text">This is some small text inside the new box.</p>
+            <p class="large-text">This is some large text inside the new box.</p>
+        </div>
+    </div>
+</body>
+</html>

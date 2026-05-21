@@ -1,0 +1,479 @@
+<style>
+    .list-booking-page {
+        --lb-bg: linear-gradient(180deg, #f6fbff 0%, #eef5fb 100%);
+        --lb-surface: #ffffff;
+        --lb-border: #d8e4ef;
+        --lb-text: #16324f;
+        --lb-muted: #5e738a;
+        --lb-primary: #0f6cbd;
+        --lb-primary-soft: #dcecff;
+        --lb-shadow: 0 20px 45px rgba(19, 52, 82, 0.08);
+        background: var(--lb-bg);
+        border-radius: 28px;
+        color: var(--lb-text);
+        margin: 18px auto;
+        padding: 28px;
+        box-shadow: var(--lb-shadow);
+    }
+
+    .list-booking-page * {
+        box-sizing: border-box;
+    }
+
+    .lb-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 22px;
+    }
+
+    .lb-header h1 {
+        margin: 0;
+        font-size: 31px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .lb-header p {
+        margin: 8px 0 0;
+        color: var(--lb-muted);
+        font-size: 14px;
+    }
+
+    .lb-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .lb-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .lb-card {
+        background: var(--lb-surface);
+        border: 1px solid var(--lb-border);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(15, 50, 80, 0.05);
+    }
+
+    .lb-card-label {
+        color: var(--lb-muted);
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .lb-card-value {
+        margin-top: 10px;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .lb-card-sub {
+        margin-top: 8px;
+        color: var(--lb-muted);
+        font-size: 13px;
+    }
+
+    .lb-filter-panel {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--lb-border);
+        border-radius: 22px;
+        padding: 20px;
+        margin-bottom: 18px;
+    }
+
+    .lb-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .lb-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .lb-field label {
+        color: var(--lb-muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .lb-field input,
+    .lb-field select {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid #c9d9e6;
+        background: #fff;
+        color: var(--lb-text);
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .lb-field input:focus,
+    .lb-field select:focus {
+        outline: none;
+        border-color: #73abdc;
+        box-shadow: 0 0 0 4px rgba(15, 108, 189, 0.12);
+    }
+
+    .lb-button {
+        border: none;
+        border-radius: 14px;
+        padding: 11px 16px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+
+    .lb-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(15, 50, 80, 0.12);
+    }
+
+    .lb-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .lb-button-primary {
+        background: linear-gradient(135deg, #0f6cbd 0%, #1d86de 100%);
+        color: #fff;
+    }
+
+    .lb-button-secondary {
+        background: #eaf3fa;
+        color: #16324f;
+    }
+
+    .lb-button-ghost {
+        background: transparent;
+        border: 1px solid #c7d8e7;
+        color: #16324f;
+    }
+
+    .lb-table-shell {
+        background: var(--lb-surface);
+        border: 1px solid var(--lb-border);
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 50, 80, 0.05);
+    }
+
+    .lb-table-scroll {
+        overflow-x: auto;
+    }
+
+    .lb-table {
+        width: 100%;
+        min-width: 1120px;
+        border-collapse: collapse;
+    }
+
+    .lb-table th,
+    .lb-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #e5edf4;
+        vertical-align: top;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .lb-table th {
+        background: #f2f8fc;
+        color: #4e6378;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+    }
+
+    .lb-table tbody tr:hover {
+        background: rgba(15, 108, 189, 0.04);
+    }
+
+    .lb-booking-id {
+        font-weight: 800;
+        color: #0e4e87;
+    }
+
+    .lb-subtext {
+        display: block;
+        margin-top: 4px;
+        color: var(--lb-muted);
+        font-size: 12px;
+    }
+
+    .lb-barcode-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .lb-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: #eef5fb;
+        color: #244b6a;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .lb-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 132px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+    }
+
+    .lb-action-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .lb-action-btn {
+        border: 1px solid #cddbe8;
+        background: #fff;
+        color: #16324f;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .lb-action-btn:hover {
+        background: #f5faff;
+    }
+
+    .lb-action-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .lb-table-state {
+        padding: 44px 18px;
+        text-align: center;
+        color: var(--lb-muted);
+    }
+
+    .lb-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 4px 4px;
+        color: var(--lb-muted);
+        font-size: 13px;
+    }
+
+    .lb-pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @media (max-width: 1100px) {
+        .lb-summary-grid,
+        .lb-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 720px) {
+        .list-booking-page {
+            padding: 18px;
+            border-radius: 18px;
+        }
+
+        .lb-header {
+            flex-direction: column;
+        }
+
+        .lb-toolbar {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .lb-summary-grid,
+        .lb-filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .lb-pagination {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<section class="list-booking-page">
+    <div class="lb-header">
+        <div>
+            <h1>List Booking</h1>
+            <p>All non-cancelled bookings with hierarchy-aware filters, server-side pagination, and quick actions.</p>
+        </div>
+        <div class="lb-toolbar">
+            <button class="lb-button lb-button-secondary" id="lbExportExcelBtn">Export Excel</button>
+            <button class="lb-button lb-button-ghost" id="lbExportPdfBtn">Export PDF</button>
+        </div>
+    </div>
+
+    <div class="lb-summary-grid">
+        <div class="lb-card">
+            <div class="lb-card-label">Total Bookings</div>
+            <div class="lb-card-value" id="lbSummaryTotal">0</div>
+            <div class="lb-card-sub">Current filtered result</div>
+        </div>
+        <div class="lb-card">
+            <div class="lb-card-label">Pending</div>
+            <div class="lb-card-value" id="lbSummaryPending">0</div>
+            <div class="lb-card-sub">Awaiting completion</div>
+        </div>
+        <div class="lb-card">
+            <div class="lb-card-label">Completed</div>
+            <div class="lb-card-value" id="lbSummaryCompleted">0</div>
+            <div class="lb-card-sub">Finalized reports</div>
+        </div>
+        <div class="lb-card">
+            <div class="lb-card-label">Partial / Hold</div>
+            <div class="lb-card-value" id="lbSummaryAttention">0</div>
+            <div class="lb-card-sub">Partially completed and hold cases</div>
+        </div>
+    </div>
+
+    <div class="lb-filter-panel">
+        <div class="lb-filter-grid">
+            <div class="lb-field">
+                <label for="lbBookingOrBarcode">Booking ID / Barcode</label>
+                <input id="lbBookingOrBarcode" type="text" placeholder="Search booking id or barcode">
+            </div>
+            <div class="lb-field">
+                <label for="lbPatientName">Patient Name</label>
+                <input id="lbPatientName" type="text" placeholder="Enter patient name">
+            </div>
+            <div class="lb-field">
+                <label for="lbMobileNumber">Mobile Number</label>
+                <input id="lbMobileNumber" type="text" placeholder="Enter mobile number">
+            </div>
+            <div class="lb-field">
+                <label for="lbStatusFilter">Status</label>
+                <select id="lbStatusFilter">
+                    <option value="">All statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="Partially Completed">Partially Completed</option>
+                    <option value="Hold">Hold</option>
+                    <option value="Clinical Stated">Clinical Stated</option>
+                </select>
+            </div>
+            <div class="lb-field">
+                <label for="lbStartDate">Start Date</label>
+                <input id="lbStartDate" type="date">
+            </div>
+            <div class="lb-field">
+                <label for="lbEndDate">End Date</label>
+                <input id="lbEndDate" type="date">
+            </div>
+            <div class="lb-field">
+                <label for="lbUserFilter">Franchise / User</label>
+                <select id="lbUserFilter">
+                    <option value="">All hierarchy users</option>
+                </select>
+            </div>
+            <div class="lb-field">
+                <label for="lbSortBy">Sort By</label>
+                <select id="lbSortBy">
+                    <option value="latest">Latest Bookings</option>
+                    <option value="date">Booking Date</option>
+                    <option value="name">Patient Name</option>
+                    <option value="status">Status</option>
+                </select>
+            </div>
+            <div class="lb-field">
+                <label for="lbSortOrder">Sort Order</label>
+                <select id="lbSortOrder">
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                </select>
+            </div>
+            <div class="lb-field">
+                <label for="lbPageLimit">Rows Per Page</label>
+                <select id="lbPageLimit">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="lb-field" style="justify-content: end;">
+                <label>&nbsp;</label>
+                <button class="lb-button lb-button-primary" id="lbSearchBtn">Search</button>
+            </div>
+            <div class="lb-field" style="justify-content: end;">
+                <label>&nbsp;</label>
+                <button class="lb-button lb-button-ghost" id="lbClearBtn">Clear Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="lb-table-shell">
+        <div class="lb-table-scroll">
+            <table class="lb-table">
+                <thead>
+                    <tr>
+                        <th>Booking</th>
+                        <th>Date</th>
+                        <th>Patient</th>
+                        <th>Contact</th>
+                        <th>User</th>
+                        <th>Barcodes</th>
+                        <th>Tests</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="lbTableBody">
+                    <tr>
+                        <td colspan="8" class="lb-table-state">Loading bookings...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="lb-pagination">
+        <div id="lbPaginationInfo">Page 1 of 1</div>
+        <div class="lb-pagination-controls">
+            <button class="lb-button lb-button-ghost" id="lbPrevBtn">Previous</button>
+            <button class="lb-button lb-button-primary" id="lbNextBtn">Next</button>
+        </div>
+    </div>
+</section>

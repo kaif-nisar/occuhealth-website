@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Franchise Management Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --text-color: #2c3e50;
+            --background-color: #f4f6f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .franchise-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-header i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-3px);
+        }
+
+        .franchise-performance {
+            margin-top: 30px;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h1>Franchise Management</h1>
+                <p>Assigned Franchise: <span id="franchiseName">Loading...</span></p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Details
+                </button>
+                <button class="btn btn-danger">
+                    <i class="fas fa-times-circle"></i> Terminate Franchise
+                </button>
+            </div>
+        </div>
+
+        <div class="franchise-overview">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Model Details</h3>
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <p><strong>Model Type:</strong> <span id="modelType">Loading...</span></p>
+                <p><strong>Layer Count:</strong> <span id="layerCount">Loading...</span></p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Financial Details</h3>
+                    <i class="fas fa-rupee-sign"></i>
+                </div>
+                <p><strong>Monthly Rent:</strong> <span id="monthlyRent">Loading...</span></p>
+                <p><strong>Lease Terms:</strong> <span id="leaseTerms">Loading...</span></p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Franchise Status</h3>
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <p><strong>Current Status:</strong> <span id="franchiseStatus">Active</span></p>
+                <p><strong>Start Date:</strong> <span id="startDate">Loading...</span></p>
+            </div>
+        </div>
+
+        <div class="franchise-performance">
+            <h2>Franchise Performance</h2>
+            <div class="performance-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Revenue</h3>
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <p><strong>Monthly Revenue:</strong> ₹0</p>
+                    <p><strong>Annual Projection:</strong> ₹0</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Operational Metrics</h3>
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <p><strong>Branches:</strong> 0</p>
+                    <p><strong>Employees:</strong> 0</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Growth Potential</h3>
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <p><strong>Expansion Score:</strong> N/A</p>
+                    <p><strong>Market Potential:</strong> Moderate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate data retrieval from previous page or backend
+        document.addEventListener('DOMContentLoaded', () => {
+            // Retrieve data from localStorage (simulating data passing from previous page)
+            const franchiseData = JSON.parse(localStorage.getItem('franchiseData') || '{}');
+
+            // Update page elements
+            document.getElementById('franchiseName').textContent = franchiseData.franchiseName || 'Not Specified';
+            document.getElementById('modelType').textContent = `${franchiseData.layerCount || 'N/A'} Layer Franchise Model`;
+            document.getElementById('layerCount').textContent = franchiseData.layerCount || 'N/A';
+            document.getElementById('monthlyRent').textContent = franchiseData.rentAmount ? `₹${franchiseData.rentAmount}` : 'N/A';
+            document.getElementById('leaseTerms').textContent = franchiseData.leaseTerms ? `${franchiseData.leaseTerms} Months` : 'N/A';
+            
+            // Set start date to current date
+            document.getElementById('startDate').textContent = new Date().toLocaleDateString();
+
+            // Add event listeners to buttons
+            document.querySelectorAll('.btn-danger').forEach(button => {
+                button.addEventListener('click', () => {
+                    if(confirm('Are you sure you want to terminate this franchise?')) {
+                        alert('Franchise Terminated');
+                        // In a real app, this would trigger backend process
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-primary').forEach(button => {
+                button.addEventListener('click', () => {
+                    alert('Edit Franchise Details');
+                    // In a real app, this would open an edit modal or navigate to edit page
+                });
+            });
+        });
+    </script>
+</body>
+</html>

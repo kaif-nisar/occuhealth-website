@@ -1,0 +1,112 @@
+<html></html>
+<head>
+    <title>My Commission</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f7ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .cards {
+            display: flex;
+            justify-content: space-between;
+        }
+        .card {
+            width: 28%;
+            padding: 20px;
+            border-radius: 8px;
+            color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .card.red {
+            background-color: #f44336;
+        }
+        .card.green {
+            background-color: #4caf50;
+        }
+        .card.blue {
+            background-color: #2196f3;
+        }
+        .card .overlay {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        .card h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .card p {
+            margin: 10px 0 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="title">My Commission</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Show Commission</a>
+        </div>
+        <br><br>
+        <div class="cards">
+            <div class="card red">
+                <div class="overlay"></div>
+                <h3>Today Commission</h3>
+                <p>Rs. 0</p>
+            </div>
+            <div class="card green">
+                <div class="overlay"></div>
+                <h3>This Month</h3>
+                <p>Rs. 6177</p>
+            </div>
+            <div class="card blue">
+                <div class="overlay"></div>
+                <h3>Total Commission</h3>
+                <p>Rs. 276347</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

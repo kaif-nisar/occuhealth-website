@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Registration</title>
+    <style>
+
+        .registration-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .registration-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .required::after {
+            content: ' *';
+            color: #e74c3c;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input.error, select.error, textarea.error {
+            border-color: #e74c3c;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .password-input-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 16px;
+            padding: 4px;
+        }
+
+        .password-toggle:hover {
+            color: #333;
+        }
+
+        .permissions-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .permissions-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            transform: scale(1.1);
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .registration-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .permissions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .registration-container {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <div class="header">
+            <h1>Super Admin Registration</h1>
+            <p>Create a new super admin account</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <form id="registrationForm" novalidate>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username" class="required">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter username" required>
+                    <div class="error-message" id="username-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="required">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter email address" required>
+                    <div class="error-message" id="email-error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password" class="required">Password</label>
+                    <div class="password-input-container">
+                        <input type="password" id="password" name="password" placeholder="Enter password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+                    </div>
+                    <div class="error-message" id="password-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="fullName" class="required">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" placeholder="Enter full name" required>
+                    <div class="error-message" id="fullName-error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone" class="required">Phone</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter phone number" required>
+                    <div class="error-message" id="phone-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="role" class="required">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select role</option>
+                        <option value="superAdmin">Super Admin</option>
+                        <option value="staff">Staff</option>
+                    </select>
+                    <div class="error-message" id="role-error"></div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" name="state" placeholder="Enter state">
+                </div>
+
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" placeholder="Enter city">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="pinCode">Pin Code</label>
+                <input type="number" id="pinCode" name="pinCode" placeholder="Enter pin code">
+            </div>
+
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" name="address" placeholder="Enter full address"></textarea>
+            </div>
+
+            <div class="permissions-section">
+                <div class="permissions-title">Permissions</div>
+                <div class="permissions-grid">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="canManageBookings" name="canManageBookings">
+                        <label for="canManageBookings">Can Manage Bookings</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="canManageTest" name="canManageTest">
+                        <label for="canManageTest">Can Manage Tests</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="canManagePayments" name="canManagePayments">
+                        <label for="canManagePayments">Can Manage Payments</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="canViewReports" name="canViewReports">
+                        <label for="canViewReports">Can View Reports</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="canManageUsers" name="canManageUsers">
+                        <label for="canManageUsers">Can Manage Users</label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span class="loading-spinner" id="loadingSpinner"></span>
+                <span id="btnText">Register Super Admin</span>
+            </button>
+        </form>
+    </div>
+</body>
+</html>

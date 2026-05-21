@@ -1,0 +1,19 @@
+branch-defaults:
+  default:
+    environment: Lab-env
+environment-defaults:
+  Superadmin-env:
+    branch: null
+    repository: null
+global:
+  application_name: super admin
+  default_ec2_keyname: superadmin
+  default_platform: Node.js 22 running on 64bit Amazon Linux 2023
+  default_region: ap-south-1
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  profile: eb-cli
+  sc: null
+  workspace_type: Application

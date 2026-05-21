@@ -1,0 +1,30 @@
+module.exports = {
+  apps: [
+    {
+      name: "superadmin_lab",
+      script: "app.js",
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: process.env.PM2_MAX_MEMORY_RESTART || "1400M",
+      kill_timeout: 15000,
+      listen_timeout: 15000,
+      node_args: "--max-old-space-size=1536 --expose-gc",
+      env: {
+        NODE_ENV: "production",
+        AUTH_CACHE_TTL_MS: "30000",
+        SLOW_REQUEST_THRESHOLD_MS: "1200",
+        PDF_QUEUE_CONCURRENCY: "2",
+        PDF_RENDER_TASK_TIMEOUT_MS: "120000",
+        PDF_CONTENT_LOAD_TIMEOUT_MS: "45000",
+        PDF_MEMORY_CLEANUP_THRESHOLD_MB: "512",
+        PDF_SECURE_RENDER_SCALE: "1.85",
+      },
+      out_file: "./logs/pm2-out.log",
+      error_file: "./logs/pm2-error.log",
+      merge_logs: true,
+      time: true,
+    },
+  ],
+};

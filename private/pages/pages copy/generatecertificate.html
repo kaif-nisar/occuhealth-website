@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCCUHEALTH | Generate Certificate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style id="style">
+        .container449 {
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background-color: #ebf8ff;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .breadcrumb {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .breadcrumb a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .card {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            background-color: #edf2f7;
+        }
+
+        .form-group input[readonly] {
+            background-color: #edf2f7;
+        }
+
+        .note {
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .note a {
+            color: #4299e1;
+            text-decoration: none;
+        }
+
+        .note a:hover {
+            text-decoration: underline;
+        }
+
+        .button {
+            background-color: #ed64a6;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .button i {
+            margin-right: 10px;
+        }
+
+        .message {
+            color: #718096;
+            margin-top: 20px;
+        }
+
+        .input-icon {
+            display: flex;
+            align-items: center;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            background-color: #edf2f7;
+            padding: 10px;
+        }
+
+        .input-icon i {
+            color: #718096;
+            margin-right: 10px;
+        }
+
+        .input-icon input {
+            border: none;
+            background-color: #edf2f7;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            outline: none;
+        }
+
+        .container {
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .button {
+            background-color: #4299e1;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            width: auto;
+        }
+
+        .button i {
+            margin-right: 8px;
+        }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-container label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .action-button {
+            background-color: #f56565;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            width: auto;
+        }
+
+        .action-button i {
+            margin-right: 8px;
+        }
+
+        .entries {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .date {
+            background-color: white;
+        }
+
+        .date input {
+            background-color: white;
+        }
+
+        .cerficateouterdiv {
+            display: none;
+        }
+        .certificatedImgdiv {
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        .certificatedImgdiv img {
+            height: 100%;
+            width: 100%;
+            object-fit: contain;
+        }
+
+        .namediv {
+            height: 5rem;
+            width: 100%;
+            background: #ffffff;
+            position: absolute;
+            top: 56%;
+            left: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .namediv span {
+            font-size: 80px;
+            font-family: 'Brush Script MT', cursive;
+            font-weight: 300;
+            transform: translateX(40px);
+        }
+
+        .datediv {
+            position: absolute;
+            bottom: 12%;
+            padding: 5px;
+            left: 14.5%;
+            height: 1.5rem;
+            width: 15%;
+            padding-right: 7rem;
+            background-color: rgb(255, 255, 255);
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container449">
+        <div class="header">
+            <h1>Generate Certificate</h1>
+            <div class="breadcrumb">
+                <a href="#">Dashboard</a>
+                <span> > </span>
+                <span>Generate Certificate</span>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Generate Certificate</h2>
+            <div class="form-group">
+                <label>Current User</label>
+                <select name="franchiseelist" id="franchiseelist">
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Lab/Clinic Name</label>
+                <div class="input-icon">
+                    <i class="fas fa-clinic-medical"></i>
+                    <input id="labname" type="text" value="DEVBHOOMI PATH LAB" readonly>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Certificate Date</label>
+                <div class="input-icon date">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input id="date" type="date" value="">
+                </div>
+            </div>
+            <button class="button">
+                <i class="fas fa-file-alt"></i> Generate
+            </button>
+        </div>
+    </div>
+    <div class="container">
+        <!-- Agreement List Section -->
+        <div class="card">
+            <h2>Agreement List - Verified (n/a)</h2>
+            <a href="#" class="button">
+                <i class="fas fa-download"></i> Download Agreement
+            </a>
+        </div>
+    </div>
+    <div class="cerficateouterdiv">
+        <div class="certificatedImgdiv">
+            <img src="http://localhost:8000/temp/certificatetemp.jpeg" alt="certificate">
+            <div class="namediv">
+                <span>mohd kaif</span>
+            </div>
+            <div class="datediv">
+    
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

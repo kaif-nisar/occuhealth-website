@@ -1,0 +1,161 @@
+<html></html>
+<head>
+    <title>List Commission</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .search-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .search-section input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-section button {
+            background-color: #ff4b5c;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .search-section button i {
+            margin-right: 5px;
+        }
+        .search-section button:hover {
+            background-color: #ff2a3b;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table-container th, .table-container td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        .table-container th {
+            background-color: #fff3cd;
+        }
+        .table-container td {
+            background-color: #ffffff;
+        }
+        .table-container .search-input {
+            margin-bottom: 10px;
+        }
+        .table-container .search-input input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .table-container .pagination {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <br><br>
+            <h1>List Commission</h1>
+            <div class="breadcrumb">
+                <a href="#">Dashboard</a> &gt; <a href="#">List Commission</a>
+            </div>
+        </div>
+        <br><br>
+        <div class="search-section">
+            <div>
+                <label for="start-date">Start</label>
+                <input type="date" id="start-date" value="2024-09-08">
+            </div>
+            <div>
+                <label for="end-date">End</label>
+                <input type="date" id="end-date" value="2024-09-08">
+            </div>
+            <button><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="table-container">
+            <div class="search-input">
+                <label for="search">Search:</label>
+                <input type="text" id="search">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Booking Date</th>
+                        <th>Booking ID</th>
+                        <th>Booking Amount</th>
+                        <th>My Amount</th>
+                        <th>Commission</th>
+                        <th>Booked By</th>
+                        <th>Test Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2024-09-08</td>
+                        <td>12345</td>
+                        <td>$100.00</td>
+                        <td>$10.00</td>
+                        <td>$5.00</td>
+                        <td>John Doe</td>
+                        <td>Test 1</td>
+                        <td><button>Action</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                Showing 1 to 1 of 1 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

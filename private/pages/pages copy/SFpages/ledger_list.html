@@ -1,0 +1,113 @@
+<html></html>
+<head>
+    <title>Ledger List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eaf6ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .search-box h2 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .search-box form {
+            display: flex;
+            align-items: center;
+        }
+        .search-box input[type="text"] {
+            width: 200px;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .search-box button {
+            background-color: #ff4d6d;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .search-box button i {
+            margin-right: 5px;
+        }
+        .search-box button:hover {
+            background-color: #ff2a4d;
+        }
+        .content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">Ledger List</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Credit</a>
+        </div>
+        <div class="search-box">
+            <h2>Search Ledger</h2>
+            <form>
+                <input type="text" placeholder="My Account">
+                <input type="text" placeholder="September">
+                <input type="text" placeholder="2024">
+                <button type="submit"><i class="fas fa-search"></i> Search</button>
+            </form>
+        </div>
+        <div class="content">
+            <!-- Additional content can be added here -->
+        </div>
+    </div>
+</body>
+</html>

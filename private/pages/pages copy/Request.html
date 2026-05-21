@@ -1,0 +1,107 @@
+<html></html>
+<head>
+    <title>Request Slide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 50px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin-right: 5px;
+        }
+        .breadcrumb .current {
+            color: #000;
+            font-weight: bold;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .search-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .search-container h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .search-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .search-container input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .search-container button {
+            background-color: #28a745;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-container button i {
+            margin-right: 5px;
+        }
+        .search-container button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">Request Slide</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <span class="current">Stock List</span>
+        </div>
+        <br><br>
+        <div class="search-container">
+            <h2>Search Barcode</h2>
+            <label for="barcode">Enter Barcode ID</label>
+            <input type="text" id="barcode" name="barcode">
+            <button type="button"><i class="fas fa-search"></i> Search</button>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<html></html>
+<head>
+    <title>Report Usage</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            padding: 20px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .search-bar select,
+        .search-bar input[type="text"] {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .search-bar select {
+            width: 150px;
+        }
+        .input[type="text"] {
+            width: 40rem;
+        }
+        .search-bar button {
+            background-color: #ff5b77;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .search-bar button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">Report Usage</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a> &gt; <span>Report Usage</span>
+        </div>
+        <div class="search-bar">
+            <select>
+                <option>Month</option>
+                <option>September</option>
+                <!-- Add other months as needed -->
+            </select>
+            <select>
+                <option>Year</option>
+                <option>2024</option>
+                <!-- Add other years as needed -->
+            </select>
+            <!-- <input type="text" value="DEVBHOOMI PATH LAB MR. RAJEEV GOYAL - Utt..."> -->
+             <select class="input" name="DEVBHOOMI PATH"value="PATH" id="sec">
+                <option value="DEVBHOOMI">DEVBHOOMI PATH LAB MR. RAJEEV GOYAL</option>
+                <option value="DEVBHOOMI">DEVBHOOMI PATH LAB MR. RAJEEV GOYAL</option>
+             </select>
+            <button><i class="fas fa-search"></i> Search</button>
+        </div>
+    </div>
+</body>
+</html>

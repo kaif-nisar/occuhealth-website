@@ -1,0 +1,89 @@
+<html>
+<head>
+    <title>Test Booking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f8fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container-test-booking {
+            width: 90%;
+            margin: 20px auto;
+            padding:  2rem;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #888;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+        .breadcrumb i {
+            margin: 0px 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 5rem;
+        }
+        .form-group label {
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .form-group input[type="text"] {
+            width: 60%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .form-group button {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .form-group button i {
+            margin-right: 5px;
+        }
+        .form-group button:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-test-booking">
+        <div class="header">Test addition</div>
+        <div class="breadcrumb">
+            <a href="#"><i class="fa-solid fa-house"></i></a> > <a href="#">Dashboard</a> > <a href="#">Test addition</a>
+        </div>
+        <div class="search-bar">
+            <div class="form-group">
+                <label for="barcode">Scan Barcode *</label>
+                <input type="text" id="barcode" name="barcode">
+                <button type="submit"><i class="fas fa-sign-in-alt"></i> Submit</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

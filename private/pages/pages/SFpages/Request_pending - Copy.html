@@ -1,0 +1,236 @@
+<html></html>
+<head>
+    <title>Request Slide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin: 0 5px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        .search-container {
+            margin: 20px 0;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        table td a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        table td a:hover {
+            text-decoration: underline;
+        }
+        table td a i {
+            margin-left: 5px;
+        }
+        .total-entries {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h1>Request Slide</h1>
+        <div class="breadcrumb">
+            <a href="#"><i class="fas fa-home"></i> Dashboard</a> <i class="fas fa-chevron-right"></i> Request List
+        </div>
+        <br><br>
+        <div class="search-container">
+            <label for="search">Search:</label>
+            <input type="text" id="search" name="search">
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Franchisee</th>
+                        <th>Barcode ID</th>
+                        <th>Booking ID</th>
+                        <th>Request Qty</th>
+                        <th>Request Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>HYPATHO/BIH027</td>
+                        <td>20247652</td>
+                        <td><a href="#">HL2800052247 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Please cancel this test</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>UP003/INDIAN</td>
+                        <td>HY217078</td>
+                        <td><a href="#">HL4100048851 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Pls add DR NAME DR VISHAL CHOPRA</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>MH001/MUMBAI</td>
+                        <td>MH123456</td>
+                        <td><a href="#">HL1234567890 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>2</td>
+                        <td>Urgent request for additional slides</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>DL002/DELHI</td>
+                        <td>DL654321</td>
+                        <td><a href="#">HL0987654321 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>3</td>
+                        <td>Need slides for review</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>KA004/BANGALORE</td>
+                        <td>KA789012</td>
+                        <td><a href="#">HL1122334455 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Request for additional tests</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>TN005/CHENNAI</td>
+                        <td>TN345678</td>
+                        <td><a href="#">HL5566778899 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>2</td>
+                        <td>Follow-up on previous request</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>WB006/KOLKATA</td>
+                        <td>WB901234</td>
+                        <td><a href="#">HL6677889900 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Request for urgent processing</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>RJ007/JAIPUR</td>
+                        <td>RJ567890</td>
+                        <td><a href="#">HL7788990011 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>3</td>
+                        <td>Additional slides needed</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>GJ008/AHMEDABAD</td>
+                        <td>GJ234567</td>
+                        <td><a href="#">HL8899001122 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>2</td>
+                        <td>Request for re-evaluation</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>AP009/HYDERABAD</td>
+                        <td>AP678901</td>
+                        <td><a href="#">HL9900112233 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Urgent request for additional slides</td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td>KL010/KOCHI</td>
+                        <td>KL345678</td>
+                        <td><a href="#">HL2233445566 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>2</td>
+                        <td>Request for urgent review</td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td>MP011/INDORE</td>
+                        <td>MP456789</td>
+                        <td><a href="#">HL3344556677 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Request for additional slides</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>OR012/BHUBANESWAR</td>
+                        <td>OR567890</td>
+                        <td><a href="#">HL4455667788 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>3</td>
+                        <td>Urgent request for additional slides</td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>PB013/CHANDIGARH</td>
+                        <td>PB678901</td>
+                        <td><a href="#">HL5566778899 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>2</td>
+                        <td>Request for urgent processing</td>
+                    </tr>
+                    <tr>
+                        <td>15</td>
+                        <td>HR014/GURGAON</td>
+                        <td>HR789012</td>
+                        <td><a href="#">HL6677889900 <i class="fas fa-external-link-alt"></i></a></td>
+                        <td>1</td>
+                        <td>Request for additional tests</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="total-entries">
+            Total Entries: 15
+        </div>
+    </div>
+</body>
+</html>

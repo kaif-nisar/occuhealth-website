@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Overdraft Management</title>
+  <style>
+    .container { max-width: 700px; margin: 0 auto; }
+    .alert { padding: 12px; margin: 12px 0; border-radius: 4px; }
+    .alert-error { background: #fee; color: #c33; border: 1px solid #fcc; }
+    .alert-info { background: #eef; color: #33c; border: 1px solid #ccf; }
+    label { display:block; margin-top:10px; font-weight: bold; }
+    select, input { width:100%; padding:8px; margin-top:6px; }
+    button { padding:10px 16px; margin-top:12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0b7dda; }
+    .status { margin-top:12px; }
+    .info-box { background: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Franchisee Overdraft Management</h2>
+    
+    <div id="authAlert" class="alert alert-error" style="display:none;">
+      ❌ You don't have permission to manage overdraft limits. Contact your admin.
+    </div>
+
+    <div id="successAlert" class="alert alert-info" style="display:none;">
+      ✅ Updated successfully!
+    </div>
+
+    <div id="mainContent" style="display:none;">
+      <div class="info-box">
+        <strong>ℹ️ Info:</strong> Set overdraft limits for your franchisees. They can book up to the limit even with negative balance.
+      </div>
+
+      <label for="franchiseeSelect">Select Franchisee</label>
+      <select id="franchiseeSelect"></select>
+
+      <label>
+        <input type="checkbox" id="overdraftAllowed" /> Enable Overdraft (allow minus booking)
+      </label>
+
+      <label for="overdraftLimit">Overdraft Limit (₹)</label>
+      <input id="overdraftLimit" type="number" min="0" placeholder="e.g. 1000" />
+
+      <button id="saveBtn">Save</button>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <script src="./overdraft.js"></script>
+</body>
+</html>

@@ -1,0 +1,552 @@
+<html>
+
+<head>
+    <title>Add New Test Package</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .form-group {
+            margin: 20px 0;
+            font-family: Arial, sans-serif;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #testInput {
+            width: 95%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #dropdown {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            max-height: 150px;
+            /* Optional */
+            overflow-y: auto;
+            /* Optional */
+            /* position: absolute; */
+            /* Positioning for dropdown */
+            width: 100%;
+            z-index: 1000;
+            /* Ensures dropdown is on top */
+        }
+
+        #testOptions {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #testOptions li {
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #testOptions li:hover {
+            background-color: #f0f0f0;
+            /* Highlight on hover */
+        }
+
+        #testList {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        #testList li {
+            display: flex;
+            justify-content: space-between;
+            /* Align text and button */
+            align-items: center;
+            padding: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        #testList li button {
+            background-color: #ff4c4c;
+            /* Red for remove button */
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #testList li button:hover {
+            background-color: #e63939;
+            /* Darker red on hover */
+        }
+
+        h4 {
+            margin: 10px 0;
+        }
+
+        #testInput:focus {
+            border-color: #66afe9;
+            /* Light blue border on focus */
+            outline: none;
+            /* Remove default outline */
+            box-shadow: 0 0 5px rgba(102, 175, 233, .5);
+            /* Add a subtle shadow */
+        }
+
+        #dropdown {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            max-height: 150px;
+            overflow-y: auto;
+            /* position: absolute; */
+            width: calc(100% - 2px);
+            /* Account for border */
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            /* Subtle shadow */
+        }
+
+        #testOptions li.active {
+            background-color: #e0e0e0;
+            /* Light grey for active item */
+        }
+
+        #dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #dropdown::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+
+        #dropdown::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+
+
+        .breadcrumb {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+        }
+
+        .form-group a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .form-group a:hover {
+            text-decoration: underline;
+        }
+
+        .form-group button {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #ffffff;
+            background-color: #1a73e8;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .form-group button:hover {
+            background-color: #155ab6;
+        }
+
+        /* Hide the default select tag */
+        /* Style for options container to appear above the input without overlapping */
+        #search-hint {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+            position: relative;
+            z-index: 1000;
+            width: calc(100% - 2px);
+            left: 0;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transform-origin: bottom;
+            display: none;
+            color: black;
+        }
+
+        .hint-option,
+        .hint-option2 {
+            padding: 0.5rem 1rem;
+        }
+
+        #search-hint2 {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+            position: relative;
+            z-index: 1000;
+            width: calc(100% - 2px);
+            left: 0;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transform-origin: bottom;
+            display: none;
+            color: black;
+        }
+
+        /* addpannel ki css  */
+        .tests-container {
+            margin-bottom: 20px;
+        }
+
+        .tests-container input {
+            width: 100%;
+            margin: 1rem 0rem;
+            border-radius: 4px;
+            border: none;
+            background-color: transparent;
+        }
+
+        .tests-container input:focus {
+            outline: none;
+        }
+
+        .search-hint {
+            max-height: 40vh;
+            font-size: 12px;
+            color: #888;
+            overflow-y: scroll;
+            border: 1px solid #333;
+        }
+
+
+        .copy-interpretations {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .copy-interpretations .icon {
+            background-color: #ffebee;
+            border-radius: 50%;
+            padding: 5px;
+            margin-right: 10px;
+        }
+
+        .copy-interpretations .text {
+            color: #333;
+        }
+
+        .copy-interpretations .new {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 5px;
+        }
+
+        .interpretation-container {
+            margin-bottom: 20px;
+        }
+
+        .interpretation-container .toolbar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .interpretation-container .toolbar select,
+        .interpretation-container .toolbar button {
+            margin-right: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+
+        .interpretation-container .toolbar button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interpretation-container .toolbar button i {
+            margin-right: 5px;
+        }
+
+        .interpretation-container textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .buttons .save {
+            background-color: #007bff;
+        }
+
+        .buttons .cancel {
+            background-color: #6c757d;
+        }
+
+        .container {
+            width: 90%;
+            margin: 50px auto;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #1a73e8;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-box i {
+            margin-right: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .form-group label.checkbox-label {
+            display: inline-block;
+            font-weight: normal;
+        }
+
+        .hint-option-div {
+            padding: 0.5rem 1rem;
+            font-size: 1.25rem;
+            color: rgb(0, 0, 0);
+            border-bottom: 1px solid rgb(35, 35, 35);
+        }
+
+        .hint-option:hover {
+            background-color: #00d0ff;
+        }
+
+        .selected-div,
+        .selected-div2 {
+            width: fit-content;
+            height: 1rem;
+            padding: 0.75rem 0.5rem;
+            border-radius: 5px;
+            border: 1px solid rgb(53, 53, 53);
+            display: flex;
+            margin: 0.25rem;
+            align-items: center;
+        }
+
+        .selected-div i {
+            padding-left: 0.75rem;
+        }
+
+        .middle-tag-div,
+        .middle-tag-div2 {
+            display: grid;
+            grid-template-columns: auto auto auto auto auto auto auto;
+        }
+
+        #noTestMessage,
+        #noTestMessage2 {
+            text-align: center;
+            font-size: 1.25rem;
+            border: 1px solid black;
+            padding: 0.5rem 0rem;
+        }
+
+        .hint-option,
+        .hint-option2 {
+            font-size: 1.25rem;
+        }
+
+        .errormessage {
+            display: none;
+            color: #B00020;
+            padding: 5px;
+        }
+
+        .alert {
+            position: fixed;
+            width: 75%;
+            top: 80px;
+            right: 2%;
+            z-index: 1050;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="alert" role="alert"></div>
+    <h1>Edit package</h1>
+    <div class="breadcrumb">
+        <a href="#">Packages</a>
+        <span>&gt;</span>
+        <span>Edit</span>
+    </div>
+
+    <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name">
+        <span class="errormessage">!comma (,) not-allowed in this field</span>
+    </div>
+    <div class="form-group">
+        <label for="fee">Billing Price</label>
+        <input type="text" id="fee" name="fee">
+    </div>
+    <div class="form-group">
+        <label for="final-price">MRP Price</label>
+        <input type="text" id="final-price" name="final-price">
+    </div>
+    <div class="form-group">
+        <label for="gender">Bill only for gender</label>
+        <select id="gender" name="gender">
+            <option>Both</option>
+            <option>male</option>
+            <option>female</option>
+        </select>
+    </div>
+
+    <!-- change  -->
+    <div class="form-group">
+        <label for="panels">Tests</label>
+        <div class="select-and-input" id="select-and-input">
+            <div class="middle-tag-div" id="middle-tag-div"></div>
+            <input type="text" id="tests" placeholder="Search by typing full test name">
+            <div class="search-hint" id="search-hint"></div>
+            <div id="noTestMessage" style="display: none;">No test found</div>
+        </div>
+    </div>
+
+    <!-- finish -->
+
+    <div class="form-group">
+        <label for="panels">Panels</label>
+        <div class="select-and-input" id="select-and-input">
+            <div class="middle-tag-div2" id="middle-tag-div2"></div>
+            <input type="text" id="tests2" placeholder="Search by typing full test name">
+            <div class="search-hint2" id="search-hint2"></div>
+            <div id="noTestMessage2" style="display: none;">No pannel found</div>
+        </div>
+    </div>
+    <div class="form-group">
+        <button type="button" id="submitButton">Save</button>
+    </div>
+    <script src="editPackage.js"></script>
+</body>
+
+</html>

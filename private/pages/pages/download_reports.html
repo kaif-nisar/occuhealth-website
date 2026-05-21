@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
+    <title>Download report</title>
+</head>
+<style>
+    * {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #212121
+    }
+
+    body {
+        background-image: url(patternBack.jpg);
+        background-size: cover;
+    }
+
+    .container {
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .top {
+        height: 150px;
+        width: 40%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .address-div {
+        text-align: center;
+    }
+
+    .middle {
+        height: 200px;
+        width: 40%;
+        border: 1px solid rgb(86, 86, 86);
+        box-shadow: 1px 1px 10px rgb(112, 112, 112);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: rgb(255, 240, 240);
+        border-radius: 0.5rem;
+        margin: 1rem 0rem;
+    }
+
+    .self h2 {
+        margin: 0px;
+        padding: 0px;
+        text-align: center;
+    }
+
+    .self p {
+        text-align: center;
+        margin: 10px;
+    }
+
+    .middle button {
+        padding: 0.5rem 1rem;
+        font-size: medium;
+        border-radius: 5px;
+        background-color: rgb(0, 146, 0);
+        border: none;
+        color: rgb(255, 240, 240);
+        letter-spacing: 1px;
+        margin-top: 1.5rem;
+    }
+
+    .middle button:active {
+        background-color: rgb(0, 215, 0);
+    }
+
+    .middle button i {
+        color: rgb(255, 240, 240);
+        font-size: larger;
+        margin-right: 10px;
+    }
+
+    .down {
+        height: 150px;
+        width: 40%;
+        text-align: center;
+    }
+
+    .down span {
+        color: rgb(253, 45, 45);
+    }
+
+    .button-container {
+        position: relative;
+        display: inline-block;
+        text-align: center;
+        padding: 0.5rem 1rem;
+        font-size: medium;
+        border-radius: 5px;
+        background-color: rgb(0, 146, 0);
+        border: none;
+        color: rgb(255, 240, 240);
+        letter-spacing: 1px;
+        cursor: pointer;
+    }
+
+    .button-container:active {
+        background-color: rgb(0, 215, 0);
+    }
+
+    .fa-spin {
+        font-size: 1.5rem;
+    }
+    .loader-div {
+        height: 100%;
+        width: 100%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        background-color: #21212162;
+        border-radius: 5px;
+        z-index: 1000;
+    }
+
+</style>
+
+<body>
+    <div class="container">
+        <div class="top">
+            <h2>Occu Health</h2>
+            <div class="address-div">
+                S-12, UPPER GROUND FLOOR OKHLA <br>
+                NEW DELHI, 110025 <br>
+                DELHI - 247001 <br>
+                8876887678
+            </div>
+        </div>
+        <div class="middle">
+            <div class="self">
+                <h2>Loading...</h2>
+                <p></p>
+            </div>
+            <button id="download-btn" class="button-container">
+                <i class="fa-solid fa-file-pdf"></i> Download report
+              <div class="loader-div" id="button-loader">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+              </div>
+            </button>
+        </div>
+        <div class="down">
+            <p>Powered by <span>OccuHealth Software</span></p>       
+        </div>
+    </div>
+    <script src="downloadreport.js"></script>
+</body>
+
+
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Activity Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* /* .container3 {
+            max-width: 1400px;
+            margin: 0 auto;
+        } */
+
+        .header4 {
+            background: rgba(255, 255, 255, 0.95);
+            /* backdrop-filter: blur(10px); */
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        } */
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            /* backdrop-filter: blur(10px); */
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #4a5568;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .activity-feed {
+            background: rgba(255, 255, 255, 0.95);
+            /* backdrop-filter: blur(10px); */
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .activity-feed h2 {
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .activity-item {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .activity-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .activity-type {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .activity-time {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        .activity-user {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .activity-details {
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        .staff-list {
+            background: rgba(255, 255, 255, 0.95);
+            /* backdrop-filter: blur(10px); */
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .staff-list h2 {
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .staff-member {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .staff-member:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .staff-member::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+        }
+
+        .staff-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .staff-info {
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .staff-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-inactive {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .activity-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        .activity-feed::-webkit-scrollbar,
+        .staff-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .activity-feed::-webkit-scrollbar-track,
+        .staff-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .activity-feed::-webkit-scrollbar-thumb,
+        .staff-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="body">
+    <div class="container3">
+        <div class="header4">
+            <h1>📊 Staff Activity Monitor</h1>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalStaff">0</div>
+                    <div class="stat-label">Total Staff</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeStaff">0</div>
+                    <div class="stat-label">Active Staff</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalActivities">0</div>
+                    <div class="stat-label">Total Activities</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="todayActivities">0</div>
+                    <div class="stat-label">Today's Activities</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="activity-feed">
+                <h2>
+                    <span>🔄</span>
+                    Recent Activities
+                </h2>
+                <button class="refresh-btn" onclick="loadActivities()">
+                    🔄 Refresh Data
+                </button>
+                <div id="activitiesList">
+                    <div class="loading">Loading activities...</div>
+                </div>
+            </div>
+
+            <div class="staff-list">
+                <h2>
+                    <span>👥</span>
+                    Staff Members
+                </h2>
+                <div id="staffList">
+                    <div class="loading">Loading staff...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

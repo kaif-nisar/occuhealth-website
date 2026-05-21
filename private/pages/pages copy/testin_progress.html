@@ -1,0 +1,300 @@
+<html>
+
+<head>
+    <title>Test Booking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+         body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f2f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container-test-booking {
+            width: 90%;
+            margin: 20px auto;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #888;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+
+        .breadcrumb i {
+            margin: 0px 5px;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            width: 80%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input,
+        .search-bar select {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .search-bar input[type="date"] {
+            width: 150px;
+        }
+
+        .search-bar input[type="text"] {
+            width: 200px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover {
+            background-color: #e91e63;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        table td {
+            background-color: rgba(255, 165, 0, 0.1);
+        }
+
+        table th {
+            background-color: #fdcaca;
+        }
+
+        table a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        table a:hover {
+            text-decoration: underline;
+        }
+
+        .start {
+            height: 2.5rem;
+            width: 25%;
+            border: 1px solid rgb(155, 155, 155);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            background: #fff;
+        }
+
+        .sd-text {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background-color: #6c757d;
+            display: inline;
+            color: #ffff;
+            padding: 1rem 0.5rem;
+        }
+
+        input[type="date"] {
+            font-size: 0.75rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #3a3f44;
+            border: none;
+        }
+
+        .start select {
+            border: none;
+        }
+
+        .start2 {
+            margin-top: 4rem;
+            font-size: 1.2rem;
+            font-weight: 500;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .start2 input {
+            height: 1.75rem;
+            width: 20%;
+            border-radius: 5px;
+            border: none;
+            margin-bottom: 1rem;
+            background-color: #dee2e6;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        table td {
+            background-color: rgba(0, 255, 0, 0.1);
+        }
+
+        table th {
+            background-color: #baf5ff;
+        }
+
+        table a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        table a:hover {
+            text-decoration: underline;
+        }
+
+       .loaderDiv1 {
+            display:none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner1 {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        @media(max-width: 768px) {
+            .container-test-booking {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .search-bar {
+                display: flex;
+                flex-direction: column;
+                align-items: normal;
+                justify-content: unset;
+            }
+
+            .start {
+                width: fit-content;
+            }
+            /* table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 18px 35px 30px 1px;
+            } */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-test-booking">
+        <div class="header">Report Complete</div>
+        <div class="breadcrumb">
+            <a href="#"><i class="fa-solid fa-house"></i></a> > <a href="#">Dashboard</a> > <a href="#">Report
+                Complete</a>
+        </div>
+        <div class="search-bar">
+            <!-- start div  -->
+            <div class="start">
+                <p class="sd-text">Start</p>
+                <input id="start-date" class="sd-input" type="date" value="">
+            </div>
+            <div class="start">
+                <p class="sd-text">End</p>
+                <input id="end-date" class="sd-input" type="date" value="">
+            </div>
+            <div class="start">
+                <select class="franchisee-select" id="franchisee-select">
+                    <option>-- Self --</option>
+                </select>
+            </div>
+            <button style="height: 2.5rem;" id="search-button"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="start2">
+            <label for="search">Search : </label>
+            <input type="text" id="search" placeholder="   search here">
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                         <th>Booking ID</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Test</th>
+                        <th>Sample ID</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+     <!-- Loader -->
+     <div id="loader1" class="loaderDiv1">
+        <div class="spinner1"></div>
+        <p>Generating PDF...</p>
+    </div>
+
+    <script src="testin_progress.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,359 @@
+
+:root {
+    --primary: #2c3e50;
+    --secondary: #34495e;
+    --accent: #3498db;
+    --light: #ecf0f1;
+    --danger: #e74c3c;
+    --success: #2ecc71;
+    --warning: #f39c12;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    margin: 0;
+    padding: 0;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    height: 100%;
+    width: 250px;
+    background: var(--primary);
+    color: white;
+    transition: all 0.3s;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: var(--secondary);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+.sidebar ul li a {
+    padding: 15px 20px;
+    display: block;
+    color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.sidebar ul li a:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.sidebar ul li a.active {
+    background: var(--accent);
+    border-left: 4px solid white;
+}
+
+.sidebar ul li a i {
+    margin-right: 10px;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+/* Header */
+.content-header {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Cards */
+.dashboard-card {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: transform 0.3s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+.dashboard-card .card-body {
+    padding: 20px;
+}
+
+.dashboard-card .card-icon {
+    background: var(--accent);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.dashboard-card .card-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.dashboard-card .card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+/* Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table th {
+    background-color: var(--light);
+    font-weight: 600;
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* Forms */
+.form-card {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background: var(--accent);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    background: #2980b9;
+}
+
+.btn-success {
+    background: var(--success);
+}
+
+.btn-success:hover {
+    background: #27ae60;
+}
+
+.btn-danger {
+    background: var(--danger);
+}
+
+.btn-danger:hover {
+    background: #c0392b;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #e67e22;
+}
+
+/* Status Badges */
+.badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: var(--success);
+    color: white;
+}
+
+.badge-warning {
+    background: var(--warning);
+    color: white;
+}
+
+.badge-danger {
+    background: var(--danger);
+    color: white;
+}
+
+/* Login Page */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+.login-card {
+    width: 400px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    padding: 30px;
+}
+
+.login-card h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--primary);
+}
+
+.login-card .form-group {
+    margin-bottom: 25px;
+}
+
+.login-card .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 80px;
+        text-align: center;
+    }
+    
+    .sidebar-header h3 {
+        display: none;
+    }
+    
+    .sidebar ul li a span {
+        display: none;
+    }
+    
+    .sidebar ul li a i {
+        margin-right: 0;
+        font-size: 1.2rem;
+    }
+    
+    .main-content {
+        margin-left: 80px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    color: white;
+    margin-bottom: 15px;
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+.toast-success {
+    background: var(--success);
+}
+
+.toast-error {
+    background: var(--danger);
+}
+
+.toast-warning {
+    background: var(--warning);
+}
+
+/* Chart styles */
+.chart-container {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    height: 300px;
+}

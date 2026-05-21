@@ -1,0 +1,147 @@
+<html></html>
+<head>
+    <title>Test List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .breadcrumb {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin: 0 5px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .header button {
+            background-color: #ff4081;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .header button:hover {
+            background-color: #e91e63;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        .sample-list {
+            display: flex;
+            flex-direction: column;
+        }
+        .sample-list div {
+            margin-bottom: 5px;
+        }
+        .total-entries {
+            margin-top: 10px;
+            text-align: right;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <br><br>
+    <div class="container">
+        <div class="header">
+            <h1>Test List</h1>
+            <button id="pdfBtnJ">Download Test Portfolio</button>
+        </div>
+        <div class="breadcrumb">
+            <a href="#"><i class="fas fa-home"></i> Dashboard</a> <i class="fas fa-chevron-right"></i> Test List
+        </div>
+        <div class="search-container">
+            <label for="search">Search:</label>
+            <input type="text" id="search" name="search">
+        </div>
+        <div class="table-container">
+            <table id="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Test Name</th>
+                        <th>Test MRP</th>
+                        <th>Test Price</th>
+                        <th>Type Of Sample</th>
+                        <th>Expected Test</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr>
+                        <td>1</td>
+                        <td>1.3 Fitness Advance</td>
+                        <td>Rs. 3000</td>
+                        <td>Rs. 600</td>
+                        <td class="sample-list">
+                            <div>1. Serum</div>
+                            <div>2. EDTA Blood</div>
+                        </td>
+                        <td>4 hr</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>17 OH Progesterone</td>
+                        <td>Rs. 1300</td>
+                        <td>Rs. 250</td>
+                        <td class="sample-list">
+                            <div>1. Serum</div>
+                        </td>
+                        <td>4 hr</td>
+                    </tr>
+                    <!-- Add more entries as needed -->
+                </tbody>
+            </table>
+        </div>
+        <div class="total-entries">
+            Total Entries: 10
+        </div>
+    </div>
+</body>
+</html>

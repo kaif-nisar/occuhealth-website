@@ -1,0 +1,151 @@
+<html></html>
+<head>
+    <title>Assign Franchisee Credits</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .content {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            width: 48%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .form-group select {
+            appearance: none;
+        }
+        .form-group .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .form-group .input-group i {
+            padding: 10px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+        }
+        .form-group .input-group input {
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }
+        .form-group.half-width {
+            width: 48%;
+            display: inline-block;
+        }
+        .btn-submit {
+            background-color: #ff4d4d;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-submit:hover {
+            background-color: #e60000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assign Franchisee Credits</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i> Dashboard &gt; Credits
+            </div>
+        </div>
+        <div class="content">
+            <div class="card">
+                <h2>My Franchisee Details</h2>
+                <p>No Details Found</p>
+            </div>
+            <div class="card">
+                <h2>Assign Franchisee Credits</h2>
+                <div class="form-group">
+                    <label for="franchisee">Select My Franchisee *</label>
+                    <select id="franchisee">
+                        <option>-- Select Franchisee --</option>
+                    </select>
+                </div>
+                <div class="form-group half-width" style="margin-right: 4%;">
+                    <label for="transaction-type">Transaction Type *</label>
+                    <div class="input-group">
+                        <i class="fas fa-exchange-alt"></i>
+                        <select id="transaction-type">
+                            <option>Credit</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group half-width">
+                    <label for="credits">No of Credits *</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="number" id="credits">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="remarks">Remarks</label>
+                    <textarea id="remarks" rows="4" placeholder="Enter Payment Remarks"></textarea>
+                </div>
+                <button class="btn-submit"><i class="fas fa-sign-in-alt"></i> Submit</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

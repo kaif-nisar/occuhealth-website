@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - OccuHealth</title>
+    <style>
+        .dashboard-container{
+            margin: auto;
+        }
+
+        .breadcrumb {
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .alert-box {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+
+        .order-now {
+            color: red;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .info-box {
+            background: #2c5a91;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .highlight {
+            color: yellow;
+            font-weight: bold;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .stat {
+            flex: 1;
+            padding: 20px;
+            margin: 5px;
+            text-align: center;
+            border-radius: 5px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .balance {
+            background: #e4fff4;
+            color: #28a745;
+        }
+
+        .in-progress {
+            background: #a0c5f0;
+            color: #007bff;
+            font-size: 1rem;
+        }
+
+        .Pending {
+            background: #ffccd5;
+            color: #dc1bdc;
+            font-size: 1rem;
+        }
+
+        .Complete {
+            background: #94f194;
+            color: #de0c48;
+            font-size: 1rem;
+        }
+
+        .helpdesk {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .support-number {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .dis {
+            position: absolute;
+            top: 0px;
+            /* Adjust to align properly */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45%;
+            height: 35%;
+            background-color: red;
+            border-bottom-left-radius: 100px;
+            border-bottom-right-radius: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .balance {
+            position: relative;
+            font-size: 1.2rem;
+        }
+
+        .Balance {
+            position: relative;
+            top: 22px;
+            margin: 20px;
+        }
+
+        .label {
+            position: relative;
+            top: 10px
+        }
+
+        .booking-table {
+            margin-top: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .booking-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .booking-table th,
+        .booking-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .booking-table th {
+            background-color: #f2f2f2;
+        }
+
+        /* slider css  */
+        .slider-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            margin: 10px 0px;
+        }
+
+        .slider {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            height: 400px;
+        }
+
+        .slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .slide-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .slide-content h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .slide-content p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.3);
+            color: rgb(128, 128, 128);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-prev {
+            left: 20px;
+        }
+
+        .btn-next {
+            right: 20px;
+        }
+
+        .dots-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background-color: white;
+            transform: scale(1.2);
+        }
+
+        @media (max-width: 768px) {
+            .slider {
+                height: 400px;
+            }
+
+            .slide-content h2 {
+                font-size: 1.5rem;
+            }
+
+            .slide-content p {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slider {
+                height: 300px;
+            }
+
+            .slide-content {
+                padding: 15px;
+            }
+
+            .slide-content h2 {
+                font-size: 1.2rem;
+            }
+
+            .btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <h2>Welcome to OccuHealth</h2>
+        <div class="slider-container">
+            <div class="slider" id="slider">
+                <!-- Slides will be inserted dynamically via JavaScript -->
+            </div>
+            <button class="btn btn-prev" id="prevBtn">&#10094;</button>
+            <button class="btn btn-next" id="nextBtn">&#10095;</button>
+            <div class="dots-container" id="dotsContainer">
+                <!-- Dots will be inserted dynamically via JavaScript -->
+            </div>
+        </div>
+
+        <div class="info-box">
+            <span>🏷 Extra Sample / Barcode Mismatch :</span>
+            <a href="#" class="highlight">0 Samples</a>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat balance">
+                <div class="dis">
+                    <div class="half-circle">💰</div> <!-- Dollar Bag Emoji -->
+                </div>
+                <p class="Balance" id="Balance"></p>
+                <p class="label">Available Balance</p>
+            </div>
+            <div class="stat in-progress">
+                <p class="Progress">0</p>
+                <p class="label">In Progress</p>
+            </div>
+            <div class="stat Pending">
+                <p class="pending">0</p>
+                <p class="label">Pending</p>
+            </div>
+            <div class="stat Complete">
+                <p class="complete">0</p>
+                <p class="label">Completed</p>
+            </div>
+        </div>
+
+        <div class="helpdesk">
+            <h3>🎧 HELP DESK SUPPORT</h3>
+            <ul>
+                <li><span>Haridwar</span> <button class="support-number">011-46577957</button></li>
+            </ul>
+        </div>
+        <div class="booking-table">
+            <h3>📋 Today's Bookings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Patient Name</th>
+                        <th>Test</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

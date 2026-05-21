@@ -1,0 +1,813 @@
+<html>
+
+<head>
+    <title>New Booking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 0.5rem;
+            padding: 2rem 3rem;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .count-booking {
+            height: 2rem;
+            width: 2rem;
+            background-color: black;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 1rem;
+            font-size: 0.6rem;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: #888;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .section-content {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .section-content>div {
+            flex: 1;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .section-content>div:last-child {
+            margin-right: 0;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .input-group i {
+            margin-right: 8px;
+        }
+
+        .input-group button {
+            padding: 8px 12px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .input-group button:hover {
+            background-color: #0056b3;
+        }
+
+        .file-input {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+        }
+
+        .file-input input[type="file"] {
+            margin: 0px 10px;
+        }
+
+        .container-new-booking {
+            width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .total-bill {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .total-bill span {
+            color: #000;
+        }
+
+        .content {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .select-test-div {
+            width: 50%;
+            padding: 0px;
+            margin: 0px;
+            display: flex;
+        }
+
+        .search-section,
+        .details-section {
+            width: 45%;
+        }
+
+        .search-section input,
+        .details-section input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .search-section select {
+            width: 100%;
+            height: 150px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .details-section table {
+            width: 80%;
+            border-collapse: collapse;
+        }
+
+        .details-section th,
+        .details-section td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        .details-section th {
+            background-color: #f9f9f9;
+        }
+
+        .details-section td {
+            background-color: #fff;
+        }
+
+        .details-section .no-sample {
+            text-align: center;
+            color: #999;
+        }
+
+        .submit-btn {
+            display: block;
+            width: 100px;
+            margin: 5rem auto;
+            padding: 10px;
+            background-color: #ff5a5f;
+            color: #fff;
+            text-align: center;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .submit-btn i {
+            margin-right: 5px;
+        }
+
+        .right-left2 {
+            height: 10rem;
+            width: 5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .right-left2 i {
+            font-size: 3rem;
+            color: rgb(44, 44, 44);
+        }
+
+        #tests-name-option {
+            margin-top: 0.25rem;
+        }
+
+        table {
+            width: 100%;
+            table-layout: auto;
+            /* Auto-adjust table size based on content */
+            border-collapse: collapse;
+        }
+
+        td,
+        th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+            /* Ensure words break if too long */
+            word-break: break-all;
+            /* Break words if necessary */
+            white-space: normal;
+            /* Allow wrapping to new lines */
+            overflow: hidden;
+            /* Prevent overflow */
+            max-width: 200px;
+            /* Set a max width for the cells */
+        }
+
+        th,
+        td {
+            width: auto;
+            /* Adjust cell width automatically */
+        }
+
+        table th {
+            background-color: #f2f2f2;
+            /* Optional: To style header */
+        }
+
+        #successMessage {
+            height: 0rem;
+            width: 90%;
+            background-color: rgba(0, 255, 0, 0.292);
+            color: rgb(0, 142, 0);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            padding-left: 1rem;
+            font-size: 1.25rem;
+            transition: all 0.5s ease;
+        }
+
+        /* adding doctor css  */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: flex-start;
+            transition: opacity 0.3s ease;
+            z-index: 9999;
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            padding: 20px;
+            margin-top: -100%;
+            transition: margin-top 0.5s ease;
+            position: relative;
+        }
+
+        .modal.active .modal-content {
+            margin-top: 50px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .modal-header .close {
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px 0;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            flex: 2;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .form-group i {
+            margin-right: 10px;
+            font-size: 20px;
+            color: #6c757d;
+        }
+
+        .form-group input[type="date"] {
+            padding: 5px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid #e9ecef;
+            padding-top: 10px;
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-footer .btn-close {
+            background-color: #e9ecef;
+            color: #000;
+            margin-right: 10px;
+        }
+
+        .modal-footer .btn-add {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        /* adding lab css  */
+        .modal2-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        input[type=date],
+        input[type=time],
+        #random-id {
+            background-color: #3333331c;
+        }
+
+        .modal2 {
+            background-color: white;
+            width: 600px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal2-header,
+        .modal2-footer {
+            padding: 15px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .modal2-header {
+            border-bottom: none;
+        }
+
+        .modal2-title {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .modal2-body {
+            padding: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            flex: 0 0 100px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .form-group .input-icon {
+            position: relative;
+        }
+
+        .form-group .input-icon input {
+            padding-left: 30px;
+        }
+
+        .form-group .input-icon .fa {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .modal2-footer {
+            display: flex;
+            justify-content: flex-end;
+            border-top: none;
+        }
+
+        .modal2-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .modal2-footer .btn-close {
+            background-color: #e5e5e5;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        .modal2-footer .btn-add {
+            background-color: #00aaff;
+            color: white;
+        }
+
+        /* loading css */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: all 1s;
+            visibility: hidden;
+        }
+
+        .loading-screen.active {
+            visibility: visible;
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-top: 16px solid #3498db;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            transition: all 1s;
+            animation: spin 1s linear infinite;
+        }
+
+        .loader.loadervisible {
+            visibility: visible;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #ageValue {
+            border: 1px solid #ccc;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+        }
+
+        #ageUnit {
+            border: 1px solid #ccc;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader" id="loader"></div>
+    </div>
+    <div class="container">
+        <div id="successMessage"> Test booked successfully !</div>
+        <br><br>
+        <div class="header">New Booking</div>
+        <div class="breadcrumb" style="margin: 1rem 0.5rem;">
+            <a href="#"><i class="fa-solid fa-house"></i></a> &gt; <a href="#">Dashboard</a> &gt; <a href="#">New
+                Booking</a>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="count-booking">1</div>
+                Todays Last Bracode ID : <span id="last-booking-id"></span>
+            </div>
+            <div class="section-content">
+                <div>Your last booking details : <span id="last-booking-date"></span> | <span
+                        id="last-booking-time"></span> | Rs. <span id="last-booking-total"></span> | <strong>Patient
+                        Name : <span id="last-booking-patient"></span>
+                    </strong></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-content">
+                <div class="input-group">
+                    <i class="fas fa-barcode"></i>
+                    <input type="text" placeholder="HL6101017135" id="random-id" readonly>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="date" id="dob">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-clock"></i>
+                    <input type="time" id="time">
+                </div>
+                <div class="input-group">
+                    <input type="text" placeholder="Courier Name" id="courier-name">
+                </div>
+                <div class="input-group">
+                    <input type="text" placeholder="Courier ID" id="courier-id">
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-content">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" placeholder="Patient Name" id="patient-name">
+                </div>
+                <!-- <div class="input-group"> -->
+                <!-- <input type="number" placeholder="Year" id="patient-year"> -->
+                <div style="display: flex; align-items: center;">
+                    <input type="number" id="ageValue" placeholder="Enter age" style="padding: 8px;">
+
+                    <select id="ageUnit" style="padding: 8px; border: 1px solid #ccc;">
+                        <option value="years">Year</option>
+                        <option value="months">Month</option>
+                        <option value="days">Day</option>
+                    </select>
+                    <!-- </div> -->
+
+                </div>
+                <div class="input-group">
+                    <select id="patient-gender">
+                        <option value="Any">Any</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <input type="text" placeholder="Patient Phone (Optional)" id="patient-phone">
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-content">
+                <div class="input-group">
+                    <select id="doctor-selection">
+                        <option>-- No Doctors Selected --</option>
+                    </select>
+                    <button id="openModalBtn">Add</button>
+                </div>
+                <div class="input-group">
+                    <input type="text" placeholder="Doctor Name" id="doctor-name">
+                </div>
+                <div class="input-group">
+                    <select id="lab-selection">
+                        <option>-- No Lab Selected --</option>
+                    </select>
+                    <button id="show-modal-btn">Add</button>
+                </div>
+                <div class="input-group">
+                    <input type="text" placeholder="Lab/Hpl Name" id="lab-name">
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-content">
+                <div class="input-group">
+                    <select id="franchisee-select">
+                        <option>-- No Franchisee Selected --</option>
+                    </select>
+                </div>
+                <div class="file-input">
+                    <input type="file">
+                </div>
+                <div class="input-group">
+                    <textarea placeholder="Clinical History" id="clinical-history"></textarea>
+                </div>
+            </div>
+        </div>
+        <!-- second scroll  -->
+        <hr>
+        <div class="container-new-booking">
+            <div class="header" id="header">
+                Total Bill : Rs. <span id="total">0</span>
+            </div>
+            <div class="content">
+                <div class="select-test-div">
+                    <div class="search-section">
+                        <input type="text" placeholder="Type to Search" id="selectTestDivforSearch">
+                        <select multiple id="test-selection">
+                            <option>1.3 Fitness Advance</option>
+                            <option>17 OH Progesterone</option>
+                            <option>24 hour urine catecholamines</option>
+                            <option>24 HOURS BENCE JONES PROTEIN URINE</option>
+                            <option>24 hours urine</option>
+                            <option>Protein/Creatinine Ratio</option>
+                            <option>25 OH VITAMIN D 3 TOTAL</option>
+                            <option>5-Dihydrotestosterone (DHT)</option>
+                        </select>
+                    </div>
+                    <div class="right-left2"><span class="material-symbols-outlined">
+                            compare_arrows
+                        </span></div>
+                    <div class="search-section">
+                        <input type="text" placeholder="Type to Search" id="selectedTestDivforSearch">
+                        <select multiple id="test-selected">
+                            <!-- <option>1.3 Fitness Advance</option> -->
+                        </select>
+                    </div>
+                </div>
+                <div class="details-section">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Type Of Sample</th>
+                                <th>Barcode ID</th>
+                                <th>Test Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="4" class="no-sample">No Sample Selected</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <button class="submit-btn" id="submit-btn"><i class="fas fa-paper-plane"></i> Submit</button>
+        </div>
+    </div>
+    <!-- adding doctor page  -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Doctor Details</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="firstname"><i class="fas fa-user"></i> Firstname *</label>
+                    <input type="text" id="firstname" name="firstname">
+                </div>
+                <div class="form-group">
+                    <label for="lastname"><i class="fas fa-user"></i> Lastname *</label>
+                    <input type="text" id="lastname" name="lastname">
+                </div>
+                <div class="form-group">
+                    <label for="specialization"><i class="fas fa-stethoscope"></i> Doctor Specialization *</label>
+                    <input type="text" id="specialization" name="specialization">
+                </div>
+                <div class="form-group">
+                    <label for="dob"><i class="fas fa-calendar-alt"></i> Date of Birth</label>
+                    <input type="date" id="dob" name="dob" value="1995-01-01">
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <textarea id="address" name="address" rows="3" placeholder="Enter Address Details"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close">Close</button>
+                <button class="btn-add"><i class="fas fa-user-plus"></i> Add Doctor</button>
+            </div>
+        </div>
+    </div>
+    <!-- adding lab page  -->
+    <div class="modal2-overlay" id="modal-overlay">
+        <div class="modal2">
+            <div class="modal2-header">
+                <h2 class="modal2-title">Lab Details</h2>
+            </div>
+            <div class="modal2-body">
+                <div class="form-group">
+                    <label for="lab-name">Lab Name *</label>
+                    <div class="input-icon">
+                        <input type="text" id="lab-name2" name="lab-name" placeholder="Enter Lab Name">
+                        <i class="fa fa-user"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="lab-address">Lab Address</label>
+                    <textarea id="lab-address" placeholder="Enter Address Details"></textarea>
+                </div>
+            </div>
+            <div class="modal2-footer">
+                <button class="btn-close" id="close-modal-btn">Close</button>
+                <button class="btn-add" id="add-lab"><i class="fa fa-plus"></i> Add Lab</button>
+            </div>
+        </div>
+    </div>
+    <script src="newBooking.js"></script>
+</body>
+
+</html>

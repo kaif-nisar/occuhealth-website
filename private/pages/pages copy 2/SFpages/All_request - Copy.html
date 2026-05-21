@@ -1,0 +1,153 @@
+<html></html>
+<head>
+    <title>Request List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .card-header {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #00bfff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .form-group button {
+            background-color: #ff69b4;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #ff1493;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table th, table td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .search-box input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .entries-info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h1>Request List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> <a href="#">Dashboard</a> > <a href="#">Stock List</a>
+        </div>
+        <br><br>
+        <div class="card">
+            <div class="card-header">Search Slide Request List</div>
+            <div class="form-group">
+                <label for="start-date">Start</label>
+                <input type="date" id="start-date" value="2024-08-01">
+                <label for="end-date">End</label>
+                <input type="date" id="end-date" value="2024-09-08">
+                <button type="button"><i class="fas fa-search"></i> Search</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Slide Request List</div>
+            <div class="search-box">
+                <label for="search">Search:</label>
+                <input type="text" id="search">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Franchisee</th>
+                        <th>Barcode ID</th>
+                        <th>Booking ID</th>
+                        <th>Request Remarks</th>
+                        <th>Courier</th>
+                        <th>Supply Remarks</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Franchisee Name</td>
+                        <td>123456789</td>
+                        <td>987654321</td>
+                        <td>Remarks here</td>
+                        <td>Courier Name</td>
+                        <td>Supply remarks here</td>
+                        <td>Status here</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="entries-info">
+                Showing 1 to 1 of 1 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

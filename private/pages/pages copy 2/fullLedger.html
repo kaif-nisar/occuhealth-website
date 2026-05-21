@@ -1,0 +1,343 @@
+<html>
+
+<head>
+    <title>Accounts Summary</title>
+    <style>
+        h1 {
+            font-size: 7px;
+            font-weight: normal;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .header-row {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+        .container5{
+            width: 100%;
+            margin: 10px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            margin-right: 5px;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .search-bar input[type="text"],
+        .search-bar input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            margin-right: 10px;
+            flex: 1;
+        }
+
+        .search-bar input[type="text"] {
+            flex: 2;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover {
+            background-color: #c82333;
+        }
+
+        .summary {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-header {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        .summary-table th {
+            background-color: #e9ecef;
+            font-weight: 500;
+        }
+
+        .summary-table td {
+            background-color: #fff;
+        }
+
+        .summary-table td:nth-child(2) {
+            font-weight: 700;
+        }
+
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .buttons {
+            margin-bottom: 20px;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .buttons .download-excel {
+            background-color: #007bff;
+        }
+
+        .buttons .commission-excel {
+            background-color: #ff4d4d;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            padding: 10px;
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+
+        table td.credit {
+            color: green;
+        }
+
+        table td.debit {
+            color: red;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 100%;
+                padding: 10px;
+            }
+
+            .buttons button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .search-container input {
+                width: 100%;
+            }
+        }
+
+        .debit {
+            color: red;
+        }
+
+        .credit {
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Credit</a>
+        </div>
+        <div class="header">Ledger List</div>
+        <div class="search-bar">
+            <input type="text" placeholder="My Account">
+            <input type="date" value="">
+            <input type="date" value="">
+            <input type="text" placeholder="Full Ledger">
+            <button><i class="fas fa-search"></i> View</button>
+        </div>
+    </div>
+    <h1>Accounts Summary (01 Dec 2024 - 05 Jan 2025)</h1>
+    <table>
+        <tr class="header-row">
+            <td colspan="2"></td>
+        </tr>
+        <tr>
+            <th>#</th>
+            <th>Amount</th>
+        </tr>
+        <tr>
+            <td class="bold">Opening Balance</td>
+            <td class="opening-balance">Rs. 00</td>
+        </tr>
+        <tr>
+            <td class="bold">Closing Balance</td>
+            <td class="closing-balance">Rs. 00</td>
+        </tr>
+        <tr>
+            <td>Booking Amount</td>
+            <td class="booking-amount">Rs. 00</td>
+        </tr>
+        <tr>
+            <td>Cancellation/Refund</td>
+            <td class="cancellation-refund">Rs. 00</td>
+        </tr>
+        <tr>
+            <td>Commission Amount</td>
+            <td class="commission-amount">Rs. 00</td>
+        </tr>
+        <tr>
+            <td>Deposit Amount</td>
+            <td class="deposit-amount">Rs. 0</td>
+        </tr>
+        <tr>
+            <td>Inventory Debit</td>
+            <td class="inventory-debit">Rs. 0</td>
+        </tr>
+        <tr>
+            <td>Debited/Adjusted Amount</td>
+            <td class="debited-adjusted-amount">Rs.00</td>
+        </tr>
+    </table>
+    <div class="container5">
+        <h1>Franchisee Account</h1>
+        <div class="buttons">
+            <button class="download-excel"><i class="fas fa-file-excel"></i> Download Excel</button>
+            <button class="commission-excel"><i class="fas fa-file-excel"></i> Commission Excel</button>
+        </div>
+        <div class="search-container">
+            <label for="search">Search:</label>
+            <input type="text" id="search" placeholder="">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Franchisee ID</th>
+                    <th>Date of Transaction</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Remarks</th>
+                    <th>Refrence</th>
+                    <th>Patient</th>
+                    <th>Test Name</th>
+                    <th>BarcodeId</th>
+                    <th>closing-balance</th>
+                    <th>opening-balance</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

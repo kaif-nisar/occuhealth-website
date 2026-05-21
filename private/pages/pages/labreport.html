@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Lab Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        * {
+            font-family: Helvetica, sans-serif;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            margin: auto;
+            border-radius: 8px;
+            height: auto;
+            padding: 30px 25px;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status {
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status span {
+            background-color: #34a853;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+
+        .checkbox {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .footer button {
+            background-color: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .footer button:hover {
+            background-color: #1664c0;
+        }
+
+        .barcode-div {
+            display: flex;
+            justify-content: end;
+        }
+
+        .barcode {
+            padding: 1.5rem;
+        }
+
+        .barcode p {
+            margin-top: 5px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            font-size: 16px;
+        }
+
+        .test-name i {
+            margin-right: 10px;
+        }
+
+        .unit button {
+            margin-left: 10px;
+            height: 25px;
+            width: 25px;
+            border-radius: 50%;
+            border: none;
+            font-size: medium;
+            background-color: #dcdfdf;
+            color: #565454;
+        }
+
+        .reference i {
+            margin-right: 5px;
+        }
+
+        .add-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .add-buttons button {
+            background-color: #f1f1f1;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .interpretations {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .interpretations h3 {
+            display: flex;
+            align-items: center;
+        }
+
+        .interpretations h3 i {
+            margin-left: 10px;
+        }
+
+        .interpretations p {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .category-heading {
+            margin: 2rem auto;
+            text-align: center;
+        }
+
+        .test-name {
+            padding: 1rem 0rem;
+        }
+
+        .test-name i {
+            margin-left: 1rem;
+        }
+
+        .ran-inputs {
+            padding: 1rem;
+            width: 75%;
+            border-radius: 0.5rem;
+        }
+
+        .delete-row i {
+            margin-left: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .dynamicRow {
+            height: 2rem;
+        }
+
+        .test-table {
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-table thead {
+            border-top: 1px solid rgb(62, 62, 62);
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-name {
+            /* width: 15rem; */
+            padding: 0rem 1rem;
+        }
+
+        /* editing range popup  */
+        .form-section {
+            min-width: 80%;
+            max-height: 70vh;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0px 0px 15px 1px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            overflow-y: scroll;
+        }
+
+        .row-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            gap: 10px;
+        }
+
+        .row-item {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            /* Allow items to grow equally */
+            min-width: 80px;
+            /* Minimum width for items */
+        }
+
+        .row-item span {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .row-item input,
+        .row-item select {
+            padding: 8px;
+            /* Increased padding */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            /* Smooth border color transition */
+        }
+
+        .row-item select {
+            background-color: #ffffff;
+            /* Background color */
+            cursor: pointer;
+            /* Change cursor to pointer */
+        }
+
+        .row-item input:focus,
+        .row-item select:focus {
+            border-color: #5bc0de;
+            /* Change border color on focus */
+            outline: none;
+            /* Remove outline */
+        }
+
+        .delete-btn {
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 18px;
+            align-self: center;
+            margin-right: 10px;
+            /* Add space between delete button and fields */
+        }
+
+        .display-report {
+            font-weight: 500;
+            color: #555;
+            margin-left: 10px;
+            /* Add space on the left */
+            font-size: 14px;
+        }
+
+        .add-more-btn {
+            display: flex;
+            align-items: center;
+            color: #5bc0de;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .add-more-btn:hover {
+            color: #31b0d5;
+        }
+
+        .text-area {
+            display: none;
+            /* Hide text area by default */
+            margin-top: 15px;
+            padding: 0.25rem 0.5rem;
+            border-radius: 5px;
+            width: 24rem;
+            height: 8rem;
+        }
+
+        .selectTypeDiv {
+            margin: 2rem 0rem;
+        }
+
+        .selectTypeDiv select {
+            padding: 4px 8px;
+            border-radius: 5px;
+            margin-left: 0.5rem;
+        }
+
+        .submit-div {
+            text-align: center;
+            margin-top: 5rem;
+        }
+
+        #submit-button {
+            padding: 0.35rem 1rem;
+            border-radius: 5px;
+            border: none;
+            background-color: #f700007c;
+            font-weight: bold;
+            color: #4f4f4f;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signoffDiv select {
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .signoffDiv p {
+            font-size: 1rem;
+            margin-top: 2rem;
+        }
+
+        .final-button-div {
+            width: 80%;
+            position: fixed;
+            z-index: 500;
+            bottom: 0%;
+            right: 0%;
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 25px;
+            background-color: white;
+        }
+
+        .final-button-div button {
+            padding: 0.5rem 0.75rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            border-radius: 2px;
+            font-family: sans-serif;
+            box-shadow: 0px 0px 10px rgb(196, 196, 196);
+        }
+
+        #finalBtn {
+            background-color: rgb(38, 208, 67);
+        }
+
+        #saveBtn {
+            background-color: #1badad;
+        }
+
+        #modifycase {
+            background-color: #e7b100;
+        }
+
+        #getresult {
+            display: none;
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+        }
+
+        #randomresult {
+            background-color: #2757e8;
+        }
+
+        .final-button-div i {
+            font-size: medium;
+        }
+
+        .final-button-div i:hover {
+            color: #00ff44;
+        }
+
+        input[type="datetime-local"] {
+            padding: 0px 2px;
+            font-size: 1rem;
+        }
+
+        /* second css  */
+        body {
+            font-size: 14px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-details {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 0.5rem 0rem;
+        }
+
+        .report-details-innerDiv2 {
+            position: relative;
+            width: 100%;
+            border: 1px solid black;
+            padding: 0px 5px;
+            font-size: 16px;
+        }
+
+        .left2 {
+            display: inline-block;
+        }
+
+        .right2 {
+            position: absolute;
+            display: inline-block;
+            left: 55%;
+            transform: translateX(-40%);
+        }
+
+        .registeration-tag2 {
+            width: 110px;
+            display: inline-block;
+        }
+
+        .registered-div2 {
+            padding: 5px 0px;
+        }
+
+        .time-div {
+            display: inline-block;
+        }
+
+        .tags {
+            width: 115px;
+        }
+
+        .barcode-div2 {
+            display: inline-block;
+            position: absolute;
+            right: 1.5%;
+            top: 25%;
+        }
+
+        #barcodeImage {
+            height: 50px;
+            width: 100px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 10px 15px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            font-size: 16px;
+
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .interpretations h3 {
+            display: flex;
+            align-items: center;
+        }
+
+        .interpretations h3 i {
+            margin-left: 10px;
+        }
+
+        .interpretations p {
+            font-size: 16px;
+        }
+
+        .test-table thead {
+            border-top: 1px solid rgb(62, 62, 62);
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-heading {
+            margin: 5px 0px;
+            font-family: sans-serif;
+            page-break-before: always;
+        }
+
+        .category-heading:first-child {
+            page-break-before: auto;
+            /* Don't apply page break on the first section */
+        }
+
+        .download-pdf-div {
+            margin-top: 1rem;
+            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            z-index: 100;
+            bottom: 0px;
+            width: 100%;
+            background-color: white;
+        }
+
+        #downloadPDF,
+        #signOff,
+        #PDFsetting,
+        #BrowserPrint,
+        #sendReport {
+            margin: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
+            font-weight: bolder;
+            font-size: 1rem;
+            box-shadow: 1px 1px 10px 1px rgba(46, 46, 46, 0.329);
+            border: none;
+            border-radius: 5px;
+        }
+
+        #downloadPDF i,
+        #signOff i,
+        #PDFsetting i,
+        #BrowserPrint i,
+        #sendReport i {
+            margin-right: 8px;
+            font-size: 1.5rem;
+            color: rgba(255, 0, 0, 0.703);
+        }
+
+        #sendReport {
+            background-color: #2bff0066;
+            border: none;
+        }
+
+        #sendReport i {
+            color: #20b801;
+        }
+
+        .container {
+            margin-bottom: 4rem;
+        }
+
+        #signOff {
+            background-color: #00b7ffb0;
+            border-radius: 5px;
+        }
+
+        #signOff i {
+            color: rgb(48, 48, 48);
+        }
+
+        h3 {
+            text-align: center;
+        }
+
+        .signed-off-div {
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: static;
+            bottom: 1.5rem;
+            margin: auto;
+            margin-top: 2rem;
+        }
+
+        .container2 {
+            min-width: 42rem;
+            margin: 0px auto;
+        }
+
+        h3 {
+            margin: 0px;
+        }
+
+        .clinical {
+            margin: 0px;
+            margin-bottom: 0px;
+        }
+
+        .category-heading {
+            text-align: center;
+            font-weight: 600;
+            font-family: sans-serif;
+        }
+
+        .interpretations {
+            margin: 0px;
+        }
+
+        .interpretations p {
+            margin: 0px;
+        }
+
+        /* Modal Styling */
+        .popup-modal {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            top: 0px;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .popup-content {
+            position: relative;
+            margin: auto;
+            top: 10%;
+            background: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Close Button */
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        /* Header Buttons */
+        .popup-header {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-header button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .popup-header button:hover {
+            background-color: #0056b3;
+        }
+
+        /* PDF Viewer */
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Input Container */
+        .input-container {
+            margin: 20px 0px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .input-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #218838;
+        }
+
+        .test-name {
+            width: 35%;
+            margin: 0px;
+            padding: 0rem 0rem;
+            position: relative;
+        }
+
+        .infor-div {
+            display: flex;
+            padding: 5px 0px;
+        }
+
+        .sign {
+            display: none;
+        }
+
+        td input {
+            width: 65%;
+            padding: 2px;
+            border-radius: 5px;
+            border: 1px solid black;
+        }
+
+        .modal {
+            z-index: 500000;
+        }
+
+        .para-name {
+            padding-left: 2rem;
+        }
+
+        .cell-inetrpretation {
+            padding-left: 1rem;
+        }
+
+        .section h2,
+        h2 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+        }
+
+        .value-header {
+            width: 15rem;
+        }
+
+        thead {
+            background-color: #808080bd;
+        }
+
+        .test-details {
+            padding-left: 1rem;
+            font-size: 12px;
+        }
+
+        tbody {
+            border-bottom: 1px solid rgb(44, 44, 44);
+            font-size: 16px;
+        }
+
+        .test-name {
+            padding-top: 5px;
+        }
+
+        input {
+            font-size: 16px;
+        }
+
+        .test-details table td,
+        tr {
+            font-size: 12px;
+        }
+
+        .test-details p {
+            margin-top: 5px;
+        }
+
+        .editorContainer {
+            width: 100%;
+        }
+
+        .editorContainer button {
+            padding: 2px 4px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            background-color: #b2d6ff;
+        }
+
+        button.add-row-button {
+            padding: 2px 5px;
+            margin: 1rem 0rem;
+            margin-right: 1rem;
+            border-radius: 1rem;
+            border: 1px dashed #3c3c3c;
+            background: transparent;
+        }
+
+        .add-row-button:hover {
+            background-color: #a9a9a96a;
+        }
+
+        td textarea {
+            width: 90%;
+            height: 3rem;
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            padding: 5px;
+        }
+
+        .moreDetailsDiv {
+            display: flex;
+            flex-direction: column;
+            font-size: large;
+            margin-top: 1rem;
+        }
+
+        .moreDetailsDiv textarea {
+            width: 100%;
+            height: 5rem;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 5px 0px;
+        }
+
+        .checkBox {
+            width: fit-content;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 5px;
+            padding-left: 0.5rem;
+        }
+
+        .checkBox input {
+            height: 15px;
+            width: 15px;
+        }
+
+        .checkboxAndSortTablesBtn {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        #reorder-container {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            width: fit-content;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        #buttons-container {
+            position: absolute;
+            right: 25px;
+            flex-direction: column;
+            margin-top: 1.8rem;
+            box-shadow: 1px 1px 5px 1px rgba(50, 50, 50, 0.205);
+        }
+
+        #buttons-container button {
+            border: none;
+            padding: 2px 5px;
+            background-color: #808080bd;
+            color: white;
+        }
+
+        #buttons-container button:hover {
+            background-color: #1a73e8;
+        }
+
+        .table {
+            position: relative;
+
+        }
+
+        .value-column {
+            display: flex;
+            align-items: center;
+        }
+
+        .formulaIcon {
+            font-size: 0.75rem;
+            width: 35px;
+        }
+
+        /* .formulaIcon:empty {
+            width: 0px;
+        } */
+
+        .formulaIcon span {
+            font-size: 1.25rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #content-loading-spinner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner2 {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        .checkboxesDiv {
+            width: 80%;
+            display: flex;
+        }
+
+        span.HighLow {
+            width: 15px;
+            text-align: left;
+        }
+
+        .api-data {
+            max-width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            /* This allows the items to wrap onto the next line */
+        }
+
+        .template-item {
+            width: fit-content;
+            height: auto;
+            display: flex;
+            align-items: center;
+            padding: 2px 5px;
+            margin-bottom: 5px;
+            margin-right: 0.75rem;
+            box-shadow: 1px 1px 2px rgb(79, 79, 79);
+            border-radius: 5px;
+            background-color: #f4f4f4;
+        }
+
+        .template-item span {
+            font-size: 1rem;
+            color: #1565c0;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .popup-content h1 {
+            text-align: left;
+        }
+
+        .popup-content label {
+            text-align: left;
+        }
+
+        .popup-content input {
+            width: 50%;
+            padding: 5px;
+            border: 1px solid rgba(68, 68, 68, 0.326);
+            border-radius: 2px;
+        }
+
+        .popup-content button {
+            width: max-content;
+            padding: 5px 10px;
+            background-color: #1565c0;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        .popup-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .buttonsDiv {
+            margin: 1rem 0;
+        }
+
+        .buttonsDiv button,
+        .buttonsDiv i {
+            border: none;
+            background-color: white;
+            font-size: 1.10rem;
+            color: #1565c0;
+        }
+
+        td.unit {
+            width: 30%;
+        }
+
+        table tbody td:first-child {
+            width: 20px;
+        }
+
+        table thead th:first-child {
+            width: 20px;
+        }
+
+        @media screen and (max-width: 1000px) {
+            .report-details-innerDiv2 {
+                font-size: 12px;
+            }
+
+            input[type="datetime-local"] {
+                font-size: 12px;
+            }
+
+            th {
+                font-size: 12px;
+            }
+
+            td {
+                font-size: 12px;
+            }
+
+            .tags {
+                width: 96px;
+            }
+
+            .registeration-tag2 {
+                width: 90px;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Spinner styling */
+        .spinner-container {
+            height: 100vh;
+            width: 100%;
+            display: none;
+            /* Default hidden */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgb(255, 255, 255);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 999;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            border: 4px solid transparent;
+            border-top: 4px solid rgb(62, 62, 62);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .exclude td {
+            font-size: 1rem;
+            font-weight: 550;
+            text-align: center;
+        }
+
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .tooltip-box {
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 0.75rem;
+            z-index: 1000;
+            white-space: normal;
+            width: 20rem;
+            top: -10px;
+            right: 25px;
+            display: none;
+        }
+
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent #333 transparent transparent;
+        }
+
+        .alert {
+            position: fixed;
+            top: 75px;
+            right: 2%;
+            width: 75%;
+        }
+
+        /* .table td,
+        .table th {
+            padding: 0.5rem;
+        } */
+
+        .editorContainer {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            background: white;
+        }
+
+        .reference {
+            width: 20%;
+        }
+
+        .table td,
+        .table th {
+            padding: 0.25rem 0.40rem;
+        }
+
+        .valueColumn {
+            padding-left: 55px !important;
+        }
+
+        .editor-container {
+            background-color: white;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Spinner -->
+    <div class="spinner-container" id="spinner">
+        <div class="spinner"></div>
+    </div>
+    <div id="modal" class="modal" style="display: none;">
+        <div class="form-section">
+            <span class="close-btn" onclick="closeModal()">✖️</span> <!-- Close button -->
+            <div class="selectTypeDiv">
+                <span for="select-type">Select Type</span>
+                <select id="select-type" onchange="toggleForm(this)">
+                    <option value="numeric" selected>Numeric</option>
+                    <option value="text">Text</option>
+                </select>
+            </div>
+
+            <div id="form-container">
+                <div class="row-container">
+                    <span class="delete-btn" onclick="deleteRow(this)">🗑️</span>
+                    <div class="row-item">
+                        <span for="sex">Sex</span>
+                        <select name="sex" class="sex">
+                            <option value="Any">Any</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <span for="min_age">Min. Age</span>
+                        <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
+                    </div>
+                    <div class="row-item">
+                        <span for="min_age_unit">Min Age Unit</span>
+                        <select name="min_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <span for="max_age">Max. Age</span>
+                        <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="20">
+                    </div>
+                    <div class="row-item">
+                        <span for="max_age_unit">Max Age Unit</span>
+                        <select name="max_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <span for="lower_value">Lower Value</span>
+                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value"
+                            value="2.1" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <span for="upper_value">Upper Value</span>
+                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value"
+                            value="17.7" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <span for="upper_value">Display report</span>
+                        <span class="display-report">2.1 - 17.7</span>
+                    </div>
+                </div>
+            </div>
+
+            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
+
+            <div class="add-more-btn" id="add-more-btn" onclick="addRow()">+ Add more</div>
+            <div class="submit-div">
+                <button id="submit-button"> Submit now</button>
+            </div>
+        </div>
+    </div>
+    <br><br>
+    <div class="container">
+        <div class="container2">
+            <div class="alert fade" role="alert">
+            </div>
+            <div class="header">
+                <h1>Lab Report</h1>
+                <span class="badge">booking Id. <span id="booking-registeration-number"></span></span>
+            </div>
+            <div class="report-details">
+
+            </div>
+            <div class="checkboxAndSortTablesBtn">
+                <div class="checkboxesDiv">
+                    <div class="checkBox">
+                        <input type="checkbox" id="check1" name="check1">
+                        <span>Print Categories from new Page</span>
+                        <i class="fa-solid fa-circle-info" title="This Field is for PDF only"></i>
+                    </div>
+                    <div class="checkBox">
+                        <input type="checkbox" id="labsign" name="check2">
+                        <span>Lab-Sign</span>
+                        <i class="fa-solid fa-circle-info" title="This Field is for PDF only"></i>
+                    </div>
+                    <div class="checkBox">
+                        <input type="checkbox" id="firstdoctor" name="check2">
+                        <span>first Doctor</span>
+                        <i class="fa-solid fa-circle-info" title="This Field is for PDF only"></i>
+                    </div>
+                    <div class="checkBox">
+                        <input type="checkbox" id="seconddoctor" name="check2">
+                        <span>second Doctor</span>
+                        <i class="fa-solid fa-circle-info" title="This Field is for PDF only"></i>
+                    </div>
+                </div>
+
+                <div id="reorder-container">
+                    Reorder Tests
+                </div>
+
+                <!-- Hidden buttons container -->
+                <div id="buttons-container">
+                    <button id="reorder-tables">Reorder All Table Tests</button>
+                    <button id="reorder-categories">Reorder All Categories</button>
+                    <button id="reorder-pannels">Reorder All Pannels</button>
+                </div>
+
+            </div>
+            <div class="table-div" id="tables-container">
+            </div>
+            <div class="moreDetailsDiv">
+                <span>More details :</span>
+                <textarea name="moredetails" id="moredetails"></textarea>
+            </div>
+
+        </div>
+    </div>
+    <div class="final-button-div">
+        <button id="finalBtn"><i class="fa-solid fa-check"></i> final</button>
+        <button id="saveBtn"><i class="fa-solid fa-floppy-disk"></i> Save only</button>
+        <button id="getresult"><i class="fa-solid fa-square-poll-horizontal"></i>Get LIS</button>
+        <button id="modifycase"><i class="fa-solid fa-file-pen"></i>Edit Case</button>
+        <button id="randomresult"><i class="fa-solid fa-square-poll-horizontal"></i>Get Result</button>
+    </div>
+
+    <script src="https://cdn.tiny.cloud/1/oqlgwrs74fzlc4aoa2tfk2jrqu5f2icodo1p4ios39pu44g4/tinymce/7/tinymce.min.js"
+        referrerpolicy="origin"></script>
+    <script src="lab_report.js"></script>
+</body>
+
+</html>

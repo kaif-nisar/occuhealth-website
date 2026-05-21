@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice | ShopNow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #10b981;
+            --text-color: #1f2937;
+            --light-gray: #f3f4f6;
+            --medium-gray: #e5e7eb;
+            --dark-gray: #6b7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background-color: #f9fafb;
+            line-height: 1.6;
+            padding-bottom: 50px;
+        }
+
+        .container-invoice {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .copy-code-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .copy-code-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .logo-invoice {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .invoice-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .invoice-title h1 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .invoice-title p {
+            color: var(--dark-gray);
+        }
+
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .invoice-meta div {
+            flex: 1;
+        }
+
+        .invoice-meta h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .product-table th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: left;
+            padding: 12px 15px;
+        }
+
+        .product-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .product-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .totals {
+            margin-top: 30px;
+            text-align: right;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .totals-label {
+            width: 150px;
+            font-weight: 500;
+        }
+
+        .totals-value {
+            width: 120px;
+            text-align: right;
+        }
+
+        .grand-total {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid var(--primary-color);
+        }
+
+        .invoice-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--medium-gray);
+            text-align: center;
+            color: var(--dark-gray);
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 30px;
+        }
+
+        .download-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .invoice-header, .invoice-meta {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .product-table thead {
+                display: none;
+            }
+            
+            .product-table tr {
+                display: block;
+                margin-bottom: 20px;
+                border-bottom: 1px solid var(--medium-gray);
+            }
+            
+            .product-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 10px;
+            }
+            
+            .product-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-invoice">
+        <div class="invoice-header">
+            <div class="logo-invoice">ShopNow</div>
+            <div>
+                <h3>Invoice #INV-2023-789</h3>
+                <p>Date: 25 July 2023</p>
+            </div>
+        </div>
+
+        <div class="invoice-title">
+            <h1>INVOICE</h1>
+            <p>Thank you for your purchase</p>
+        </div>
+
+        <div class="invoice-meta">
+            <div>
+                <h3>Sold By:</h3>
+                <p>ShopNow E-Commerce</p>
+                <p>123 Business Park, Andheri East</p>
+                <p>Mumbai, Maharashtra 400069</p>
+                <p>GSTIN: 27ABCDE1234F1Z5</p>
+            </div>
+            <div>
+                <h3>Bill To:</h3>
+                <p>Rahul Sharma</p>
+                <p>456 Green Heights, Bandra West</p>
+                <p>Mumbai, Maharashtra 400050</p>
+                <p>Phone: +91 9876543210</p>
+            </div>
+        </div>
+
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Tax</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td data-label="Item">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" class="product-image">
+                            <div>
+                                <div>Premium Wireless Headphones</div>
+                                <div style="color: var(--dark-gray); font-size: 0.9rem;">Brand: AudioMaster</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Price">₹14,999</td>
+                    <td data-label="Qty">1</td>
+                    <td data-label="Tax">₹2,700</td>
+                    <td data-label="Total">₹17,699</td>
+                </tr>
+                <tr>
+                    <td data-label="Item">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" class="product-image">
+                            <div>
+                                <div>Smart Watch Pro Series 5</div>
+                                <div style="color: var(--dark-gray); font-size: 0.9rem;">Brand: TechGear</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Price">₹18,999</td>
+                    <td data-label="Qty">1</td>
+                    <td data-label="Tax">₹3,420</td>
+                    <td data-label="Total">₹22,419</td>
+                </tr>
+                <tr>
+                    <td data-label="Item">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" class="product-image">
+                            <div>
+                                <div>Ultra Running Shoes 360</div>
+                                <div style="color: var(--dark-gray); font-size: 0.9rem;">Brand: SportFit</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Price">₹8,999</td>
+                    <td data-label="Qty">2</td>
+                    <td data-label="Tax">₹3,240</td>
+                    <td data-label="Total">₹22,238</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div class="totals-row">
+                <div class="totals-label">Subtotal:</div>
+                <div class="totals-value">₹52,997</div>
+            </div>
+            <div class="totals-row">
+                <div class="totals-label">Tax :</div>
+                <div class="totals-value">₹9,540</div>
+            </div>
+            <div class="totals-row">
+                <div class="totals-label">Shipping:</div>
+                <div class="totals-value">FREE</div>
+            </div>
+            <div class="totals-row grand-total">
+                <div class="totals-label">Grand Total:</div>
+                <div class="totals-value">₹60,537</div>
+            </div>
+        </div>
+
+        <div class="invoice-footer">
+            <p>Thank you for shopping with us. Please visit again!</p>
+            <button id="downloadInvoiceBtn" class="download-btn">
+                <i class="fas fa-download"></i> Download Invoice
+            </button>
+            <button id="makepaymentBtn" class="download-btn">
+                <i class="fa-solid fa-money-bill"></i> Make payment
+            </button>
+        </div>
+    </div>
+</body>
+</html>
+

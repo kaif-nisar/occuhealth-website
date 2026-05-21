@@ -1,0 +1,137 @@
+<html></html>
+<head>
+    <title>Ledger List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin-right: 5px;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #343a40;
+        }
+        .form-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .form-container select,
+        .form-container input[type="date"],
+        .form-container input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        .form-container .btn {
+            background-color: #ff5e78;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .form-container .btn i {
+            margin-right: 5px;
+        }
+        .form-container .label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .search-btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .search-btn {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .search-btn i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Ledger List</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i>
+                <a href="#">Dashboard</a>
+                <span>&gt;</span>
+                <span>Credit</span>
+            </div>
+        </div>
+        <div class="form-container">
+            <select>
+                <option>My Account</option>
+                <option>Account 1</option>
+                <option>Account 2</option>
+            </select>
+            <div>
+                <span class="label">Start</span>
+                <input type="date" value="2024-09-01">
+            </div>
+            <div>
+                <span class="label">End</span>
+                <input type="date" value="2024-09-07">
+            </div>
+            <input type="text" placeholder="Full Ledger">
+            <button class="btn"><i class="fas fa-search"></i> View</button>
+        </div>
+    </div>
+</body>
+</html>

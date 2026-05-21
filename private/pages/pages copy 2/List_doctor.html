@@ -1,0 +1,166 @@
+<html></html>
+<head>
+    <title>List Doctor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            overflow-x: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        table th {
+            background-color: #fff3cd;
+            color: #000;
+        }
+        table td {
+            background-color: #fff;
+        }
+        .table-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .table-actions .btn {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn-edit {
+            background-color: #17a2b8;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+        }
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .pagination .page-item {
+            margin: 0 5px;
+        }
+        .pagination .page-link {
+            padding: 5px 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .pagination .page-link:hover {
+            background-color: #e9ecef;
+        }
+        .pagination .active .page-link {
+            background-color: #17a2b8;
+            color: #fff;
+            border-color: #17a2b8;
+        }
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <br><br>
+    <div class="container">
+        <br><br>
+        <h1>Doctors List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">List Doctor</a>
+        </div>
+        <div class="table-container">
+            <div class="table-controls">
+                <label>
+                    Show 
+                    <select>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    entries
+                </label>
+                <label>
+                    Search: <input type="text">
+                </label>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Doctor Name</th>
+                        <th>Gender</th>
+                        <th>Specialization</th>
+                        <th>Address</th>
+                        <th>Remarks</th>
+                        <th>Date Added</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                </tbody>
+            </table>
+            <div class="pagination">
+                <div class="page-item">
+                    <a class="page-link" href="#">Previous</a>
+                </div>
+                <div class="page-item active">
+                    <a class="page-link" href="#">1</a>
+                </div>
+                <div class="page-item">
+                    <a class="page-link" href="#">Next</a>
+                </div>
+            </div>
+        </div>
+        <div>Showing 1 to 1 of 1 entries</div>
+        <br><br>
+    </div>
+</body>
+</html>

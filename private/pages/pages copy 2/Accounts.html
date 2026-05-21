@@ -1,0 +1,154 @@
+<html>
+
+</html>
+
+<head>
+    <title>My Franchisee List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .balance-positive {
+            color: green;
+            font-weight: bold;
+        }
+
+        .balance-negative {
+            color: red;
+            font-weight: bold;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .buttons {
+            margin-bottom: 20px;
+        }
+
+        .buttons button {
+            background-color: #00aaff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .buttons button:hover {
+            background-color: #0088cc;
+        }
+
+        .search {
+            margin-bottom: 20px;
+        }
+
+        .search input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-y: scroll;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+
+        table td i {
+            margin-right: 5px;
+        }
+
+        .status-access {
+            color: green;
+        }
+
+        .balance-negative {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <br><br>
+        <h1>My Franchisee List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> <a href="#">Dashboard</a> > <a href="#">My Franchisee</a>
+        </div>
+        <br><br>
+        <div class="buttons">
+            <button>Excel</button>
+            <button id="pdfBtnJ">PDF</button>
+        </div>
+        <div class="search">
+            <label for="search">Search:</label>
+            <input type="text" id="search" name="search">
+        </div>
+        <table id="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Franchisee ID</th>
+                    <th>Franchisee Name</th>
+                    <th>Username</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <tr>
+                    <td>3</td>
+                    <td>FR002741</td>
+                    <td>Anuradha devi</td>
+                    <td><i class="fas fa-user"></i> UP009/UP101</td>
+                    <td>0</td>
+                    <td class="status-access">Access</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

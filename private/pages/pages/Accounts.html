@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Franchisee List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    
+    <!-- Required Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .balance-positive {
+            color: green;
+            font-weight: bold;
+        }
+
+        .balance-negative {
+            color: red;
+            font-weight: bold;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .buttons {
+            margin-bottom: 20px;
+        }
+
+        .buttons button {
+            background-color: #00aaff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .buttons button:hover {
+            background-color: #0088cc;
+        }
+
+        .search {
+            margin-bottom: 20px;
+        }
+
+        .search label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .search input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+
+        table td i {
+            margin-right: 5px;
+        }
+
+        .status-access {
+            color: green;
+            font-weight: bold;
+        }
+
+        tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <br><br>
+        <h1>My Franchisee List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> <a href="#">Dashboard</a> > <a href="#">My Franchisee</a>
+        </div>
+        <br><br>
+        <div class="buttons">
+            <button id="excelBtn"><i class="fas fa-file-excel"></i> Excel</button>
+            <button id="pdfBtnJ"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+        <div class="search">
+            <label for="searchInput">Search:</label>
+            <input type="text" id="searchInput" placeholder="Search by name, username, or ID...">
+        </div>
+        <br>
+        <table id="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Franchisee ID</th>
+                    <th>Franchisee Name</th>
+                    <th>Username</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <!-- Data will be loaded here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // ===== CONFIGURATION - Replace with your actual values =====
+        const BASE_URL = 'https://your-api-url.com'; // Replace with your API URL
+        const userId = 'your-user-id'; // Replace with actual user ID
+
+        // ===== MAIN CODE =====
+        let allFranchisees = [];
+
+        async function loadFranchiseesWithBalance() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/get-super-franchisee?userId=${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    allFranchisees = data.message;
+                    displayFranchisees(allFranchisees);
+                    console.log('Loaded franchisees:', allFranchisees.length);
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error loading franchisees:', error);
+                // Show demo data for testing
+                loadDemoData();
+            }
+        }
+
+        // Demo data for testing (remove in production)
+        function loadDemoData() {
+            allFranchisees = [
+                {
+                    _id: '002741',
+                    fullName: 'Anuradha Devi',
+                    username: 'UP009/UP101',
+                    bookingWallet: 5000,
+                    isActive: true
+                },
+                {
+                    _id: '002742',
+                    fullName: 'Rajesh Kumar',
+                    username: 'UP010/UP102',
+                    bookingWallet: -1500,
+                    isActive: true
+                },
+                {
+                    _id: '002743',
+                    fullName: 'Priya Sharma',
+                    username: 'UP011/UP103',
+                    bookingWallet: 3200,
+                    isActive: false
+                }
+            ];
+            displayFranchisees(allFranchisees);
+        }
+
+        function displayFranchisees(franchiseesList) {
+            const tbody = document.querySelector('#tbody');
+            tbody.innerHTML = '';
+
+            if (franchiseesList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No data found</td></tr>';
+                return;
+            }
+
+            franchiseesList.forEach((franchisee, index) => {
+                const balanceClass = franchisee.bookingWallet < 0 ? 'balance-negative' : 'balance-positive';
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>FR${franchisee._id}</td>
+                        <td>${franchisee.fullName}</td>
+                        <td><i class="fas fa-user"></i> ${franchisee.username}</td>
+                        <td class="${balanceClass}">₹${franchisee.bookingWallet}</td>
+                        <td class="status-access">${franchisee.isActive ? 'Access' : 'No Access'}</td>
+                    </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    
+                    if (searchTerm === '') {
+                        displayFranchisees(allFranchisees);
+                        return;
+                    }
+                    
+                    const filteredFranchisees = allFranchisees.filter(franchisee => {
+                        return (
+                            franchisee.fullName.toLowerCase().includes(searchTerm) ||
+                            franchisee.username.toLowerCase().includes(searchTerm) ||
+                            `FR${franchisee._id}`.toLowerCase().includes(searchTerm) ||
+                            franchisee._id.toLowerCase().includes(searchTerm)
+                        );
+                    });
+                    
+                    displayFranchisees(filteredFranchisees);
+                });
+                console.log('✅ Search initialized');
+            } else {
+                console.warn('❌ Search input not found');
+            }
+        }
+
+        // Excel Export
+        function initializeExcelButton() {
+            const excelBtn = document.getElementById('excelBtn');
+            
+            if (excelBtn) {
+                excelBtn.addEventListener('click', function() {
+                    if (allFranchisees.length === 0) {
+                        alert('No data available for Excel export');
+                        return;
+                    }
+
+                    const excelData = allFranchisees.map((franchisee, index) => ({
+                        '#': index + 1,
+                        'Franchisee ID': `FR${franchisee._id}`,
+                        'Franchisee Name': franchisee.fullName,
+                        'Username': franchisee.username,
+                        'Balance': franchisee.bookingWallet,
+                        'Status': franchisee.isActive ? 'Access' : 'No Access'
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(excelData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Franchisees');
+                    XLSX.writeFile(wb, 'Franchisee_List.xlsx');
+                    
+                    console.log('✅ Excel file downloaded');
+                });
+                console.log('✅ Excel button initialized');
+            } else {
+                console.warn('❌ Excel button not found');
+            }
+        }
+
+        // PDF Export
+        function initializePDFButton() {
+            const pdfBtn = document.getElementById('pdfBtnJ');
+            
+            if (pdfBtn) {
+                pdfBtn.addEventListener('click', function() {
+                    if (allFranchisees.length === 0) {
+                        alert('No data available for PDF generation');
+                        return;
+                    }
+
+                    // Check if jsPDF library is loaded
+                    if (typeof window.jspdf === 'undefined') {
+                        alert('PDF library not loaded. Please refresh the page.');
+                        console.error('jsPDF library not found');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    doc.setFontSize(18);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Franchisee List', 14, 15);
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+
+                    const headers = ['#', 'Franchisee ID', 'Name', 'Username', 'Balance', 'Status'];
+                    
+                    const rows = allFranchisees.map((franchisee, index) => [
+                        index + 1,
+                        `FR${franchisee._id}`,
+                        franchisee.fullName,
+                        franchisee.username,
+                        `₹${franchisee.bookingWallet}`,
+                        franchisee.isActive ? 'Access' : 'No Access'
+                    ]);
+
+                    doc.autoTable({
+                        head: [headers],
+                        body: rows,
+                        startY: 28,
+                        theme: 'grid',
+                        styles: { 
+                            fontSize: 9,
+                            cellPadding: 3
+                        },
+                        headStyles: { 
+                            fillColor: [0, 0, 0],
+                            textColor: 255,
+                            fontStyle: 'bold'
+                        },
+                        alternateRowStyles: {
+                            fillColor: [245, 245, 245]
+                        }
+                    });
+
+                    doc.save('Franchisee_List.pdf');
+                    console.log('✅ PDF file downloaded');
+                });
+                console.log('✅ PDF button initialized');
+            } else {
+                console.warn('❌ PDF button not found');
+            }
+        }
+
+        // Initialize everything when DOM is ready
+        function initialize() {
+            console.log('🚀 Initializing...');
+            initializeSearch();
+            initializeExcelButton();
+            initializePDFButton();
+            loadFranchiseesWithBalance();
+        }
+
+        // Run initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+    </script>
+</body>
+</html>

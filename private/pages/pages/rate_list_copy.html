@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Bulk Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+
+        .container { width: 100%; padding: 20px; }
+
+        #saveBtn {
+            background-color: #4CAF50;
+            border: 1px solid blue;
+            border-radius: 10px;
+            width: 8%;
+            height: 40px;
+            margin: 20px 50px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 { margin: 0; font-size: 24px; }
+        .breadcrumb { font-size: 14px; color: #666; margin-top: 10px; }
+        .breadcrumb i { margin-right: 5px; }
+
+        .search-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-section input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .search-section button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .current-franchisee1 {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .current-franchisee1 i { font-size: 24px; margin-right: 10px; }
+        .current-franchisee1 span { font-size: 16px; }
+
+        .trigger-price {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 8px;
+        }
+        .trigger-price input[type="text"] {
+            width: 60px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .trigger-price button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .rate-list {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .rate-list h2 { margin: 0 0 16px 0; font-size: 20px; }
+
+        /* ── Search + pagination controls row ── */
+        .table-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .search-wrap { position: relative; }
+        .search-wrap i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 13px;
+        }
+        #searchTest {
+            width: 280px;
+            padding: 8px 12px 8px 30px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        #searchTest:focus { outline: none; border-color: #ff4081; }
+
+        .rows-select {
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* ── Table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+        }
+        table th { background-color: #000; color: white; font-size: 13px; }
+        table td { background-color: #f8d7da; font-size: 13px; }
+        table tbody tr:hover td { background-color: #f5b7c0 !important; }
+
+        th:nth-child(1), td:nth-child(1) { width: 5%; }
+        th:nth-child(2), td:nth-child(2) { width: 20%; }
+        th:nth-child(3), td:nth-child(3) { width: 13%; }
+        th:nth-child(4), td:nth-child(4) { width: 7%; }
+        th:nth-child(5), td:nth-child(5) { width: 8%; }
+        th:nth-child(6), td:nth-child(6) { width: 8%; }
+        th:nth-child(7), td:nth-child(7) { width: 8%; }
+        th:nth-child(8), td:nth-child(8) { width: 20%; }
+        th:nth-child(9), td:nth-child(9) { width: 10%; }
+
+        input[type="number"].commission-rate {
+            width: 100%;
+            max-width: 100%;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        /* Commission input validation states */
+        input.commission-rate.input-error {
+            border: 2px solid #e74c3c !important;
+            background: #fff5f5;
+        }
+        input.commission-rate.input-warn {
+            border: 2px solid #e67e22 !important;
+            background: #fffbf0;
+        }
+        input.commission-rate.input-ok {
+            border: 2px solid #27ae60 !important;
+            background: #f0fff5;
+        }
+        /* Override badge — marks rows changed individually after global apply */
+        .rate-override {
+            position: relative;
+        }
+        .rate-override::after {
+            content: '✎';
+            position: absolute;
+            top: 2px;
+            right: 3px;
+            font-size: 10px;
+            color: #e67e22;
+            pointer-events: none;
+        }
+        /* Trigger input error state */
+        #trigger-price.field-error {
+            border: 2px solid #e74c3c !important;
+            background: #fff5f5;
+        }
+        /* Row highlight when manually overridden */
+        tr.manually-overridden td { background-color: #fffde7 !important; }
+        tr.manually-overridden:hover td { background-color: #fff9c4 !important; }
+        /* Stats bar */
+        #statsBar {
+            display: none;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            padding: 7px 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        #statsBar b { color: #333; }
+        #statsBar .stat-override { color: #e67e22; font-weight: 600; }
+
+        /* ── Skeleton loader rows ── */
+        .skeleton-row td { background-color: transparent !important; border-color: #eee; }
+        .skeleton-cell {
+            height: 14px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.3s infinite;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ── No results ── */
+        #noResults {
+            display: none;
+            text-align: center;
+            padding: 48px 20px;
+            color: #888;
+        }
+        #noResults i { font-size: 36px; color: #ccc; display: block; margin-bottom: 10px; }
+        #noResults h3 { font-size: 16px; color: #555; margin-bottom: 6px; }
+        #noResults p  { font-size: 13px; }
+
+        /* ── Pagination ── */
+        .pagination-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        .page-info { font-size: 13px; color: #666; }
+        .page-info b { color: #222; }
+        .page-controls { display: flex; align-items: center; gap: 4px; }
+        .page-btn {
+            min-width: 32px; height: 32px;
+            padding: 0 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            color: #333;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .page-btn:hover:not(:disabled) { border-color: #ff4081; color: #ff4081; }
+        .page-btn.active { background: #ff4081; border-color: #ff4081; color: #fff; }
+        .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .page-ellipsis { padding: 0 4px; color: #999; font-size: 13px; }
+
+        /* ── Processing spinner (existing, kept) ── */
+        #processing-spinner {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.75);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 14px;
+        }
+        #processing-spinner p {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        @keyframes spin {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spin-circle {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px; height: 60px;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Bulk Pricing</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> Dashboard &gt; Pricing List
+        </div>
+    </div>
+
+    <!-- Franchisee search row -->
+    <div class="search-section">
+        <input type="text" id="franchisee-name" value="" readonly placeholder="Loading franchisee…">
+        <!-- searchBtn: was in HTML but had no listener — now handled below -->
+        <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
+    </div>
+
+    <div class="current-franchisee1">
+        <i class="fas fa-user"></i>
+        <span id="current-franchisee-name" aria-readonly="true"></span>
+    </div>
+
+    <!-- % Trigger -->
+    <div class="trigger-price">
+        <span><b>%</b></span>
+        <input type="text" id="trigger-price" value="" placeholder="0 - 100">
+        <button id="changePriceBtn"><i class="fas fa-bolt"></i> Apply to All</button>
+        <small id="triggerHint" style="font-size:12px;color:#888">
+            Enter 0–100 aur "Apply to All" dabao. Baad mein kisi bhi row ka Rate(%) alag se badal sakte hain.
+        </small>
+    </div>
+    <!-- Validation error for trigger field -->
+    <div id="triggerError" style="display:none;color:#c0392b;font-size:12px;margin:-12px 0 12px 24px;font-weight:600;">
+        <i class="fas fa-exclamation-circle"></i> <span id="triggerErrorMsg"></span>
+    </div>
+
+    <!-- Rate list -->
+    <div class="rate-list">
+        <h2><i class="fas fa-database"></i> Rate List</h2>
+
+        <div class="table-controls">
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchTest" placeholder="Search test, panel, package…">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="totalCount" style="font-size:12px;color:#888"></span>
+                <select class="rows-select" id="rowsPerPage">
+                    <option value="25">25 rows</option>
+                    <option value="50" selected>50 rows</option>
+                    <option value="100">100 rows</option>
+                    <option value="200">200 rows</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="statsBar">
+            <span>Global Rate: <b id="statGlobalRate">—</b>%</span>
+            <span>Total Rows: <b id="statTotal">—</b></span>
+            <span class="stat-override">Manually Overridden: <b id="statOverride">0</b></span>
+            <span style="margin-left:auto;font-size:11px;color:#999">
+                <i class="fas fa-square" style="color:#fffde7;border:1px solid #ccc"></i> = alag se badla hua row
+            </span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Test ID</th>
+                    <th>Test Name</th>
+                    <th>Test MRP</th>
+                    <th>My Price</th>
+                    <th>Rate(%)</th>
+                    <th>Assigned Price</th>
+                    <th>Franchisee ID</th>
+                    <th>Final Price</th>
+                </tr>
+            </thead>
+            <tbody id="test-list"></tbody>
+        </table>
+
+        <!-- No results state -->
+        <div id="noResults">
+            <i class="fas fa-search-minus"></i>
+            <h3>No results found</h3>
+            <p id="noResultsMsg">No tests match your search.</p>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar" id="paginationBar">
+            <div class="page-info">
+                Showing <b id="pageFrom">–</b>–<b id="pageTo">–</b> of <b id="pageTotal">–</b> records
+            </div>
+            <div class="page-controls" id="pageControls"></div>
+        </div>
+    </div>
+
+    <button id="saveBtn">Save</button>
+</div>
+
+<!-- Processing spinner (existing element kept, enhanced) -->
+<div id="processing-spinner">
+    <div class="spin-circle"></div>
+    <p id="spinnerMsg">Processing…</p>
+</div>
+</body>
+</html>

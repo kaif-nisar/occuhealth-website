@@ -1,0 +1,171 @@
+<html>
+<head>
+    <title>Bulk Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .search-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-section input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .search-section button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .current-franchisee {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .current-franchisee i {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .current-franchisee span {
+            font-size: 16px;
+        }
+        .trigger-price {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .trigger-price input[type="text"] {
+            width: 50px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .trigger-price button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .rate-list {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .rate-list h2 {
+            margin: 0 0 20px 0;
+            font-size: 20px;
+        }
+        .rate-list input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+        table th {
+            background-color: #000;
+            color: white;
+        }
+        table td {
+            background-color: #f8d7da;
+        }
+        table td input[type="text"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bulk Pricing</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i> Dashboard > Pricing List
+            </div>
+        </div>
+        <div class="search-section">
+            <input type="text" value="UP009/UP12C - SARAL PATH LAB - (Uttar Pradesh)">
+            <button>Search</button>
+        </div>
+        <div class="current-franchisee">
+            <i class="fas fa-user"></i>
+            <span>UP009/UP12C (SARAL PATH LAB)</span>
+        </div>
+        <div class="trigger-price">
+            <span>%</span>
+            <input type="text" value="0">
+            <button>ChangePrice</button>
+        </div>
+        <div class="rate-list">
+            <h2><i class="fas fa-database"></i> Rate List</h2>
+            <input type="text" placeholder="Search:">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Test ID</th>
+                        <th>Test Name</th>
+                        <th>Test MRP</th>
+                        <th>My Price</th>
+                        <th>Rate(%)</th>
+                        <th>Assigned Price</th>
+                        <th>Franchisee ID</th>
+                        <th>Final Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    dynamically test entry will show
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

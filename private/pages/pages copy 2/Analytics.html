@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Analytics</title>
+    <style>
+        .contg{
+            padding: 20px 0 0 0;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #f0f8ff;
+            color: #555;
+        }
+        .breadcrumb a {
+            text-decoration: none;
+            color: #555;
+        }
+        .breadcrumb span {
+            margin: 0 10px;
+        }
+        .container {
+            padding: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .search-filter h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .search-form {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .search-form input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex: 1;
+        }
+        .search-form select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex: 1;
+        }
+        .search-button {
+            background-color: #e94e77;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .analytics-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background-color: #00bcd4;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .month {
+            color: #1e88e5;
+            font-weight: bold;
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            height: 20px;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #e94e77;
+            border-radius: 4px;
+        }
+        .status-text {
+            color: #e94e77;
+            font-weight: bold;
+        }
+        .blue-line {
+            height: 3px;
+            width: 40px;
+            background-color: #00bcd4;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="contg">
+    <h2>Business Analytics</h2>
+    
+    <div class="breadcrumb">
+        <a href="#"><i class="home-icon">🏠</i></a>
+        <span>></span>
+        <a href="#">Dashboard</a>
+        <span>></span>
+        <span>Business Analytics</span>
+    </div>
+    
+    <div class="container">
+        <div class="card search-filter">
+            <div class="blue-line"></div>
+            <h2>Search Filter</h2>
+            <div class="search-form">
+                <select id="subFranchiseeSelect">
+                    <option value="">My Account</option>
+                    <option value="66123abcde45678901234567">UP001 - RAHUL KUMAR</option>
+                </select>     
+                <input type="text" placeholder="2025">
+                <button class="search-button">🔍 Search</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="blue-line"></div>
+            <h2 class="analytics-title">Business Analytics - UP009 (DEVBHOOMI PATH LAB Mr. RAJEEV GOYAL)</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>📅 Month</th>
+                        <th>Business</th>
+                        <th>Target</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="month">January 2025</td>
+                        <td>Rs. 666</td>
+                        <td>Rs. 100000</td>
+                        <td>
+                            <div class="status-text">666 / 100000</div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: 0.666%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card">
+            <div class="blue-line"></div>
+            <h2 class="analytics-title">My Franchisee Analytics</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>📅 Month</th>
+                        <th>Franchisee</th>
+                        <th>Business</th>
+                        <th>Target</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="month">april 2025</td>
+                        <td>A.K DIAGNOSTIC (UP009/UK010/SUB/UK111)</td>
+                        <td>Rs. 666</td>
+                        <td>Rs. 100000</td>
+                        <td>
+                            <div class="status-text">666 / 100000</div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: 0.666%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+</body>
+</html>

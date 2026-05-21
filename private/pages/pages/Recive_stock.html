@@ -1,0 +1,130 @@
+<html></html>
+<head>
+    <title>Pending Courier</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin: 0 5px;
+        }
+        .table-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .search-box {
+            margin-bottom: 10px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        .footer {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>Pending Courier</h1>
+            <div class="breadcrumb">
+                <a href="#"><i class="fas fa-home"></i></a>
+                <a href="#">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="#">Courier List</a>
+            </div>
+        </div>
+        <br><br>
+        <div class="table-container">
+            <div class="search-box">
+                <label for="search">Search:</label>
+                <input type="text" id="search" name="search">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Franchisee</th>
+                        <th>Courier</th>
+                        <th>Courier ID</th>
+                        <th>Material</th>
+                        <th>Quantity</th>
+                        <th>Amount</th>
+                        <th>Remarks</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2023-10-01</td>
+                        <td>Franchisee Name</td>
+                        <td>Courier Name</td>
+                        <td>123456</td>
+                        <td>Material Name</td>
+                        <td>10</td>
+                        <td>$100</td>
+                        <td>Remarks</td>
+                        <td>Status</td>
+                        <td>Action</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="footer">
+                Showing 1 to 1 of 1 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

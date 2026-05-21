@@ -1,0 +1,95 @@
+<html></html>
+<head>
+    <title>Clinical List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f7ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #666;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #fff2cc;
+            color: #333;
+        }
+        td {
+            background-color: #fff;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clinical List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Clinical List</a>
+        </div>
+        <br><br>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Added By</th>
+                    <th>Booking ID</th>
+                    <th>Test Name</th>
+                    <th>Barcode</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7" class="no-data">No Clinical Pending</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

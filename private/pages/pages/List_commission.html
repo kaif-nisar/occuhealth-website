@@ -1,0 +1,164 @@
+<html>
+
+<head>
+    <title>List Commission</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .search-section {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-section input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .search-section button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .search-section button:hover {
+            background-color: #e60000;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            width: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #fff3cd;
+        }
+
+        table td {
+            background-color: #ffffff;
+        }
+
+        table td:nth-child(6) {
+            color: red;
+            width: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>List Commission</h1>
+            <div class="breadcrumb">
+                <a href="#">Dashboard</a> &gt; <a href="#">List Commission</a>
+            </div>
+        </div>
+        <div class="search-section">
+            <div>
+                <label for="start">Start</label>
+                <input type="date" id="start" value="">
+                <label for="end">End</label>
+                <input type="date" id="end" value="">
+                <button><i class="fas fa-search"></i> Search</button>
+            </div>
+            <div class="search-bar">
+                <label for="search">Search:</label>
+                <input type="text" id="search">
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Booking Date</th>
+                    <th>Booking ID</th>
+                    <th>Booking Amount</th>
+                    <th>My Amount</th>
+                    <th>Commission</th>
+                    <th>Booked By</th>
+                    <th>Test Name</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <tr>
+                    <td>3</td>
+                    <td>2024-12-07</td>
+                    <td>HL9601347561</td>
+                    <td>165</td>
+                    <td>140</td>
+                    <td>25</td>
+                    <td>UP009/VISEHEALTH</td>
+                    <td>P850</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

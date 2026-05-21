@@ -1,0 +1,162 @@
+<div class="withdrawal-page">
+    <style>
+        .withdrawal-page {
+            padding: 20px;
+            color: #1f2937;
+            font-family: Arial, sans-serif;
+        }
+
+        .withdrawal-page h2 {
+            margin: 0 0 16px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .withdrawal-page .grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 420px) 1fr;
+            gap: 16px;
+        }
+
+        .withdrawal-page .card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .withdrawal-page .balance {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f766e;
+            margin-bottom: 12px;
+        }
+
+        .withdrawal-page label {
+            display: block;
+            font-size: 13px;
+            color: #4b5563;
+            margin: 10px 0 5px;
+        }
+
+        .withdrawal-page input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .withdrawal-page button {
+            width: 100%;
+            margin-top: 14px;
+            height: 40px;
+            border: 0;
+            border-radius: 6px;
+            background: #0f766e;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .withdrawal-page table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .withdrawal-page th,
+        .withdrawal-page td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .withdrawal-page th {
+            background: #111827;
+            color: #fff;
+        }
+
+        .withdrawal-page .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .withdrawal-page .status.approved,
+        .withdrawal-page .status.processed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .withdrawal-page .status.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .withdrawal-page .muted {
+            color: #6b7280;
+        }
+
+        @media (max-width: 900px) {
+            .withdrawal-page .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <h2>Withdrawal Request</h2>
+
+    <div class="grid">
+        <div class="card">
+            <div class="muted">Available commission / received wallet</div>
+            <div class="balance" id="withdrawalBalance">Rs.0</div>
+
+            <form id="withdrawalForm">
+                <label for="withdrawalAmount">Amount</label>
+                <input type="number" id="withdrawalAmount" min="100" placeholder="Minimum Rs.100" required>
+
+                <label for="accountHolderName">Account holder name</label>
+                <input type="text" id="accountHolderName" required>
+
+                <label for="accountNumber">Account number</label>
+                <input type="text" id="accountNumber" required>
+
+                <label for="ifscCode">IFSC code</label>
+                <input type="text" id="ifscCode" required>
+
+                <label for="bankName">Bank name</label>
+                <input type="text" id="bankName">
+
+                <button type="submit" id="withdrawalSubmitBtn">Submit Request</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3 style="margin: 0 0 12px;">Request History</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Request ID</th>
+                            <th>Amount</th>
+                            <th>Bank</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawalRows">
+                        <tr><td colspan="6" class="muted">Loading requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

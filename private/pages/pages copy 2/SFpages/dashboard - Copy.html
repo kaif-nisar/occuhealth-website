@@ -1,0 +1,453 @@
+<html></html>
+<head>
+    <title>Hypatholab Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: antiquewhite;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 1px 1px 10px 1px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb span {
+            font-size: 14px;
+            color: #666;
+        }
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar1 {
+            background-color: #e2e2e2;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+            width: 90%;
+            height: 1rem;
+        }
+        .progress-bar {
+            background-color: #d6d2d3;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar-inner {
+            background-color: #dc3545;
+            height: 20px;
+            width: 15%;
+        }
+        .alert {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #dc3545;
+        }
+        .alert i {
+            margin-right: 5px;
+        }
+        .order-now {
+            color: #dc3545;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .info-card {
+            background-color: #0d6efd;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-card i {
+            margin-right: 10px;
+        }
+        .info-card a {
+            color: #ffc107;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+        }
+        .stat-card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 30%;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card h2 {
+            margin: 0;
+            font-size: 36px;
+            color: #28a745;
+        }
+        .stat-card p {
+            margin: 10px 0 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .stat-card.in-progress h2 {
+            color: #17a2b8;
+        }
+        .stat-card.pending h2 {
+            color: #dc3545;
+        }
+        /* New Item for new section */
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 3rem;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;        }
+        th {
+            /* background-color: #00c6ff; */
+            background-color: rgb(163, 163, 245);
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .date-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .date-link:hover {
+            text-decoration: underline;
+        }
+        .received {
+            color: green;
+            display: flex;
+        }
+        .pending {
+            color: red;
+        }
+        .rejected{
+            display: flex;
+        }
+        .outOf{
+            color: black;
+        }
+        .progress-bar {
+            display: inline-block;
+            width: 90px;
+            height: 15px;
+            /* background-color: #e0e0e0; */
+            border-radius: 5px;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background-color: #4caf50; 
+
+        }
+        .progress-bar-inner.pending {
+            background-color: #f44336;
+        }
+        .progress-bar-inner.rejected {
+            background-color: #bdbdbd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>Welcome to Hypatholab</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>31908 / 200000 You have not completed yet the target for this month.</span>
+            </div>
+            <div class="progress-bar1">
+                <div class="progress-bar-inner"></div>
+            </div>
+        </div>
+        <div class="card">
+            <i class="fas fa-calendar-alt"></i>
+            <span>HY PATHO LAB Calendar 2024 : Rs 25 /-</span>
+            <span class="order-now">ORDER NOW</span>
+        </div>
+        <div class="info-card">
+            <div>
+                <i class="fas fa-tag"></i>
+                <span>Extra Sample / Barcode Mismatch :</span>
+            </div>
+            <a href="#">447 Samples</a>
+        </div>
+        <div class="stats">
+            <div class="stat-card">
+                <h2>1763</h2>
+                <p>Available Balance</p>
+            </div>
+            <div class="stat-card in-progress">
+                <h2>10</h2>
+                <p>In Progress</p>
+            </div>
+            <div class="stat-card pending">
+                <h2>2</h2>
+                <p>Pending</p>
+            </div>
+        </div>
+    
+
+    <!-- New section after 3 box -->
+
+    <table>
+        <thead>
+            <tr>
+                <th><i class="fas fa-calendar-alt"></i> Date</th>
+                <th>Booking</th>
+                <th>Samples</th>
+                <th>Received</th>
+                <th>Pending</th>
+                <th>Rejected</th>
+                <th>Tests</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 07 Sep, 2024 (Sat)</a></td>
+                <td>11</td>
+                <td>11</td>
+                <td>
+                    <span class="received">11 /<span class="outOf">11</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">11</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 / <span class="outOf">11</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>11</td>
+                <td>Rs. 395</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+            <tr>
+                <td><a href="#" class="date-link"><i class="fas fa-external-link-alt"></i> 06 Sep, 2024 (Fri)</a></td>
+                <td>14</td>
+                <td>14</td>
+                <td>
+                    <span class="received">14 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: 100%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="pending">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner pending" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>
+                    <span class="rejected">0 /<span class="outOf">14</span></span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner rejected" style="width: 0%;"></div>
+                    </div>
+                </td>
+                <td>15</td>
+                <td>Rs. 585</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<html></html>
+<head>
+    <title>Franchisee</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            display: flex;
+            flex-direction: column;
+            /* align-items: center; */
+            margin-bottom: 20px;
+        }
+        .header i {
+            margin-right: 10px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #888;
+            margin: 1rem;
+        }
+        .breadcrumb a {
+            color: #888;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .form-section {
+            display: flex;
+            justify-content: space-between;
+        }
+        .form-section .card {
+            width: 30%;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-section .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .form-section .card input,
+        .form-section .card select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-section .card input[type="date"] {
+            padding: 8px;
+        }
+        .form-section .card .submit-btn {
+            background-color: #ff4d4d;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-section .card .submit-btn:hover {
+            background-color: #e60000;
+        }
+        .form-section .card .icon-input {
+            display: flex;
+            align-items: center;
+        }
+        .form-section .card .icon-input i {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+           
+            <h1>Sub Franchisee</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i>
+                <a href="#">Dashboard</a>
+                <span>&gt;</span>
+                <a href="#">Add Sub Franchisee</a>
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="card">
+                <h2>Personal Details</h2>
+                <input type="text" placeholder="Firstname">
+                <input type="text" placeholder="Lastname">
+                <input type="email" placeholder="Email ID">
+                <input type="text" placeholder="Phone No">
+            </div>
+            <div class="card">
+                <h2>Area Information</h2>
+                <div class="icon-input">
+                    <input type="text" value="UP009/" readonly>
+                    <input type="text" value="U1393" readonly>
+                </div>
+                <div class="icon-input">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" placeholder="Enter Password *">
+                </div>
+                <select>
+                    <option>-- Select State --</option>
+                    <option>Andhra Pradesh</option>
+                    <option>Arunachal Pradesh</option>
+                    <option>Assam</option>
+                    <option>Bihar</option>
+                    <option>Chhattisgarh</option>
+                    <option>Goa</option>
+                    <option>Gujarat</option>
+                    <option>Haryana</option>
+                    <option>Himachal Pradesh</option>
+                    <option>Jharkhand</option>
+                    <option>Karnataka</option>
+                    <option>Kerala</option>
+                    <option>Madhya Pradesh</option>
+                    <option>Maharashtra</option>
+                    <option>Manipur</option>
+                    <option>Meghalaya</option>
+                    <option>Mizoram</option>
+                    <option>Nagaland</option>
+                    <option>Odisha</option>
+                    <option>Punjab</option>
+                    <option>Rajasthan</option>
+                    <option>Sikkim</option>
+                    <option>Tamil Nadu</option>
+                    <option>Telangana</option>
+                    <option>Tripura</option>
+                    <option>Uttar Pradesh</option>
+                    <option>Uttarakhand</option>
+                    <option>West Bengal</option>
+                </select>
+                <select>
+                    <option>-- Select City --</option>
+                    <option>Agra</option>
+                    <option>Ahmedabad</option>
+                    <option>Allahabad</option>
+                    <option>Amritsar</option>
+                    <option>Bangalore</option>
+                    <option>Bhopal</option>
+                    <option>Bhubaneswar</option>
+                    <option>Chandigarh</option>
+                    <option>Chennai</option>
+                    <option>Coimbatore</option>
+                    <option>Dehradun</option>
+                    <option>Delhi</option>
+                    <option>Faridabad</option>
+                    <option>Gandhinagar</option>
+                    <option>Ghaziabad</option>
+                    <option>Gurgaon</option>
+                    <option>Guwahati</option>
+                    <option>Hyderabad</option>
+                    <option>Indore</option>
+                    <option>Jaipur</option>
+                    <option>Jammu</option>
+                    <option>Jamshedpur</option>
+                    <option>Kanpur</option>
+                    <option>Kochi</option>
+                    <option>Kolkata</option>
+                    <option>Kozhikode</option>
+                    <option>Lucknow</option>
+                    <option>Ludhiana</option>
+                    <option>Madurai</option>
+                    <option>Mangalore</option>
+                    <option>Mumbai</option>
+                    <option>Mysore</option>
+                    <option>Nagpur</option>
+                    <option>Nashik</option>
+                    <option>Noida</option>
+                    <option>Patna</option>
+                    <option>Pune</option>
+                    <option>Raipur</option>
+                    <option>Ranchi</option>
+                    <option>Shimla</option>
+                    <option>Srinagar</option>
+                    <option>Surat</option>
+                    <option>Thiruvananthapuram</option>
+                    <option>Vadodara</option>
+                    <option>Varanasi</option>
+                    <option>Vijayawada</option>
+                    <option>Visakhapatnam</option>
+                </select>
+                <select>
+                    <option>-- Select District --</option>
+                </select>
+                <select>
+                    <option>-- Select Post Office --</option>
+                </select>
+                <div class="icon-input">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" placeholder="Enter Pincode">
+                </div>
+                <input type="text" placeholder="Enter Address">
+            </div>
+            <div class="card">
+                <h2>Submission</h2>
+                <input type="date" value="2024-09-08">
+                <button class="submit-btn"><i class="fas fa-paper-plane"></i> Submit</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

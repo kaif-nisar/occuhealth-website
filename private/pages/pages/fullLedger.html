@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Accounts Summary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    .container,
+    .container5 {
+      width: 90%;
+      max-width: 1200px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #6c757d;
+      margin-bottom: 10px;
+    }
+
+    .breadcrumb i {
+      margin-right: 5px;
+    }
+
+    .breadcrumb a {
+      color: #6c757d;
+      text-decoration: none;
+      margin-right: 5px;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumb span {
+      margin: 0 5px;
+    }
+
+    .header {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .search-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-bar select,
+    .search-bar input[type="date"] {
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .search-bar button {
+      padding: 10px 20px;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .search-bar button:hover {
+      background: #c82333;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background: #000;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .header-row {
+      background: #e0e0e0;
+      font-weight: bold;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    td.credit {
+      color: green;
+    }
+
+    td.debit {
+      color: red;
+    }
+
+    .buttons {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .buttons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .download-excel {
+      background: #007bff;
+    }
+
+    .download-pdf {
+      background: #ff4d4d;
+    }
+
+    .search-container {
+      margin-bottom: 15px;
+    }
+
+    .search-container input {
+      padding: 10px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar select,
+      .search-bar input,
+      .search-bar button {
+        width: 100%;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+
+      .buttons button {
+        width: 100%;
+      }
+    }
+  </style>
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Include SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Include jsPDF and jsPDF-AutoTable for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+  <section class="container">
+    <div class="breadcrumb">
+      <i class="fas fa-home"></i>
+      <a href="#">Dashboard</a>
+      <span>&gt;</span>
+      <a href="#">Credit</a>
+    </div>
+    <div class="header">Ledger List</div>
+    <div class="search-bar">
+      <select id="franchisee-select">
+        <option value="self">Self</option>
+        <!-- Franchisee options will be populated dynamically -->
+      </select>
+
+      <input type="date" id="start-date">
+      <input type="date" id="end-date">
+      <button id="view-ledger-btn"><i class="fas fa-search"></i> View</button>
+      <select id="doctor-select">
+        <option value="all">All Doctors</option>
+      </select>
+
+      <select id="lab-select">
+        <option value="all">All Labs</option>
+      </select>
+
+      <button id="apply-filter-btn">Apply Filter</button>
+    </div>
+  </section>
+
+  <section class="container">
+    <h1 id="accounts-summary-title">Accounts Summary</h1>
+    <table>
+      <tr class="header-row">
+        <td colspan="2"></td>
+      </tr>
+      <tr>
+        <th>#</th>
+        <th>Amount</th>
+      </tr>
+      <tr>
+        <td class="bold">Opening Balance</td>
+        <td class="opening-balance">Rs. 00</td>
+      </tr>
+      <tr>
+        <td class="bold">Closing Balance</td>
+        <td class="closing-balance">Rs. 00</td>
+      </tr>
+      <tr>
+        <td>Booking Amount</td>
+        <td class="booking-amount">Rs. 00</td>
+      </tr>
+      <tr>
+        <td>Cancellation/Refund</td>
+        <td class="cancellation-refund">Rs. 00</td>
+      </tr>
+      <tr>
+        <td>Commission Amount</td>
+        <td class="commission-amount">Rs. 00</td>
+      </tr>
+      <tr>
+        <td>Deposit Amount</td>
+        <td class="deposit-amount">Rs. 0</td>
+      </tr>
+      <tr>
+        <td>Inventory Debit</td>
+        <td class="inventory-debit">Rs. 0</td>
+      </tr>
+      <tr>
+        <td>Debited/Adjusted Amount</td>
+        <td class="debited-adjusted-amount">Rs. 00</td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="container container5">
+    <h1>Franchisee Account</h1>
+    <div class="buttons">
+      <button class="download-excel"><i class="fas fa-file-excel"></i> Download Excel</button>
+      <button class="download-pdf"><i class="fas fa-file-pdf"></i> Download PDF</button>
+    </div>
+    <div class="search-container">
+      <label for="search">Search:</label>
+      <input type="text" id="search" placeholder="Search entries...">
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Franchisee ID</th>
+          <th>Date of Transaction</th>
+          <th>Debit</th>
+          <th class="formany">Credit</th>
+          <th>Remarks</th>
+          <th>Reference</th>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Test Name</th>
+          <th>Barcode ID</th>
+          <th class="forone">Discount</th>
+          <th class="forone">Discount (%)</th>
+          <th class="formany">Lab Name</th>
+          <th>Booking-Amount</th>
+          <th class="formany">Closing Balance</th>
+          <th class="formany">Opening Balance</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </section>
+</body>
+
+</html>

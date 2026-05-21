@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Payment - Wallet Top-up</title>
+    <!-- Razorpay Checkout Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 60%, #ffffff 100%);
+            color: #0f172a;
+        }
+
+        .wallet-topup-card {
+            max-width: 520px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 28px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+        }
+
+        .wallet-topup-card h3 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: #112347;
+        }
+
+        .wallet-topup-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-topup-card .card-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #2563eb;
+        }
+
+        .wallet-topup-card .card-label span {
+            display: inline-flex;
+            width: 32px;
+            height: 32px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(37, 99, 235, 0.12);
+            color: #2563eb;
+            font-size: 16px;
+        }
+
+        .wallet-topup-card .balance-chip {
+            display: inline-flex;
+            gap: 8px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.12);
+            color: #065f46;
+            font-weight: 700;
+        }
+
+        .wallet-topup-card .balance-chip strong {
+            font-size: 20px;
+        }
+
+        .wallet-topup-card .card-desc {
+            margin-bottom: 24px;
+            color: #475569;
+            line-height: 1.7;
+        }
+
+        .topup-input-group {
+            display: grid;
+            gap: 16px;
+        }
+
+        .topup-input-group label {
+            color: #334155;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .topup-input-group .input-wrapper {
+            position: relative;
+        }
+
+        .topup-input-group .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #475569;
+            font-size: 16px;
+        }
+
+        .topup-input-group input {
+            width: 100%;
+            padding: 16px 18px 16px 46px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 16px;
+            font-size: 16px;
+            color: #0f172a;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            background: #f8fafc;
+        }
+
+        .topup-input-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            background: #ffffff;
+        }
+
+        .topup-input-group button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            color: #fff;
+            border: none;
+            border-radius: 18px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 18px 30px rgba(14, 165, 233, 0.25);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .topup-input-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 35px rgba(14, 165, 233, 0.3);
+        }
+
+        .topup-input-group button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .topup-input-group .hint {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .payment-status {
+            min-height: 24px;
+            color: #0f172a;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 600px) {
+            .wallet-topup-card {
+                margin: 20px;
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Wallet Top-up Card UI -->
+    <div class="wallet-topup-card">
+        <div class="card-header">
+            <div>
+                <div class="card-label"><span>₹</span> Booking Wallet</div>
+                <h3>Top-up your wallet instantly</h3>
+            </div>
+            <div class="balance-chip">
+                Current: <strong>₹<span id="currentWalletBalance">0</span></strong>
+            </div>
+        </div>
+
+        <p class="card-desc">Enter the amount you want to add and pay securely with Razorpay. The amount will be credited instantly to your booking wallet.</p>
+
+        <div class="topup-input-group">
+            <label for="topupAmount">Amount to add</label>
+            <div class="input-wrapper">
+                <span class="input-icon">₹</span>
+                <input type="number" id="topupAmount" placeholder="Minimum ₹100" min="100" />
+            </div>
+            <button id="payRazorpayBtn">Add Money via Razorpay</button>
+            <div class="hint">Accepts UPI, cards, netbanking and wallets. Secure checkout powered by Razorpay.</div>
+            <div id="paymentStatus" class="payment-status"></div>
+        </div>
+    </div>
+</body>
+</html>

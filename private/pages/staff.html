@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Activity Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --text-color: #2c3e50;
+            --background-color: #f4f6f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .activity-log {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f1f3f5;
+            transition: background-color 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .activity-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .activity-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+        }
+
+        .status-warning {
+            background-color: rgba(241, 196, 15, 0.1);
+            color: #f1c40f;
+        }
+
+        .sidebar {
+            display: grid;
+            gap: 20px;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .stat-item {
+            background-color: #f0f4f8;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+            .activity-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Staff Activity Tracking</h1>
+            <div class="search-bar">
+                <input type="text" placeholder="Search staff or activity" id="searchInput">
+                <button><i class="fas fa-search"></i> Search</button>
+            </div>
+        </div>
+
+        <div class="activity-grid">
+            <div class="card activity-log">
+                <h2>Recent Activity Log</h2>
+                <div id="activityList"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <h3>Quick Stats</h3>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <h4>Total Staff</h4>
+                            <p id="totalStaff">0</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4>Active Sessions</h4>
+                            <p id="activeSessions">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Top Performers</h3>
+                    <div id="topPerformers"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated staff and activity data
+        const staffData = [
+            {
+                id: 1,
+                name: 'Rahul Kumar',
+                role: 'Sales Manager',
+                franchise: 'Delhi Branch',
+                activities: []
+            },
+            {
+                id: 2,
+                name: 'Priya Sharma',
+                role: 'Customer Support',
+                franchise: 'Mumbai Branch',
+                activities: []
+            }
+        ];
+
+        const activityTypes = [
+            'Login',
+            'Booking Created',
+            'Payment Processed',
+            'Customer Inquiry',
+            'Report Generated',
+            'Franchise Update'
+        ];
+
+        // Generate realistic activity log
+        function generateActivityLog() {
+            const activityList = document.getElementById('activityList');
+            activityList.innerHTML = ''; // Clear existing entries
+
+            // Generate multiple activities
+            const totalActivities = Math.floor(Math.random() * 50) + 20;
+            for (let i = 0; i < totalActivities; i++) {
+                const staff = staffData[Math.floor(Math.random() * staffData.length)];
+                const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
+                
+                // Create activity item
+                const activityItem = document.createElement('div');
+                activityItem.classList.add('activity-item');
+                
+                // Random amount for financial activities
+                const amount = activityType.includes('Payment') 
+                    ? `₹${Math.floor(Math.random() * 50000).toLocaleString()}` 
+                    : '';
+
+                // Generate timestamp
+                const timestamp = new Date(Date.now() - Math.floor(Math.random() * 86400000)).toLocaleString();
+
+                activityItem.innerHTML = `
+                    <div class="activity-details">
+                        <div class="avatar">${staff.name.charAt(0)}</div>
+                        <div class="activity-meta">
+                            <strong>${staff.name}</strong>
+                            <span>${activityType} in ${staff.franchise}</span>
+                            ${amount ? `<span>Amount: ${amount}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="activity-time">
+                        <span class="status-badge ${
+                            ['Login', 'Booking Created', 'Payment Processed'].includes(activityType) 
+                            ? 'status-success' 
+                            : 'status-warning'
+                        }">
+                            ${timestamp}
+                        </span>
+                    </div>
+                `;
+
+                activityList.appendChild(activityItem);
+            }
+
+            // Update stats
+            document.getElementById('totalStaff').textContent = staffData.length;
+            document.getElementById('activeSessions').textContent = 
+                Math.floor(Math.random() * staffData.length) + 1;
+        }
+
+        // Generate top performers
+        function generateTopPerformers() {
+            const topPerformersEl = document.getElementById('topPerformers');
+            topPerformersEl.innerHTML = '';
+
+            staffData.sort(() => 0.5 - Math.random()).slice(0, 3).forEach(staff => {
+                const performerEl = document.createElement('div');
+                performerEl.classList.add('activity-item');
+                performerEl.innerHTML = `
+                    <div class="activity-details">
+                        <div class="avatar">${staff.name.charAt(0)}</div>
+                        <div class="activity-meta">
+                            <strong>${staff.name}</strong>
+                            <span>${staff.role}</span>
+                        </div>
+                    </div>
+                    <span class="status-badge status-success">
+                        ${Math.floor(Math.random() * 10)} Achievements
+                    </span>
+                `;
+                topPerformersEl.appendChild(performerEl);
+            });
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const activityItems = document.querySelectorAll('.activity-item');
+            
+            activityItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            generateActivityLog();
+            generateTopPerformers();
+
+            // Refresh activity log every 30 seconds
+            setInterval(generateActivityLog, 30000);
+        });
+    </script>
+</body>
+</html>

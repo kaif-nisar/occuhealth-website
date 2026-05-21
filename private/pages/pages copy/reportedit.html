@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Lab Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!-- <style>
+        .container {
+            max-width: 80%;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status {
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status span {
+            background-color: #34a853;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+
+        .report-details {
+            border: 1px solid #e5eaf2;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            background-color: #fafbfc;
+        }
+
+        .report-details .left p {
+            margin: 16px 0;
+            font-size: 15px;
+        }
+
+        .report-details .right {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .report-details .right div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0.4rem;
+        }
+
+        .report-details .right i {
+            color: #1a73e8;
+            margin-right: 8px;
+        }
+
+        .report-details .barcode {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .report-details .barcode p {
+            margin-top: 2px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .checkbox {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .footer button {
+            background-color: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .footer button:hover {
+            background-color: #1664c0;
+        }
+
+        input[type="time"] {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 6px;
+            width: auto;
+            text-align: center;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        input[type="date"] {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 6px;
+            width: auto;
+            text-align: center;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        .barcode-div {
+            display: flex;
+            justify-content: end;
+        }
+
+        .barcode {
+            padding: 1.5rem;
+        }
+
+        .barcode p {
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            /* border-bottom: 1px solid #ddd; */
+        }
+
+        th {
+            font-size: 18px;
+        }
+
+        td {
+            font-size: 16px;
+        }
+
+        .test-name {
+            display: flex;
+            align-items: center;
+        }
+
+        .test-name i {
+            margin-right: 10px;
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .add-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .add-buttons button {
+            background-color: #f1f1f1;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .interpretations {
+            margin-top: 20px;
+        }
+
+        .interpretations h3 {
+            display: flex;
+            align-items: center;
+        }
+
+        .interpretations h3 i {
+            margin-left: 10px;
+        }
+
+        .interpretations p {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .category-heading {
+            margin: 2rem auto;
+            text-align: center;
+        }
+
+        .test-name {
+            padding: 1rem 0rem;
+        }
+
+        .test-name i {
+            margin-left: 1rem;
+        }
+
+        .ran-inputs {
+            padding: 1rem;
+            width: 75%;
+            border-radius: 0.5rem;
+        }
+
+        .delete-row i {
+            margin-left: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .dynamicRow {
+            height: 2rem;
+        }
+
+        .test-table {
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-table thead {
+            border-top: 1px solid rgb(62, 62, 62);
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-name {
+            width: 15rem;
+            padding: 0rem 1rem;
+        }
+
+        /* editing range popup  */
+        .form-section {
+            max-width: 90%;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0px 0px 15px 1px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .row-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            gap: 10px;
+        }
+
+        .row-item {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            /* Allow items to grow equally */
+            min-width: 80px;
+            /* Minimum width for items */
+        }
+
+        .row-item label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .row-item input,
+        .row-item select {
+            padding: 8px;
+            /* Increased padding */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            /* Smooth border color transition */
+        }
+
+        .row-item select {
+            background-color: #ffffff;
+            /* Background color */
+            cursor: pointer;
+            /* Change cursor to pointer */
+        }
+
+        .row-item input:focus,
+        .row-item select:focus {
+            border-color: #5bc0de;
+            /* Change border color on focus */
+            outline: none;
+            /* Remove outline */
+        }
+
+        .delete-btn {
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 18px;
+            align-self: center;
+            margin-right: 10px;
+            /* Add space between delete button and fields */
+        }
+
+        .display-report {
+            font-weight: 500;
+            color: #555;
+            margin-left: 10px;
+            /* Add space on the left */
+            font-size: 14px;
+        }
+
+        .add-more-btn {
+            display: flex;
+            align-items: center;
+            color: #5bc0de;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .add-more-btn:hover {
+            color: #31b0d5;
+        }
+
+        .text-area {
+            display: none;
+            /* Hide text area by default */
+            margin-top: 15px;
+        }
+
+        .selectTypeDiv {
+            margin: 2rem 0rem;
+        }
+
+        .selectTypeDiv select {
+            padding: 4px 8px;
+            border-radius: 5px;
+            margin-left: 0.5rem;
+        }
+
+        .submit-div {
+            text-align: center;
+            margin-top: 5rem;
+        }
+
+        #submit-button {
+            padding: 0.35rem 1rem;
+            border-radius: 5px;
+            border: none;
+            background-color: #f700007c;
+            font-weight: bold;
+            color: #4f4f4f;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signoffDiv select {
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .signoffDiv p {
+            font-size: 1rem;
+            margin-top: 2rem;
+        }
+
+        .report-details-innerDiv {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .final-button-div {
+            text-align: right;
+        }
+
+        .final-button-div button {
+            padding: 0.5rem 1rem;
+            position: fixed;
+            z-index: 1000;
+            bottom: 5%;
+            right: 14%;
+            border-radius: 0.25rem;
+            border: none;
+            background-color: #00c3ffce;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #3d3c3c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 1.5px;
+        }
+
+        .final-button-div i {
+            color: rgb(0, 117, 16);
+            margin-right: 0.25rem;
+            font-size: 1.25rem;
+        }
+
+        .final-button-div i:hover {
+            color: #00ff44;
+        }
+
+        input[type="datetime-local"] {
+            padding: 0.25rem 0.75rem;
+            margin-left: 1rem;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+    </style> -->
+    <style>
+         * {
+            font-family: Helvetica, sans-serif;
+            color: #333;
+        }
+
+        body {
+            font-size: 14px;
+        }
+
+        .container {
+            width: 90%;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status {
+            margin: 20px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status span {
+            background-color: #34a853;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 12px;
+        }
+
+        .checkbox {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .footer button {
+            background-color: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .footer button:hover {
+            background-color: #1664c0;
+        }
+
+        .barcode-div {
+            display: flex;
+            justify-content: end;
+        }
+
+        .barcode {
+            padding: 1.5rem;
+        }
+
+        .barcode p {
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        /* th {
+            font-size: 18px;
+        }
+
+        td {
+            font-size: 16px;
+        } */
+
+        .test-name i {
+            margin-right: 10px;
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .add-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+
+        .add-buttons button {
+            background-color: #f1f1f1;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .interpretations {
+            margin-top: 20px;
+        }
+
+        .interpretations h3 {
+            display: flex;
+            align-items: center;
+        }
+
+        .interpretations h3 i {
+            margin-left: 10px;
+        }
+
+        .interpretations p {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        .category-heading {
+            margin: 2rem auto;
+            text-align: center;
+        }
+
+        .test-name {
+            padding: 1rem 0rem;
+        }
+
+        .test-name i {
+            margin-left: 1rem;
+        }
+
+        .ran-inputs {
+            padding: 1rem;
+            width: 75%;
+            border-radius: 0.5rem;
+        }
+
+        .delete-row i {
+            margin-left: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .dynamicRow {
+            height: 2rem;
+        }
+
+        .test-table {
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-table thead {
+            border-top: 1px solid rgb(62, 62, 62);
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .test-name {
+            /* width: 15rem; */
+            padding: 0rem 1rem;
+        }
+
+        /* editing range popup  */
+        .form-section {
+            max-width: 90%;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0px 0px 15px 1px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .row-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f9f9f9;
+            gap: 10px;
+        }
+
+        .row-item {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            /* Allow items to grow equally */
+            min-width: 80px;
+            /* Minimum width for items */
+        }
+
+        .row-item label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .row-item input,
+        .row-item select {
+            padding: 8px;
+            /* Increased padding */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            /* Smooth border color transition */
+        }
+
+        .row-item select {
+            background-color: #ffffff;
+            /* Background color */
+            cursor: pointer;
+            /* Change cursor to pointer */
+        }
+
+        .row-item input:focus,
+        .row-item select:focus {
+            border-color: #5bc0de;
+            /* Change border color on focus */
+            outline: none;
+            /* Remove outline */
+        }
+
+        .delete-btn {
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 18px;
+            align-self: center;
+            margin-right: 10px;
+            /* Add space between delete button and fields */
+        }
+
+        .display-report {
+            font-weight: 500;
+            color: #555;
+            margin-left: 10px;
+            /* Add space on the left */
+            font-size: 14px;
+        }
+
+        .add-more-btn {
+            display: flex;
+            align-items: center;
+            color: #5bc0de;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .add-more-btn:hover {
+            color: #31b0d5;
+        }
+
+        .text-area {
+            display: none;
+            /* Hide text area by default */
+            margin-top: 15px;
+        }
+
+        .selectTypeDiv {
+            margin: 2rem 0rem;
+        }
+
+        .selectTypeDiv select {
+            padding: 4px 8px;
+            border-radius: 5px;
+            margin-left: 0.5rem;
+        }
+
+        .submit-div {
+            text-align: center;
+            margin-top: 5rem;
+        }
+
+        #submit-button {
+            padding: 0.35rem 1rem;
+            border-radius: 5px;
+            border: none;
+            background-color: #f700007c;
+            font-weight: bold;
+            color: #4f4f4f;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signoffDiv select {
+            border-radius: 5px;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .signoffDiv p {
+            font-size: 1rem;
+            margin-top: 2rem;
+        }
+
+        .final-button-div {
+            text-align: right;
+        }
+
+        .final-button-div button {
+            padding: 0.5rem 1rem;
+            position: fixed;
+            z-index: 1000;
+            bottom: 5%;
+            right: 14%;
+            border-radius: 0.25rem;
+            border: none;
+            background-color: #00c3ffce;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #3d3c3c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            letter-spacing: 1.5px;
+        }
+
+        .final-button-div i {
+            color: rgb(0, 117, 16);
+            margin-right: 0.25rem;
+            font-size: 1.25rem;
+        }
+
+        .final-button-div i:hover {
+            color: #00ff44;
+        }
+
+        input[type="datetime-local"] {
+            padding: 0px 2px;
+            /* margin-left: 1rem; */
+            border-radius: 2px;
+            font-size: 1rem;
+        }
+
+        /* second css  */
+        body {
+            font-size: 14px;
+        }
+
+        .container {
+            width: 90%;
+            height: auto;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 50px 25px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-details {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0rem;
+        }
+
+        .report-details-innerDiv2 {
+            position: relative;
+            width: 100%;
+            border: 1px solid black;
+            padding: 0px 5px;
+        }
+
+        .left2 {
+            display: inline-block;
+        }
+
+        .right2 {
+            position: absolute;
+            display: inline-block;
+            left: 55%;
+            transform: translateX(-50%);
+        }
+
+        .registeration-tag2 {
+            width: 100px;
+            display: inline-block;
+        }
+
+        .registered-div2 {
+            padding: 5px 0px;
+        }
+
+        .time-div {
+            display: inline-block;
+        }
+
+        .tags {
+            width: 110px;
+        }
+
+        .barcode-div2 {
+            display: inline-block;
+            position: absolute;
+            right: 1.5%;
+            top: 25%;
+        }
+
+        #barcodeImage {
+            height: 50px;
+            width: 100px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        th,
+        td {
+            padding: 2px;
+            text-align: left;
+        }
+
+        th {
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 13px;
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .interpretations h3 {
+            display: flex;
+            align-items: center;
+        }
+
+        .interpretations h3 i {
+            margin-left: 10px;
+        }
+
+        .interpretations p {
+            font-size: 16px;
+        }
+
+        .test-table thead {
+            border-top: 1px solid rgb(62, 62, 62);
+            border-bottom: 1px solid rgb(62, 62, 62);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-heading {
+            margin: 5px 0px;
+            font-family: sans-serif;
+            page-break-before: always;
+        }
+
+        .category-heading:first-child {
+            page-break-before: auto;
+            /* Don't apply page break on the first section */
+        }
+
+        .download-pdf-div {
+            margin-top: 1rem;
+            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            z-index: 100;
+            bottom: 0px;
+            width: 100%;
+            background-color: white;
+        }
+
+        #downloadPDF,
+        #signOff,
+        #PDFsetting,
+        #BrowserPrint,
+        #sendReport {
+            margin: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
+            font-weight: bolder;
+            font-size: 1rem;
+            box-shadow: 1px 1px 10px 1px rgba(46, 46, 46, 0.329);
+            border: none;
+            border-radius: 5px;
+        }
+
+        #downloadPDF i,
+        #signOff i,
+        #PDFsetting i,
+        #BrowserPrint i,
+        #sendReport i {
+            margin-right: 8px;
+            font-size: 1.5rem;
+            color: rgba(255, 0, 0, 0.703);
+        }
+
+        #sendReport {
+            background-color: #2bff0066;
+            border: none;
+        }
+
+        #sendReport i {
+            color: #20b801;
+        }
+
+        .container {
+            margin-bottom: 4rem;
+        }
+
+        #signOff {
+            background-color: #00b7ffb0;
+            border-radius: 5px;
+        }
+
+        #signOff i {
+            color: rgb(48, 48, 48);
+        }
+
+        h3 {
+            text-align: center;
+        }
+
+        .signed-off-div {
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: static;
+            bottom: 1.5rem;
+            margin: auto;
+            margin-top: 2rem;
+        }
+
+        .container2 {
+            width: 95%;
+            margin: 0px auto;
+        }
+
+        h3 {
+            margin: 0px;
+        }
+
+        .clinical {
+            margin: 0px;
+            margin-bottom: 0px;
+        }
+
+        .category-heading {
+            text-align: center;
+            font-weight: 600;
+            font-family: sans-serif;
+        }
+
+        .interpretations {
+            margin: 0px;
+        }
+
+        .interpretations p {
+            margin: 0px;
+        }
+
+        /* Modal Styling */
+        .popup-modal {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            top: 0px;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .popup-content {
+            position: relative;
+            margin: auto;
+            top: 10%;
+            background: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Close Button */
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        /* Header Buttons */
+        .popup-header {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-header button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .popup-header button:hover {
+            background-color: #0056b3;
+        }
+
+        /* PDF Viewer */
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Input Container */
+        .input-container {
+            margin: 20px 0px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .input-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #218838;
+        }
+
+        .test-name {
+            width: 40%;
+            margin: 0px;
+            padding: 0rem 0rem;
+            position: relative;
+        }
+
+        td {
+            width: 10rem;
+            padding: 5px 0px;
+        }
+
+        .infor-div {
+            display: flex;
+            padding: 5px 0px;
+        }
+
+        .sign {
+            display: none;
+        }
+        td input {
+            padding: 2px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="modal" class="modal" style="display: none;">
+        <div class="form-section">
+            <span class="close-btn" onclick="closeModal()">✖️</span> <!-- Close button -->
+            <div class="selectTypeDiv">
+                <label for="select-type">Select Type</label>
+                <select id="select-type" onchange="toggleForm(this)">
+                    <option value="numeric" selected>Numeric</option>
+                    <option value="text">Text</option>
+                </select>
+            </div>
+
+            <div id="form-container">
+                <div class="row-container">
+                    <span class="delete-btn" onclick="deleteRow(this)">🗑️</span>
+                    <div class="row-item">
+                        <label for="sex">Sex</label>
+                        <select name="sex" class="sex">
+                            <option value="Any">Any</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="min_age">Min. Age</label>
+                        <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
+                    </div>
+                    <div class="row-item">
+                        <label for="min_age_unit">Min Age Unit</label>
+                        <select name="min_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="max_age">Max. Age</label>
+                        <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="20">
+                    </div>
+                    <div class="row-item">
+                        <label for="max_age_unit">Max Age Unit</label>
+                        <select name="max_age_unit">
+                            <option value="Years">Years</option>
+                            <option value="Months">Months</option>
+                            <option value="Days">Days</option>
+                        </select>
+                    </div>
+                    <div class="row-item">
+                        <label for="lower_value">Lower Value</label>
+                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value"
+                            value="2.1" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <label for="upper_value">Upper Value</label>
+                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value"
+                            value="17.7" oninput="updateReportDisplay(this)">
+                    </div>
+                    <div class="row-item">
+                        <label for="upper_value">Display report</label>
+                        <span class="display-report">2.1 - 17.7</span>
+                    </div>
+                </div>
+            </div>
+
+            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
+
+            <div class="add-more-btn" id="add-more-btn" onclick="addRow()">+ Add more</div>
+            <div class="submit-div">
+                <button id="submit-button"> Submit now</button>
+            </div>
+        </div>
+    </div>
+    <br><br>
+    <div class="container">
+        <div class="header">
+            <h1>Lab Report</h1>
+            <span class="badge">booking Id. <span id="booking-registeration-number"></span></span>
+        </div>
+        <div class="report-details">
+
+        </div>
+        <div class="table-div" id="tables-container">
+            <h1 class="category-heading">BioChemistery</h1>
+            <table id="test-table">
+                <thead>
+                    <tr>
+                        <th>TEST</th>
+                        <th>VALUE</th>
+                        <th>UNIT</th>
+                        <th>REFERENCE</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr>
+                        <td class="test-name"><i class="fas fa-edit"></i> Iron</td>
+                        <td><input type="text" style="width: 75%;"></td>
+                        <td class="unit">µg/dl <i class="fas fa-plus-circle add-row-icon"></i></td>
+                        <td class="reference"><i class="fas fa-edit"></i> 56-175</td>
+                    </tr>
+                    <tr>
+                        <td class="test-name"><i class="fas fa-edit"></i> Total Iron Binding Capacity</td>
+                        <td><input type="text" style="width: 75%;"></td>
+                        <td class="unit">µg/dl <i class="fas fa-plus-circle add-row-icon"></i></td>
+                        <td class="reference"><i class="fas fa-edit"></i> 215 - 535</td>
+                    </tr>
+                    <tr>
+                        <td class="test-name"><i class="fas fa-edit"></i> Transferrin Saturation</td>
+                        <td><input type="text" style="width: 75%;"></td>
+                        <td class="unit">µg/dl <i class="fas fa-plus-circle add-row-icon"></i></td>
+                        <td class="reference"><i class="fas fa-edit"></i> 13-45</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="add-buttons">
+                <button id="add-notes"><i class="fas fa-plus-circle"></i> Add notes</button>
+                <button class="add-remark"><i class="fas fa-plus-circle"></i> Add remarks</button>
+                <button id="add-advice"><i class="fas fa-plus-circle"></i> Add advice</button>
+            </div>
+            <div class="interpretations" id="displayArea">
+                <h3 id="editButton">Interpretations <i class="fas fa-edit"></i></h3>
+                <p><strong>Clinical significance :</strong></p>
+                <p id="interpretationText">Iron is an essential trace mineral element which forms an important component
+                    of
+                    hemoglobin,
+                    metallocompounds and Vitamin A. Deficiency of iron, leads to microcytic hypochromic anemia. The
+                    toxic
+                    effects of iron are deposition of iron in various organs of the body and hemochromatosis. Total Iron
+                    Binding capacity (TIBC) is a direct measure of the protein Transferrin which transports iron from
+                    the
+                    gut to storage sites in the bone marrow. In iron deficiency anemia, serum iron is reduced and TIBC
+                    increases. Transferrin Saturation occurs in Idiopathic hemochromatosis and Transfusional
+                    hemosiderosis
+                    where no unsaturated iron binding capacity is available for iron mobilization. Similar condition is
+                    seen
+                    in congenital deficiency of Transferrin.</p>
+            </div>
+            <div id="editorContainer" style="display: none;">
+                <div id="editor"></div>
+                <button id="saveButton">Save</button>
+                <button id="cancelButton">Cancel</button>
+            </div>
+        </div>
+
+        <div class="signoffDiv">
+            <p>Signed By:</p>
+            <select id="signedBy">
+                <option>Arjun Chanchal</option>
+                <option>ritik Deshmuk</option>
+                <option>jiya okta</option>
+                <option>younger joua</option>
+            </select>
+        </div>
+
+        <div class="final-button-div">
+            <a data-page="reportFormat">
+                <button id="finalBtn"><i class="fa-solid fa-check"></i> final</button>
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.tiny.cloud/1/oqlgwrs74fzlc4aoa2tfk2jrqu5f2icodo1p4ios39pu44g4/tinymce/7/tinymce.min.js"
+        referrerpolicy="origin"></script>
+
+    <script src="reportedit.js"></script>
+</body>
+
+</html>

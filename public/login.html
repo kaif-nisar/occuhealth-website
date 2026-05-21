@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: url('./images/premiumimg.avif');
+            background-size: cover;
+        }
+
+        .container {
+            background-color: #f5f5f510;
+            backdrop-filter: blur(4px);  
+            border-radius: 10px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.429);
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            border: #656565 1px solid;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo h1 {
+            color: #3949ab;
+            font-size: 28px;
+        }
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .form-title h2 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #3949ab;
+            outline: none;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            color: #3949ab;
+            text-decoration: underline;
+        }
+
+        .btn {
+            background-color: #3949ab;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 0;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #303f9f;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .register-link a {
+            color: #3949ab;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Admin Portal</h1>
+        </div>
+
+        <div class="form-title">
+            <h2>Super Admin Login</h2>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Username or Email</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="forgot-password">
+                <a href="forgot-password.html">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn">Login</button>
+        </form>
+
+        <div class="register-link">
+            <p>Don't have an account? <a href="adminRegister.html">Register</a></p>
+        </div>
+    </div>
+
+    <script>
+     document.addEventListener('DOMContentLoaded', function () {
+    const loginForm = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('errorMessage');
+
+    loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        // Hide previous error messages
+        errorMessage.style.display = 'none';
+
+        // Get form values
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+
+        // Basic validation
+        if (!username || !password) {
+            showError('Please enter both username/email and password');
+            return;
+        }
+
+        // Prepare data for API
+        const formData = {
+            username, // This could be either username or email
+            password
+        };
+
+        try {
+            // Send data to API with credentials included
+            const response = await fetch(`${window.location.origin}/api/v1/user/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include', // IMPORTANT: Include cookies in request
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            console.log('Login response:', data);
+            if (!response.ok) {
+                showError(data.message || 'Invalid username or password');
+                return;
+            }
+
+            // Store token and user data
+            localStorage.setItem('token', data.accessToken);
+            localStorage.setItem('superAdminData', JSON.stringify(data.superAdmin));
+
+            // Set cookie manually if needed (backup)
+            document.cookie = `accessToken=${data.accessToken}; path=/; secure; samesite=strict`;
+
+            // Redirect to superAdmin dashboard
+            window.location.href = '/superAdmin/superAdmin.html';
+            
+        } catch (error) {
+            showError('An error occurred. Please try again later.');
+            console.error('Login error:', error);
+        }
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+});
+    </script>
+</body>
+
+</html>

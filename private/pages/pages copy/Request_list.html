@@ -1,0 +1,143 @@
+<html></html>
+<head>
+    <title>Request List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f2f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #000;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .search-bar select {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .search-bar button {
+            background-color: #ff5e7f;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-bar button:hover {
+            background-color: #ff3b5f;
+        }
+        .table-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .table-container input[type="text"] {
+            width: 200px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table th, table td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background-color: #000;
+            color: #fff;
+        }
+        .entries-info {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h1>Request List</h1>
+        <div class="breadcrumb">
+            <a href="#"><i class="fas fa-home"></i> Dashboard</a> &gt; Request List
+        </div>
+        <br><br>
+        <div class="search-bar">
+            <select>
+                <option>Own Request List</option>
+                <option>Option 1</option>
+                <option>Option 2</option>
+                <option>Option 3</option>
+            </select>
+            <button><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="table-container">
+            <label for="search">Search:</label>
+            <input type="text" id="search">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Franchisee</th>
+                        <th>Material</th>
+                        <th>Each Qty</th>
+                        <th>Quantity</th>
+                        <th>Remarks</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2023-10-01</td>
+                        <td>Franchisee Name</td>
+                        <td>Material Name</td>
+                        <td>10</td>
+                        <td>100</td>
+                        <td>Remarks here</td>
+                        <td>Status here</td>
+                        <td>Action here</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="entries-info">
+                Showing 1 to 1 of 1 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

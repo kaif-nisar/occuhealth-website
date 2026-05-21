@@ -1,0 +1,169 @@
+<html></html>
+<head>
+    <title>Billing List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .card-header {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .form-group button {
+            background-color: #ff4b5c;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #ff2e3e;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        table th {
+            background-color: #343a40;
+            color: #fff;
+        }
+        table td {
+            background-color: #fff;
+        }
+        .total-amount {
+            background-color: #343a40;
+            color: #fff;
+            font-weight: bold;
+        }
+        .total-amount td {
+            text-align: right;
+        }
+        .total-amount td:last-child {
+            color: #ffeb3b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h1>Billing List</h1>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Billing</a>
+        </div>
+        <br><br>
+        <div class="card">
+            <div class="card-header">Search Billing List</div>
+            <div class="form-group">
+                <label for="start">Start</label>
+                <input type="date" id="start" value="2024-09-07">
+                <label for="end">End</label>
+                <input type="date" id="end" value="2024-09-07">
+                <button type="button"><i class="fas fa-search"></i> Search</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Bills Generated</div>
+            <div class="form-group">
+                <label for="search">Search:</label>
+                <input type="text" id="search">
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Added By</th>
+                            <th>Bill ID</th>
+                            <th>Booking ID</th>
+                            <th>Booking Price</th>
+                            <th>Billing Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024-09-07</td>
+                            <td>John Doe</td>
+                            <td>12345</td>
+                            <td>67890</td>
+                            <td>Rs. 5000</td>
+                            <td>Rs. 5500</td>
+                            <td><button>View</button></td>
+                        </tr>
+                        <tr class="total-amount">
+                            <td colspan="6">Total Billing Amount</td>
+                            <td>Rs. 0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>Showing 1 to 1 of 1 entries</div>
+        </div>
+    </div>
+</body>
+</html>

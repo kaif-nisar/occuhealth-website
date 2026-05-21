@@ -1,0 +1,197 @@
+<html></html>
+<head>
+    <title>Test Cancelled</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 1px 1px 10px 1px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .search-section {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .search-section input, .search-section select {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .search-section button {
+            background-color: #ff4081;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-section button:hover {
+            background-color: #e91e63;
+        }
+        .booking-list {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .booking-list h2 {
+            margin-top: 0;
+        }
+        .booking-list table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .booking-list table, .booking-list th, .booking-list td {
+            border: 1px solid #dee2e6;
+        }
+        .booking-list th, .booking-list td {
+            padding: 10px;
+            text-align: left;
+        }
+        .booking-list th {
+            background-color: #fff3cd;
+        }
+        .booking-list td:nth-child(1) {
+            width: 30px;
+        }
+        .booking-list td:nth-child(2) {
+            width: 150px;
+        }
+        .booking-list td:nth-child(3) {
+            width: 100px;
+        }
+        .booking-list td:nth-child(4) {
+            width: 200px;
+        }
+        .booking-list td:nth-child(5) {
+            width: 150px;
+        }
+        .booking-list td:nth-child(6) {
+            width: 50px;
+        }
+        .booking-list .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .booking-list .entries-info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>Test Cancelled</h1>
+            <div class="breadcrumb">
+                <a href="#">Dashboard</a> &gt; <a href="#">Test Cancelled</a>
+            </div>
+        </div>
+        <div class="search-section">
+            <div>
+                <label for="start-date">Start</label>
+                <input type="date" id="start-date" value="2024-08-01">
+                <label for="end-date">End</label>
+                <input type="date" id="end-date" value="2024-09-07">
+                <select>
+                    <option>-- Select Sub Franchisee --</option>
+                </select>
+            </div>
+            <button><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="booking-list">
+            <h2>Booking List</h2>
+            <label for="search">Search:</label>
+            <input type="text" id="search">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Booking ID</th>
+                            <th>Patient Name</th>
+                            <th>Gender</th>
+                            <th>Test Name</th>
+                            <th>Barcode</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>HL8400963439</td>
+                            <td>ALISHA</td>
+                            <td>Female (26Y)</td>
+                            <td>
+                                1. Thyroid Stimulating Hormone (TSH)<br>
+                                2. Insulin Fasting<br>
+                                3. Testosterone- Total<br>
+                                4. TSH,PRL
+                            </td>
+                            <td>
+                                1. 3020585
+                            </td>
+                            <td>0/4</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>HL5600904697</td>
+                            <td>PUSHPA</td>
+                            <td>Female (56Y)</td>
+                            <td>
+                                1. P850<br>
+                                2. Glycated Haemoglobin (HbA1c)
+                            </td>
+                            <td>
+                                1. KN121811<br>
+                                2. 6666000<br>
+                                3. KN121809<br>
+                                4. 661100
+                            </td>
+                            <td>3/10</td>
+                        </tr>
+                        <!-- Add more rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="entries-info">
+                Showing 1 to 2 of 2 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

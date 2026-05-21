@@ -1,0 +1,1490 @@
+<style>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        } */
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo i {
+            color: #ffd700;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1e3c72;
+            font-weight: bold;
+            font-size: 18px;
+        } */
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            background: rgba(43, 86, 214, 0.79);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #1e3c72;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-tab:hover {
+            background: rgba(176, 155, 36, 0.71);
+            transform: translateY(-1px);
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .content-section#withdrawals .card {
+            background: linear-gradient(180deg, #ffffff 0%, #eef2ff 100%);
+            border: none;
+        }
+
+        .content-section#withdrawals .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .content-section#withdrawals .quick-stat {
+            position: relative;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px 20px;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .content-section#withdrawals .quick-stat::before {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            right: -20px;
+            top: -20px;
+            background: rgba(59, 130, 246, 0.12);
+        }
+
+        .content-section#withdrawals .quick-stat .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            color: #fff;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.18);
+        }
+
+        .content-section#withdrawals .quick-stat h4 {
+            font-size: 30px;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .content-section#withdrawals .quick-stat p {
+            margin: 0;
+            color: #475569;
+            font-size: 14px;
+        }
+
+        .content-section#withdrawals .action-buttons button {
+            margin-left: 12px;
+        }
+
+        .content-section#withdrawals .table {
+            border-radius: 18px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card.revenue {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .stat-card.users {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+        }
+
+        .stat-card.subscriptions {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+
+        .stat-card.growth {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+
+        .stat-card:hover::before {
+            top: -100%;
+            right: -100%;
+        }
+
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card p {
+            font-size: 16px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card i {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            opacity: 0.3;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 3% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #1e3c72;
+        }
+
+        .quick-stat h4 {
+            color: #1e3c72;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .quick-stat p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .chart-container {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .chart-placeholder {
+            color: #666;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .permission-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #1e3c72;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        /* .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+        } */
+
+        .notification.success {
+            background: #28a745;
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .nav-tabs {
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <!-- <div class="header">
+            <div class="logo">
+                <i class="fas fa-crown"></i>
+                <span>Super Admin Panel</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">SA</div>
+                <div>
+                    <div style="font-size: 18px; font-weight: bold;">Super Admin</div>
+                    <div style="font-size: 14px; opacity: 0.8;">admin@subscriptionhub.com</div>
+                </div>
+                <button class="btn btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div> -->
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <!-- <button class="nav-tab active" onclick="showSection('overview')">
+                <i class="fas fa-chart-line"></i> Overview
+            </button>
+            <button class="nav-tab" onclick="showSection('users')">
+                <i class="fas fa-users"></i> Users
+            </button> -->
+            <button class="nav-tab" onclick="showSection('subscriptions')">
+                <i class="fas fa-credit-card"></i> Subscriptions
+                <!-- </button>
+            <button class="nav-tab" onclick="showSection('revenue')">
+                <i class="fas fa-dollar-sign"></i> Revenue
+            </button>
+            <button class="nav-tab" onclick="showSection('referrals')">
+                <i class="fas fa-share-alt"></i> Referrals
+            </button> -->
+                <button class="nav-tab" onclick="showSection('withdrawals')">
+                    <i class="fas fa-money-bill-wave"></i> Withdrawals
+                </button>
+                <button class="nav-tab" onclick="showSection('system')">
+                    <i class="fas fa-cogs"></i> System
+                </button>
+                <!-- <button class="nav-tab" onclick="showSection('settings')">
+                <i class="fas fa-sliders-h"></i> Settings
+            </button> -->
+        </div>
+
+        <!-- Overview Section -->
+        <div class="content-section" id="overview">
+            <div class="stats-grid">
+                <div class="stat-card revenue">
+                    <i class="fas fa-dollar-sign"></i>
+                    <h3>₹2,45,000</h3>
+                    <p>Total Revenue</p>
+                </div>
+                <div class="stat-card users">
+                    <i class="fas fa-users"></i>
+                    <h3>1,248</h3>
+                    <p>Total Users</p>
+                </div>
+                <div class="stat-card subscriptions">
+                    <i class="fas fa-crown"></i>
+                    <h3>842</h3>
+                    <p>Active Subscriptions</p>
+                </div>
+                <div class="stat-card growth">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>+15%</h3>
+                    <p>Monthly Growth</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">System Status</h2>
+                </div>
+                <div class="system-status status-online">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Database Server</strong>
+                        <p>Online - Response time: 45ms</p>
+                    </div>
+                </div>
+                <div class="system-status status-online">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Payment Gateway</strong>
+                        <p>Online - All transactions processing normally</p>
+                    </div>
+                </div>
+                <div class="system-status status-warning">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Email Service</strong>
+                        <p>Warning - Slight delay in email delivery</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Quick Actions</h2>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="showModal('broadcastModal')">
+                        <i class="fas fa-bullhorn"></i> Send Broadcast
+                    </button>
+                    <button class="btn btn-success" onclick="showModal('addUserModal')">
+                        <i class="fas fa-user-plus"></i> Add User
+                    </button>
+                    <button class="btn btn-warning" onclick="exportData()">
+                        <i class="fas fa-download"></i> Export Data
+                    </button>
+                    <button class="btn btn-info" onclick="generateReport()">
+                        <i class="fas fa-file-alt"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Activities</h2>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2 min ago</td>
+                            <td>john.doe@email.com</td>
+                            <td>Subscription Upgrade</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>5 min ago</td>
+                            <td>jane.smith@email.com</td>
+                            <td>Withdrawal Request</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>10 min ago</td>
+                            <td>bob.johnson@email.com</td>
+                            <td>New Registration</td>
+                            <td><span class="badge badge-info">Registered</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div class="content-section" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">User Management</h2>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="showModal('addUserModal')">
+                            <i class="fas fa-user-plus"></i> Add User
+                        </button>
+                        <button class="btn btn-info" onclick="exportUsers()">
+                            <i class="fas fa-download"></i> Export Users
+                        </button>
+                    </div>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <h4>1,248</h4>
+                        <p>Total Users</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>842</h4>
+                        <p>Active Subscribers</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>45</h4>
+                        <p>New This Week</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>12</h4>
+                        <p>Inactive Users</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Search users..."
+                        onkeyup="searchUsers(this.value)">
+                </div>
+
+                <table class="table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Subscription</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#1001</td>
+                            <td>John Doe</td>
+                            <td>john.doe@email.com</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>Premium</td>
+                            <td>2025-01-15</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editUser(1001)">Edit</button>
+                                <button class="btn btn-danger" onclick="suspendUser(1001)">Suspend</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#1002</td>
+                            <td>Jane Smith</td>
+                            <td>jane.smith@email.com</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>Basic</td>
+                            <td>2025-01-10</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editUser(1002)">Edit</button>
+                                <button class="btn btn-danger" onclick="suspendUser(1002)">Suspend</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#1003</td>
+                            <td>Bob Johnson</td>
+                            <td>bob.johnson@email.com</td>
+                            <td><span class="badge badge-warning">Suspended</span></td>
+                            <td>None</td>
+                            <td>2025-01-05</td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editUser(1003)">Edit</button>
+                                <button class="btn btn-success" onclick="activateUser(1003)">Activate</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Subscriptions Section -->
+        <div class="content-section active" id="subscriptions">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Subscription Management</h2>
+                    <button class="btn btn-primary" onclick="showModal('addPlanModal')">
+                        <i class="fas fa-plus"></i> Add Plan
+                    </button>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <h4 id="activeSubscription">842</h4>
+                        <p>Active Subscriptions</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4 id="expireSoon">156</h4>
+                        <p>Expiring Soon</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4 id="cancelToday">23</h4>
+                        <p>Cancelled Today</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4 id="newUser">67</h4>
+                        <p>New This Month</p>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Plan Name</th>
+                            <th>Price</th>
+                            <th>Active Users</th>
+                            <th>Revenue</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Basic Plan</td>
+                            <td>₹499/month</td>
+                            <td>245</td>
+                            <td>₹1,22,255</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editPlan('basic')">Edit</button>
+                                <button class="btn btn-danger" onclick="disablePlan('basic')">Disable</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Premium Plan</td>
+                            <td>₹999/month</td>
+                            <td>487</td>
+                            <td>₹4,86,513</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editPlan('premium')">Edit</button>
+                                <button class="btn btn-danger" onclick="disablePlan('premium')">Disable</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Enterprise Plan</td>
+                            <td>₹1999/month</td>
+                            <td>110</td>
+                            <td>₹2,19,890</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-warning" onclick="editPlan('enterprise')">Edit</button>
+                                <button class="btn btn-danger" onclick="disablePlan('enterprise')">Disable</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Revenue Section -->
+        <div class="content-section" id="revenue">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Revenue Analytics</h2>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <h4>₹2,45,000</h4>
+                        <p>Total Revenue</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>₹45,000</h4>
+                        <p>This Month</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>₹8,500</h4>
+                        <p>Today</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>+15%</h4>
+                        <p>Growth Rate</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-area fa-3x" style="color: #ccc;"></i>
+                        <p>Revenue Chart Placeholder</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Transactions</h2>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#TXN1001</td>
+                            <td>john.doe@email.com</td>
+                            <td>₹999</td>
+                            <td>2025-06-25</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN1002</td>
+                            <td>jane.smith@email.com</td>
+                            <td>₹499</td>
+                            <td>2025-06-24</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN1003</td>
+                            <td>bob.johnson@email.com</td>
+                            <td>₹1999</td>
+                            <td>2025-06-24</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN1004</td>
+                            <td>alice.wilson@email.com</td>
+                            <td>₹999</td>
+                            <td>2025-06-23</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Referrals Section -->
+        <div class="content-section" id="referrals">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Referral Program Management</h2>
+                    <button class="btn btn-primary" onclick="showModal('referralSettingsModal')">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <h4>1,456</h4>
+                        <p>Total Referrals</p>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+                        <h4>₹87,600</h4>
+                        <p>Commission Paid</p>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                        <h4>234</h4>
+                        <p>Active Referrers</p>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                        <h4>15%</h4>
+                        <p>Conversion Rate</p>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Referrer</th>
+                            <th>Referrals</th>
+                            <th>Successful</th>
+                            <th>Commission Earned</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>john.doe@email.com</td>
+                            <td>45</td>
+                            <td>28</td>
+                            <td>₹8,400</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-info" onclick="viewReferrals('john.doe')">View</button>
+                                <button class="btn btn-warning" onclick="adjustCommission('john.doe')">Adjust</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>jane.smith@email.com</td>
+                            <td>32</td>
+                            <td>19</td>
+                            <td>₹5,700</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-info" onclick="viewReferrals('jane.smith')">View</button>
+                                <button class="btn btn-warning" onclick="adjustCommission('jane.smith')">Adjust</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>mike.brown@email.com</td>
+                            <td>67</td>
+                            <td>42</td>
+                            <td>₹12,600</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>
+                                <button class="btn btn-info" onclick="viewReferrals('mike.brown')">View</button>
+                                <button class="btn btn-warning" onclick="adjustCommission('mike.brown')">Adjust</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Withdrawals Section -->
+        <div class="content-section" id="withdrawals">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Withdrawal Management</h2>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="processAllWithdrawals()">
+                            <i class="fas fa-check-circle"></i> Process All
+                        </button>
+                        <button class="btn btn-info" onclick="exportWithdrawals()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <h4>₹45,600</h4>
+                        <p>Pending Withdrawals</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>₹1,87,400</h4>
+                        <p>Processed This Month</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>23</h4>
+                        <p>Pending Requests</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>156</h4>
+                        <p>Completed This Month</p>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#WD1001</td>
+                            <td>john.doe@email.com</td>
+                            <td>₹2,500</td>
+                            <td>Bank Transfer</td>
+                            <td>2025-06-25</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                            <td>
+                                <button class="btn btn-success" onclick="approveWithdrawal('WD1001')">Approve</button>
+                                <button class="btn btn-danger" onclick="rejectWithdrawal('WD1001')">Reject</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#WD1002</td>
+                            <td>jane.smith@email.com</td>
+                            <td>₹1,800</td>
+                            <td>UPI</td>
+                            <td>2025-06-24</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                            <td>
+                                <button class="btn btn-success" onclick="approveWithdrawal('WD1002')">Approve</button>
+                                <button class="btn btn-danger" onclick="rejectWithdrawal('WD1002')">Reject</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#WD1003</td>
+                            <td>mike.brown@email.com</td>
+                            <td>₹3,200</td>
+                            <td>Bank Transfer</td>
+                            <td>2025-06-23</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                            <td>
+                                <button class="btn btn-info" onclick="viewWithdrawal('WD1003')">View</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- System Section -->
+        <div class="content-section" id="system">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">System Configuration</h2>
+                </div>
+
+                <div class="system-status status-online">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Server Status</strong>
+                        <p>Online - Uptime: 99.8%</p>
+                    </div>
+                </div>
+                <div class="system-status status-online">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Database</strong>
+                        <p>Connected - 45ms response time</p>
+                    </div>
+                </div>
+                <div class="system-status status-warning">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Email Service</strong>
+                        <p>Warning - Queue: 127 emails</p>
+                    </div>
+                </div>
+                <div class="system-status status-online">
+                    <div class="status-indicator"></div>
+                    <div>
+                        <strong>Payment Gateway</strong>
+                        <p>Online - All systems operational</p>
+                    </div>
+                </div>
+
+                <div class="action-buttons" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="backupDatabase()">
+                        <i class="fas fa-database"></i> Backup Database
+                    </button>
+                    <button class="btn btn-warning" onclick="clearCache()">
+                        <i class="fas fa-trash"></i> Clear Cache
+                    </button>
+                    <button class="btn btn-info" onclick="viewLogs()">
+                        <i class="fas fa-file-alt"></i> View Logs
+                    </button>
+                    <button class="btn btn-danger" onclick="restartServices()">
+                        <i class="fas fa-power-off"></i> Restart Services
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Server Information</h2>
+                </div>
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <h4>2.4 GB</h4>
+                        <p>Memory Usage</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>35%</h4>
+                        <p>CPU Usage</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>127 GB</h4>
+                        <p>Disk Usage</p>
+                    </div>
+                    <div class="quick-stat">
+                        <h4>847</h4>
+                        <p>Active Sessions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="content-section" id="settings">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Application Settings</h2>
+                </div>
+
+                <div class="permission-grid">
+                    <div class="permission-item">
+                        <span>User Registration</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="permission-item">
+                        <span>Email Notifications</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="permission-item">
+                        <span>SMS Notifications</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="permission-item">
+                        <span>Referral Program</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="permission-item">
+                        <span>Auto Withdrawals</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="permission-item">
+                        <span>Maintenance Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Payment Settings</h2>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Minimum Withdrawal Amount</label>
+                    <input type="number" class="form-control" value="500" placeholder="Enter minimum amount">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Referral Commission (%)</label>
+                    <input type="number" class="form-control" value="10" placeholder="Enter commission percentage">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Processing Fee (%)</label>
+                    <input type="number" class="form-control" value="2.5" placeholder="Enter processing fee">
+                </div>
+                <button class="btn btn-success">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Broadcast Modal -->
+    <div id="broadcastModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('broadcastModal')">&times;</span>
+            <h2>Send Broadcast Message</h2>
+            <div class="form-group">
+                <label class="form-label">Subject</label>
+                <input type="text" class="form-control" placeholder="Enter subject">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" rows="5" placeholder="Enter your message"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target Audience</label>
+                <select class="form-control">
+                    <option>All Users</option>
+                    <option>Subscribed Users</option>
+                    <option>Free Users</option>
+                    <option>Inactive Users</option>
+                </select>
+            </div>
+            <button class="btn btn-primary">Send Broadcast</button>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addUserModal')">&times;</span>
+            <h2>Add New User</h2>
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" placeholder="Enter user name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" placeholder="Enter email address">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input type="tel" class="form-control" placeholder="Enter phone number">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subscription Plan</label>
+                <select class="form-control">
+                    <option>None</option>
+                    <option>Basic</option>
+                    <option>Premium</option>
+                    <option>Enterprise</option>
+                </select>
+            </div>
+            <button class="btn btn-success">Add User</button>
+        </div>
+    </div>
+
+    <!-- Add Plan Modal -->
+    <div id="addPlanModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addPlanModal')">&times;</span>
+            <h2>Add Subscription Plan</h2>
+            <div class="form-group">
+                <label class="form-label">Plan Name</label>
+                <input type="text" class="form-control" placeholder="Enter plan name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Price (₹)</label>
+                <input type="number" class="form-control" placeholder="Enter price">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Duration</label>
+                <select class="form-control">
+                    <option>Monthly</option>
+                    <option>Quarterly</option>
+                    <option>Yearly</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Features</label>
+                <textarea class="form-control" rows="4" placeholder="Enter plan features"></textarea>
+            </div>
+            <button class="btn btn-primary">Add Plan</button>
+        </div>
+    </div>
+
+    <!-- Referral Settings Modal -->
+    <div id="referralSettingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('referralSettingsModal')">&times;</span>
+            <h2>Referral Program Settings</h2>
+            <div class="form-group">
+                <label class="form-label">Commission Rate (%)</label>
+                <input type="number" class="form-control" value="10" placeholder="Enter commission rate">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Minimum Payout (₹)</label>
+                <input type="number" class="form-control" value="500" placeholder="Enter minimum payout">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cookie Duration (days)</label>
+                <input type="number" class="form-control" value="30" placeholder="Enter cookie duration">
+            </div>
+            <div class="permission-item">
+                <span>Enable Referral Program</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button class="btn btn-success">Save Settings</button>
+        </div>
+    </div>
+
+   
+</body>
+
+</html>

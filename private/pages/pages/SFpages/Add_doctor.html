@@ -1,0 +1,156 @@
+<html></html>
+<head>
+    <title>Add Doctor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .form-section {
+            display: flex;
+            justify-content: space-between;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: calc(100% - 30px);
+            padding: 10px;
+            padding-left: 30px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .form-group i {
+            position: absolute;
+            left: 10px;
+            top: 35px;
+            color: #6c757d;
+        }
+        .form-group input[type="date"] {
+            padding-right: 30px;
+        }
+        .form-group select {
+            padding-right: 30px;
+        }
+        .form-group textarea {
+            height: 100px;
+        }
+        .form-section .card {
+            width: 48%;
+            padding: 20px;
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        .form-section .card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .submit-btn {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .submit-btn button {
+            background-color: #ff4d4d;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .submit-btn button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h1>Add Doctor</h1>
+        <div class="breadcrumb">
+            <a href="#"><i class="fas fa-home"></i> Dashboard</a> &gt; Add Doctor
+        </div>
+        <div class="form-section">
+            <div class="card">
+                <h3>Doctor Information</h3>
+                <div class="form-group">
+                    <label for="firstname">Firstname *</label>
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="firstname" name="firstname">
+                </div>
+                <div class="form-group">
+                    <label for="lastname">Lastname *</label>
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="lastname" name="lastname">
+                </div>
+                <div class="form-group">
+                    <label for="dob">Date of Birth</label>
+                    <i class="fas fa-calendar-alt"></i>
+                    <input type="date" id="dob" name="dob" value="1995-01-01">
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Professional Details</h3>
+                <div class="form-group">
+                    <label for="specialization">Doctor Specialization *</label>
+                    <i class="fas fa-stethoscope"></i>
+                    <input type="text" id="specialization" name="specialization">
+                </div>
+                <div class="form-group">
+                    <label for="remarks">Remarks</label>
+                    <textarea id="remarks" name="remarks" placeholder="Enter Remarks"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <textarea id="address" name="address" placeholder="Enter Address Details"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="submit-btn">
+            <button type="submit"><i class="fas fa-sign-in-alt"></i> Submit</button>
+        </div>
+    </div>
+</body>
+</html>

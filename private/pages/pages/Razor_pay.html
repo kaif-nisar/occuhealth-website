@@ -1,0 +1,171 @@
+<div class="payment-history-page">
+    <style>
+        .payment-history-page {
+            padding: 20px;
+            color: #1f2937;
+            font-family: Arial, sans-serif;
+        }
+
+        .payment-history-page .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .payment-history-page .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .payment-history-page .summary-card,
+        .payment-history-page .panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .payment-history-page .summary-label {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .payment-history-page .summary-value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .payment-history-page .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 14px;
+        }
+
+        .payment-history-page label {
+            display: block;
+            font-size: 12px;
+            color: #4b5563;
+            margin-bottom: 5px;
+        }
+
+        .payment-history-page input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .payment-history-page button {
+            height: 38px;
+            border: 0;
+            border-radius: 6px;
+            background: #0f766e;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .payment-history-page table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+
+        .payment-history-page th,
+        .payment-history-page td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .payment-history-page th {
+            background: #111827;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .payment-history-page .muted {
+            color: #6b7280;
+        }
+
+        .payment-history-page .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .payment-history-page .table-wrap {
+            overflow-x: auto;
+        }
+    </style>
+
+    <div class="page-title">Razorpay Payment History</div>
+
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Booking Wallet</div>
+            <div class="summary-value" id="razorBookingWallet">Rs.0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Commission / Received Wallet</div>
+            <div class="summary-value" id="razorCommissionWallet">Rs.0</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Transactions</div>
+            <div class="summary-value" id="razorTransactionCount">0</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="filters">
+            <div>
+                <label for="razorStartDate">Start date</label>
+                <input type="date" id="razorStartDate">
+            </div>
+            <div>
+                <label for="razorEndDate">End date</label>
+                <input type="date" id="razorEndDate">
+            </div>
+            <div>
+                <label for="razorSearch">Search</label>
+                <input type="text" id="razorSearch" placeholder="Payment ID, transaction, remarks">
+            </div>
+            <button type="button" id="razorSearchBtn"><i class="fas fa-search"></i> Search</button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction ID</th>
+                        <th>Razorpay Payment</th>
+                        <th>Amount</th>
+                        <th>Wallet</th>
+                        <th>From</th>
+                        <th>Remarks</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="razorPaymentRows">
+                    <tr>
+                        <td colspan="8" class="muted">Loading transactions...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

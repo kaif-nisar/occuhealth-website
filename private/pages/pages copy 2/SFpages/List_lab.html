@@ -1,0 +1,137 @@
+<html></html>
+<head>
+    <title>List Lab</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #e9f7fe;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        .table-container h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .table-controls select, .table-controls input {
+            padding: 5px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+        }
+        table th {
+            background-color: #fff3cd;
+        }
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            margin-left: 5px;
+            border: 1px solid #dee2e6;
+            background-color: #ffffff;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <br><br>
+    <div class="container">
+        <div class="header">
+            <h1>List Lab</h1>
+            <div class="breadcrumb">
+                <a href="#"><i class="fas fa-home"></i> Dashboard</a> &gt; <a href="#">List Lab</a>
+            </div>
+        </div>
+        <div class="table-container">
+            <h2>Doctors List</h2>
+            <div class="table-controls">
+                <div>
+                    Show 
+                    <select>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select> 
+                    entries
+                </div>
+                <div>
+                    Search: <input type="text">
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Lab Name</th>
+                        <th>Address</th>
+                        <th>Date Added</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5">No data available in table</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <button>Previous</button>
+                <button>Next</button>
+            </div>
+            <div>
+                Showing 0 to 0 of 0 entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

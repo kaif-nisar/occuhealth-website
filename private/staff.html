@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="staffManagementApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/css/bootstrap.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --light: #ecf0f1;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            height: 100%;
+            width: 250px;
+            background: var(--primary);
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: var(--secondary);
+        }
+        
+        .sidebar-header h3 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+        
+        .sidebar ul li a {
+            padding: 15px 20px;
+            display: block;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .sidebar ul li a:hover {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .sidebar ul li a.active {
+            background: var(--accent);
+            border-left: 4px solid white;
+        }
+        
+        .sidebar ul li a i {
+            margin-right: 10px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        /* Header */
+        .content-header {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .content-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* Cards */
+        .dashboard-card {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-card .card-body {
+            padding: 20px;
+        }
+        
+        .dashboard-card .card-icon {
+            background: var(--accent);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .dashboard-card .card-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .dashboard-card .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .data-table th {
+            background-color: var(--light);
+            font-weight: 600;
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        /* Forms */
+        .form-card {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background: var(--accent);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #27ae60;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+        
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .badge-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .badge-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        /* Login Page */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+        
+        .login-card {
+            width: 400px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        .login-card h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+        
+        .login-card .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .login-card .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+                text-align: center;
+            }
+            
+            .sidebar-header h3 {
+                display: none;
+            }
+            
+            .sidebar ul li a span {
+                display: none;
+            }
+            
+            .sidebar ul li a i {
+                margin-right: 0;
+                font-size: 1.2rem;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            color: white;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        
+        .toast-success {
+            background: var(--success);
+        }
+        
+        .toast-error {
+            background: var(--danger);
+        }
+        
+        .toast-warning {
+            background: var(--warning);
+        }
+        
+        /* Chart styles */
+        .chart-container {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body ng-controller="MainController">
+    <!-- Loading Screen -->
+    <div class="loading-screen" ng-if="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Login Page -->
+    <!-- <div class="login-container" ng-if="!isLoggedIn">
+        <div class="login-card">
+            <h1>Staff Login</h1>
+            <form ng-submit="login()">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" ng-model="loginData.username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" ng-model="loginData.password" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+            <div class="alert alert-danger" ng-if="loginError">
+                {{ loginError }}
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Main Application (Visible when logged in) -->
+    <!-- <div ng-if="isLoggedIn"> -->
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>Staff Portal</h3>
+            </div>
+            <ul class="list-unstyled">
+                <li>
+                    <a href="#/dashboard" ng-class="{ active: currentPage === 'dashboard' }" ng-click="setPage('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/bookings" ng-class="{ active: currentPage === 'bookings' }" ng-click="setPage('bookings')">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Bookings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/customers" ng-class="{ active: currentPage === 'customers' }" ng-click="setPage('customers')">
+                        <i class="fas fa-users"></i>
+                        <span>Customers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/payments" ng-class="{ active: currentPage === 'payments' }" ng-click="setPage('payments')">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Payments</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/staff" ng-class="{ active: currentPage === 'staff' }" ng-click="setPage('staff')" ng-if="currentUser.permissions.canManageStaff">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Staff</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/profile" ng-class="{ active: currentPage === 'profile' }" ng-click="setPage('profile')">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" ng-click="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="content-header">
+                <h1>{{ pageTitle }}</h1>
+                <div class="user-info">
+                    <span>{{ currentUser.fullName }}</span>
+                    <span class="badge" ng-class="{'badge-success': currentUser.role === 'admin', 'badge-warning': currentUser.role === 'staff'}">
+                        {{ currentUser.role | capitalize }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div ng-if="currentPage === 'dashboard'" class="fade-in">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-body">
+                                <div class="card-icon" style="background: var(--accent);">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <h5 class="card-title">Total Bookings</h5>
+                                <div class="card-value">{{ dashboardStats.totalBookings || 0 }}</div>
+                                <div class="card-change">
+                                    <span ng-class="{'text-success': dashboardStats.bookingChange >= 0, 'text-danger': dashboardStats.bookingChange < 0}">
+                                        <i class="fas" ng-class="{'fa-arrow-up': dashboardStats.bookingChange >= 0, 'fa-arrow-down': dashboardStats.bookingChange < 0}"></i>
+                                        {{ Math.abs(dashboardStats.bookingChange) || 0 }}% from last week
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-body">
+                                <div class="card-icon" style="background: var(--success);">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <h5 class="card-title">Revenue</h5>
+                                <div class="card-value">₹{{ dashboardStats.totalRevenue || 0 }}</div>
+                                <div class="card-change">
+                                    <span ng-class="{'text-success': dashboardStats.revenueChange >= 0, 'text-danger': dashboardStats.revenueChange < 0}">
+                                        <i class="fas" ng-class="{'fa-arrow-up': dashboardStats.revenueChange >= 0, 'fa-arrow-down': dashboardStats.revenueChange < 0}"></i>
+                                        {{ Math.abs(dashboardStats.revenueChange) || 0 }}% from last week
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-body">
+                                <div class="card-icon" style="background: var(--warning);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <h5 class="card-title">New Customers</h5>
+                                <div class="card-value">{{ dashboardStats.newCustomers || 0 }}</div>
+                                <div class="card-change">
+                                    <span ng-class="{'text-success': dashboardStats.customerChange >= 0, 'text-danger': dashboardStats.customerChange < 0}">
+                                        <i class="fas" ng-class="{'fa-arrow-up': dashboardStats.customerChange >= 0, 'fa-arrow-down': dashboardStats.customerChange < 0}"></i>
+                                        {{ Math.abs(dashboardStats.customerChange) || 0 }}% from last week
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-body">
+                                <div class="card-icon" style="background: var(--danger);">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h5 class="card-title">Conversion Rate</h5>
+                                <div class="card-value">{{ dashboardStats.conversionRate || 0 }}%</div>
+                                <div class="card-change">
+                                    <span ng-class="{'text-success': dashboardStats.conversionChange >= 0, 'text-danger': dashboardStats.conversionChange < 0}">
+                                        <i class="fas" ng-class="{'fa-arrow-up': dashboardStats.conversionChange >= 0, 'fa-arrow-down': dashboardStats.conversionChange < 0}"></i>
+                                        {{ Math.abs(dashboardStats.conversionChange) || 0 }}% from last week
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="chart-container">
+                            <h5>Booking Trends</h5>
+                            <canvas id="bookingChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="chart-container">
+                            <h5>Booking Status</h5>
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-card">
+                            <h5>Recent Bookings</h5>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Booking ID</th>
+                                        <th>Customer</th>
+                                        <th>Service</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Payment</th>
+                                        <th>Created By</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="booking in recentBookings">
+                                        <td>{{ booking.bookingId }}</td>
+                                        <td>{{ booking.customerName }}</td>
+                                        <td>{{ booking.service }}</td>
+                                        <td>{{ booking.date | date: 'medium' }}</td>
+                                        <td>
+                                            <span class="badge" ng-class="{
+                                                'badge-success': booking.status === 'confirmed',
+                                                'badge-warning': booking.status === 'pending',
+                                                'badge-danger': booking.status === 'cancelled'
+                                            }">
+                                                {{ booking.status | capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" ng-class="{
+                                                'badge-success': booking.paymentStatus === 'paid',
+                                                'badge-warning': booking.paymentStatus === 'pending',
+                                                'badge-danger': booking.paymentStatus === 'failed'
+                                            }">
+                                                {{ booking.paymentStatus | capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">
+                                                {{ booking.createdBy === currentUser._id ? 'You' : booking.createdByName }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bookings Page -->
+            <div ng-if="currentPage === 'bookings'" class="fade-in">
+                <div class="form-card">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Manage Bookings</h5>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button class="btn btn-success" ng-click="showNewBookingModal()">
+                                <i class="fas fa-plus"></i> New Booking
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" placeholder="Search bookings..." ng-model="bookingSearch">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" ng-model="bookingStatusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" ng-model="bookingCreatorFilter">
+                                <option value="">All Creators</option>
+                                <option value="staff">Staff Created</option>
+                                <option value="franchisee">Franchisee Created</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary" ng-click="filterBookings()">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Customer</th>
+                                <th>Service</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="booking in bookings">
+                                <td>{{ booking.bookingId }}</td>
+                                <td>{{ booking.customerName }}</td>
+                                <td>{{ booking.service }}</td>
+                                <td>{{ booking.date | date: 'medium' }}</td>
+                                <td>
+                                    <span class="badge" ng-class="{
+                                        'badge-success': booking.status === 'confirmed',
+                                        'badge-warning': booking.status === 'pending',
+                                        'badge-danger': booking.status === 'cancelled'
+                                    }">
+                                        {{ booking.status | capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge" ng-class="{
+                                        'badge-success': booking.paymentStatus === 'paid',
+                                        'badge-warning': booking.paymentStatus === 'pending',
+                                        'badge-danger': booking.paymentStatus === 'failed'
+                                    }">
+                                        {{ booking.paymentStatus | capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">
+                                        {{ booking.createdBy === currentUser._id ? 'You' : booking.createdByName }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" ng-click="viewBooking(booking)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" ng-click="editBooking(booking)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" ng-click="confirmDeleteBooking(booking)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalBookings) }} of {{ totalBookings }} bookings</p>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="pagination float-right">
+                                <li class="page-item" ng-class="{ disabled: currentPage === 1 }">
+                                    <a class="page-link" href="#" ng-click="goToPage(currentPage - 1)">Previous</a>
+                                </li>
+                                <li class="page-item" ng-repeat="page in pages" ng-class="{ active: page === currentPage }">
+                                    <a class="page-link" href="#" ng-click="goToPage(page)">{{ page }}</a>
+                                </li>
+                                <li class="page-item" ng-class="{ disabled: currentPage === totalPages }">
+                                    <a class="page-link" href="#" ng-click="goToPage(currentPage + 1)">Next</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Management Page (for admin or superFranchisee) -->
+            <div ng-if="currentPage === 'staff' && currentUser.permissions.canManageStaff" class="fade-in">
+                <div class="form-card">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Staff Management</h5>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button class="btn btn-success" ng-click="showNewStaffModal()">
+                                <i class="fas fa-plus"></i> Add Staff
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" placeholder="Search staff..." ng-model="staffSearch">
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-control" ng-model="staffRoleFilter">
+                                <option value="">All Roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="superFranchisee">Super Franchisee</option>
+                                <option value="franchisee">Franchisee</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary" ng-click="filterStaff()">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="staff in staffList">
+                                <td>{{ staff.username }}</td>
+                                <td>{{ staff.fullName }}</td>
+                                <td>{{ staff.email }}</td>
+                                <td>
+                                    <span class="badge" ng-class="{
+                                        'badge-success': staff.role === 'admin',
+                                        'badge-info': staff.role === 'superFranchisee',
+                                        'badge-primary': staff.role === 'franchisee',
+                                        'badge-warning': staff.role === 'staff'
+                                    }">
+                                        {{ staff.role | capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge" ng-class="{
+                                        'badge-success': staff.isActive,
+                                        'badge-danger': !staff.isActive
+                                    }">
+                                        {{ staff.isActive ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>{{ staff.createdAt | date: 'medium' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" ng-click="viewStaff(staff)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" ng-click="editStaff(staff)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm" ng-class="{'btn-danger': staff.isActive, 'btn-success': !staff.isActive}" ng-click="toggleStaffStatus(staff)">
+                                        <i class="fas" ng-class="{'fa-user-slash': staff.isActive, 'fa-user-check': !staff.isActive}"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p>Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalStaff) }} of {{ totalStaff }} staff members</p>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="pagination float-right">
+                                <li class="page-item" ng-class="{ disabled: currentPage === 1 }">
+                                    <a class="page-link" href="#" ng-click="goToPage(currentPage - 1)">Previous</a>
+                                </li>
+                                <li class="page-item" ng-repeat="page in pages" ng-class="{ active: page === currentPage }">
+                                    <a class="page-link" href="#" ng-click="goToPage(page)">{{ page }}</a>
+                                </li>
+                                <li class="page-item" ng-class="{ disabled: currentPage === totalPages }">
+                                    <a class="page-link" href="#" ng-click="goToPage(currentPage + 1)">Next</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Staff Activity Tracking -->
+                <div class="form-card">
+                    <h5>Staff Activity</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <select class="form-control" ng-model="selectedStaff" ng-options="staff.fullName for staff in staffList">
+                                <option value="">All Staff</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" ng-model="activityDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" ng-model="activityDateTo">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary" ng-click="filterActivities()">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Staff Name</th>
+                                <th>Activity Type</th>
+                                <th>Details</th>
+                                <th>Date</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="activity in staffActivities">
+                                <td>{{ activity.staffName }}</td>
+                                <td>
+                                    <span class="badge" ng-class="{
+                                        'badge-primary': activity.type === 'login',
+                                        'badge-secondary': activity.type === 'logout',
+                                        'badge-success': activity.type === 'booking_created',
+                                        'badge-warning': activity.type === 'booking_updated',
+                                        'badge-danger': activity.type === 'booking_cancelled',
+                                        'badge-info': activity.type === 'payment_processed'
+                                    }">
+                                        {{ activity.type | capitalize | replace:'_':' ' }}
+                                    </span>
+                                </td>
+                                <td>{{ activity.details }}</td>
+                                <td>{{ activity.createdAt | date: 'medium' }}</td>
+                                <td>{{ activity.ipAddress }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div ng-if="currentPage === 'profile'" class="fade-in">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-card">
+                            <div class="text-center mb-4">
+                                <div class="avatar-circle">
+                                    <span class="avatar-initials">{{ getInitials(currentUser.fullName) }}</span>
+                                </div>
+                                <h4 class="mt-3">{{ currentUser.fullName }}</h4>
+                                <p>
+                                    <span class="badge" ng-class="{
+                                        'badge-success': currentUser.role === 'admin',
+                                        'badge-info': currentUser.role === 'superFranchisee',
+                                        'badge-primary': currentUser.role === 'franchisee',
+                                        'badge-warning': currentUser.role === 'staff'
+                                    }">
+                                        {{ currentUser.role | capitalize }}
+                                    </span>
+                                </p>
+                            </div>
+                            
+                            <div class="profile-info">
+                                <div class="info-item">
+                                    <span class="info-label"><i class="fas fa-envelope"></i> Email:</span>
+                                    <span class="info-value">{{ currentUser.email }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label"><i class="fas fa-phone"></i> Phone:</span>
+                                    <span class="info-value">{{ currentUser.phone || 'Not set' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label"><i class="fas fa-user"></i> Username:</span>
+                                    <span class="info-value">{{ currentUser.username }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label"><i class="fas fa-calendar"></i> Joined:</span>
+                                    <span class="info-value">{{ currentUser.createdAt | date: 'mediumDate' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label"><i class="fas fa-building"></i> Tenant:</span>
+                                    <span class="info-value">{{ currentUser.tenantName }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="form-card">
+                            <h5>Update Profile</h5>
+                            <form ng-submit="updateProfile()">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="fullName">Full Name</label>
+                                            <input type="text" id="fullName" class="form-control" ng-model="profileData.fullName">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="email">Email Address</label>
+                                            <input type="email" id="email" class="form-control" ng-model="profileData.email">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="phone">Phone Number</label>
+                                            <input type="text" id="phone" class="form-control" ng-model="profileData.phone">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="username">Username</label>
+                                            <input type="text" id="username" class="form-control" ng-model="profileData.username" disabled>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="form-card mt-4">
+                            <h5>Change Password</h5>
+                            <form ng-submit="changePassword()">
+                                <div class="form-group">
+                                    <label for="currentPassword">Current Password</label>
+                                    <input type="password" id="currentPassword" class="form-control" ng-model="passwordData.currentPassword">
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="newPassword">New Password</label>
+                                            <input type="password" id="newPassword" class="form-control" ng-model="passwordData.newPassword">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="confirmPassword">Confirm New Password</label>
+                                            <input type="password" id="confirmPassword" class="form-control" ng-model="passwordData.confirmPassword">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-warning">Change Password</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container">
+        <div class="toast" ng-repeat="toast in toasts" ng-class="'toast-' + toast.type">
+            <div class="toast-header">
+                <i class="fas" ng-class="{'fa-check-circle': toast.type === 'success', 'fa-exclamation-circle': toast.type === 'error', 'fa-info-circle': toast.type === 'info'}"></i>
+                <strong class="ml-2">{{ toast.title }}</strong>
+                <button type="button" class="ml-auto" ng-click="closeToast(toast)">×</button>
+            </div>
+            <div class="toast-body">
+                {{ toast.message }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- New Booking Modal -->
+    <div class="modal fade" id="newBookingModal" tabindex="-1" role="dialog" aria-hidden="true" ng-show="showNewBookingModalFlag">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Booking</h5>
+                    <button type="button" class="close" ng-click="hideNewBookingModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="newBookingForm">
+                        <div class="form-group">
+                            <label for="customer">Customer</label>
+                            <select id="customer" class="form-control" ng-model="newBooking.customerId">
+                                <option ng-repeat="customer in customers" value="{{ customer._id }}">{{ customer.name }}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="service">Service</label>
+                            <select id="service" class="form-control" ng-model="newBooking.serviceId">
+                                <option ng-repeat="service in services" value="{{ service._id }}">{{ service.name }} - ₹{{ service.price }}</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bookingDate">Date & Time</label>
+                            <input type="datetime-local" id="bookingDate" class="form-control" ng-model="newBooking.date">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" class="form-control" ng-model="newBooking.notes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" ng-click="hideNewBookingModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" ng-click="createBooking()">Create Booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div class="modal fade" id="newStaffModal" tabindex="-1" role="dialog" aria-hidden="true" ng-show="showNewStaffModalFlag">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Staff</h5>
+                    <button type="button" class="close" ng-click="hideNewStaffModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="newStaffForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffUsername">Username</label>
+                                    <input type="text" id="staffUsername" class="form-control" ng-model="newStaff.username">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffFullName">Full Name</label>
+                                    <input type="text" id="staffFullName" class="form-control" ng-model="newStaff.fullName">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffEmail">Email</label>
+                                    <input type="email" id="staffEmail" class="form-control" ng-model="newStaff.email">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffPhone">Phone</label>
+                                    <input type="text" id="staffPhone" class="form-control" ng-model="newStaff.phone">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffPassword">Password</label>
+                                    <input type="password" id="staffPassword" class="form-control" ng-model="newStaff.password">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="staffRole">Role</label>
+                                    <select id="staffRole" class="form-control" ng-model="newStaff.role">
+                                        <option value="staff">Staff</option>
+                                        <option value="franchisee" ng-if="currentUser.role === 'admin' || currentUser.role === 'superFranchisee'">Franchisee</option>
+                                        <option value="superFranchisee" ng-if="currentUser.role === 'admin'">Super Franchisee</option>
+                                        <option value="admin" ng-if="currentUser.role === 'admin'">Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h6 class="mt-4">Permissions</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input type="checkbox" id="canManageBookings" class="form-check-input" ng-model="newStaff.permissions.canManageBookings">
+                                    <label for="canManageBookings" class="form-check-label">Manage Bookings</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="canManageCustomers" class="form-check-input" ng-model="newStaff.permissions.canManageCustomers">
+                                    <label for="canManageCustomers" class="form-check-label">Manage Customers</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input type="checkbox" id="canManagePayments" class="form-check-input" ng-model="newStaff.permissions.canManagePayments">
+                                    <label for="canManagePayments" class="form-check-label">Manage Payments</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" id="canManageStaff" class="form-check-input" ng-model="newStaff.permissions.canManageStaff">
+                                    <label for="canManageStaff" class="form-check-label">Manage Staff</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" ng-click="hideNewStaffModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" ng-click="createStaff()">Add Staff</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.2/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.2/angular-route.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    
+    <script>
+        // // Angular JS Application
+        // var app = angular.module('staffManagementApp', ['ngRoute']);
+        
+        // // Configure Routes
+        // app.config(function($routeProvider) {
+        //     $routeProvider
+        //         .when('/dashboard', {
+        //             templateUrl: 'templates/dashboard.html',
+        //             controller: 'DashboardController'
+        //         })
+        //         .when('/bookings', {
+        //             templateUrl: 'templates/bookings.html',
+        //             controller: 'BookingsController'
+        //         })
+        //         .when('/customers', {
+        //             templateUrl: 'templates/customers.html',
+        //             controller: 'CustomersController'
+        //         })
+        //         .when('/payments', {
+        //             templateUrl: 'templates/payments.html', 
+        //             controller: 'PaymentsController'
+        //         })
+        //         .when('/staff', {
+        //             templateUrl: 'templates/staff.html',
+        //             controller: 'StaffController'
+        //         })
+        //         .when('/profile', {
+        //             templateUrl: 'templates/profile.html',
+        //             controller: 'ProfileController'
+        //         })
+        //         .otherwise({
+        //             redirectTo: '/dashboard'
+        //         });
+        // });
+        
+        // // Filters
+        // app.filter('capitalize', function() {
+        //     return function(input) {
+        //         return (input) ? input.charAt(0).toUpperCase() + input.substr(1).toLowerCase() : '';
+        //     };
+        // });
+        
+        // app.filter('replace', function() {
+        //     return function(input, from, to) {
+        //         if(input) {
+        //             return input.replace(new RegExp(from, 'g'), to);
+        //         }
+        //     };
+        // });
+        
+        // // Authentication Service
+        // app.service('AuthService', function($http) {
+        //     this.login = function(credentials) {
+        //         // Simulating API call
+        //         return new Promise((resolve, reject) => {
+        //             // In real application, use $http.post('/api/staff/login', credentials)
+        //             setTimeout(() => {
+        //                 if (credentials.username === 'admin' && credentials.password === 'admin') {
+        //                     const user = {
+        //                         _id: '1',
+        //                         username: 'admin',
+        //                         fullName: 'Admin User',
+        //                         email: 'admin@example.com',
+        //                         role: 'admin',
+        //                         permissions: {
+        //                             canManageBookings: true,
+        //                             canManageCustomers: true,
+        //                             canManagePayments: true,
+        //                             canManageStaff: true
+        //                         },
+        //                         tenantName: 'Main Company',
+        //                         createdAt: new Date(),
+        //                         token: 'simulated-jwt-token'
+        //                     };
+        //                     localStorage.setItem('currentUser', JSON.stringify(user));
+        //                     resolve(user);
+        //                 } else if (credentials.username === 'staff' && credentials.password === 'staff') {
+        //                     const user = {
+        //                         _id: '2',
+        //                         username: 'staff',
+        //                         fullName: 'Staff User',
+        //                         email: 'staff@example.com',
+        //                         role: 'staff',
+        //                         permissions: {
+        //                             canManageBookings: true,
+        //                             canManageCustomers: true,
+        //                             canManagePayments: false,
+        //                             canManageStaff: false
+        //                         },
+        //                         tenantName: 'Main Company',
+        //                         createdAt: new Date(),
+        //                         token: 'simulated-jwt-token'
+        //                     };
+        //                     localStorage.setItem('currentUser', JSON.stringify(user));
+        //                     resolve(user);
+        //                 } else {
+        //                     reject({ message: 'Invalid username or password' });
+        //                 }
+        //             }, 1000);
+        //         });
+        //     };
+            
+        //     this.logout = function() {
+        //         localStorage.removeItem('currentUser');
+        //     };
+            
+        //     this.getCurrentUser = function() {
+        //         return JSON.parse(localStorage.getItem('currentUser'));
+        //     };
+            
+        //     this.isLoggedIn = function() {
+        //         return !!this.getCurrentUser();
+        //     };
+        // });
+        
+        // // Main Controller
+        // app.controller('MainController', function($scope, $location, AuthService) {
+        //     $scope.Math = window.Math;
+        //     $scope.isLoggedIn = AuthService.isLoggedIn();
+        //     $scope.currentUser = AuthService.getCurrentUser();
+        //     $scope.currentPage = 'dashboard';
+        //     $scope.pageTitle = 'Dashboard';
+        //     $scope.loginData = { username: '', password: '' };
+        //     $scope.loginError = null;
+        //     $scope.loading = false;
+        //     $scope.toasts = [];
+            
+        //     // Check if user is logged in on app start
+        //     if (!$scope.isLoggedIn) {
+        //         $location.path('/login');
+        //     }
+            
+        //     // Login function
+        //     $scope.login = function() {
+        //         $scope.loading = true;
+        //         $scope.loginError = null;
+                
+        //         AuthService.login($scope.loginData)
+        //             .then(user => {
+        //                 $scope.$apply(function() {
+        //                     $scope.loading = false;
+        //                     $scope.isLoggedIn = true;
+        //                     $scope.currentUser = user;
+        //                     $location.path('/dashboard');
+        //                     $scope.showToast('success', 'Login Successful', 'Welcome back, ' + user.fullName);
+        //                 });
+        //             })
+        //             .catch(error => {
+        //                 $scope.$apply(function() {
+        //                     $scope.loading = false;
+        //                     $scope.loginError = error.message;
+        //                 });
+        //             });
+        //     };
+            
+        //     // Logout function
+        //     $scope.logout = function() {
+        //         AuthService.logout();
+        //         $scope.isLoggedIn = false;
+        //         $scope.currentUser = null;
+        //         $location.path('/login');
+        //     };
+            
+        //     // Navigation functions
+        //     $scope.setPage = function(page) {
+        //         $scope.currentPage = page;
+                
+        //         switch(page) {
+        //             case 'dashboard':
+        //                 $scope.pageTitle = 'Dashboard';
+        //                 break;
+        //             case 'bookings':
+        //                 $scope.pageTitle = 'Manage Bookings';
+        //                 break;
+        //             case 'customers':
+        //                 $scope.pageTitle = 'Customer Management';
+        //                 break;
+        //             case 'payments':
+        //                 $scope.pageTitle = 'Payment History';
+        //                 break;
+        //             case 'staff':
+        //                 $scope.pageTitle = 'Staff Management';
+        //                 break;
+        //             case 'profile':
+        //                 $scope.pageTitle = 'My Profile';
+        //                 break;
+        //             default:
+        //                 $scope.pageTitle = 'Dashboard';
+        //         }
+        //     };
+            
+        //     // Toast notification system
+        //     $scope.showToast = function(type, title, message) {
+        //         const toast = {
+        //             id: Date.now(),
+        //             type: type,
+        //             title: title,
+        //             message: message
+        //         };
+                
+        //         $scope.toasts.push(toast);
+                
+        //         // Auto-remove toast after 5 seconds
+        //         setTimeout(() => {
+        //             $scope.$apply(function() {
+        //                 $scope.closeToast(toast);
+        //             });
+        //         }, 5000);
+        //     };
+            
+        //     $scope.closeToast = function(toast) {
+        //         const index = $scope.toasts.indexOf(toast);
+        //         if (index > -1) {
+        //             $scope.toasts.splice(index, 1);
+        //         }
+        //     };
+            
+        //     // Helper function for profile page
+        //     $scope.getInitials = function(name) {
+        //         if (!name) return '';
+        //         return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        //     };
+        // });
+        
+        // // Dashboard Controller
+        // app.controller('DashboardController', function($scope, $http) {
+        //     // Simulating API data for dashboard
+        //     $scope.dashboardStats = {
+        //         totalBookings: 248,
+        //         bookingChange: 12,
+        //         totalRevenue: 45890,
+        //         revenueChange: 8,
+        //         newCustomers: 32,
+        //         customerChange: -3,
+        //         conversionRate: 68,
+        //         conversionChange: 5
+        //     };
+            
+        //     $scope.recentBookings = [
+        //         {
+        //             bookingId: 'BK00123',
+        //             customerName: 'Rahul Sharma',
+        //             service: 'Hair Cut & Styling',
+        //             date: new Date(),
+        //             status: 'confirmed',
+        //             paymentStatus: 'paid',
+        //             createdBy: '2',
+        //             createdByName: 'Staff User'
+        //         },
+        //         {
+        //             bookingId: 'BK00122',
+        //             customerName: 'Priya Patel',
+        //             service: 'Facial Treatment',
+        //             date: new Date(Date.now() - 3600000),
+        //             status: 'confirmed',
+        //             paymentStatus: 'pending',
+        //             createdBy: '1',
+        //             createdByName: 'You'
+        //         },
+        //         {
+        //             bookingId: 'BK00121',
+        //             customerName: 'Amit Kumar',
+        //             service: 'Full Body Massage',
+        //             date: new Date(Date.now() - 7200000),
+        //             status: 'pending',
+        //             paymentStatus: 'pending',
+        //             createdBy: '2',
+        //             createdByName: 'Staff User'
+        //         },
+        //         {
+        //             bookingId: 'BK00120',
+        //             customerName: 'Kavita Singh',
+        //             service: 'Manicure & Pedicure',
+        //             date: new Date(Date.now() - 86400000),
+        //             status: 'cancelled',
+        //             paymentStatus: 'refunded',
+        //             createdBy: '1',
+        //             createdByName: 'You'
+        //         }
+        //     ];
+            
+        //     // Initialize charts
+        //     setTimeout(() => {
+        //         // Booking Trends Chart
+        //         var ctxBooking = document.getElementById('bookingChart').getContext('2d');
+        //         var bookingChart = new Chart(ctxBooking, {
+        //             type: 'line',
+        //             data: {
+        //                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        //                 datasets: [{
+        //                     label: 'Bookings',
+        //                     data: [12, 19, 15, 17, 22, 25, 32, 38, 25, 30, 28, 36],
+        //                     borderColor: '#3498db',
+        //                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
+        //                     tension: 0.4,
+        //                     borderWidth: 2,
+        //                     fill: true
+        //                 }]
+        //             },
+        //             options: {
+        //                 responsive: true,
+        //                 maintainAspectRatio: false,
+        //                 scales: {
+        //                     y: {
+        //                         beginAtZero: true
+        //                     }
+        //                 }
+        //             }
+        //         });

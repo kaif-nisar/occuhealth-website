@@ -1,0 +1,648 @@
+<html>
+
+<head>
+
+    <title>Form Page</title>
+    <style>
+        .conta {
+            padding: 50px 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label,
+        .form-group span {
+            /* display: block; */
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .form-row .form-group:last-child {
+            margin-right: 0;
+        }
+
+        .parameters-section {
+            margin: 30px 0px;
+        }
+
+        .parameters-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+        }
+
+        .parameters-table2 {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+
+        .parameters-table2 th,
+        .parameters-table2 td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .parameters-table2 td {
+            margin-top: 20px;
+        }
+
+        .parameters-table2 th {
+            background-color: #f1f3f5;
+        }
+
+        .parameters-table2 input,
+        .parameters-table2 select {
+            width: 100%;
+            padding: 6px;
+            box-sizing: border-box;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .parameters-table2 .remove-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .add-parameter-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .containerg {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: #007bff;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #007bff;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .notification {
+            background-color: #f8f9fa;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            color: #d9534f;
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .notification i {
+            margin-right: 10px;
+        }
+
+        .editor {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .editor-toolbar select,
+        .editor-toolbar button {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        .editor-content {
+            min-height: 100px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .footer button {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .footer .view-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .footer .view-buttons button {
+            background-color: #f8f9fa;
+            color: #000;
+        }
+
+        .form-section {
+            max-width: 100%;
+            margin-bottom: 0rem;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 0px;
+        }
+
+        .row-container {
+            display: flex;
+            align-items: center;
+            /* margin-bottom: 15px; */
+            /* border: 1px solid #e0e0e0; */
+            padding: 5px;
+            /* border-radius: 6px; */
+            /* background: #f9f9f9; */
+            gap: 5px;
+            text-align: left;
+        }
+
+        /* .row-item {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 80px;
+        } */
+
+        .row-item label {
+            font-size: 0.9rem;
+            /* font-weight: bold; */
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .row-item input,
+        .row-item select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .delete-btn {
+            color: #d9534f;
+            cursor: pointer;
+            font-size: 18px;
+            align-self: center;
+            margin-right: 5px;
+            /* Add space between delete button and fields */
+        }
+
+        .display-report {
+            font-weight: 500;
+            color: #555;
+            margin-left: 10px;
+            /* Add space on the left */
+            font-size: 14px;
+        }
+
+        .add-more-btn {
+            display: flex;
+            align-items: center;
+            color: #5bc0de;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .add-more-btn:hover {
+            color: #31b0d5;
+        }
+
+        .normal-value {
+            margin-top: 2rem;
+            padding: 0.4rem;
+            font-size: 1.25rem;
+        }
+
+        .text-area {
+            display: none;
+            height: 4rem;
+            width: 100%;
+            border-radius: 0.5rem;
+            /* Hide text area by default */
+            margin-top: 15px;
+            padding: 1rem;
+        }
+
+        .selectTypeDiv {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            /* justify-content: center; */
+        }
+
+        .selectTypeDiv select {
+            width: 25%;
+        }
+
+        .selectTypeDiv select {
+            padding: 4px 8px;
+            border-radius: 5px;
+            margin-left: 0.5rem;
+        }
+
+        /* Style the modal */
+        .mymodal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1;
+            /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: auto;
+            /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0);
+            /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Black w/ opacity */
+        }
+
+        .mymodal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            /* Could be more or less, depending on screen size */
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .add-unit-icon {
+            font-size: 20px;
+            cursor: pointer;
+            color: #007bff;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .add-unit-icon:hover {
+            color: #0056b3;
+        }
+
+        .normalValue {
+            width: 55%;
+            background-color: #f9f9f9;
+        }
+
+        .minAge,
+        .maxAge {
+            display: flex;
+        }
+
+        .unitHead {
+            width: 10%;
+        }
+
+        input.min-age,
+        input.max-age {
+            width: 3.5rem;
+            border-right: none;
+            border-top-right-radius: 0px;
+            border-bottom-right-radius: 0px;
+        }
+
+        select[name="min_age_unit"],
+        select[name="max_age_unit"] {
+            width: 5rem;
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
+        }
+
+        select.sex {
+            width: 4rem;
+        }
+
+        #paraName {
+            cursor: not-allowed;
+        }
+
+        #defaultresult {
+            display: none;
+            font-size: 1.5rem;
+        }
+
+        .errormessage {
+            display: none;
+            color: #B00020;
+            padding: 5px;
+        }
+
+        .sampletypebuttondiv {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sampletypebuttondiv button {
+            padding: 2px 5px;
+            font-size: 0.75rem;
+        }
+
+        .modal-content {
+            padding: 20px;
+        }
+
+        .alert {
+            position: fixed;
+            width: 75%;
+            top: 80px;
+            right: 2%;
+            z-index: 1050;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="conta" id="conta">
+        <div class="alert" role="alert"></div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name">
+            <span class="errormessage">!comma (,) not-allowed in this field</span>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="short-name">Short name</label>
+                <input type="text" id="short-name" name="short-name">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="price">Billing Price</label>
+            <input type="text" id="price" name="final-price">
+        </div>
+        <div class="form-group">
+            <label for="final-price">MRP Price</label>
+            <input type="text" id="final-price" name="final-price">
+        </div>
+        <div class="parameters-section">
+            <h3>Parameters</h3>
+            <table class="parameters-table2" id="parameters-table2">
+                <thead>
+                    <tr>
+                        <th>Del.</th>
+                        <th>* Order</th>
+                        <th>* Name</th>
+                        <th class="unitHead">Unit <span class="add-unit-icon" id="add-unit-icon">+</span>
+                            <!-- Add this line --></th>
+                        <th>Default</th>
+                        <th class="normalValue">Normal Value
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="all-parameters" id="all-parameters">
+                    <tr>
+                        <!-- <td><span class="remove-link" onclick="removeParameter(this)">Remove</span></td> -->
+                        <td><span class="remove-link2" id="remove-link">🗑️</span></td>
+                        <td><input type="text" value="1"></td>
+                        <td><input type="text" id="paraName"></td>
+                        <td>
+                            <select id="unit-select">
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td class="normalValue">
+                            <div class="selectTypeDiv">
+                                <label for="select-type">Select Type</label>
+                                <select id="select-type" onchange="toggleForm(this)">
+                                    <option value="numeric" selected>Numeric</option>
+                                    <option value="text">Text</option>
+                                </select>
+                            </div>
+                            <div id="form-container">
+                                <div class="row-container">
+                                    <span class="delete-btn" onclick="deleteRow(this)"><i
+                                            class="fa-solid fa-eraser"></i></span>
+                                    <div class="row-item">
+                                        <label for="sex">Sex</label>
+                                        <select name="sex" class="sex">
+                                            <option value="Any">Any</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                    <div class="row-item">
+                                        <label for="min_age">Min. Age</label>
+                                        <div class="minAge">
+                                            <input type="number" name="min_age" placeholder="Min. age" class="min-age"
+                                                value="0">
+                                            <select name="min_age_unit">
+                                                <option value="Years">Years</option>
+                                                <option value="Months">Months</option>
+                                                <option value="Days">Days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row-item">
+                                        <label for="max_age">Max. Age</label>
+                                        <div class="maxAge">
+                                            <input type="number" name="max_age" placeholder="Max. age" class="max-age"
+                                                value="100">
+                                            <select name="max_age_unit">
+                                                <option value="Years">Years</option>
+                                                <option value="Months">Months</option>
+                                                <option value="Days">Days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row-item">
+                                        <label for="lower_value">Lower</label>
+                                        <input type="number" name="lower_value" placeholder="Lower value"
+                                            class="lower-value" value="2.1">
+                                    </div>
+                                    <div class="row-item">
+                                        <label for="upper_value">Upper</label>
+                                        <input type="number" name="upper_value" placeholder="Upper value"
+                                            class="upper-value" value="17.7">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
+
+                            <!-- <div class="add-more-btn" id="add-more-btn" onclick="addRow()">+ Add more</div> -->
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- <span class="add-parameter-link" id="add-parameter-link" onclick="addParameter()">+ Add more parameters</span> -->
+            <span class="add-parameter-link" id="add-parameter-link">+ Add more parameters</span>
+
+        </div>
+
+        <!-- Modal for Adding Unit -->
+        <!-- Modal for Adding Unit -->
+        <div id="unit-modal" class="mymodal">
+            <div class="mymodal-content">
+                <span class="close-modal" id="close-modal">&times;</span>
+                <h2>Add New Unit</h2>
+                <input type="text" id="new-unit-name" placeholder="Enter unit name">
+                <button id="save-unit">Save Unit</button>
+            </div>
+        </div>
+        <div class="containerg">
+            <div class="tabs">
+                <div class="tab active">More details</div>
+            </div>
+            <div class="form-group">
+                <div class="sampletypebuttondiv">
+                    <label for="method">Sample Type</label>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
+                        data-whatever="@mdo">+ Add</button>
+                </div>
+                <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
+                    aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">Add Sample Type</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="alert" id="alert" role="alert"></div>
+                            <div class="modal-body">
+                                <form>
+                                    <div class="form-group">
+                                        <label for="recipient-name" class="col-form-label">Name:</label>
+                                        <input type="text" class="form-control" id="sample-name">
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" id="sampleaddbtn" class="btn btn-primary">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <select id="sampleType">
+                    <option>SERUM</option>
+                    <option>EDTA</option>
+                    <option>URINE</option>
+                    <option>FLOURISHED</option>
+                    <option>Sodium Citrate</option>
+                    <option>Sodium Heparin</option>
+                    <option>Lithium Heparin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="method">Method</label>
+                <input type="text" id="method" name="method">
+            </div>
+            <div class="form-group">
+                <label for="instrument">Instrument</label>
+                <input type="text" id="instrument" name="instrument">
+            </div>
+            <!-- <div class="notification">
+                <i class="fas fa-info-circle"></i>
+                <span>You can now copy interpretations from <a href="#" onclick="copyFromLibrary()">Library</a> to
+                    update. <span style="color: #d9534f; font-weight: bold;">NEW</span></span>
+            </div> -->
+            <div class="form-group">
+                <span for="interpretation" id="interpretation">Interpretation</span>
+                <span for="interpretation" id="defaultresult">Default result</span>
+                <textarea id="editorContent">
+                </textarea>
+            </div>
+            <div class="footer">
+                <button class="submitbBtn" id="submitbBtn" data-alternate-id="another-identifier">Save</button>
+            </div>
+        </div>
+    </div>
+    <script src="aditTest.js"></script>
+</body>
+
+</html>

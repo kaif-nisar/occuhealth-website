@@ -1,0 +1,192 @@
+<html>
+
+<head>
+    <title>Test Panels</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            width: 95%;
+            margin: 33px auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #333;
+        }
+
+        .info-box {
+            background-color: #e9f0f7;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            justify-content: space-between;
+            letter-spacing: 1px;
+        }
+
+        .info-box i {
+            margin-right: 10px;
+            color: #5a9bd5;
+        }
+
+        .add-new {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f5f6fa;
+            color: #333;
+        }
+
+        td {
+            color: #333;
+        }
+
+        .edit-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .edit-link i {
+            margin-right: 5px;
+        }
+
+        .order-icon {
+            cursor: pointer;
+            color: #333;
+        }
+
+        .actions a {
+            color: #007bff;
+            cursor: pointer;
+        }
+
+        .pannelTests {
+            width: 30%;
+        }
+
+        /* Add smooth transition for all rows */
+        tbody tr {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        /* Highlight the row being dragged */
+        tbody tr.dragging {
+            background-color: #bde0ff;
+            /* Light blue background for dragging row */
+            opacity: 0.8;
+            cursor: grab;
+            /* Slightly transparent */
+            transform: scale(1.02);
+            /* Slightly enlarge the row */
+        }
+
+        /* Indicate the drop target */
+        tbody tr.drop-target {
+            border: 2px dashed #007bff;
+            /* Dashed border for drop target */
+        }
+
+        .order i {
+            padding-right: 20px;
+        }
+
+        .contar1 {
+            margin: 35px;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        /* Keyframes for spinning animation */
+        @keyframes spin2 {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .search-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .search-container i {
+            margin-left: 10px;
+            color: #888;
+        }
+
+        .protip i {
+            color: rgb(185, 185, 0);
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Test panels</h1>
+        <div class="info-box">
+            <span>Home>panel</span>
+            <a><button onclick="loadPage('addPanels')" class="add-new">+ Add new</button></a>
+        </div>
+
+        <div class="search-container">
+            <input type="text" placeholder="Search in page" id="searchInput" oninput="filterTable()">
+            <i class="fas fa-search"></i>
+            <span class="protip"><i class="fas fa-lightbulb"></i> ProTip! Drag and Drop row to reorder panels.</span>
+        </div>
+        <table id="pannel-table">
+            <thead>
+                <tr>
+                    <th>ORDER</th>
+                    <th>NAME</th>
+                    <th>CATEGORY</th>
+                    <th>PRICE</th>
+                    <th class="pannelTests">TESTS</th>
+                    <th>SAMPLE TYPES</th>
+                    <th>ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="panel-tbody">
+            </tbody>
+        </table>
+    </div>
+    <script src="testPanel.js"></script>
+</body>
+
+</html>

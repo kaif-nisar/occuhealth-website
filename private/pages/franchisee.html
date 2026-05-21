@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModelStack Admin | Franchisee Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="content">
+        <h1 class="page-title">Franchisee Management</h1>
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon clients-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">24</div>
+                    <div class="stat-label">Total Franchisees</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bookings-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">$152,320</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon models-icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">$45,696</div>
+                    <div class="stat-label">Commission Amount</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon revenue-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Active Regions</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Revenue by Franchisee</div>
+                    <div class="chart-actions">
+                        <button class="chart-btn">Monthly</button>
+                        <button class="chart-btn">Quarterly</button>
+                        <button class="chart-btn">Yearly</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="franchiseeRevenueChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Commission Distribution</div>
+                    <div class="chart-actions">
+                        <button class="chart-btn">Export</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="commissionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="franchisee-section">
+            <div class="section-header">
+                <h2>Franchisee Performance</h2>
+                <button class="form-btn btn-save">
+                    <i class="fas fa-plus"></i> Add New Franchisee
+                </button>
+            </div>
+            
+            <div class="franchisee-stats">
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">NS</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">North Star Solutions</div>
+                            <div class="franchisee-location">Chicago, IL</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-progress">
+                        <div class="progress-label">
+                            <span>Performance</span>
+                            <span>85%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 85%;"></div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$42,580</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">186</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$12,774</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">ET</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">EastTech Partners</div>
+                            <div class="franchisee-location">Boston, MA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-progress">
+                        <div class="progress-label">
+                            <span>Performance</span>
+                            <span>92%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 92%;"></div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$38,450</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">142</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$11,535</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">WC</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">West Coast Tech</div>
+                            <div class="franchisee-location">San Francisco, CA</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-progress">
+                        <div class="progress-label">
+                            <span>Performance</span>
+                            <span>78%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 78%;"></div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$31,290</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">105</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$9,387</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="franchisee-card">
+                    <div class="franchisee-header">
+                        <div class="franchisee-avatar">SS</div>
+                        <div class="franchisee-info">
+                            <div class="franchisee-name">South Solutions Inc</div>
+                            <div class="franchisee-location">Austin, TX</div>
+                        </div>
+                    </div>
+                    <div class="franchisee-progress">
+                        <div class="progress-label">
+                            <span>Performance</span>
+                            <span>81%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: 81%;"></div>
+                        </div>
+                    </div>
+                    <div class="franchisee-stats-row">
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$40,000</div>
+                            <div class="stat-name">Revenue</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">165</div>
+                            <div class="stat-name">Clients</div>
+                        </div>
+                        <div class="franchisee-stat">
+                            <div class="stat-number">$12,000</div>
+                            <div class="stat-name">Commission</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add New Franchisee Modal -->
+        <div class="modal-overlay" id="addFranchiseeModal">
+            <div class="modal" style="width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add New Franchisee</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <label class="form-label">Franchisee Name</label>
+                        <input type="text" class="form-input" placeholder="Enter franchisee name">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-input" placeholder="Enter city, state">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Contact Person</label>
+                        <input type="text" class="form-input" placeholder="Enter contact person name">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" placeholder="Enter email address">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-input" placeholder="Enter phone number">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Commission Rate (%)</label>
+                        <input type="number" class="form-input" placeholder="Enter commission percentage">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Service Area (Miles)</label>
+                        <input type="number" class="form-input" placeholder="Enter service area radius">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="form-btn btn-cancel">Cancel</button>
+                    <button class="form-btn btn-save">Save Franchisee</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="franchisee-management.js"></script>
+</body>
+</html>

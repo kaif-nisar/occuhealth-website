@@ -1,0 +1,193 @@
+<html>
+
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* contain */
+        .main-content {
+            padding: 30px;
+            background-color: #f4f4f9;
+        }
+
+        .main-content h1 {
+            font-size: 24px;
+            color: #343a40;
+        }
+
+        .main-content .cards {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .main-content .card {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 23%;
+            text-align: center;
+        }
+
+        .main-content .card h3 {
+            font-size: 16px;
+            color: #343a40;
+        }
+
+        .main-content .card p {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .main-content .chart-container {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content .chart-container h3 {
+            font-size: 16px;
+            color: #343a40;
+        }
+
+        .main-content .table-container {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content .table-container h3 {
+            font-size: 16px;
+            color: #343a40;
+        }
+
+        .main-content .table-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .main-content .table-container table th,
+        .main-content .table-container table td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        .main-content .table-container table th {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .main-content .table-container table td {
+            background-color: #f4f4f9;
+            color: #343a40;
+        }
+
+        .main-content .table-container table .actions a {
+            margin-right: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .main-content .table-container table .actions a:hover {
+            text-decoration: underline;
+        }
+
+        #notificationContainer.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-content">
+        <div class="conta" id="conta">
+            <h1>Welcome, Admin</h1>
+            <div class="cards">
+                <div class="card">
+                    <h3>Total Samples Received</h3>
+                    <p id="totalBookings">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total Revenue</h3>
+                    <p id="totalRevenue">$50,000</p>
+                </div>
+                <div class="card">
+                    <h3>Active Franchises</h3>
+                    <p id="activeFranchises">0</p>
+                </div>
+                <div class="card">
+                    <h3>Pending Tests</h3>
+                    <p id="pendingTests">0</p>
+                </div>
+                <div class="card">
+                    <h3>My Balance</h3>
+                    <p id="myBalance">0</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Revenue Over Time</h3>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Samples Received Over Time</h3>
+                <canvas id="samplesChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Test Categories Distribution</h3>
+                <canvas id="testCategoriesChart"></canvas>
+            </div>
+            <div class="table-container">
+                <h3>Franchise Details</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>FRANCHISE NAME</th>
+                            <th>LOCATION</th>
+                            <th>CONTACT</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr>
+                            <td>Franchise 1</td>
+                            <td>Location 1</td>
+                            <td>Contact 1</td>
+                            <td class="actions"><a href="#">Edit</a> <a href="#">View</a></td>
+                        </tr>
+                        <tr>
+                            <td>Franchise 2</td>
+                            <td>Location 2</td>
+                            <td>Contact 2</td>
+                            <td class="actions"><a href="#">Edit</a> <a href="#">View</a></td>
+                        </tr>
+                        <tr>
+                            <td>Franchise 3</td>
+                            <td>Location 3</td>
+                            <td>Contact 3</td>
+                            <td class="actions"><a href="#">Edit</a> <a href="#">View</a></td>
+                        </tr>
+                        <tr>
+                            <td>Franchise 4</td>
+                            <td>Location 4</td>
+                            <td>Contact 4</td>
+                            <td class="actions"><a href="#">Edit</a> <a href="#">View</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

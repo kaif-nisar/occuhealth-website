@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .tk{
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .dashboard-container {
+            max-width: 975px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            color: #2d3748;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card:hover::before {
+            left: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-right: 20px;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            color: white;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .chart-actions button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin-left: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-actions button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .tables-container {
+            /* display: grid; */
+            /* grid-template-columns: 1fr 1fr;
+            gap: 25px; */
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 40px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .table-actions a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .table-actions a:hover {
+            color: #764ba2;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 15px 10px;
+            color: #4a5568;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 15px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table tr:hover {
+            background-color: #f7fafc;
+        }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+        }
+
+        .table-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-pending {
+            background: #fef5e7;
+            color: #c05621;
+        }
+
+        .status-inactive {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            margin: 0 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #718096;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .notifications-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .notification-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .notification-actions a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .icon-info {
+            background: #bee3f8;
+            color: #2b6cb7;
+        }
+
+        .icon-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .icon-warning {
+            background: #fef5e7;
+            color: #c05621;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-message {
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .notification-time {
+            color: #718096;
+            font-size: 0.85rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #e53e3e;
+            text-align: center;
+            padding: 20px;
+            background: #fed7d7;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .charts-container,
+            .tables-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1 class="page-title">Dashboard</h1>
+        
+        <!-- Stats Overview -->
+        <div class="stats-container" id="statsContainer">
+            <div class="loading" style="grid-column: 1/-1; justify-self: center;"></div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Revenue Overview</div>
+                    <div class="chart-actions">
+                        <button onclick="updateRevenueChart('weekly')">Weekly</button>
+                        <button onclick="updateRevenueChart('monthly')">Monthly</button>
+                        <button onclick="updateRevenueChart('yearly')">Yearly</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Model Usage</div>
+                    <div class="chart-actions">
+                        <button onclick="exportModelData()">Export</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="modelUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Tables -->
+        <div class="tables-container">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Recent Clients</div>
+                    <div class="table-actions">
+                        <a href="#" onclick="viewAllClients()">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                <div id="clientsTableContainer">
+                    <div class="loading"></div>
+                </div>
+            </div>
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Top Franchisees</div>
+                    <div class="table-actions">
+                        <a href="#" onclick="viewAllFranchisees()">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                <div id="franchiseesTableContainer">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div class="notifications-section">
+            <div class="notification-header">
+                <div class="notification-title">Recent Notifications</div>
+                <div class="notification-actions">
+                    <a href="#" onclick="markAllAsRead()">Mark All as Read</a>
+                </div>
+            </div>
+            <div id="notificationsContainer">
+                <div class="loading"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

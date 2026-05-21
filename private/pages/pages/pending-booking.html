@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pending Booking</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loader-spin {
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+<body class="font-sans bg-blue-50 m-0 p-0">
+  <div class="container-test-booking w-[90%] mx-auto my-5">
+    <!-- Header -->
+    <div class="header text-2xl font-bold mb-5">
+      Pending Booking
+    </div>
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb text-sm text-gray-600 mb-5 flex flex-wrap items-center gap-1 mx-2">
+      <a href="#" class="text-gray-500 text-base no-underline hover:underline">
+        <i class="fa-solid fa-house"></i>
+      </a>
+      <span>&gt;</span>
+      <a href="#" class="text-gray-500 text-base no-underline hover:underline">Dashboard</a>
+      <span>&gt;</span>
+      <a href="#" class="text-gray-500 text-base no-underline hover:underline">Pending Booking</a>
+    </div>
+    
+    <!-- Search bar -->
+    <div class="search-bar flex flex-col md:flex-row md:items-center md:justify-between w-full mb-5 mt-8 gap-3">
+      
+      <!-- Start Date -->
+      <div class="start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-10 overflow-hidden">
+        <p class="sd-text font-semibold text-base px-2">Start</p>
+        <input id="start-date" type="date" class="text-sm text-gray-700 border-0 w-full focus:outline-none pl-2" value="">
+      </div>
+      
+      <!-- End Date -->
+      <div class="start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-10 overflow-hidden">
+        <p class="sd-text font-semibold text-base px-2">End</p>
+        <input id="end-date" type="date" class="sd-input text-sm text-gray-700 border-0 w-full focus:outline-none pl-2" value="">
+      </div>
+      
+      <!-- Franchisee Select -->
+      <div class="start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-10">
+        <select id="franchisee-select" class="franchisee-select border-0 w-full h-full text-sm text-gray-700 focus:outline-none px-2">
+          <option>-- Self --</option>
+        </select>
+      </div>
+      
+      <!-- Search Button -->
+      <button id="search-button" class="h-10 bg-pink-500 text-white w-full md:w-auto px-4 rounded hover:bg-pink-600 flex items-center justify-center gap-2 transition-colors">
+        <i class="fas fa-search"></i> Search
+      </button>
+    </div>
+    
+    <!-- Table -->
+    <div class="table-container overflow-x-auto mt-5">
+      <table class="min-w-full border-collapse mb-5 bg-white shadow-sm rounded">
+        <thead>
+          <tr>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">#</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Booking ID</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Name</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Gender</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Test</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Sample ID</th>
+            <th class="bg-blue-100 p-3 border text-left whitespace-nowrap font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p-4 border text-center" colspan="7">
+              <div class="flex items-center justify-center gap-3 py-4">
+                <div class="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full loader-spin"></div>
+                <span class="text-gray-600 font-medium">Loading pending bookings...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

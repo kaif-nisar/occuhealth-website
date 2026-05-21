@@ -1,0 +1,143 @@
+<html></html>
+<head>
+    <title>Request Stock</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #e9f7fe;
+            padding: 20px 10px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            width: 48%;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .form-group.full-width {
+            width: 100%;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .form-group .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .form-group .input-group i {
+            padding: 10px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+        }
+        .form-group .input-group input {
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+        }
+        .form-group textarea {
+            height: 100px;
+        }
+        .submit-btn {
+            background-color: #28a745;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-btn i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>Request Stock</h1>
+            <div class="breadcrumb">
+                <a href="#"><i class="fas fa-home"></i> Dashboard</a> &gt; <a href="#">Request Stock</a>
+            </div>
+        </div>
+        <br><br>
+        <h2>Request Material</h2>
+        <form>
+            <div class="form-group full-width">
+                <label for="materials">Materials</label>
+                <select id="materials">
+                    <option>--- SELECT MATERIAL ---</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="price">Price</label>
+                <div class="input-group">
+                    <i class="fas fa-tag"></i>
+                    <input type="text" id="price" disabled>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="available">Available (in Stock)</label>
+                <div class="input-group">
+                    <i class="fas fa-tag"></i>
+                    <input type="text" id="available" disabled>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Enter Quantity</label>
+                <input type="text" id="quantity">
+            </div>
+            <div class="form-group">
+                <label for="total">Total Amount</label>
+                <div class="input-group">
+                    <i class="fas fa-tag"></i>
+                    <input type="text" id="total" disabled>
+                </div>
+            </div>
+            <div class="form-group full-width">
+                <label for="remarks">Enter Remarks **</label>
+                <textarea id="remarks"></textarea>
+            </div>
+            <button type="submit" class="submit-btn"><i class="fas fa-sign-in-alt"></i> Submit</button>
+        </form>
+    </div>
+</body>
+</html>

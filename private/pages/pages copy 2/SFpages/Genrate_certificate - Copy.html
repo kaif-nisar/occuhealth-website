@@ -1,0 +1,284 @@
+<html></html>
+<head>
+    <title>Generate Certificate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 95%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 10px 0;
+        }
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+        .form-group .note {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .form-group .note a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .form-group .note a:hover {
+            text-decoration: underline;
+        }
+        .form-group .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .form-group .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+        .form-group .input-group .icon {
+            padding: 10px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px 0 0 4px;
+            border-right: none;
+        }
+        .form-group .input-group .icon i {
+            color: #6c757d;
+        }
+        .form-group .input-group.short-input {
+            width: 48%;
+        }
+        .form-group .input-group.short-input + .input-group.short-input {
+            margin-left: 4%;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #dc3545;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn i {
+            margin-right: 5px;
+        }
+        .footer {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+
+        /* new Seciton after the section */
+
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .card button {
+            background-color: #00aaff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .card button i {
+            margin-right: 5px;
+        }
+        .card button:hover {
+            background-color: #0088cc;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .show-entries {
+            margin-top: 20px;
+        }
+        .show-entries select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #000;
+            color: white;
+        }
+        table td button {
+            background-color: #ff4d4d;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        table td button i {
+            margin-right: 5px;
+        }
+        table td button:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <div class="header">
+            <h1>Generate Certificate</h1>
+        </div>
+        <div class="breadcrumb">
+            <a href="#">Dashboard</a> &gt; <a href="#">Generate Certificate</a>
+        </div>
+        <br><br>
+        <div class="form-group">
+            <label for="currentUser">Current User</label>
+            <input type="text" id="currentUser" value="DEVBHOOMI PATH LAB Mr. RAJEEV GOYAL (FR000045)" readonly>
+        </div>
+        <div class="form-group">
+            <p class="note">Note: You can update your lab name & lab address from <a href="#">update profile</a> option, if required.</p>
+        </div>
+        <div class="form-group">
+            <label for="labName">Lab/Clinic Name</label>
+            <div class="input-group short-input">
+                <div class="icon">
+                    <i class="fas fa-clinic-medical"></i>
+                </div>
+                <input type="text" id="labName" value="DEVBHOOMI PATH LAB" readonly>
+            </div>
+            <label for="certificateDate">Certificate Date</label>
+            <div class="input-group short-input">
+                <div class="icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <input type="text" id="certificateDate" value="2024-09-08" readonly>
+            </div>
+        </div>
+        <button class="btn"><i class="fas fa-file-alt"></i> Generate</button>
+        <div class="footer">
+            You have already generated the certificate today!
+        </div>
+
+
+        <!-- new section for new content -->
+        <div class="card">
+            <h2>Agreement List - Verified (n/a)</h2>
+            <button><i class="fas fa-download"></i> Download Agreement</button>
+        </div>
+        <div class="card">
+            <h2>Certificate List</h2>
+            <div class="search-container">
+                <input type="text" placeholder="Search...">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Lab Name</th>
+                        <th>Lab Address</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2023-06-19 11:15:50</td>
+                        <td>DEVBHOOMI PATH LAB</td>
+                        <td>Vikasnagar Road, Herbertpur, distt. DEHRADUN-248142(U.K)</td>
+                        <td><button><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>2023-06-19 11:15:55</td>
+                        <td>DEVBHOOMI PATH LAB</td>
+                        <td>Vikasnagar Road, Herbertpur, distt. DEHRADUN-248142(U.K)</td>
+                        <td><button><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>2024-07-19 15:22:15</td>
+                        <td>DEVBHOOMI PATH LAB</td>
+                        <td>Vikasnagar Road, Herbertpur, distt. DEHRADUN-248142(U.K)</td>
+                        <td><button><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="show-entries">
+                Show 
+                <select>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                entries
+            </div>
+        </div>
+    </div>
+</body>
+</html>

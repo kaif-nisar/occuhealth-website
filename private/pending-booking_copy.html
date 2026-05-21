@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Booking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f2f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container-test-booking {
+            width: 90%;
+            margin: 20px auto;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #888;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+
+        .breadcrumb i {
+            margin: 0px 5px;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 2.5rem 0px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-bar button {
+            height: 2.5rem;
+            background-color: #ff5e6c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 0px 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar button:hover {
+            background-color: #ff3b4f;
+        }
+
+        .start2 {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .start2 label {
+            font-weight: 600;
+        }
+
+        .start2 input {
+            height: 2rem;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            padding: 0 10px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #baf5ff;
+        }
+
+        table a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        table a:hover {
+            text-decoration: underline;
+        }
+
+        .start1 {
+            height: 2.5rem;
+            min-width: 200px;
+            border: 1px solid rgb(155, 155, 155);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            background: #fff;
+        }
+
+        .sd-text {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #6c757d;
+            color: #fff;
+            padding: 0.7rem 0.8rem;
+            white-space: nowrap;
+        }
+
+        input[type="date"] {
+            font-size: 0.875rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #3a3f44;
+            border: none;
+            padding: 0 10px;
+            flex: 1;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+        }
+
+        .start1 select {
+            border: none;
+            padding: 0 10px;
+            flex: 1;
+            font-size: 0.875rem;
+        }
+
+        /* ✅ LOADER STYLES */
+        .loaderDiv1 {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner1 {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        .loader-text {
+            color: white;
+            margin-left: 15px;
+            font-size: 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ✅ RESPONSIVE DESIGN */
+        @media(max-width: 768px) {
+            .container-test-booking {
+                width: 95%;
+                margin: 10px auto;
+            }
+
+            .search-bar {
+                flex-direction: column;
+                align-items: stretch;
+                margin: 1.5rem 0px;
+            }
+
+            .start1 {
+                width: 100%;
+                min-width: unset;
+            }
+
+            .start2 input {
+                width: 100%;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            table th,
+            table td {
+                padding: 8px 5px;
+            }
+
+            .header {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-test-booking">
+        <br><br>
+        <div class="header">Pending Booking</div>
+        <div class="breadcrumb">
+            <a href="#"><i class="fa-solid fa-house"></i></a> > <a href="#">Dashboard</a> > <a href="#">Pending Booking</a>
+        </div>
+        <div class="search-bar">
+            <div class="start1">
+                <p class="sd-text">Start Date</p>
+                <input id="start-date" type="date" value="">
+            </div>
+            <div class="start1">
+                <p class="sd-text">End Date</p>
+                <input id="end-date" type="date" value="">
+            </div>
+            <div class="start1">
+                <select id="franchisee-select">
+                    <option value="">-- Self --</option>
+                </select>
+            </div>
+            <button id="search-button"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="start2">
+            <label for="search">Search : </label>
+            <input type="text" id="search" placeholder="Search by Booking ID, Patient Name, etc.">
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Booking ID</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Test</th>
+                        <th>Sample ID</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ✅ LOADER -->
+    <div id="loader1" class="loaderDiv1">
+        <div class="spinner1"></div>
+        <p class="loader-text">Loading pending bookings...</p>
+    </div>
+</body>
+
+</html>

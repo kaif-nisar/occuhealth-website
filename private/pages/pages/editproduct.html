@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Product</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50">
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-4">Edit Product</h1>
+
+        <form id="editProductForm" class="bg-white p-6 rounded shadow-md max-w-2xl mx-auto">
+            <input type="hidden" id="productId" value="12345" /> <!-- Assume product ID comes here -->
+
+            <div class="mb-4">
+                <label for="name" class="block font-medium">Product Name</label>
+                <input id="name" type="text" class="w-full border px-3 py-2 rounded" required />
+            </div>
+
+            <div class="mb-4">
+                <label for="sku" class="block font-medium">SKU</label>
+                <input id="sku" type="text" class="w-full border px-3 py-2 rounded" required />
+            </div>
+
+            <div class="mb-4">
+                <label for="category" class="block font-medium">Category</label>
+                <select id="category" class="w-full border px-3 py-2 rounded" required>
+                    <option value="">Select category</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="clothing">Clothing</option>
+                    <option value="home">Home & Kitchen</option>
+                    <option value="beauty">Beauty & Personal Care</option>
+                    <option value="sports">Sports & Outdoors</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="price" class="block font-medium">Price (₹)</label>
+                <input id="price" type="number" class="w-full border px-3 py-2 rounded" required min="0" step="0.01" />
+            </div>
+
+            <div class="mb-4">
+                <label for="discountPrice" class="block font-medium">Discount Price (Optional)</label>
+                <input id="discountPrice" type="number" class="w-full border px-3 py-2 rounded" min="0" step="0.01" />
+            </div>
+
+            <div class="mb-4">
+                <label for="stock" class="block font-medium">Stock Quantity</label>
+                <input id="stock" type="number" class="w-full border px-3 py-2 rounded" required min="0" />
+            </div>
+
+            <div class="mb-4">
+                <label for="description" class="block font-medium">Description</label>
+                <textarea id="description" class="w-full border px-3 py-2 rounded" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label for="status" class="block font-medium">Status</label>
+                <select id="status" class="w-full border px-3 py-2 rounded" required>
+                    <option value="">Select status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <div class="mb-6 grid grid-cols-3 gap-4">
+                <input type="number" id="length" placeholder="Length (cm)" class="border px-2 py-1 rounded"
+                    step="0.01" />
+                <input type="number" id="width" placeholder="Width (cm)" class="border px-2 py-1 rounded" step="0.01" />
+                <input type="number" id="height" placeholder="Height (cm)" class="border px-2 py-1 rounded"
+                    step="0.01" />
+            </div>
+
+            <div class="mb-6">
+                <label for="weight" class="block font-medium">Weight (kg)</label>
+                <input id="weight" type="number" class="w-full border px-3 py-2 rounded" step="0.01" />
+            </div>
+
+            <div class="flex justify-end gap-4">
+                <button type="button" onclick="window.history.back()" class="px-4 py-2 border rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+</body>
+
+</html>

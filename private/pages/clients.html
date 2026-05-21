@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
+            color: #333;
+        }
+
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .client-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .client-filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e8ed;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .form-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #219a52;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .client-list {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .client-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .client-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .client-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .client-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .table-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .integration-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-api {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-embedded {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-none {
+            background: #f5f5f5;
+            color: #616161;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+            margin: 0 2px;
+        }
+
+        .action-btn:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .action-btn.view-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 5px;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-row {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .client-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .client-detail-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #3498db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .client-detail-info {
+            flex: 1;
+        }
+
+        .client-detail-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .client-detail-contact {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f2f6;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #7f8c8d;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+        }
+
+        .detail-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+        }
+
+        .detail-stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .stat-name {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .client-table {
+                font-size: 0.9rem;
+            }
+            
+            .client-table th,
+            .client-table td {
+                padding: 10px;
+            }
+            
+            .modal {
+                width: 95%;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" style="display: none">
+  Loading...
+</div>
+
+    <div class="content">
+        <h1 class="page-title">Client Management</h1>
+        
+        <div class="client-list-header">
+            <div class="client-filters">
+                <button class="filter-btn active" data-filter="all">All Clients</button>
+                <button class="filter-btn" data-filter="active">Active</button>
+                <button class="filter-btn" data-filter="inactive">Inactive</button>
+            </div>
+            <!-- <button class="form-btn btn-save" onclick="openAddClientModal()">
+                <i class="fas fa-plus"></i> Add New Client
+            </button> -->
+        </div>
+        
+        <div class="client-list">
+            <div id="loading" class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading clients...
+            </div>
+            <div id="error" class="error" style="display: none;"></div>
+            <table class="client-table" id="clientTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Status</th>
+                        <th>Model Type</th>
+                        <th>Total Bookings</th>
+                        <th>Last Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="clientTableBody">
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Client Details Modal -->
+        <div class="modal-overlay" id="clientDetailsModal">
+            <div class="modal" style="width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Client Details</h3>
+                    <button class="modal-close" onclick="closeModal('clientDetailsModal')"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="clientDetailsBody">
+                    <!-- Client details will be populated here -->
+                </div>
+                <div class="modal-footer">
+                    <button class="form-btn btn-cancel" onclick="closeModal('clientDetailsModal')">Close</button>
+                    <button class="form-btn btn-save" onclick="editClient()">Edit Client</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add New Client Modal -->
+        <div class="modal-overlay" id="addClientModal">
+            <div class="modal" style="width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add New Client</h3>
+                    <button class="modal-close" onclick="closeModal('addClientModal')"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addClientForm">
+                        <div class="form-row">
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-input" name="name" placeholder="Enter company name" required>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" name="email" placeholder="Enter email address" required>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-input" name="username" placeholder="Enter username" required>
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label">Model Type</label>
+                            <select class="form-select" name="modelType" required>
+                                <option value="">Select model type</option>
+                                <option value="4layer">4 Layer</option>
+                                <option value="8layer">8 Layer</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="form-btn btn-cancel" onclick="closeModal('addClientModal')">Cancel</button>
+                    <button class="form-btn btn-save" onclick="saveClient()">Save Client</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

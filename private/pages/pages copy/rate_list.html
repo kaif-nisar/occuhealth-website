@@ -1,0 +1,298 @@
+<html>
+
+<head>
+    <title>Bulk Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container {
+            width: 100%;
+        }
+        #saveBtn{
+            background-color: #4CAF50;
+            border: 1px solid blue;
+            border-radius: 10px;
+            width: 8%;
+            height: 40px;
+            margin: 50px;
+        }
+        .header {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+
+        .search-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-section input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .search-section button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .current-franchisee {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .current-franchisee i {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .current-franchisee span {
+            font-size: 16px;
+        }
+
+        .current-franchisee1 {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .current-franchisee1 i {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .current-franchisee1 span {
+            font-size: 16px;
+        }
+
+        .trigger-price {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .trigger-price input[type="text"] {
+            width: 50px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .trigger-price button {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .rate-list {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .rate-list h2 {
+            margin: 0 0 20px 0;
+            font-size: 20px;
+        }
+
+        .rate-list input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+
+        table th {
+            background-color: #000;
+            color: white;
+        }
+
+        table td {
+            background-color: #f8d7da;
+        }
+
+        table td input[type="text"] {
+            width: 10%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #searchTest{
+            width: 25%;
+        }
+        /* Apply to the table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            /* To remove space between table borders */
+            table-layout: fixed;
+            /* Ensure equal width distribution */
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            /* Add border for visibility */
+            padding: 8px;
+            /* Add padding for spacing */
+            text-align: left;
+            word-wrap: break-word;
+            /* Ensure content doesn't overflow */
+        }
+
+        /* Optional: Set specific widths for each column */
+        th,
+        td {
+            width: 100%;
+            /* This will make each column 10% width (you can adjust this) */
+        }
+
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 5%;
+            /* Example: Make the first column smaller */
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 20%;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 13%;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 7%;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 8%;
+        }
+
+        th:nth-child(6),
+        td:nth-child(6) {
+            width: 8%;
+        }
+        /* Fix the width of the input fields inside the table cells */
+input[type="number"].commission-rate {
+    width: 100%; /* Make the input fill the entire cell width */
+    max-width: 100%; /* Prevent it from exceeding the cell width */
+    padding: 5px; /* Add padding for better appearance */
+    box-sizing: border-box; /* Ensure padding doesn't exceed cell size */
+}
+
+
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 8%;
+        }
+
+        th:nth-child(8),
+        td:nth-child(8) {
+            width: 20%;
+        }
+
+        th:nth-child(9),
+        td:nth-child(9) {
+            width: 10%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bulk Pricing</h1>
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i> Dashboard > Pricing List
+            </div>
+        </div>
+
+        <div class="search-section">
+            <input type="text" id="franchisee-name" value="UP009/UP12C - SARAL PATH LAB - (Uttar Pradesh)" readonly>
+            <button id="searchBtn">Search</button>
+        </div>
+        <div class="current-franchisee1">
+            <i class="fas fa-user"></i>
+            <span id="current-franchisee-name" aria-readonly="true"></span>
+        </div>
+
+        <div class="trigger-price">
+            <span>%</span>
+            <input type="text" id="trigger-price" value="0">
+            <button id="changePriceBtn">Change Price</button>
+        </div>
+
+        <div class="rate-list">
+            <h2><i class="fas fa-database"></i> Rate List</h2>
+            <input type="text" id="searchTest" placeholder="Search:">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Test ID</th>
+                        <th>Test Name</th>
+                        <th>Test MRP</th>
+                        <th>My Price</th>
+                        <th>Rate(%)</th>
+                        <th>Assigned Price</th>
+                        <th>Franchisee ID</th>
+                        <th>Final Price</th>
+                    </tr>
+                </thead>
+                <tbody id="test-list">
+                    <!-- Dynamically populated rows will appear here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <button id ="saveBtn">Save</button>
+</body>
+
+</html>

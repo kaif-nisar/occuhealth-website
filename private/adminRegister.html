@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Registration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            padding: 30px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            color: #3949ab;
+            font-size: 28px;
+        }
+        
+        .form-title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .form-title h2 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            border-color: #3949ab;
+            outline: none;
+        }
+        
+        .btn {
+            background-color: #3949ab;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 0;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #303f9f;
+        }
+        
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .login-link a {
+            color: #3949ab;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #388e3c;
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Admin Portal</h1>
+        </div>
+        
+        <div class="form-title">
+            <h2>Super Admin Registration</h2>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <form id="registrationForm">
+            <div class="input-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" name="fullName" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            
+            <button type="submit" class="btn">Register</button>
+        </form>
+        
+        <div class="login-link">
+            <p>Already have an account? <a href="login.html">Login</a></p>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        document.addEventListener('DOMContentLoaded', function() {
+            const registrationForm = document.getElementById('registrationForm');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            alert('Welcome to the Super Admin Registration Page!');
+            registrationForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                alert('Form submitted!');
+                // Hide previous messages
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                
+                // Get form values
+                const fullName = document.getElementById('fullName').value.trim();
+                const username = document.getElementById('username').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // Basic validation
+                if (!fullName || !username || !email || !phone || !password) {
+                    showError('All fields are required');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    showError('Passwords do not match');
+                    return;
+                }
+                
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showError('Please enter a valid email address');
+                    return;
+                }
+                
+                // Phone validation
+                const phoneRegex = /^\d{10}$/;
+                if (!phoneRegex.test(phone)) {
+                    showError('Please enter a valid 10-digit phone number');
+                    return;
+                }
+                
+                // Prepare data for API
+                const formData = {
+                    fullName,
+                    username,
+                    email,
+                    password,
+                    phone
+                };
+                console.log('Form Data:', formData);
+                try {
+                    // Send data to API
+                    const response = await fetch(`${BASE_URL}/api/v1/admin/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        showError(data.message || 'Registration failed');
+                        return;
+                    }
+                    
+                    // Show success message
+                    showSuccess('Super Admin registered successfully! Redirecting to login...');
+                    
+                    // Reset form
+                    registrationForm.reset();
+                    
+                    // Redirect to login page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    
+                } catch (error) {
+                    showError('An error occurred. Please try again later.');
+                    console.error('Registration error:', error);
+                }
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            function showSuccess(message) {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

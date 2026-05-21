@@ -1,0 +1,171 @@
+<html></html>
+<head>
+    <title>Test Pricing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .card {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        .form-group input[type="text"] {
+            display: flex;
+            align-items: center;
+        }
+        .form-group input[type="text"]::placeholder {
+            color: #6c757d;
+        }
+        .form-group .input-icon {
+            position: relative;
+        }
+        .form-group .input-icon i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        .form-group .input-icon input {
+            padding-left: 30px;
+        }
+        .form-group .input-icon input.error {
+            border-color: #dc3545;
+        }
+        .form-group .input-icon input.error::placeholder {
+            color: #dc3545;
+        }
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .form-row .form-group {
+            width: 48%;
+        }
+        .form-group button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br><br>
+        <h2>Test Details</h2>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i> <a href="#">Dashboard</a> > Test Pricing
+        </div>
+        <br><br>
+        <div class="card">
+            <p>No Details Found</p>
+        </div>
+        <div class="card">
+            <h2>Test Listing</h2>
+            <div class="form-group">
+                <label for="franchisee">Select My Franchisee *</label>
+                <select id="franchisee">
+                    <option>-- Select Franchisee --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="test">Select Test *</label>
+                <select id="test">
+                    <option>-- Select Test --</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="current-price">Current Price</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="current-price" placeholder="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="test-price">Test Price</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="test-price" placeholder="">
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="rate-percent" style="color: #dc3545;">Enter Rate Percent *</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="rate-percent" class="error" placeholder="">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="final-price">Final Price *</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="final-price" placeholder="">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="remarks">Remarks</label>
+                <textarea id="remarks" placeholder="Enter Payment Remarks"></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit">Submit</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<html>
+
+<head>
+    <title>Test Database</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        .container202 {
+            padding: 25px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin: 0px;
+        }
+
+        p {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .filter-container button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .filter-container button:hover {
+            background-color: #0056b3;
+        }
+
+        .categories {
+            margin: 10px 0;
+        }
+
+        .categories span {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .categories span:hover {
+            background-color: #f0f0f0;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .search-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .search-container i {
+            margin-left: 10px;
+            color: #888;
+        }
+
+        .protip {
+            font-size: 0.9em;
+            color: #888;
+            margin-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f9f9f9;
+        }
+
+        .actions a {
+            margin-right: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .actions a:hover {
+            text-decoration: underline;
+        }
+
+        /* Add smooth transition for all rows */
+        tbody tr {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        /* Highlight the row being dragged */
+        tbody tr.dragging {
+            background-color: #bde0ff;
+            /* Light blue background for dragging row */
+            opacity: 0.8;
+            /* Slightly transparent */
+            transform: scale(1.02);
+            /* Slightly enlarge the row */
+        }
+
+        /* Indicate the drop target */
+        tbody tr.drop-target {
+            border: 2px dashed #007bff;
+            /* Dashed border for drop target */
+        }
+
+        .order i {
+            padding-right: 20px;
+        }
+
+        #tableContainer {
+            max-height: 55vh;
+            overflow: auto;
+            border: 1px solid #c0c0c0;
+        }
+
+        #tableContainer::-webkit-scrollbar {
+            display: none;
+        }
+
+        .protip i {
+            color: rgb(185, 185, 0);
+        }
+
+        /* Keyframes for spinning animation */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .testheaderDiv {
+            padding: 12px;
+            border-radius: 5px;
+            margin: 2rem 0rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #e2e2e2;
+        }
+
+        .testheaderDiv div {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container202">
+        <div class="testheaderDiv">
+            <h1>Test database</h1>
+            <div>
+                <a onclick>
+                    <div class="filter-container">
+                        <button onclick="loadPage('addTest')" class="add-new">+ Add Test</button>
+                    </div>
+                </a>
+
+                <a onclick>
+                    <div class="filter-container">
+                        <button title="Add Test as Document" onclick="loadPage('addTestDocument')" class="add-new">+ Add
+                            Document</button>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="filter-container">
+        </div>
+
+        <div class="search-container">
+            <input type="text" placeholder="Search in page" id="searchInput" oninput="filterTable()">
+            <i class="fas fa-search"></i>
+            <span class="protip"><i class="fas fa-lightbulb"></i> ProTip! Drag and Drop row to reorder tests.</span>
+        </div>
+
+        <div id="tableContainer">
+            <table id="categoriesTable">
+                <thead>
+                    <tr>
+                        <th>ORDER</th>
+                        <th>Name</th>
+                        <th>PRICE</th>
+                        <th>SAMPLE TYPE</th>
+                        <th>SHORT NAME</th>
+                        <th>CATEGORY</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyid">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+    <script src="test.js"></script>
+</body>
+
+</html>

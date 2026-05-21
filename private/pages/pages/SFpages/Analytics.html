@@ -1,0 +1,269 @@
+<html></html>
+<head>
+    <title>Business Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e3f2fd;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px 0px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .breadcrumb i {
+            margin-right: 5px;
+        }
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb span {
+            margin: 0 5px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+       .business-analytics {
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .search-filter h2, .business-analytics h2 {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #00bcd4;
+            display: inline-block;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+        .search-filter select {
+            width: calc(50% - 10px);
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        .text-d{
+            display: flex;
+            width: 40rem;
+            height: 2.2rem;
+        }
+        .search-ic{
+            display: flex;
+        }
+        .search-filter input[type="text"] {
+            width: calc(50% - 10px);
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        .search-filter button {
+            background-color: #ff4081;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .search-filter button:hover {
+            background-color: #e91e63;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(to right, #00bcd4, #009688);
+            color: #fff;
+        }
+        .status-bar {
+            height: 10px;
+            border-radius: 5px;
+        }
+        .status-bar.green {
+            background-color: #4caf50;
+        }
+        .status-bar.red {
+            background-color: #f44336;
+        }
+
+        /* New Section New Table down Side */
+
+        .container1 {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #00bcd4;
+            color: #fff;
+        }
+        th:first-child {
+            display: flex;
+            align-items: center;
+        }
+        th:first-child i {
+            margin-right: 5px;
+        }
+        td {
+            border-bottom: 1px solid #ddd;
+        }
+        td a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        td a:hover {
+            text-decoration: underline;
+        }
+        .text-right {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <br>
+        <div class="header">Business Analytics</div>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <a href="#">Dashboard</a>
+            <span>&gt;</span>
+            <a href="#">Business Analytics</a>
+        </div>
+        <br>
+        <div class="search-filter">
+            <h2 class="fob">Search Filter</h2>
+            <div class="text-d">
+            <select>
+                <option>My Account</option>
+                <option>Account 1</option>
+                <option>Account 2</option>
+                <option>Account 3</option>
+            </select>
+            <select>
+                <option>2024</option>
+                <option>2023</option>
+                <option>2022</option>
+                <option>2021</option>
+            </select>
+            
+            <!-- <input type="text" placeholder="My Account">
+            <input type="text" placeholder="2024"> -->
+            <button class="search-ic"><i class="fas fa-search"></i> Search</button>
+        </div>
+        </div>
+        <div class="business-analytics">
+            <h2>Business Analytics - UP009 (DEVBHOOMI PATH LAB Mr. RAJEEV GOYAL)</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar-alt"></i> Month</th>
+                            <th>Business</th>
+                            <th>Target</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><a href="#">January 2024</a></td>
+                            <td>Rs. 110712</td>
+                            <td>Rs. 100000</td>
+                            <td>
+                                110712 / 100000
+                                <div class="status-bar green" style="width: 100%;"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><a href="#">February 2024</a></td>
+                            <td>Rs. 186128</td>
+                            <td>Rs. 200000</td>
+                            <td>
+                                186128 / 200000
+                                <div class="status-bar red" style="width: 93%;"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- New Seciton for new down table -->
+
+        <!-- <div class="container1"> -->
+            <div class="business-analytics">
+            <h1>My Franchisee Analytics</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-calendar-alt"></i> Month</th>
+                        <th>Franchisee</th>
+                        <th class="text-right">Business</th>
+                        <th class="text-right">Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="#">September 2024</a></td>
+                        <td>A.K DIAGNOSTIC (UP009/UK010/SUB/UK111)</td>
+                        <td class="text-right">Rs. 0</td>
+                        <td class="text-right">Rs. 100000</td>
+                    </tr>
+                    <tr>
+                        <td><a href="#">September 2024</a></td>
+                        <td>A.K DIAGNOSTIC (UP009/U5776/SUB/U1131)</td>
+                        <td class="text-right">Rs. 0</td>
+                        <td class="text-right">Rs. 100000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

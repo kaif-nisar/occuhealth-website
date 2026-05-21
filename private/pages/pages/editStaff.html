@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Staff</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .container221 {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb a {
+            color: #333333;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .breadcrumb a:hover {
+            color: #555555;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #333333;
+            font-weight: 700;
+            border-bottom: 3px solid #333333;
+            padding-bottom: 15px;
+        }
+
+        .form-container221 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 25px;
+            color: #333333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: #333333;
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: #fff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #333333;
+            box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
+        }
+
+        .input-icon {
+            position: relative;
+        }
+
+        .input-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .input-icon input {
+            padding-left: 45px;
+        }
+
+        h6.mt-4 {
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #333333;
+            font-weight: 600;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .col-md-6 {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            margin-right: 10px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #333333;
+        }
+
+        .form-group label.form-group-label {
+            display: inline;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 0;
+        }
+
+        .form-group.checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .form-group.checkbox-group:hover {
+            background-color: #f8f9fa;
+        }
+
+        .submit-btn {
+            background: #333333;
+            color: #ffffff;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(51, 51, 51, 0.3);
+        }
+
+        .submit-btn:hover {
+            background: #555555;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(51, 51, 51, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            margin-top: 15px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        /* Toggle Switch Styling */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+
+        .toggle-group>label:first-child {
+            margin-right: 15px;
+            font-weight: 600;
+            color: #333333;
+            margin-bottom: 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+            margin-bottom: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background-color: #28a745;
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        .toggle-status {
+            margin-left: 15px;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container221 {
+                padding: 30px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .form-container221 {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container221 {
+                padding: 20px;
+                border-radius: 12px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+
+            .form-container221 {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card h2 {
+                font-size: 18px;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container221 {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .form-group input,
+            .form-group select {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .submit-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .toggle-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container221">
+        <div class="breadcrumb">
+            <a href="#">Dashboard</a> &gt; <a href="#">Manage Staff</a> &gt; <a href="#">Edit Staff</a>
+        </div>
+        <h1>Edit Staff</h1>
+
+        <div class="form-container221">
+            <!-- Personal Details Card -->
+            <div class="card">
+                <h2>Personal Details</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="firstname">Firstname</label>
+                        <input type="text" id="firstname" name="firstname" placeholder="Enter Firstname">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastname">Lastname</label>
+                        <input type="text" id="lastname" name="lastname" placeholder="Enter Lastname">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email ID</label>
+                        <input type="email" id="email" name="email" placeholder="Enter Email ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone No</label>
+                        <input type="text" id="phone" name="phone" placeholder="Enter Phone No">
+                    </div>
+                </form>
+            </div>
+
+            <!-- Login Details Card -->
+            <div class="card">
+                <h2>Login Details</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="username">Enter Username *</label>
+                        <input type="text" id="username" name="username" placeholder="Enter Username">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Enter Password *</label>
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" name="password"
+                                placeholder="Enter Password (Leave blank to keep current)">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="stafftype">Staff Type</label>
+                        <select id="stafftype" name="stafftype">
+                            <option>Staff</option>
+                            <option>Admin</option>
+                        </select>
+                    </div>
+                    <h6 class="mt-4">Permissions</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="canManageBookings" class="form-group-input"
+                                    ng-model="newStaff.permissions.canManageBookings">
+                                <label for="canManageBookings" class="form-group-label">Manage Bookings</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="canManageCustomers" class="form-group-input"
+                                    ng-model="newStaff.permissions.canManageCustomers">
+                                <label for="canManageCustomers" class="form-group-label">Manage Users</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="canManageReports" class="form-group-input"
+                                    ng-model="newStaff.permissions.canManageReports">
+                                <label for="canManageReports" class="form-group-label">Manage Reports</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="canManagePayments" class="form-group-input"
+                                    ng-model="newStaff.permissions.canManagePayments">
+                                <label for="canManagePayments" class="form-group-label">Manage Payments</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="canManageTest" class="form-group-input"
+                                    ng-model="newStaff.permissions.canManageTest">
+                                <label for="canManageTest" class="form-group-label">Manage Test</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Submission Card -->
+            <div class="card">
+                <h2>Submission</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="submission-date">Date</label>
+                        <div class="input-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                            <input type="date" id="submission-date" name="submission-date" value="">
+                        </div>
+                    </div>
+
+                    <!-- Active/Inactive Toggle -->
+                    <div class="toggle-group">
+                        <label>Status:</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="isActive">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-status" id="statusText">Inactive</span>
+                    </div>
+
+                    <button type="submit" id="submit" class="submit-btn">Update Staff</button>
+                    <button type="button" id="deleteBtn" class="submit-btn delete-btn">Delete Staff</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

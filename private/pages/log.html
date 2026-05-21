@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Franchise Management Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --text-color: #2c3e50;
+            --background-color: #f4f6f7;
+            --card-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            opacity: 0.7;
+        }
+
+        .performance-chart {
+            height: 200px;
+            width: 100%;
+        }
+
+        .sidebar {
+            display: grid;
+            gap: 20px;
+        }
+
+        .notification-card {
+            background-color: #f9ecf1;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .stat-item {
+            background-color: #f0f4f8;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h1 id="franchiseName">Franchise Management Dashboard</h1>
+                <div class="status-indicator status-active">
+                    <i class="fas fa-circle"></i> Active Franchise
+                </div>
+            </div>
+            <div class="quick-actions">
+                <button class="btn btn-primary" id="editFranchise">
+                    <i class="fas fa-edit"></i> Edit Details
+                </button>
+                <button class="btn btn-danger" id="terminateFranchise">
+                    <i class="fas fa-times-circle"></i> Terminate
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="main-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Financial Overview</h3>
+                        <i class="fas fa-rupee-sign card-icon"></i>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <h4>Monthly Revenue</h4>
+                            <p id="monthlyRevenue">₹0</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4>Operational Cost</h4>
+                            <p id="operationalCost">₹0</p>
+                        </div>
+                    </div>
+                    <div id="revenueChart" class="performance-chart"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Franchise Details</h3>
+                        <i class="fas fa-layer-group card-icon"></i>
+                    </div>
+                    <p><strong>Model Type:</strong> <span id="modelType">N/A</span></p>
+                    <p><strong>Layer Count:</strong> <span id="layerCount">N/A</span></p>
+                    <p><strong>Start Date:</strong> <span id="startDate">N/A</span></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Operational Metrics</h3>
+                        <i class="fas fa-chart-line card-icon"></i>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <h4>Branches</h4>
+                            <p id="branchCount">0</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4>Employees</h4>
+                            <p id="employeeCount">0</p>
+                        </div>
+                    </div>
+                    <div id="growthChart" class="performance-chart"></div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card notification-card">
+                    <div class="card-header">
+                        <h3>Upcoming Actions</h3>
+                        <i class="fas fa-bell card-icon"></i>
+                    </div>
+                    <ul id="notificationList">
+                        <li>Rent Payment Due: 15 Days</li>
+                        <li>Performance Review: Next Month</li>
+                        <li>License Renewal: 45 Days</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Growth Potential</h3>
+                        <i class="fas fa-rocket card-icon"></i>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <h4>Expansion Score</h4>
+                            <p id="expansionScore">Medium</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4>Market Potential</h4>
+                            <p id="marketPotential">Good</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/echarts.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Retrieve franchise data
+            const franchiseData = JSON.parse(localStorage.getItem('franchiseData') || '{}');
+
+            // Update page elements
+            document.getElementById('franchiseName').textContent = `${franchiseData.franchiseName || 'Franchise'} Management`;
+            document.getElementById('modelType').textContent = `${franchiseData.layerCount || 'N/A'} Layer Franchise`;
+            document.getElementById('layerCount').textContent = franchiseData.layerCount || 'N/A';
+            document.getElementById('startDate').textContent = new Date().toLocaleDateString();
+
+            // Simulated financial and operational data
+            const monthlyRevenue = Math.floor(Math.random() * 100000) + 50000;
+            const operationalCost = Math.floor(monthlyRevenue * 0.6);
+            const branchCount = Math.floor(Math.random() * 5) + 1;
+            const employeeCount = branchCount * 10;
+
+            document.getElementById('monthlyRevenue').textContent = `₹${monthlyRevenue.toLocaleString()}`;
+            document.getElementById('operationalCost').textContent = `₹${operationalCost.toLocaleString()}`;
+            document.getElementById('branchCount').textContent = branchCount;
+            document.getElementById('employeeCount').textContent = employeeCount;
+
+            // Button event listeners
+            document.getElementById('editFranchise').addEventListener('click', () => {
+                alert('Edit Franchise Functionality');
+                // Implement edit modal or navigation
+            });
+
+            document.getElementById('terminateFranchise').addEventListener('click', () => {
+                if(confirm('Are you sure you want to terminate this franchise?')) {
+                    alert('Franchise Termination Process Initiated');
+                }
+            });
+
+            // Revenue Chart
+            const revenueChart = echarts.init(document.getElementById('revenueChart'));
+            const revenueOption = {
+                tooltip: { trigger: 'axis' },
+                xAxis: {
+                    type: 'category',
+                    data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+                },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: [
+                        monthlyRevenue * 0.8, 
+                        monthlyRevenue, 
+                        monthlyRevenue * 1.2, 
+                        monthlyRevenue * 1.1, 
+                        monthlyRevenue * 0.9, 
+                        monthlyRevenue * 1.3
+                    ],
+                    type: 'line',
+                    smooth: true,
+                    itemStyle: { color: '#3498db' }
+                }]
+            };
+            revenueChart.setOption(revenueOption);
+
+            // Growth Chart
+            const growthChart = echarts.init(document.getElementById('growthChart'));
+            const growthOption = {
+                tooltip: { trigger: 'axis' },
+                xAxis: {
+                    type: 'category',
+                    data: ['Q1', 'Q2', 'Q3', 'Q4']
+                },
+                yAxis: { type: 'value' },
+                series: [{
+                    data: [branchCount, branchCount*1.2, branchCount*1.5, branchCount*1.8],
+                    type: 'bar',
+                    itemStyle: { color: '#2ecc71' }
+                }]
+            };
+            growthChart.setOption(growthOption);
+        });
+    </script>
+</body>
+</html>

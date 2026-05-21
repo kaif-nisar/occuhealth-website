@@ -1,0 +1,369 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .checkbox-container {
+            margin-bottom: 20px;
+        }
+
+        .checkbox-container input {
+            margin-right: 10px;
+        }
+
+        .tests-container {
+            margin-bottom: 20px;
+        }
+
+        .tests-container input {
+            width: 100%;
+            margin: 1rem 0rem;
+            border-radius: 4px;
+            border: none;
+            background-color: transparent;
+        }
+
+        .tests-container input:focus {
+            outline: none;
+        }
+
+        .search-hint {
+            max-height: 40vh;
+            font-size: 12px;
+            color: #888;
+            overflow-y: scroll;
+            border: 1px solid #333;
+        }
+
+        .copy-interpretations {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .copy-interpretations .icon {
+            background-color: #ffebee;
+            border-radius: 50%;
+            padding: 5px;
+            margin-right: 10px;
+        }
+
+        .copy-interpretations .text {
+            color: #333;
+        }
+
+        .copy-interpretations .new {
+            background-color: #ffebee;
+            color: #d32f2f;
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-left: 5px;
+        }
+
+        .interpretation-container {
+            margin-bottom: 20px;
+        }
+
+        .interpretation-container .toolbar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .interpretation-container .toolbar select,
+        .interpretation-container .toolbar button {
+            margin-right: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+
+        .interpretation-container .toolbar button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interpretation-container .toolbar button i {
+            margin-right: 5px;
+        }
+
+        .interpretation-container textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .buttons .save {
+            background-color: #007bff;
+        }
+
+        .buttons .cancel {
+            background-color: #6c757d;
+        }
+
+        .container {
+            width: 90%;
+            margin: 50px auto;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: #1a73e8;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-box i {
+            margin-right: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .form-group label.checkbox-label {
+            display: inline-block;
+            font-weight: normal;
+        }
+
+        #tests-name-div {
+            padding: 0.5rem 1rem;
+            font-size: 1.25rem;
+            color: rgb(37, 37, 37);
+            border-bottom: 1px solid rgb(35, 35, 35);
+            /* display: none; */
+        }
+
+        #tests-name-div:hover {
+            background-color: #00d0ff;
+        }
+
+        .fa-circle-xmark {
+            margin-left: 1rem;
+        }
+
+        .fa-circle-xmark:hover {
+            color: rgba(255, 0, 0, 0.459);
+        }
+
+        .select-and-input {
+            overflow: hidden;
+            border: 1px solid black;
+            border-radius: 5px;
+            /* display: flex; */
+            padding: 1rem;
+            /* align-items:flex-start; */
+        }
+
+        .middle-tag-div {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        #noTestMessage {
+            text-align: center;
+            font-size: 1.25rem;
+            border: 1px solid black;
+            padding: 0.5rem 0rem;
+        }
+
+        input[type=checkbox] {
+            width: 12px;
+            /* Set the width */
+            height: 12px;
+            /* Set the height */
+            transform: scale(1.5);
+            /* Scale the size */
+            margin-right: 10px;
+            /* Optional: Adjust spacing */
+            margin-top: 1rem;
+        }
+
+        .selected-div {
+            max-width: 140px;
+            min-height: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: #a3a3a38e;
+            border-radius: 5px;
+            border: 1px solid rgb(53, 53, 53);
+            display: flex;
+            margin: 0.25rem;
+            align-items: center;
+        }
+
+        .selected-div span {
+            min-width: 5rem;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .errormessage {
+            display: none;
+            color: #B00020;
+            padding: 5px;
+        }
+
+        .alert {
+            position: fixed;
+            width: 75%;
+            top: 80px;
+            right: 2%;
+            z-index: 1050;
+        }
+                .editor-container {
+            background-color: white;
+            padding: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="alert" role="alert"></div>
+
+        <div class="title">Edit panel</div>
+        <div class="breadcrumb">
+            <a href="#">Panels</a> &gt; <span>Edit</span>
+        </div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name">
+            <span class="errormessage">!comma (,) not-allowed in this field</span>
+        </div>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option>urine</option>
+                <option>hemoglobin</option>
+                <option>kidney</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="price">Billing Price</label>
+            <input type="text" id="price" name="price">
+        </div>
+        <div class="form-group">
+            <label for="final-price">MRP Price</label>
+            <input type="text" id="final-price" name="final-price">
+        </div>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+        <div class="tests-container">
+            <div class="search-hint" id="search-hint"></div>
+            <div id="noTestMessage" style="display: none;">No Test Found</div>
+            <br>
+            <div class="select-and-input" id="select-and-input">
+                <div class="middle-tag-div" id="middle-tag-div"></div>
+                <input type="text" id="tests" placeholder="Search by typing full test name">
+            </div>
+        </div>
+        <!-- Checkbox Section -->
+        <div class="checkbox-container">
+            <label>
+                <input type="checkbox" id="hide-interpretation">
+                Hide interpretation, notes, comments of individual tests
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="hide-method-instrument">
+                Hide method and instrument from individual tests
+            </label>
+        </div>
+        <!-- <div class="copy-interpretations">
+            <div class="icon">
+                <i class="fas fa-copy"></i>
+            </div>
+            <div class="text">
+                You can now copy interpretations from <a href="#">Library</a> to update.
+                <span class="new">NEW</span>
+            </div>
+        </div> -->
+        <div class="interpretation-container">
+                           <div class="editor-container">
+                    <div id="editor-toolbar"></div>
+                    <div id="editor"></div>
+                    <div id="editor-word-count"></div>
+                </div>
+        </div>
+        <div class="buttons">
+            <button class="save">Save</button>
+            <button class="cancel">Cancel</button>
+        </div>
+    </div>
+    <script
+        src="https://cdn.tiny.cloud/1/oqlgwrs74fzlc4aoa2tfk2jrqu5f2icodo1p4ios39pu44g4/tinymce/5/tinymce.min.js"></script>
+    <script src="editPanel.js"></script>
+</body>
+
+</html>
