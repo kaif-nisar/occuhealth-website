@@ -17,6 +17,14 @@ const parameterSchema = new Schema({
   },
   order: Number,
   Para_name: String,
+  shortNames: {
+    type: [String],
+    default: [],
+  },
+  defaultShortName: {
+    type: String,
+    default: "",
+  },
   unit: String,
   groupby: String,
   defaultresult: String,

@@ -137,7 +137,94 @@
     // Load units when the page loads
     loadUnits();
 
+    function normalizeShortName(value) {
+        return typeof value === "string" ? value.trim() : "";
+    }
 
+    function getUniqueShortNames(values = []) {
+        return [...new Set(values.map(normalizeShortName).filter(Boolean))];
+    }
+
+    function buildShortNameRows(shortNames = [], defaultShortName = "") {
+        const aliases = getUniqueShortNames(shortNames);
+        const normalizedDefault = normalizeShortName(defaultShortName);
+
+        if (normalizedDefault && !aliases.includes(normalizedDefault)) {
+            aliases.unshift(normalizedDefault);
+        }
+
+        return {
+            aliases: aliases.length ? aliases : [""],
+            defaultShortName: normalizedDefault || aliases[0] || ""
+        };
+    }
+
+    function getShortNameAliasRow(value = "", checked = false) {
+        return `
+            <div class="shortname-alias-row">
+                <input type="text" class="shortname-alias-input" value="${value}">
+                <label class="shortname-default-toggle">
+                    <input type="radio" class="shortname-default-radio" ${checked ? "checked" : ""}>
+                    <span>Default</span>
+                </label>
+                <button type="button" class="shortname-remove-btn" title="Remove short name">x</button>
+            </div>
+        `;
+    }
+
+    function refreshShortNameRadioGroups() {
+        document.querySelectorAll('#parameters-table2 tbody tr').forEach((row, index) => {
+            row.querySelectorAll('.shortname-default-radio').forEach((radio) => {
+                radio.name = `parameter-shortname-default-${index}`;
+            });
+        });
+    }
+
+    function renderShortNameManager(row, shortNames = [], defaultShortName = "") {
+        const aliasList = row.querySelector('.shortname-alias-list');
+        const state = buildShortNameRows(shortNames, defaultShortName);
+        aliasList.innerHTML = "";
+
+        if (state.aliases.length === 0) {
+            aliasList.innerHTML = `<div class="shortname-empty-state">No machine short names added yet.</div>`;
+        } else {
+            state.aliases.forEach((alias) => {
+                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow(alias, alias === state.defaultShortName));
+            });
+        }
+
+        refreshShortNameRadioGroups();
+    }
+
+    function collectShortNameManagerState(row) {
+        const aliases = [];
+        let defaultShortName = "";
+
+        row.querySelectorAll('.shortname-alias-row').forEach((aliasRow) => {
+            const input = aliasRow.querySelector('.shortname-alias-input');
+            const radio = aliasRow.querySelector('.shortname-default-radio');
+            const value = normalizeShortName(input?.value);
+
+            if (!value) return;
+
+            if (!aliases.includes(value)) {
+                aliases.push(value);
+            }
+
+            if (radio?.checked) {
+                defaultShortName = value;
+            }
+        });
+
+        if (!defaultShortName) {
+            defaultShortName = aliases[0] || "";
+        }
+
+        return {
+            shortNames: aliases,
+            defaultShortName
+        };
+    }
 
     let orderId = 1;
     // Function to add a new parameter row dynamically
@@ -155,7 +242,16 @@ function addParameter() {
     newRow.innerHTML = `
         <td><span class="remove-link" id="remove-link">🗑️</span></td>
         <td><input type="text" value="${orderId}"></td>
-        <td><input type="text"></td>
+        <td class="parameter-name-cell">
+            <input type="text">
+            <div class="shortname-alias-manager">
+                <div class="shortname-alias-header">
+                    <span>Machine Short names</span>
+                    <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
+                </div>
+                <div class="shortname-alias-list"></div>
+            </div>
+        </td>
         <td>
             <select>
                 <option value="">Select unit</option>
@@ -254,9 +350,12 @@ function addParameter() {
     newRow.querySelector('.remove-link').addEventListener('click', () => {
         table.deleteRow(newRow.rowIndex - 1);
     });
+
+    renderShortNameManager(newRow);
 }
 
     document.getElementById("add-parameter-link").addEventListener("click", addParameter);
+    renderShortNameManager(document.querySelector('#parameters-table2 tbody tr'));
 
     function removeParameter(element) {
         const row = element.parentElement.parentElement;
@@ -268,7 +367,41 @@ function addParameter() {
         // Check if the clicked element has the class 'remove-link'
         if (event.target.classList.contains("remove-link")) {
             removeParameter(event.target); // Call removeParameter with the clicked element
+            refreshShortNameRadioGroups();
         }
+
+        if (event.target.matches('[data-action="add-shortname"]')) {
+            const row = event.target.closest('tr');
+            const aliasList = row.querySelector('.shortname-alias-list');
+            aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
+            refreshShortNameRadioGroups();
+            const lastInput = row.querySelector('.shortname-alias-row:last-child .shortname-alias-input');
+            if (lastInput) {
+                lastInput.focus();
+            }
+        }
+
+        if (event.target.classList.contains("shortname-remove-btn")) {
+            const row = event.target.closest('tr');
+            event.target.closest('.shortname-alias-row')?.remove();
+            const remainingAliasRows = row.querySelectorAll('.shortname-alias-row');
+
+            if (remainingAliasRows.length === 0) {
+                const aliasList = row.querySelector('.shortname-alias-list');
+                aliasList.innerHTML = '';
+                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
+            }
+
+            refreshShortNameRadioGroups();
+        }
+    });
+
+    document.querySelector("#parameters-table2 tbody").addEventListener("change", function (event) {
+        if (event.target.classList.contains("shortname-default-radio")) return;
+    });
+
+    document.querySelector("#parameters-table2 tbody").addEventListener("input", function (event) {
+        if (event.target.classList.contains("shortname-alias-input")) return;
     });
 
     async function fetchandpopulatesamples() {
@@ -373,6 +506,9 @@ document.getElementById('submitbBtn').addEventListener('click', async function (
             unit: row.cells[3].querySelector('select').value,
             defaultresult: row.cells[4].querySelector('input').value,
         };
+        const shortNameState = collectShortNameManagerState(row);
+        parameterData.shortNames = shortNameState.shortNames;
+        parameterData.defaultShortName = shortNameState.defaultShortName;
 
         // Get random number data
         const randomCheckbox = row.cells[5].querySelector('.random-checkbox');

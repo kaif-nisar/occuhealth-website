@@ -479,6 +479,93 @@
             border: 1px solid #ced4da;
             border-radius: 4px;
         }
+
+        .shortname-note {
+            display: block;
+            margin-top: 6px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .parameter-name-cell {
+            min-width: 240px;
+        }
+
+        .shortname-alias-manager {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #d8e2ef;
+            border-radius: 6px;
+            background: #f8fbff;
+        }
+
+        .shortname-alias-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .shortname-alias-header span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1f3b64;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .shortname-add-btn {
+            border: 0;
+            border-radius: 999px;
+            background: #1f6feb;
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .shortname-alias-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shortname-alias-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .shortname-default-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #355070;
+            white-space: nowrap;
+        }
+
+        .shortname-default-toggle input {
+            width: auto;
+            margin: 0;
+        }
+
+        .shortname-remove-btn {
+            border: 0;
+            background: transparent;
+            color: #b42318;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .shortname-empty-state {
+            font-size: 12px;
+            color: #6c757d;
+        }
     </style>
 </head>
 
@@ -492,8 +579,9 @@
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label for="short-name">Short name</label>
+                <label for="short-name">Default Short name</label>
                 <input type="text" id="short-name" name="short-name">
+                <span class="shortname-note">यह report header और single test print short name के लिए use होगा.</span>
             </div>
         </div>
         <div class="form-group">
@@ -533,7 +621,16 @@
                     <tr>
                         <td><span class="remove-link2" id="remove-link">🗑️</span></td>
                         <td><input type="text" value="1"></td>
-                        <td><input type="text" id="paraName"></td>
+                        <td class="parameter-name-cell">
+                            <input type="text" id="paraName">
+                            <div class="shortname-alias-manager">
+                                <div class="shortname-alias-header">
+                                    <span>Machine Short names</span>
+                                    <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
+                                </div>
+                                <div class="shortname-alias-list"></div>
+                            </div>
+                        </td>
                         <td>
                             <select id="unit-select">
                                 <option value="">select Unit</option>

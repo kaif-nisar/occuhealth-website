@@ -14,6 +14,47 @@ import { User } from "../models/user.model.js";
 import { SuperAdmin } from "../models/superAdmin.model.js";
 import { create } from "browser-sync";
 
+const normalizeShortNameList = (shortNames = [], defaultShortName = "") => {
+    const uniqueShortNames = [...new Set(
+        (Array.isArray(shortNames) ? shortNames : [])
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter(Boolean)
+    )];
+
+    const normalizedDefault = typeof defaultShortName === "string" ? defaultShortName.trim() : "";
+
+    if (normalizedDefault && !uniqueShortNames.includes(normalizedDefault)) {
+        uniqueShortNames.unshift(normalizedDefault);
+    }
+
+    return {
+        shortNames: uniqueShortNames,
+        defaultShortName: normalizedDefault || uniqueShortNames[0] || "",
+    };
+};
+
+const normalizeParameters = (parameters = [], testShortName = "") => {
+    const safeParameters = Array.isArray(parameters) ? parameters : [];
+
+    return safeParameters.map((parameter, index) => {
+        const normalizedParameter = parameter && typeof parameter === "object" ? { ...parameter } : {};
+        const isSingleParameterTest = safeParameters.length === 1;
+        const fallbackDefault = isSingleParameterTest ? testShortName : "";
+        const normalizedShortNames = normalizeShortNameList(
+            normalizedParameter.shortNames,
+            normalizedParameter.defaultShortName || fallbackDefault
+        );
+
+        return {
+            ...normalizedParameter,
+            order: Number(normalizedParameter.order) || index + 1,
+            Para_name: typeof normalizedParameter.Para_name === "string" ? normalizedParameter.Para_name.trim() : "",
+            shortNames: normalizedShortNames.shortNames,
+            defaultShortName: normalizedShortNames.defaultShortName,
+        };
+    });
+};
+
 
 
 // superAdmin creating Test
@@ -36,6 +77,8 @@ const addingTest = asyncHandler(async (req, res) => {
     const userRole = req.user.role;
 
     const { Name, final_price, Short_name, tat, category, Price, sampleType, method, instrument, parameters, interpretation, isDocumentedTest, user } = req.body;
+    const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : "";
+    const normalizedParameters = normalizeParameters(parameters, normalizedShortName);
     // const superAdmin = req.user.id // get the super admin id from token 
 
     if (!Name || !category || !final_price || !Price || !sampleType) {
@@ -63,10 +106,10 @@ const addingTest = asyncHandler(async (req, res) => {
 
     const testCreated = await testSchema.create({
         Name,
-        Short_name,
+        Short_name: normalizedShortName,
         category: category || "",
         Price,
-        parameters: parameters || null,
+        parameters: normalizedParameters,
         sampleType,
         method: method || "",
         instrument: instrument || "",
@@ -138,6 +181,8 @@ const addingTesttenant = asyncHandler(async (req, res) => {
     const tenantId = req.user.tenantId?._id; // safe optional chaining
 
     const { Name, final_price, Short_name, category, tat, Price, sampleType, method, instrument, parameters, interpretation, isDocumentedTest, user } = req.body;
+    const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : "";
+    const normalizedParameters = normalizeParameters(parameters, normalizedShortName);
     // const superAdmin = req.user.id // get the super admin id from token 
 
     if (!Name || !category || !final_price || !Price || !sampleType) {
@@ -165,10 +210,10 @@ const addingTesttenant = asyncHandler(async (req, res) => {
 
     const testCreated = await testSchema.create({
         Name,
-        Short_name,
+        Short_name: normalizedShortName,
         category: category || "",
         Price,
-        parameters: parameters || null,
+        parameters: normalizedParameters,
         sampleType,
         method: method || "",
         instrument: instrument || "",
@@ -553,6 +598,8 @@ const updateTestOrdersuper = asyncHandler(async (req, res) => {
 // SuperAdmin Test Edit
 const editTest = asyncHandler(async (req, res) => {
     const { _id, Name, final_price, Short_name, category, tat, Price, sampleType, method, instrument, interpretation, parameters } = req.body;
+    const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : "";
+    const normalizedParameters = normalizeParameters(parameters, normalizedShortName);
 
     let userId;
     if (req.user.role === 'staff') {
@@ -560,7 +607,7 @@ const editTest = asyncHandler(async (req, res) => {
     } else {
         userId = req.user._id
     }
-    if (!Name || !final_price || !Short_name || !category || !Price || !sampleType) {
+    if (!Name || !final_price || !normalizedShortName || !category || !Price || !sampleType) {
         return res.status(401).json({ message: "missing required fields", status: "error" })
     }
     const currentTest = await testSchema.findById({
@@ -578,10 +625,10 @@ const editTest = asyncHandler(async (req, res) => {
         },
         {
             Name,
-            Short_name,
+            Short_name: normalizedShortName,
             category: category || "",
             Price,
-            parameters: parameters || null,
+            parameters: normalizedParameters,
             sampleType,
             method: method || "",
             tat: tat || "",
@@ -625,6 +672,8 @@ const editTest = asyncHandler(async (req, res) => {
 // Admin Test Edit
 const editTesttenant = asyncHandler(async (req, res) => {
     const { _id, final_price, Short_name, category, tat, Price, sampleType, method, instrument, interpretation, parameters } = req.body;
+    const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : "";
+    const normalizedParameters = normalizeParameters(parameters, normalizedShortName);
 
     let userId;
     if (req.user.role === 'staff') {
@@ -635,7 +684,7 @@ const editTesttenant = asyncHandler(async (req, res) => {
 
     const tid = req.user.tenantId._id;
 
-    if (!final_price || !Short_name || !category || !Price || !sampleType) {
+    if (!final_price || !normalizedShortName || !category || !Price || !sampleType) {
         return res.status(401).json({ message: "missing required fields", status: "error" })
     }
 
@@ -653,10 +702,10 @@ const editTesttenant = asyncHandler(async (req, res) => {
             _id
         },
         {
-            Short_name,
+            Short_name: normalizedShortName,
             category: category || "",
             Price,
-            parameters: parameters || null,
+            parameters: normalizedParameters,
             sampleType,
             method: method || "",
             tat: tat || "",

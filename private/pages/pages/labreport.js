@@ -25,6 +25,91 @@ async function loadfunction() {
         return [...new Set([...acceptedbarcode, ...tableBarcodes])];
     }
 
+    function normalizeShortName(value) {
+        return typeof value === "string" ? value.trim() : "";
+    }
+
+    function getMachineShortNames(test, param = null) {
+        const aliases = [];
+        const pushAlias = (alias) => {
+            const normalized = normalizeShortName(alias);
+            if (normalized && !aliases.includes(normalized)) {
+                aliases.push(normalized);
+            }
+        };
+
+        if (param) {
+            (param.shortNames || []).forEach(pushAlias);
+            pushAlias(param.defaultShortName);
+        }
+
+        pushAlias(test?.Short_name);
+
+        if (!param && test?.parameters?.length === 1) {
+            const singleParam = test.parameters[0];
+            (singleParam.shortNames || []).forEach(pushAlias);
+            pushAlias(singleParam.defaultShortName);
+        }
+
+        return aliases;
+    }
+
+    function escapeAttribute(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function findLisValueByShortNames(lisData = {}, shortNames = []) {
+        if (!lisData || typeof lisData !== "object") {
+            return undefined;
+        }
+
+        for (const shortName of shortNames) {
+            if (Object.prototype.hasOwnProperty.call(lisData, shortName)) {
+                return lisData[shortName];
+            }
+        }
+
+        const normalizedKeyMap = new Map(
+            Object.keys(lisData).map((key) => [normalizeShortName(key).toLowerCase(), lisData[key]])
+        );
+
+        for (const shortName of shortNames) {
+            const matchedValue = normalizedKeyMap.get(normalizeShortName(shortName).toLowerCase());
+            if (matchedValue !== undefined) {
+                return matchedValue;
+            }
+        }
+
+        return undefined;
+    }
+
+    function getInvestigationDisplayName(entryName, singleTests = []) {
+        const matchedTest = singleTests.find((test) => normalizeShortName(test.Name) === normalizeShortName(entryName));
+        return matchedTest?.Short_name || entryName;
+    }
+
+    function buildInvestigationHeaderList(singleTests = []) {
+        const bookedNames = [];
+
+        (booking.tableData || []).forEach((row) => {
+            ((row.testName || "").split(","))
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .forEach((item) => {
+                    const displayName = getInvestigationDisplayName(item, singleTests);
+                    if (!bookedNames.includes(displayName)) {
+                        bookedNames.push(displayName);
+                    }
+                });
+        });
+
+        return bookedNames;
+    }
+
     if (user.showRandomBtn) {
         showRandomBtn.style.display = 'block';
     } else {
@@ -734,6 +819,7 @@ async function loadfunction() {
                 // Rows for individual parameters
                 for (const param of test.parameters) {
                     const { lowerValue, upperValue } = await getLowerUpperValues(patient, param?.NormalValue);
+                    const paramShortNames = getMachineShortNames(test, param);
                     const paramRow = document.createElement("tr");
                     paramRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
                     paramRow.innerHTML = `
@@ -745,7 +831,7 @@ async function loadfunction() {
                 <span class="HighLow"></span>
                 <input type="text" 
                     name="parameterName" 
-                    data-Shortname="${test.Short_name}" 
+                    data-shortnames="${escapeAttribute(JSON.stringify(paramShortNames))}" 
                     data-id="${param.Para_name.replace(/\s+/g, '')}" 
                     data-lower="${lowerValue || ""}" 
                     data-upper="${upperValue || ""}"
@@ -810,6 +896,7 @@ async function loadfunction() {
                 }
 
             } else {
+                const testShortNames = getMachineShortNames(test);
                 row.innerHTML = `
     <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
     <td class="test-name">${test.Name}</td>
@@ -820,7 +907,7 @@ async function loadfunction() {
             <input type="text" 
                 name="valueInput" 
                 class="value-input" 
-                data-Shortname="${test.Short_name}" 
+                data-shortnames="${escapeAttribute(JSON.stringify(testShortNames))}" 
                 data-id="${test.Name}" 
                 data-lower="${lowerValue || ""}" 
                 data-upper="${upperValue || ""}"
@@ -1590,18 +1677,12 @@ async function loadfunction() {
         console.log("data is here:", testpanels);
 
         const { singleTests, panels } = testpanels;
+        uniquetestArray2 = buildInvestigationHeaderList(singleTests);
 
         // Create an array of {category, tests} instead of an object
         const singleTestsByCategory = [];
 
         singleTests.forEach((test) => {
-            // Update uniqueTestArray2
-            const index = uniquetestArray2.indexOf(test.Name);
-            if (index > -1 && test.Short_name) {
-                uniquetestArray2.splice(index, 1);
-                uniquetestArray2.push(test.Short_name);
-            }
-
             // Check if this category object is already present
             let existingCategory = singleTestsByCategory.find(
                 (entry) => entry.category.category === test.category.category
@@ -1807,11 +1888,17 @@ async function loadfunction() {
                         const input = row.querySelector(".value-input");
 
                         if (input) {
-                            const shortName = input.getAttribute('data-Shortname');
+                            let shortNames = [];
+                            try {
+                                shortNames = JSON.parse(input.getAttribute('data-shortnames') || '[]');
+                            } catch (error) {
+                                shortNames = [];
+                            }
 
-                            // Find matching entry
-                            if (element.lisData.hasOwnProperty(shortName)) {
-                                input.value = element.lisData[shortName];
+                            const matchedValue = findLisValueByShortNames(element.lisData, shortNames);
+
+                            if (matchedValue !== undefined) {
+                                input.value = matchedValue;
                                 processInput(input);
                                 handleInputChange(input);
                             }
