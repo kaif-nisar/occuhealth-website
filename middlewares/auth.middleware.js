@@ -12,7 +12,7 @@ const FULL_USER_POPULATE = [
   { path: "createdBy", select: "role tenantId fullName username pdfFormat permissions parentRole" },
   {
     path: "tenantId",
-    select: "name modelType code status adminDetails subscriptionPlan",
+    select: "name modelType code status adminDetails subscriptionPlan logo",
     populate: {
       path: "adminDetails.userId",
       select: "fullName username role tenantId email pdfFormat",
