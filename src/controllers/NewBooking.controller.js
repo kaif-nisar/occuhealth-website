@@ -1717,9 +1717,12 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
         const allBarcodeIds = []; // Collect all barcode IDs for LIS check
 
         barcodeData.forEach(doc => {
-            const barcodes = doc.barcodes.map(b => b.barcode);
+            const barcodes = (doc.barcodes || []).map((b) => ({
+                barcode: b?.barcode || "",
+                sampleType: b?.sampleType || ""
+            })).filter((b) => b.barcode);
             barcodeMap.set(doc.bookingId, barcodes);
-            allBarcodeIds.push(...barcodes);
+            allBarcodeIds.push(...barcodes.map((b) => b.barcode));
         });
 
         // Check LIS data availability for all barcodes in one query
@@ -1747,13 +1750,14 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
             const bookingBarcodes = barcodeMap.get(booking.bookingId) || [];
 
             // Create detailed barcode status array
-            const barcodeDetails = bookingBarcodes.map(barcode => ({
-                barcode: barcode,
+            const barcodeDetails = bookingBarcodes.map(({ barcode, sampleType }) => ({
+                barcode,
+                sampleType,
                 isLisPresent: lisAvailabilityMap.get(barcode) || false
             }));
 
             // Backward compatibility - keep old format
-            booking.acceptedbarcode = bookingBarcodes;
+            booking.acceptedbarcode = bookingBarcodes.map(({ barcode }) => barcode);
 
             // New detailed format
             booking.barcodeDetails = barcodeDetails;
@@ -3946,9 +3950,12 @@ const getAllCancelledBookingsController = asyncHandler(async (req, res) => {
         const allBarcodeIds = []; // Collect all barcode IDs for LIS check
 
         barcodeData.forEach(doc => {
-            const barcodes = doc.barcodes.map(b => b.barcode);
+            const barcodes = (doc.barcodes || []).map((b) => ({
+                barcode: b?.barcode || "",
+                sampleType: b?.sampleType || ""
+            })).filter((b) => b.barcode);
             barcodeMap.set(doc.bookingId, barcodes);
-            allBarcodeIds.push(...barcodes);
+            allBarcodeIds.push(...barcodes.map((b) => b.barcode));
         });
 
         // Check LIS data availability for all barcodes in one query
@@ -3976,13 +3983,14 @@ const getAllCancelledBookingsController = asyncHandler(async (req, res) => {
             const bookingBarcodes = barcodeMap.get(booking.bookingId) || [];
 
             // Create detailed barcode status array
-            const barcodeDetails = bookingBarcodes.map(barcode => ({
-                barcode: barcode,
+            const barcodeDetails = bookingBarcodes.map(({ barcode, sampleType }) => ({
+                barcode,
+                sampleType,
                 isLisPresent: lisAvailabilityMap.get(barcode) || false
             }));
 
             // Backward compatibility - keep old format
-            booking.acceptedbarcode = bookingBarcodes;
+            booking.acceptedbarcode = bookingBarcodes.map(({ barcode }) => barcode);
 
             // New detailed format
             booking.barcodeDetails = barcodeDetails;

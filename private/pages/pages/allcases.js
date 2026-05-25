@@ -170,6 +170,14 @@ async function allcases() {
                 row.style.backgroundColor = baseColor;
             }
 
+            function formatBarcodeWithSampleType(detail) {
+                const barcode = detail?.barcode || "";
+                const sampleType = (detail?.sampleType || detail?.sampletype || detail?.typeOfSample || "").trim();
+
+                if (!barcode) return "";
+                return sampleType ? `${barcode} (${sampleType})` : barcode;
+            }
+
             // Create barcode HTML with LIS indicators
             let barcodeHtml = '';
             if (booking.barcodeDetails && booking.barcodeDetails.length > 0) {
@@ -177,11 +185,12 @@ async function allcases() {
                     const icon = detail.isLisPresent 
                         ? '<i class="fa-solid fa-circle-check" style="color: #28a745; margin-right: 3px;"></i>' 
                         : '<i class="fa-solid fa-circle-xmark" style="color: #dc3545; margin-right: 3px;"></i>';
+                    const barcodeLabel = formatBarcodeWithSampleType(detail);
                     
-                    return `<span style="display: inline-flex; align-items: center; margin: 2px 4px 2px 0; white-space: nowrap;" title="${detail.isLisPresent ? 'LIS data available' : 'LIS data not available'}">${icon}${detail.barcode}</span>`;
+                    return `<div style="display: flex; align-items: center; margin: 2px 0; white-space: nowrap;" title="${detail.isLisPresent ? 'LIS data available' : 'LIS data not available'}">${icon}${barcodeLabel}</div>`;
                 }).join('');
             } else {
-                barcodeHtml = booking.acceptedbarcode.join(" ") || "";
+                barcodeHtml = (booking.acceptedbarcode || []).join(" ") || "";
             }
 
             // HTML for row - ✅ REMOVED onclick from three dots icon
