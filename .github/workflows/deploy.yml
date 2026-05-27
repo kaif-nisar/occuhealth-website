@@ -1,4 +1,4 @@
-name: Deploy VPS
+name: Deploy Occuhealth
 
 on:
   push:
@@ -10,20 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Amazon Linux VPS
-
-        uses: appleboy/ssh-action@master
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
 
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
 
           script: |
-            cd /home/ec2-user/occuhealth
+            cd /home/opc/occuhealth
+
+            git reset --hard
+            git clean -fd
 
             git pull origin main
 
             npm install
 
-            pm2 restart all
+            pm2 restart occuhealth --update-env
