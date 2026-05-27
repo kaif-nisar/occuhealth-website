@@ -6,7 +6,7 @@ module.exports = {
       // ==============================
       name: "superadmin_lab",
       script: "app.js",
-      cwd: "/home/ec2-user/occuhealth",
+      cwd: "/home/opc/occuhealth",
 
       // ==============================
       // Process Management
