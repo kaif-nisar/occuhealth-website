@@ -112,6 +112,10 @@ const customizationSchema = new mongoose.Schema({
     isdocumented : {
         type: Boolean,
         default: false
+    },
+    format: {
+        type: String,
+        default: ""
     }
 },
     { timestamps: true }

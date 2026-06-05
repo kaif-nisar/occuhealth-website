@@ -9,6 +9,41 @@ import { newBooking } from "../models/NewBooking.model.js";
 
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
+const normalizeSampleText = (value) => String(value ?? "").trim();
+
+const buildUniqueSampleDetails = (reportData = []) => {
+    const sampleDetails = [];
+    const seen = new Set();
+
+    for (const section of reportData) {
+        for (const entry of (section?.sampleDetails || [])) {
+            const barcodeId = normalizeSampleText(entry?.barcodeId);
+            const sampleType = normalizeSampleText(entry?.sampleType);
+            const testNames = Array.isArray(entry?.testNames)
+                ? entry.testNames.map((name) => normalizeSampleText(name)).filter(Boolean)
+                : [];
+
+            if (!barcodeId && !sampleType) {
+                continue;
+            }
+
+            const key = `${barcodeId}__${sampleType}`;
+            if (seen.has(key)) {
+                continue;
+            }
+
+            seen.add(key);
+            sampleDetails.push({
+                barcodeId,
+                sampleType,
+                testNames
+            });
+        }
+    }
+
+    return sampleDetails;
+};
+
 function hasExactDotOnlyValue(reportData = []) {
     return reportData.some(section =>
         Array.isArray(section?.tests) &&
@@ -48,6 +83,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
 
     const currentBookingStatus = existingBooking?.status || booking.status || "pending";
     let bookingStatus = currentBookingStatus;
+    const sampleDetails = buildUniqueSampleDetails(reportData);
 
     const canUpdatePartialStatus = saveMode === "saveOnly"
         && existingBooking
@@ -78,6 +114,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
             categorizedPDF: categorized,
             MoreDetails: moredetails,
             uniquetestArray,
+            sampleDetails,
             isdocumented
         },
         {
@@ -147,7 +184,8 @@ const editReportController = asyncHandler(async (req, res) => {
             signedBy,
             collectedOn,
             receivedOn,
-            reportedOn
+            reportedOn,
+            sampleDetails: buildUniqueSampleDetails(reportData)
         },
         { new: true }
     )

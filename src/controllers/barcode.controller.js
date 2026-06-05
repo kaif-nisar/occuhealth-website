@@ -14,16 +14,16 @@ const barcodegeneratecontroller = async (req, res) => {
 
     try {
         // Define canvas dimensions based on expected barcode size
-        const width = 400; // Width of the canvas
-        const height = 200; // Height of the canvas to accommodate larger text
+        const width = 800; // Width of the canvas
+        const height = 180; // Height of the canvas to accommodate larger text
         const canvas = createCanvas(width, height);
 
         // Generate the barcode with customized text options
         JsBarcode(canvas, number, {
             format: "CODE128",     // Barcode format
-            width: 3,             // Width of each bar
-            height: 120,          // Height of the barcode
-            fontSize: 40,         // Increase font size for the number
+            width: 2,             // Width of each bar
+            height: 110,          // Height of the barcode
+            fontSize: 20,         // Increase font size for the number
             font: "sans-serif",   // Set font family
             textColor: "#000000", // Set text color to black
             displayValue: shouldDisplayValue,

@@ -1,776 +1,1466 @@
 (async function () {
-    const bootStartedAt = Date.now();
-    const MIN_SKELETON_VISIBLE_MS = 150;
-    const bootLoaderEl    = document.getElementById('pageBootLoader');
-    const bootShellEl     = bootLoaderEl?.querySelector('.page-boot-shell');
-    const pageRootEl      = document.getElementById('reportFormat4Root') || document.body;
-    const reportContainerEl = document.getElementById('container');
-    const signOffEl       = document.querySelector('.signed-off-div');
-    const actionBarEl     = document.querySelector('.download-pdf-div');
-
-    function syncBootLoaderLayout() {
-        const container = document.getElementById('container');
-        if (!bootLoaderEl || !bootShellEl || !container || !pageRootEl) return;
-        const rootRect  = pageRootEl.getBoundingClientRect();
-        const rect      = container.getBoundingClientRect();
-        const topOffset = Math.max(0, Math.round(rect.top - rootRect.top));
-        bootLoaderEl.style.paddingTop = `${topOffset}px`;
-        bootLoaderEl.style.height     = `${Math.max(pageRootEl.clientHeight, window.innerHeight)}px`;
-        bootShellEl.style.width       = `${Math.round(rect.width)}px`;
-    }
-
-    function setPageVisible(v) {
-        const vis = v ? 'visible' : 'hidden';
-        if (reportContainerEl) reportContainerEl.style.visibility = vis;
-        if (signOffEl)         signOffEl.style.visibility         = vis;
-        if (actionBarEl)       actionBarEl.style.visibility       = vis;
-        if (pageRootEl)        pageRootEl.style.overflow          = v ? '' : 'hidden';
-    }
-
-    setPageVisible(false);
-    if (bootLoaderEl) { bootLoaderEl.style.display = 'flex'; bootLoaderEl.classList.remove('is-hiding'); }
-    syncBootLoaderLayout();
-    window.addEventListener('resize', syncBootLoaderLayout);
-
-    async function waitForVisualReady() {
-        const imgs = document.querySelectorAll('#qrimg, #qrimgright, #barcodeImage');
-        await Promise.all(Array.from(imgs).map(img => new Promise(resolve => {
-            if (!img || !img.src || (img.complete && img.naturalWidth > 0)) return resolve();
-            const done = () => resolve();
-            const t = setTimeout(done, 1200);
-            img.addEventListener('load',  () => { clearTimeout(t); done(); }, { once: true });
-            img.addEventListener('error', () => { clearTimeout(t); done(); }, { once: true });
-        })));
-        if (document.fonts?.ready) {
-            try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 350))]); } catch {}
-        }
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    }
-
-    function markPageReady() {
-        const elapsed = Date.now() - bootStartedAt;
-        const wait    = Math.max(0, MIN_SKELETON_VISIBLE_MS - elapsed);
-        setTimeout(() => {
-            setPageVisible(true);
-            const bl = document.getElementById('pageBootLoader');
-            if (bl) { bl.classList.add('is-hiding'); setTimeout(() => { bl.style.display = 'none'; }, 240); }
-            window.removeEventListener('resize', syncBootLoaderLayout);
-        }, wait);
-    }
-
-    function markPageFailed(err) {
-        console.error('Report bootstrap failed:', err);
-        const bl = document.getElementById('pageBootLoader');
-        if (bl) { const lbl = bl.querySelector('.page-boot-text'); if (lbl) lbl.textContent = 'Failed to load report'; }
-        setTimeout(() => markPageReady(), 1200);
-    }
-
-    try {
-        // ── 1. URL params ──
-        const urlParams = new URLSearchParams(window.location.search);
-        let value1 = urlParams.get('value1');
-
-        // ── 2. Fetch report ──
-        const report = await fetchreport();
-        value1 = report._id;
-
-        const baseUrl = `${BASE_URL}/pages/pages/download_reports.html`;
-        let backgroundImageUrl = null;
-        const templateImagePromise = fetchTemplateImages()
-            .then(url => { backgroundImageUrl = url || null; return backgroundImageUrl; })
-            .catch(() => null);
-
-        localStorage.setItem('myKey',      value1);
-        localStorage.setItem('bookingId',  report.bookingId);
-        localStorage.setItem('pdfformat',  user.pdfFormat);
-
-        const urlWithParam = `${baseUrl}?value=${encodeURIComponent(value1)}&id=${encodeURIComponent(user.tenantId._id)}`;
-
-        let reportformatlabsign          = false;
-        let reportformatfirstdoctorsign  = false;
-        let reportformatseconddoctorsign = false;
-        let prewarmInFlight        = false;
-        let prefetchedViewBlobUrl  = null;
-        let prefetchedPayloadKey   = "";
-        let doctorsSignCache       = null;
-        let renderTask             = Promise.resolve();
-        let qrTask                 = Promise.resolve();
-        let barcodeTask            = Promise.resolve();
-
-        // ── 3. Bootstrap ──
-        const doctorsSignTask = fetchdoctorsandlabsign();
-        await populateHeader();
-
-        barcodeTask = barcodegenerator();
-        renderTask  = renderData(report);
-        syncBootLoaderLayout();
-        signoffdivfunction();
-        downloadpdffunction();
-        sendReport();
-        hidecontent();
-        markPageReady();
-
-        const defer = cb => {
-            if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => cb(), { timeout: 1200 });
-            else setTimeout(cb, 0);
-        };
-
-        defer(() => {
-            Promise.allSettled([doctorsSignTask, qrTask, barcodeTask, waitForVisualReady(), convertImagesToBase64('.signed-off-div2 img')])
-                .then(() => prewarmPdfInBackground())
-                .catch(() => prewarmPdfInBackground());
-        });
-
-        // ════════════════════════════════════════════════════════
-        //  HELPERS
-        // ════════════════════════════════════════════════════════
-
-        async function fetchdoctorsandlabsign() {
-            try {
-                const res = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
-                if (!res.ok) { console.log("doctor sign not available"); return null; }
-                const d = await res.json();
-                doctorsSignCache             = d;
-                reportformatlabsign          = d.showlabinchargesign;
-                reportformatfirstdoctorsign  = d.showfirstdoctorsign;
-                reportformatseconddoctorsign = d.showseconddoctorsign;
-
-                const el = document.querySelector('.signed-off-div');
-                el.innerHTML = '';
-                const div = document.createElement('div');
-                div.className = 'signed-off-div2';
-                div.innerHTML = `
-                <div class="left-sign" style="display:${d.showfirstdoctorsign?'block':'none'};">
-                    <img src="${d.firstdoctorsign||''}" width="95" height="35" loading="eager" decoding="sync"><br>
-                    <div class="textspan">${d.firstdoctorsigninfo}</div>
-                </div>
-                <div class="left-sign" style="display:${d.showlabinchargesign?'block':'none'};">
-                    <img src="${d.labinchargesign||''}" width="95" height="35" loading="eager" decoding="sync"><br>
-                    <div class="textspan">${d.labinchargeinfo}</div>
-                </div>
-                <div class="right-sign" style="display:${d.showseconddoctorsign?'block':'none'};">
-                    <img src="${d.seconddoctorsign||''}" width="95" height="35" loading="eager" decoding="sync"><br>
-                    <div class="textspan">${d.seconddoctorsigninfo}</div>
-                </div>`;
-                el.appendChild(div);
-                return d;
-            } catch (e) { console.log(e.message); return null; }
-        }
-
-        async function qrcodegenerator() {
-            try {
-                const res  = await fetch(`/api/v1/user/generate-qr`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ link: urlWithParam }) });
-                if (!res.ok) throw new Error('QR failed');
-                const data = await res.json();
-                const src  = data?.qrCode || data?.qrcode || data?.qr || data?.image || data?.url;
-                if (!src) throw new Error('QR source missing');
-
-                // Show QR on RIGHT side only (matching image — top right corner)
-                const qrRight = document.getElementById('qrimgright');
-                if (qrRight) {
-                    qrRight.src = src.startsWith('data:') ? src : await urlToBase64(src).catch(() => src);
-                    qrRight.style.display = 'block';
-                }
-            } catch (e) { console.error('QR Error:', e); }
-        }
-
-        async function urlToBase64(url) {
-            const abs = new URL(url, window.location.origin).href;
-            const same = new URL(abs).origin === window.location.origin;
-            const res = await fetch(abs, { credentials: same ? 'include' : 'omit', mode: 'cors', cache: 'no-store' });
-            if (!res.ok) throw new Error('fetch failed');
-            const blob = await res.blob();
-            return new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.readAsDataURL(blob);
-                r.onload  = () => resolve(r.result);
-                r.onerror = reject;
-            });
-        }
-
-        async function convertImagesToBase64(selector) {
-            const imgs = document.querySelectorAll(selector);
-            if (!imgs.length) return;
-            await Promise.all(Array.from(imgs).map(async img => {
-                if (!img.src || img.src.startsWith('data:') || !img.src) return;
-                try { img.src = await urlToBase64(img.src); } catch {}
-            }));
-        }
-
-        async function ensureImagesBase64(sels = ['#qrimgright', '#barcodeImage', '.signed-off-div2 img']) {
-            await Promise.all(sels.map(async sel => {
-                const imgs = document.querySelectorAll(sel);
-                await Promise.all(Array.from(imgs).map(async img => {
-                    if (!img.src || img.src.startsWith('data:')) return;
-                    try { img.src = await urlToBase64(img.src); }
-                    catch { img.src = new URL(img.src, window.location.origin).href; }
-                }));
-            }));
-        }
-
-        async function ensureCriticalCodeAssetsReady() {
-            const qrEl  = document.getElementById('qrimgright');
-            const bcEl  = document.getElementById('barcodeImage');
-            const hasQr = !!(qrEl?.src?.startsWith('data:image'));
-            const hasBc = !!(bcEl?.src?.startsWith('data:image'));
-            if (hasQr && hasBc) return;
-            await Promise.allSettled([qrTask, barcodeTask]);
-            const retry = [];
-            if (qrEl && !qrEl.src)  { qrTask = qrcodegenerator();   retry.push(qrTask); }
-            if (bcEl && !bcEl.src)  { barcodeTask = barcodegenerator(); retry.push(barcodeTask); }
-            if (retry.length) await Promise.allSettled(retry);
-            await Promise.all([qrEl, bcEl].map(img => waitForImageReady(img, 850)));
-        }
-
-        function waitForImageReady(img, ms = 6000) {
-            if (!img || !img.src) return Promise.resolve();
-            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-            return new Promise(resolve => {
-                const done = () => resolve();
-                const t = setTimeout(done, ms);
-                img.addEventListener('load',  () => { clearTimeout(t); done(); }, { once: true });
-                img.addEventListener('error', () => { clearTimeout(t); done(); }, { once: true });
-            });
-        }
-
-        async function collectPdfPayload(extras = {}, opts = {}) {
-            const { skipImagePrep = false } = opts;
-            await renderTask;
-            await ensureCriticalCodeAssetsReady();
-            if (!skipImagePrep) { await ensureImagesBase64(); await waitForVisualReady(); }
-            const bgUrl = backgroundImageUrl ?? await templateImagePromise.catch(() => null);
-            return {
-                showlab:            reportformatlabsign,
-                showdoctorfirst:    reportformatfirstdoctorsign,
-                showdoctorsecond:   reportformatseconddoctorsign,
-                htmlContent:        document.querySelector('.container2').outerHTML,
-                cssContent:         document.getElementById('stying').innerHTML,
-                header:             document.querySelector('.report-details').outerHTML,
-                footer:             document.querySelector('.signed-off-div').outerHTML,
-                reportId:           value1,
-                backgroundImageUrl: bgUrl,
-                investigationmargin: countLines(),
-                ...extras
-            };
-        }
-
-        async function savePdfData(extras = {}) {
-            const r = await fetch(`/api/v1/user/adding-pdf-data`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(await collectPdfPayload(extras)) });
-            if (!r.ok) throw new Error('data not saved');
-        }
-
-        const buildViewPayloadKey = p => JSON.stringify({ ...p, value1, DownloadPdf: false });
-        const toViewPayload       = p => ({ ...p, backgroundImageUrl: null, checkBox: true, disableBackgroundImage: true });
-
-        function setPrefetch(blob, key) {
-            if (prefetchedViewBlobUrl) URL.revokeObjectURL(prefetchedViewBlobUrl);
-            prefetchedViewBlobUrl = URL.createObjectURL(blob);
-            prefetchedPayloadKey  = key;
-        }
-
-        async function fetchServerPdfBlob(payload) {
-            const r = await fetch(`/api/v1/user/get-pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, value1, DownloadPdf: false }) });
-            if (!r.ok) throw new Error('PDF generation failed');
-            return r.blob();
-        }
-
-        async function prewarmPdfInBackground() {
-            if (prewarmInFlight) return;
-            prewarmInFlight = true;
-            try {
-                const p   = await collectPdfPayload({}, { skipImagePrep: true });
-                const vp  = toViewPayload(p);
-                const key = buildViewPayloadKey(vp);
-                if (prefetchedViewBlobUrl && key === prefetchedPayloadKey) return;
-                const blob = await fetchServerPdfBlob(vp);
-                setPrefetch(blob, key);
-            } catch (e) { console.warn('PDF prewarm failed:', e); }
-            finally { prewarmInFlight = false; }
-        }
-
-        document.getElementById('PDFsettinganchr').addEventListener('click', async e => {
-            e.preventDefault();
-            try { await savePdfData(); window.location.href = document.getElementById('PDFsettinganchr').href; }
-            catch (e) { console.error(e); }
-        });
-
-        document.getElementById('viewPDF').addEventListener('click', async e => {
-            const loader = e.target.closest('.downloadDiv').querySelector('#loadingOverlay');
-            if (loader) loader.style.display = 'flex';
-            e.target.disabled = true;
-            const newTab = window.open('', '_blank');
-            if (!newTab) { alert('Popup blocked!'); if (loader) loader.style.display = 'none'; e.target.disabled = false; return; }
-            newTab.document.write(`<!DOCTYPE html><html><head><title>Opening PDF...</title><style>*{margin:0;padding:0}body{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#f0f4ff;font-family:Arial}.spinner{width:56px;height:56px;border:6px solid #c7d9ff;border-top:6px solid #1a73e8;border-radius:50%;animation:spin .85s linear infinite;margin-bottom:22px}@keyframes spin{to{transform:rotate(360deg)}}p{font-size:16px;color:#555}</style></head><body><div class="spinner"></div><p>Opening PDF...</p></body></html>`);
-            newTab.document.close();
-            try {
-                if (prefetchedViewBlobUrl) { newTab.location.href = prefetchedViewBlobUrl; return; }
-                const p    = await collectPdfPayload({}, { skipImagePrep: true });
-                const vp   = toViewPayload(p);
-                const key  = buildViewPayloadKey(vp);
-                const blob = await fetchServerPdfBlob(vp);
-                setPrefetch(blob, key);
-                newTab.location.href = prefetchedViewBlobUrl;
-            } catch (e) {
-                console.error(e);
-                newTab.document.open();
-                newTab.document.write(`<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;font-size:17px;color:red;">❌ PDF generation failed.</body></html>`);
-                newTab.document.close();
-            } finally { if (loader) loader.style.display = 'none'; e.target.disabled = false; }
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (prefetchedViewBlobUrl) URL.revokeObjectURL(prefetchedViewBlobUrl);
-            prefetchedViewBlobUrl = null; prefetchedPayloadKey = "";
-        });
-
-        async function sendReport() {
-            const btn        = document.getElementById('sendReport');
-            const modal      = document.getElementById('popupModal');
-            const closeBtn   = document.querySelector('.close-button');
-            const inputField = document.getElementById('inputField');
-            const contactIn  = document.getElementById('contactInput');
-            const sendBtn    = document.getElementById('sendButton');
-            const iframe     = document.getElementById('pdfFrame');
-
-            btn.addEventListener('click', async e => {
-                const loader = e.target.closest('.downloadDiv').querySelector('#loadingOverlay');
-                if (loader) loader.style.display = 'flex';
-                e.target.disabled = true;
-                try {
-                    const p = await collectPdfPayload();
-                    const r = await fetch(`/api/v1/user/get-pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, value1 }) });
-                    if (!r.ok) throw new Error('PDF failed');
-                    modal.style.display = 'block';
-                    iframe.src = URL.createObjectURL(await r.blob());
-                } catch { alert('Error generating PDF.'); modal.style.display = 'none'; }
-                finally { if (loader) loader.style.display = 'none'; e.target.disabled = false; }
-            });
-
-            closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
-            window.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
-
-            const setupInput = (placeholder, cb) => {
-                inputField.style.display = 'flex';
-                contactIn.value = ''; contactIn.placeholder = placeholder;
-                sendBtn.onclick = () => { const v = contactIn.value.trim(); if (!v) return alert('Enter valid input!'); cb(v, iframe.src); };
-            };
-
-            document.getElementById('smsButton').addEventListener('click',       () => setupInput('Enter Phone Number', sendSMS));
-            document.getElementById('whatsappButton').addEventListener('click',  () => setupInput('Enter WhatsApp Number', sendWhatsApp));
-            document.getElementById('emailButton').addEventListener('click',     () => setupInput('Enter Email Address', sendEmail));
-            document.getElementById('openPdfButton').addEventListener('click',   () => window.open(iframe.src, '_blank'));
-        }
-
-        async function sendSMS(phone, pdfUrl) {
-            const blob = await (await fetch(pdfUrl)).blob();
-            const fd   = new FormData();
-            fd.append('pdf', new File([blob], 'report.pdf', { type: 'application/pdf' }));
-            fd.append('phoneNumber', phone);
-            fd.append('message', 'This is your test report from OccuHealth. Thank you!');
-            try { const r = await fetch(`/api/v1/user/send-sms`, { method: 'POST', body: fd }); alert(r.ok ? 'SMS sent!' : 'SMS failed.'); }
-            catch { alert('SMS error.'); }
-        }
-
-        async function sendWhatsApp(num) {
-            if (!num || !/^\d+$/.test(num)) return alert("Enter valid WhatsApp number.");
-            window.open(`https://wa.me/${num}?text=${encodeURIComponent(`Your Lab test report from OccuHealth\n${urlWithParam}`)}`, '_blank');
-        }
-
-        async function sendEmail(email) {
-            try {
-                const r = await fetch(`/api/v1/user/send-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, subject: 'Your Test Report from OccuHealth', body: 'Your test report from OccuHealth.', urlWithParam }) });
-                alert(r.ok ? 'Email sent!' : 'Email failed.');
-            } catch { alert('Email error.'); }
-        }
-
-        async function fetchreport() {
-            try {
-                const r = await fetch(`/api/v1/user/ReportData`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value1 }) });
-                if (!r.ok) throw new Error('fetch failed');
-                return await r.json();
-            } catch (e) { console.log(e); }
-        }
-
-        function fmtDT(ts) {
-            const d   = new Date(ts);
-            const dd  = d.getDate().toString().padStart(2,'0');
-            const mm  = (d.getMonth()+1).toString().padStart(2,'0');
-            const yy  = d.getFullYear();
-            let   hh  = d.getHours();
-            const min = d.getMinutes().toString().padStart(2,'0');
-            const ap  = hh >= 12 ? 'PM' : 'AM';
-            hh = (hh % 12 || 12).toString().padStart(2,'0');
-            return `${dd}-${mm}-${yy} ${hh}:${min} ${ap}`;
-        }
-
-        // ══════════════════════════════════════════════════════════
-        //  populateHeader  –  exact match to images
-        //  LEFT: patient name+details+qr(hidden initially)
-        //  CENTER: barcode image + booking ID
-        //  RIGHT: "Scan to download" text + QR box + 4 date rows
-        // ══════════════════════════════════════════════════════════
-        async function populateHeader() {
-            const wrap = document.createElement('div');
-            wrap.className = 'hdr-wrap';
-
-            wrap.innerHTML = `
-            <!-- LEFT -->
-            <div class="hdr-left">
-                <div class="hdr-pt-name">${report.patientName || ''}</div>
-                <div class="hdr-pt-row"><span class="hdr-pt-label">Age / Sex</span><span class="hdr-pt-val">: ${report.year || ''} / ${report.gender || ''}</span></div>
-                <div class="hdr-pt-row"><span class="hdr-pt-label">Referred by</span><span class="hdr-pt-val">: ${report.doctorName || ''}</span></div>
-                <div class="hdr-pt-row"><span class="hdr-pt-label">Reg. no.</span><span class="hdr-pt-val">: ${report.bookingId || ''}</span></div>
-                <div class="hdr-qr-row">
-                    <img id="qrimg" src="" loading="eager" decoding="sync" style="display:none;">
-                    <div class="hdr-powered">Powered By www.OccuHealth.in</div>
-                </div>
-            </div>
-
-            <!-- CENTER -->
-            <div class="hdr-mid">
-                <img id="barcodeImage" alt="Barcode">
-                <div class="hdr-barcode-id">${report.bookingId || ''}</div>
-            </div>
-
-            <!-- RIGHT -->
-            <div class="hdr-right">
-                <div class="hdr-qr-block">
-                    <span class="hdr-scan-txt">Scan to download</span>
-                    <img id="qrimgright" src="" loading="eager" decoding="sync">
-                </div>
-                <div class="hdr-dates">
-                    <div class="hdr-date-row"><span class="hdr-dlabel">Registered on</span><span class="hdr-dval">: ${fmtDT(report.date || report.createdAt || Date.now())}</span></div>
-                    <div class="hdr-date-row"><span class="hdr-dlabel">Collected on</span><span class="hdr-dval">: ${fmtDT(report.collectedOn || report.date || Date.now())}</span></div>
-                    <div class="hdr-date-row"><span class="hdr-dlabel">Received on</span><span class="hdr-dval">: ${fmtDT(report.receivedOn || report.date || Date.now())}</span></div>
-                    <div class="hdr-date-row"><span class="hdr-dlabel">Reported on</span><span class="hdr-dval">: ${fmtDT(report.reportedOn || report.date || Date.now())}</span></div>
-                </div>
-            </div>`;
-
-            document.querySelector('.report-details').appendChild(wrap);
-
-            // Start QR async
-            qrTask = qrcodegenerator();
-            qrTask.catch(e => console.warn('QR failed:', e));
-        }
-
-        async function barcodegenerator() {
-            const booking = JSON.parse(localStorage.getItem('booking'));
-            try {
-                const r = await fetch(`/api/v1/user/generate-barcode?nonumber=true`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ number: booking.acceptedbarcode[0] || booking.bookingId, displayValue: false, background: 'transparent' })
-                });
-                if (r.ok) {
-                    const d  = await r.json();
-                    const bc = document.getElementById('barcodeImage');
-                    bc.src   = d.barcode;
-                    bc.style.background = 'transparent';
-                } else { console.warn('Barcode failed'); }
-            } catch (e) { console.error('Barcode error:', e); }
-        }
-
-        // ══════════════════════════════════════════════════════════
-        //  renderData  –  builds sections exactly as in images
-        // ══════════════════════════════════════════════════════════
-        async function renderData(data) {
-            const container = document.getElementById('tables-container');
-            const frag      = document.createDocumentFragment();
-            container.innerHTML = '';
-
-            const categories = Array.isArray(data?.CategoryAndTest) ? data.CategoryAndTest : [];
-
-            for (let i = 0; i < categories.length; i++) {
-                const cat = categories[i];
-
-                const secBox = document.createElement('div');
-                secBox.className = 'sec-box';
-                if (data.categorizedPDF && i > 0) secBox.classList.add('page-break');
-
-                // ── Category heading ──
-                const catDiv = document.createElement('div');
-                catDiv.className = 'sec-cat';
-                catDiv.textContent = cat.category;
-                secBox.appendChild(catDiv);
-
-                // ── Sub-title (only if different from category) ──
-                if (cat.title && cat.category !== cat.title && !cat.title.includes('Unknown Title')) {
-                    const subDiv = document.createElement('div');
-                    subDiv.className = 'sec-sub';
-                    subDiv.textContent = cat.title;
-                    secBox.appendChild(subDiv);
-                }
-
-                // ── Determine rendering mode ──
-                // If ALL tests are documented (isDocumented=true) OR none have a numeric value+unit+reference
-                // → use paragraph/label style (like PBS section in image)
-                // Otherwise → table style (like BIOCHEMISTRY in image)
-                const tests           = cat.tests || [];
-                const hasTableRows    = tests.some(t => t.testName && !t.isDocumented && (t.value !== undefined || t.unit || t.reference));
-                const isDocumentedCat = !hasTableRows;
-
-                if (isDocumentedCat) {
-                    // ── PARAGRAPH STYLE ──
-                    const docBody = document.createElement('div');
-                    docBody.className = 'sec-doc';
-
-                    tests.forEach(test => {
-                        if (!test.testName && !test.isDocumented) return;
-
-                        if (test.isDocumented) {
-                            // Rich HTML content
-                            const d = document.createElement('div');
-                            d.innerHTML = test.testName || '';
-                            d.style.marginBottom = '3px';
-                            docBody.appendChild(d);
-                        } else {
-                            // "LABEL    :- VALUE" style row
-                            const row = document.createElement('div');
-                            row.className = 'doc-row';
-                            const lbl = document.createElement('span');
-                            lbl.className = 'doc-lbl';
-                            lbl.textContent = test.testName;
-                            const val = document.createElement('span');
-                            val.className = 'doc-val';
-                            val.textContent = test.value ? `:- ${test.value}` : '';
-                            row.appendChild(lbl);
-                            row.appendChild(val);
-                            docBody.appendChild(row);
-                        }
-
-                        if (test.remark) {
-                            const r = document.createElement('div');
-                            r.style.cssText = 'font-size:11px;margin-left:148px;margin-bottom:3px;';
-                            r.innerHTML = `<b>Remark:</b> ${test.remark}`;
-                            docBody.appendChild(r);
-                        }
-                        if (test.details) {
-                            const d = document.createElement('div');
-                            d.style.cssText = 'font-size:11px;margin-bottom:3px;';
-                            d.innerHTML = test.details;
-                            docBody.appendChild(d);
-                        }
-                    });
-
-                    secBox.appendChild(docBody);
-
-                } else {
-                    // ── TABLE STYLE ──
-                    const table = document.createElement('table');
-                    table.className = 'sec-tbl';
-                    table.innerHTML = `<thead><tr>
-                        <th>TEST</th>
-                        <th>VALUE</th>
-                        <th>UNIT</th>
-                        <th>REFERENCE</th>
-                    </tr></thead>`;
-
-                    const tbody = document.createElement('tbody');
-
-                    tests.forEach(test => {
-                        if (!test.testName) return;
-
-                        if (test.pagebreak) {
-                            const pbRow = document.createElement('tr');
-                            pbRow.className = 'page-break';
-                            tbody.appendChild(pbRow);
-                        }
-
-                        if (test.isDocumented) {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `<td colspan="4" style="padding:0;border:none;">
-                                <div class="sec-doc" style="border:none;">${test.testName}</div>
-                            </td>`;
-                            tbody.appendChild(tr);
-                        } else {
-                            // Check H / L
-                            let abn   = Boolean(test.isBold || test.isAbnormal);
-                            let hlTag = '';
-                            if (!abn && test.reference) {
-                                const pts = test.reference.split(' - ');
-                                if (pts.length === 2) {
-                                    const lo = parseFloat(pts[0]);
-                                    const hi = parseFloat(pts[1]);
-                                    const v  = parseFloat(test.value);
-                                    if (!isNaN(lo) && !isNaN(hi) && !isNaN(v)) {
-                                        if (v < lo) { abn = true; hlTag = 'L'; }
-                                        else if (v > hi) { abn = true; hlTag = 'H'; }
-                                    }
-                                }
-                            }
-                            if (!abn && typeof test.value === 'string' && test.value.toLowerCase().includes('positive')) abn = true;
-
-                            const tr = document.createElement('tr');
-                            if (abn) tr.classList.add('row-abn');
-                            tr.innerHTML = `
-                                <td>${test.testName}</td>
-                                <td style="text-align:center;${abn ? 'font-weight:700;' : ''}">${hlTag ? `<span class="hl-tag">${hlTag}</span>` : ''}${test.value || ''}</td>
-                                <td>${test.unit || ''}</td>
-                                <td>${test.reference || ''}</td>`;
-                            tbody.appendChild(tr);
-                        }
-
-                        if (test.remark) {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `<td colspan="4" class="remark-cell"><b>Remark:</b> ${test.remark}</td>`;
-                            tbody.appendChild(tr);
-                        }
-                        if (test.details) {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `<td colspan="4" style="font-size:11px;padding:3px 10px;">${test.details}</td>`;
-                            tbody.appendChild(tr);
-                        }
-                    });
-
-                    // advice / notes / remarks rows
-                    ['advice', 'notes', 'remarks'].forEach(key => {
-                        if (cat[key]) {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `<td colspan="4" style="font-size:11px;padding:4px 10px;"><b>${key.charAt(0).toUpperCase()+key.slice(1)}:</b> ${cat[key]}</td>`;
-                            tbody.appendChild(tr);
-                        }
-                    });
-
-                    table.appendChild(tbody);
-                    secBox.appendChild(table);
-                }
-
-                // ── Interpretation ──
-                if (cat.interpretation) {
-                    const d = document.createElement('div');
-                    d.className = 'sec-interp';
-                    d.innerHTML = `<div class="sec-interp-title">Interpretation</div>${cat.interpretation}`;
-                    secBox.appendChild(d);
-                }
-
-                // ── Note ──
-                if (cat.note) {
-                    const d = document.createElement('div');
-                    d.className = 'sec-note';
-                    d.innerHTML = `<div class="sec-note-title">Note:</div>${cat.note}`;
-                    secBox.appendChild(d);
-                }
-
-                frag.appendChild(secBox);
-
-                if ((i + 1) % 2 === 0) {
-                    container.appendChild(frag);
-                    await new Promise(r => requestAnimationFrame(r));
-                }
-            }
-
-            if (frag.childNodes.length) container.appendChild(frag);
-
-            if (data.MoreDetails) {
-                const d = document.createElement('div');
-                d.style.cssText = 'padding:6px 4px 10px;font-size:11px;';
-                d.innerHTML = `<span>Additional Findings :-</span><br><div>${data.MoreDetails}</div>`;
-                container.appendChild(d);
-            }
-        }
-
-        async function fetchTemplateImages() {
-            try {
-                const r = await fetch(`/api/v1/user/templates`, { method: 'POST' });
-                const d = await r.json();
-                if (d.urls && Array.isArray(d.urls)) return d.urls[0].template;
-            } catch (e) { console.error('Template fetch error:', e); }
-        }
-
-        function countLines() { return document.querySelector('.report-details').offsetHeight; }
-
-        async function signoffdivfunction() {
-            const signBtn   = document.getElementById('signOff');
-            if (!signBtn) return;
-            const isLayerOne = user?.tenantId?.modelType === '1layer';
-            let isSignedOff  = Boolean(report.signOff);
-
-            const syncUI = signed => {
-                document.querySelectorAll('.click').forEach(b => b.classList.toggle('sign', !signed));
-                if (signOffEl) signOffEl.classList.toggle('sign', !signed);
-            };
-
-            const persist = async signoff => {
-                const upd = await collectPdfPayload({ bookingId: report.bookingId, isdocumented: report.isdocumented });
-                try {
-                    const d = doctorsSignCache || await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`).then(r => r.json());
-                    doctorsSignCache = d;
-                    if (signoff) Object.assign(upd, { showlab: d.showlabinchargesign, showdoctorfirst: d.showfirstdoctorsign, showdoctorsecond: d.showseconddoctorsign, fileInputLab: d.labinchargesign, fileInputDoctorleft: d.firstdoctorsign, fileInputDoctorright: d.seconddoctorsign, fileInputLabtext: d.labinchargeinfo, fileInputDoctorlefttext: d.firstdoctorsigninfo, fileInputDoctorrighttext: d.seconddoctorsigninfo });
-                } catch (e) { console.log(e.message); }
-                await Promise.all([
-                    fetch(`/api/v1/user/editReportsignofffield`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value1, signoff }) }),
-                    fetch(`/api/v1/user/adding-pdf-data`,        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(upd) })
-                ]);
-                isSignedOff = signoff; report.signOff = signoff;
-                await updateBooking(report.bookingId);
-                setTimeout(() => prewarmPdfInBackground(), 0);
-            };
-
-            if (isLayerOne) {
-                const w = signBtn.closest('.downloadDiv');
-                if (w) w.style.display = 'none';
-                syncUI(true);
-                if (!isSignedOff) persist(true).catch(e => console.error(e));
+    const urlParams = await new URLSearchParams(window.location.search);
+    let value1 = await urlParams.get('value1');
+    let report = await fetchreport(value1);
+    const backgroundImageUrl = await fetchTemplateImages();
+    value1 = report._id;
+    const baseUrl = `${BASE_URL}/pages/pages/download_reports.html`;
+    localStorage.setItem('myKey', value1);
+    localStorage.setItem('pdfformat', user.pdfFormat);
+
+    const urlWithParam = `${baseUrl}?value=${encodeURIComponent(value1)}&id=${encodeURIComponent(user.tenantId._id)}&format=${encodeURIComponent(user.pdfFormat)}`;
+    const { labinchargeinfo, sign } = await fetchLabSignAndSetInputs();
+    async function fetchdoctorsandlabsign() {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
+
+            if (!response.ok) {
+                console.log("doctor sign is not available");
                 return;
             }
 
-            syncUI(isSignedOff);
-            signBtn.addEventListener('click', async e => {
-                const loader = e.target.closest('.downloadDiv').querySelector('#loadingOverlay');
-                if (!loader) return;
-                loader.style.display = 'flex'; e.target.disabled = true;
-                const prev = isSignedOff;
-                try { await persist(!prev); syncUI(!prev); }
-                catch (e) { syncUI(prev); console.error(e); }
-                finally { loader.style.display = 'none'; e.target.disabled = false; }
-            });
+            const doctorsdata = await response.json();
+
+            const signoffdiv = document.querySelector('.signed-off-div');
+            signoffdiv.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'signed-off-div2';
+            div.innerHTML = `            
+            <div class="left-sign signdivstyleclass" style="display: ${doctorsdata.showlabinchargesign ? 'block' : 'none'};">
+                <img src="${doctorsdata.labinchargesign || ""}" width="90" height="32" /><br>
+                <div class="textspan">${doctorsdata.labinchargeinfo}</div>
+            </div>
+            <div class="left-sign signdivstyleclass" style="display: ${doctorsdata.showfirstdoctorsign ? 'block' : 'none'};">
+                <img src="${doctorsdata.firstdoctorsign || ""}" width="90" height="32" /><br>
+                <div class="textspan">${doctorsdata.firstdoctorsigninfo}</div>
+            </div>
+            <div class="right-sign signdivstyleclass" style="display: ${doctorsdata.showseconddoctorsign ? 'block' : 'none'};">
+            <img src="${doctorsdata.seconddoctorsign || ""}" width="90" height="32" /><br>
+            <div class="textspan">${doctorsdata.seconddoctorsigninfo}</div>
+            </div>
+            <div class="sign click qr-div format3qrdiv">
+                    <img id="qrimg"
+                        src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1730987604/vximbk8olbhmhmhp5ele.jpg" width="100" height="100">
+            </div>`;
+            signoffdiv.appendChild(div);
+            await qrcodegenerator();
+        } catch (error) {
+            console.log(error.message);
+        }
+    }
+
+    await fetchdoctorsandlabsign();
+    // Ye function ek hi jagah handle karega chahe single image ho ya multiple
+    async function convertImagesToBase64(selector = '.signed-off-div2 img') {
+        const images = document.querySelectorAll(selector); // selector ke hisaab se sabhi images nikalna
+
+        if (images.length === 0) {
+            console.warn("Koi image nahi mila is selector ke andar:", selector);
+            return;
         }
 
-        async function updateBooking(bookingid) {
+        try {
+            // Har image ko base64 me convert karke uska src update karna
+            for (let img of images) {
+                img.src = await imageToBase64(img.src);
+            }
+            console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
+        } catch (error) {
+            console.error("Error converting images:", error);
+        }
+    }
+
+    // Image URL ko Base64 string me convert karne wala helper function
+    async function imageToBase64(url) {
+        const response = await fetch(url);
+        const blob = await response.blob();
+
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+    }
+
+    // Example function call
+    // 1. Agar multiple images hain ek container me
+    await convertImagesToBase64('.signed-off-div2 img');
+
+
+    async function qrcodegenerator() {
+
+        try {
+            const response = await fetch(`/api/v1/user/generate-qr`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ link: urlWithParam }),
+            });
+
+            if (!response.ok) throw new Error('Failed to generate QR code.');
+
+            const data = await response.json();
+
+            const qrCodeImage = document.getElementById('qrimg');
+            console.log(qrCodeImage, "this is qr code image");
+
+            qrCodeImage.src = data.qrCode;
+            qrCodeImage.style.display = 'block';
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to generate QR code.');
+        }
+    }
+
+    function countLines() {
+        const span = document.querySelector(".report-details");
+        const totallines = span.offsetHeight;
+        return totallines;
+    }
+
+    // ==============================second sending code================================
+
+    document.getElementById('PDFsettinganchr').addEventListener('click', async (event) => {
+        event.preventDefault();
+        // Collecting the required data
+        const htmlContent = document.querySelector('.container2').outerHTML;
+        const cssContent = document.getElementById('stying').innerHTML;
+        const header = document.querySelector('.report-details').outerHTML;
+        const footer = document.querySelector('.signed-off-div').outerHTML;
+        const investigationmargin = countLines() + 20;
+
+        try {
+            // Sending data to the backend
+            const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    labinchargesign: report.showLabIncharge,
+                    htmlContent,
+                    cssContent,
+                    header,
+                    footer,
+                    reportId: value1,
+                    backgroundImageUrl,
+                    investigationmargin,
+                    format: user.pdfFormat
+                }),
+            });
+
+            if (!response.ok) throw new Error('Data not saved');
+
+            console.log('Data added successfully');
+            // If the response is OK, allow navigation
+            window.location.href = document.getElementById('PDFsettinganchr').href;
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        }
+    });
+
+
+    async function sendReport() {
+        const sendReportButton = document.getElementById('sendReport');
+        const popupModal = document.getElementById('popupModal');
+        const closeButton = document.querySelector('.close-button');
+        const inputField = document.getElementById('inputField');
+        const contactInput = document.getElementById('contactInput');
+        const sendButton = document.getElementById('sendButton');
+        const iframe = document.getElementById('pdfFrame');
+
+        const smsButton = document.getElementById('smsButton');
+        const whatsappButton = document.getElementById('whatsappButton');
+        const emailButton = document.getElementById('emailButton');
+        const openPdfButton = document.getElementById('openPdfButton');
+
+        sendReportButton.addEventListener('click', async (e) => {
+            const loader = e.target.closest(".downloadDiv").querySelector("#loadingOverlay");
+
+            if (!loader) {
+                console.error("Loading overlay not found");
+                return;
+            }
+
+            //saving pdf data into database
+            const htmlContent = document.querySelector('.container2').outerHTML;
+            const cssContent = document.getElementById('stying').innerHTML;
+            const header = document.querySelector('.report-details').outerHTML;
+            const footer = document.querySelector('.signed-off-div').outerHTML;
+            investigationmargin = countLines();
             try {
-                const r = await fetch(`/api/v1/user/CompleteBookingcontroller`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingid }) });
-                if (!r.ok) console.log('status not updated');
-            } catch (e) { console.log(e); }
-        }
+                loader.style.display = 'flex';
+                e.target.disable = true;
+                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin }),
+                });
 
-        async function downloadpdffunction() {
-            document.getElementById('downloadPDF').addEventListener('click', async e => {
-                const loader = e.target.closest('.downloadDiv').querySelector('#loadingOverlay');
-                if (!loader) return;
-                loader.style.display = 'flex'; e.target.disabled = true;
-                try {
-                    const p = await collectPdfPayload();
-                    const r = await fetch(`/api/v1/user/get-pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, value1, DownloadPdf: true }) });
-                    if (!r.ok) throw new Error('PDF failed');
-                    const blob     = await r.blob();
-                    const safeName = (report.patientName||'Patient').replace(/[^a-zA-Z0-9\u0900-\u097F\s]/g,'').trim().replace(/\s+/g,'_');
-                    const safeId   = (report.bookingId||'').replace(/[^a-zA-Z0-9]/g,'');
-                    const a        = document.createElement('a');
-                    a.href         = URL.createObjectURL(blob);
-                    a.download     = `${safeName}-${safeId}.pdf`;
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    await updateBooking(report.bookingId);
-                } catch (e) { console.error(e); }
-                finally { loader.style.display = 'none'; e.target.disabled = false; }
-            });
-        }
+                if (!response.ok) throw new Error('data not saved');
 
-        document.getElementById('BrowserPrint').addEventListener('click', () => {
-            const html = document.getElementById('container').innerHTML;
-            const css  = document.getElementById('stying').innerHTML;
-            const w    = window.open('', '_blank');
-            w.document.open();
-            w.document.write(`<html><head><title>Print</title><style>${css} body{font-family:Arial;margin:20px;}</style></head><body onload="window.print();window.close();">${html}</body></html>`);
-            w.document.close();
+                console.log("data added successfully");
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ value1 })
+                });
+                if (!response.ok) throw new Error('PDF generation failed');
+
+                if (popupModal.style.display === 'block') return;
+
+                popupModal.style.display = 'block';
+
+                loader.style.display = 'none';
+                e.target.disable = false;
+                // Create a Blob from the response
+                const pdfBlob = await response.blob();
+
+                // Create a URL for the Blob
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+
+                console.log(pdfUrl);
+                // Set the URL in the iframe
+                const iframe = document.getElementById('pdfFrame');
+                if (iframe) {
+                    iframe.src = pdfUrl;
+                } else {
+                    console.error('Iframe with ID "pdf-preview" not found!');
+                }
+            } catch (error) {
+                alert('Error generating PDF. Please try again.');
+                popupModal.style.display = 'none';
+            }
         });
 
-        function hidecontent() {
-            if (user.showprintsetting === false) document.getElementById('printsettingbutton').style.display = 'none';
-            if (user.tenantId.modelType === '1layer') {
-                document.getElementById('stying').textContent += `
-                #qrimgright { width:58px !important; height:48px !important; }
-                @media print { #qrimgright { width:50px !important; height:42px !important; } .hdr-wrap { min-height:60px !important; } }`;
+        closeButton.addEventListener('click', () => {
+            popupModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === popupModal) {
+                popupModal.style.display = 'none';
             }
+        });
+
+        const setupInputField = (placeholderText, actionCallback) => {
+            inputField.style.display = 'flex';
+            contactInput.value = "";
+            contactInput.placeholder = placeholderText;
+            sendButton.onclick = null;
+            sendButton.onclick = () => {
+                const contact = contactInput.value.trim();
+                if (!contact) return alert('Please enter a valid input!');
+                actionCallback(contact, iframe.src);
+            };
+        };
+
+        smsButton.addEventListener('click', () => setupInputField('Enter Phone Number for SMS', sendSMS));
+        whatsappButton.addEventListener('click', () => setupInputField('Enter WhatsApp Number', sendWhatsApp));
+        emailButton.addEventListener('click', () => setupInputField('Enter Email Address', sendEmail));
+
+        openPdfButton.addEventListener('click', () => {
+            window.open(iframe.src, '_blank');
+        });
+    }
+
+
+    // Logic to send SMS
+    async function sendSMS(phoneNumber, pdfUrl) {
+
+        // If the input is a blob, convert it into a File
+        const response = await fetch(pdfUrl);
+        const blob = await response.blob(); // Convert blob URL into actual Blob data
+        const pdfFile = new File([blob], "report2.pdf", { type: "application/pdf" }); // Create a File object
+        console.log('Phone:', phoneNumber); // Check file details
+
+        const formData = new FormData();
+        formData.append('pdf', pdfFile); // `selectedFile` is the file object
+        formData.append('phoneNumber', phoneNumber); // `selectedFile` is the file object
+        formData.append('message', 'This is your test report from OccuHealth. Thank you for using our services!'); // Example number
+
+        try {
+            // Replace this URL with your backend API endpoint for sending SMS
+            const response = await fetch(`${BASE_URL}/api/v1/user/send-sms`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert('SMS sent successfully!');
+            } else {
+                alert('Failed to send SMS. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error sending SMS:', error);
+            alert('An error occurred while sending the SMS.');
+        }
+    }
+
+    async function sendWhatsApp(whatsappNumber) {
+
+        if (!whatsappNumber || !/^\d+$/.test(whatsappNumber)) {
+            alert("Please enter a valid WhatsApp number without spaces or special characters.");
+            return;
         }
 
-    } catch (error) { markPageFailed(error); }
+
+        // Encode your custom message
+        const message = encodeURIComponent(`Your Lab test report from OccuHealth Click on the link below to download the report\n ${urlWithParam}`);
+
+        // Create WhatsApp link
+        const whatsappLink = `https://wa.me/${whatsappNumber}?text=${message}`;
+
+        // Redirect to WhatsApp
+        window.open(whatsappLink, "_blank");
+    }
+
+    // Logic to send Email
+    async function sendEmail(email) {
+        try {
+            // Replace this URL with your backend API endpoint for sending Emails
+            const response = await fetch(`${BASE_URL}/api/v1/user/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    subject: 'Your Test Report from OccuHealth',
+                    body: 'This is your test report from OccuHealth. Thank you for using our services!',
+                    urlWithParam
+                })
+            });
+
+            if (response.ok) {
+                alert('Email sent successfully!');
+            } else {
+                alert('Failed to send Email. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error sending Email:', error);
+            alert('An error occurred while sending the Email.');
+        }
+    }
+
+    async function fetchreport(value1) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ value1 })
+            });
+
+            if (!response.ok) {
+                throw new Error("something went wrong")
+            }
+
+            // Wait for the response to be parsed as JSON
+            return await response.json();
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    function getBookingBarcodeList() {
+        const booking = JSON.parse(localStorage.getItem('booking')) || {};
+        const acceptedbarcode = Array.isArray(booking.acceptedbarcode) ? booking.acceptedbarcode.filter(Boolean) : [];
+        const tableBarcodes = Array.isArray(booking.tableData)
+            ? booking.tableData.map((item) => item?.barcodeId).filter(Boolean)
+            : [];
+
+        return [...new Set([...acceptedbarcode, ...tableBarcodes])];
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function stripHtmlToText(value) {
+        const temp = document.createElement("div");
+        temp.innerHTML = String(value ?? "");
+        return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
+    }
+
+    function normalizeSampleText(value) {
+        return String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    }
+
+    function splitSampleTestNames(value) {
+        return String(value ?? "")
+            .split(",")
+            .map((item) => normalizeSampleText(item))
+            .filter(Boolean);
+    }
+
+    function normalizeDisplayTitle(value) {
+        return String(value ?? "").replace(/\s+/g, " ").trim();
+    }
+
+    function buildHeaderSampleTypeText(reportData = {}) {
+        const sampleTypes = [];
+        const seen = new Set();
+
+        const pushSampleType = (sampleTypeValue, barcodeValue = "") => {
+            const sampleType = String(sampleTypeValue ?? "").trim();
+            const barcodeId = String(barcodeValue ?? "").trim();
+            const label = [sampleType, barcodeId ? `(${barcodeId})` : ""].filter(Boolean).join(" ");
+            if (!sampleType) {
+                return;
+            }
+            const key = `${sampleType.toLowerCase()}__${barcodeId.toLowerCase()}`;
+            if (seen.has(key)) {
+                return;
+            }
+            seen.add(key);
+            sampleTypes.push(label || sampleType);
+        };
+
+        if (Array.isArray(reportData?.sampleDetails) && reportData.sampleDetails.length) {
+            reportData.sampleDetails.forEach((entry) => {
+                pushSampleType(entry?.sampleType || entry?.typeOfSample, entry?.barcodeId);
+            });
+        } else if (Array.isArray(reportData?.CategoryAndTest)) {
+            reportData.CategoryAndTest.forEach((section) => {
+                (section?.sampleDetails || []).forEach((entry) => {
+                    pushSampleType(entry?.sampleType || entry?.typeOfSample, entry?.barcodeId);
+                });
+            });
+        }
+
+        if (!sampleTypes.length) {
+            const booking = JSON.parse(localStorage.getItem('booking')) || {};
+            (booking.tableData || []).forEach((item) => {
+                pushSampleType(item?.typeOfSample, item?.barcodeId || item?.confirmBarcodeId);
+            });
+        }
+
+        return sampleTypes.join(", ");
+    }
+
+    function getCategorySampleDetails(categoryData = {}) {
+        const normalizedSectionTests = new Set(
+            (categoryData.tests || [])
+                .map((test) => normalizeSampleText(stripHtmlToText(test?.testName)))
+                .filter(Boolean)
+        );
+
+        const booking = JSON.parse(localStorage.getItem('booking')) || {};
+        const candidateDetails = Array.isArray(report?.sampleDetails) && report.sampleDetails.length
+            ? report.sampleDetails
+            : (Array.isArray(booking.tableData) ? booking.tableData : []);
+
+        const sampleDetails = [];
+        const seen = new Set();
+
+        candidateDetails.forEach((entry) => {
+            const barcodeId = String(entry?.barcodeId ?? "").trim();
+            const sampleType = String(entry?.sampleType ?? entry?.typeOfSample ?? "").trim();
+            const testNames = Array.isArray(entry?.testNames) && entry.testNames.length
+                ? entry.testNames.map((item) => normalizeSampleText(item)).filter(Boolean)
+                : splitSampleTestNames(entry?.testName);
+
+            const matchesSection = testNames.some((name) => normalizedSectionTests.has(name));
+            if (!matchesSection && Array.isArray(report?.sampleDetails) && report.sampleDetails.length) {
+                return;
+            }
+
+            if (!barcodeId && !sampleType) {
+                return;
+            }
+
+            const key = `${barcodeId}__${sampleType}`;
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            sampleDetails.push({ barcodeId, sampleType, testNames });
+        });
+
+        return sampleDetails;
+    }
+
+    function buildCategorySampleText(categoryData = {}) {
+        return [...new Set(
+            getCategorySampleDetails(categoryData)
+                .map((item) => item.sampleType)
+                .filter(Boolean)
+        )].join(", ");
+    }
+
+    function buildCategoryHeadingMarkup(categoryData = {}) {
+        const categoryText = normalizeDisplayTitle(categoryData?.category);
+        const titleText = normalizeDisplayTitle(categoryData?.title);
+
+        const safeCategory = escapeHtml(categoryText);
+        const safeTitle = escapeHtml(titleText);
+
+        if (categoryText && titleText && categoryText !== titleText) {
+            return `
+                <div class="section-heading-main">${safeCategory}</div>
+                <div class="section-heading-sub">${safeTitle}</div>
+            `;
+        }
+
+        return `<div class="section-heading-main">${safeCategory || safeTitle}</div>`;
+    }
+
+    function buildMultiParameterTestName(test = {}) {
+        return toTitleCase(normalizeDisplayTitle(test?.Name || stripHtmlToText(test?.testName)));
+    }
+
+    function toTitleCase(value = "") {
+        return String(value)
+            .toLowerCase()
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function buildParameterDisplayName(param = {}) {
+        return normalizeDisplayTitle(param?.Para_name || param?.parameterName || param?.name || "");
+    }
+
+    function buildTestRowValue(item = {}) {
+        return item?.value ?? item?.result ?? item?.defaultresult ?? "";
+    }
+
+    function buildTestRowUnit(item = {}) {
+        return item?.unit ?? "";
+    }
+
+    function buildTestRowReference(item = {}) {
+        return item?.reference ?? item?.text ?? "";
+    }
+
+    function pickPrimarySampleDetail(categoryData = {}) {
+        const sampleDetails = getCategorySampleDetails(categoryData);
+
+        if (!sampleDetails.length) {
+            return null;
+        }
+
+        return sampleDetails.reduce((best, current) => {
+            const bestCount = Array.isArray(best?.testNames) ? best.testNames.length : 0;
+            const currentCount = Array.isArray(current?.testNames) ? current.testNames.length : 0;
+
+            if (currentCount > bestCount) {
+                return current;
+            }
+
+            return best;
+        }, sampleDetails[0]);
+    }
+
+    function getReportSampleDetails(reportData = {}) {
+        const sampleDetails = [];
+        const seen = new Set();
+        const booking = JSON.parse(localStorage.getItem('booking')) || {};
+        const sections = Array.isArray(reportData?.sampleDetails) && reportData.sampleDetails.length
+            ? [{ sampleDetails: reportData.sampleDetails }]
+            : (Array.isArray(reportData?.CategoryAndTest) ? reportData.CategoryAndTest : []);
+
+        sections.forEach((section) => {
+            (section?.sampleDetails || []).forEach((entry) => {
+                const barcodeId = String(entry?.barcodeId ?? "").trim();
+                const sampleType = String(entry?.sampleType ?? "").trim();
+                const testNames = Array.isArray(entry?.testNames) ? entry.testNames.filter(Boolean) : [];
+
+                if (!barcodeId && !sampleType) {
+                    return;
+                }
+
+                const key = `${barcodeId}__${sampleType}`;
+                if (seen.has(key)) {
+                    return;
+                }
+
+                seen.add(key);
+                sampleDetails.push({ barcodeId, sampleType, testNames });
+            });
+        });
+
+        if (sampleDetails.length) {
+            return sampleDetails;
+        }
+
+        const fallbackTableData = Array.isArray(reportData?.tableData) && reportData.tableData.length
+            ? reportData.tableData
+            : (booking.tableData || []);
+
+        fallbackTableData.forEach((item) => {
+            const barcodeId = String(item?.barcodeId ?? "").trim();
+            const sampleType = String(item?.typeOfSample ?? "").trim();
+            const testNames = splitSampleTestNames(item?.testName);
+            const key = `${barcodeId}__${sampleType}`;
+
+            if ((!barcodeId && !sampleType) || seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            sampleDetails.push({ barcodeId, sampleType, testNames });
+        });
+
+        return sampleDetails;
+    }
+
+    function buildSampleDetailsMarkup(reportData = {}) {
+        const sampleDetails = getReportSampleDetails(reportData);
+
+        if (!sampleDetails.length) {
+            return "";
+        }
+
+        return sampleDetails.map((item) => {
+            const label = [item.sampleType, item.barcodeId ? `(${item.barcodeId})` : ""].filter(Boolean).join(" ");
+            const tooltip = item.testNames?.length ? item.testNames.join(", ") : label;
+            return `
+                <span class="sample-chip" title="${escapeHtml(tooltip)}"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#eef4ff;color:#1a73e8;font-size:12px;font-weight:600;white-space:nowrap;margin:0 6px 6px 0;">
+                    ${escapeHtml(label)}
+                </span>
+            `;
+        }).join("");
+    }
+
+    function formatDateTime(timestamp) {
+        const date = new Date(timestamp);
+
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ensure 2-digit month
+        const day = date.getDate().toString().padStart(2, '0');
+
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const amPm = hours >= 12 ? 'PM' : 'AM';
+
+        hours = (hours % 12 || 12).toString().padStart(2, '0'); // Ensure 2-digit hour format
+
+        return `${day}-${month}-${year} <span>${hours}:${minutes} ${amPm}</span>`;
+    }
+
+    async function populateHeader() {
+        document.getElementById("booking-registeration-number").innerText = report.reg_id;
+        const headerSampleTypeText = buildHeaderSampleTypeText(report);
+
+        const patientdetails = document.createElement("div");
+        patientdetails.classList.add("report-details-innerDiv2");
+        patientdetails.innerHTML = `<div class="left2">
+                <div class="infor-div"><div class="tags"><Strong>Patient Name :</strong></div><div class="value"><strong>${report.patientName?.toUpperCase()}</strong></div></div>
+                <div class="infor-div forhide"><div class="tags">Lab Name :</div> <div class="value">${report.labName}</div></div>
+                <div class="infor-div"><div class="tags">Age / Sex :</div> <div class="value">${report.year} / ${report.gender}</div></div>
+                <div class="infor-div"><div class="tags">Referred By :</div> <div class="value">${report.doctorName}</div></div>
+                <div class="infor-div"><div class="tags">Reg. no :</div> <div class="value">${report.bookingId}</div></div>
+                ${headerSampleTypeText ? `<div class="infor-div" id="sampleTypeDiv"><div class="tags">Sample Type :</div><div class="value">${escapeHtml(headerSampleTypeText)}</div></div>` : ""}
+                <div class="infor-div forhide" id="investDiv">
+                    <div class="tags">Investigations :</div> 
+                        <div class="value">${report.uniquetestArray}
+                        </div>
+                </div>
+            </div>
+            <div class="right2">
+                <div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2">Registered on :</div>
+                        <div class="time-div">${formatDateTime(new Date(report.date).toISOString().split('T')[0] + "T" + report.time)}</div>
+                        </div>
+                        <div class="registered-div2 forhide">
+                            <div class="registeration-tag2">Collected on :</div>
+                            <div class="time-div">${formatDateTime(report.collectedOn)}</div>
+                        </div>
+                    <div class="registered-div2 forhide">
+                        <div class="registeration-tag2">Received on :</div>
+                        <div class="time-div">${formatDateTime(report.receivedOn)}</div>
+                    </div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2">Reported on :</div>
+                        <div class="time-div">${formatDateTime(report.reportedOn)}</div>
+                    </div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2"><strong>Report Status :</strong></div>
+                        <div class="time-div"><strong>${report.status}</strong></div>
+                    </div>
+                </div>
+            </div>`;
+
+        document.querySelector(".report-details").appendChild(patientdetails);
+    }
+    console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
+
+    await populateHeader();
+
+    async function barcodegenerator() {
+        const booking = JSON.parse(localStorage.getItem('booking')) || {};
+        const barcodeList = getBookingBarcodeList();
+        const barcodeNumber = barcodeList[0] || booking.bookingId || report.bookingId;
+
+        if (!barcodeNumber) {
+            console.warn("Barcode source not available for reportFormat");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/generate-barcode?nonumber=false`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ number: barcodeNumber }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById("barcodeImage").src = data.barcode; // Display the barcode image
+            } else {
+                alert("Failed to generate barcode!");
+            }
+        } catch (error) {
+            console.error("Error generating barcode:", error);
+            alert("An error occurred. Please try again.");
+        }
+    }
+
+    barcodegenerator();
+
+    async function generateSectionBarcode(barcodeNumber, imageId, labelId) {
+        if (!barcodeNumber) {
+            const label = document.getElementById(labelId);
+            if (label) {
+                label.textContent = "";
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/generate-barcode?nonumber=false`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number: barcodeNumber }),
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            const barcodeImage = document.getElementById(imageId);
+            const barcodeLabel = document.getElementById(labelId);
+
+            if (barcodeImage) {
+                barcodeImage.src = data.barcode;
+                barcodeImage.style.display = 'block';
+            }
+
+            if (barcodeLabel) {
+                barcodeLabel.textContent = barcodeNumber;
+            }
+        } catch (error) {
+            console.error("Error generating section barcode:", error);
+        }
+    }
+
+
+    async function renderData(data) {
+        const container = document.getElementById("tables-container");
+        container.innerHTML = "";
+        const barcodeTasks = [];
+
+        data.CategoryAndTest.forEach((categoryData, index) => {
+            const section = document.createElement("div");
+            section.className = "section";
+            if (data.categorizedPDF && index > 0) {
+                section.classList.add("page-break");
+            }
+
+            const table = document.createElement("table");
+            table.className = "test-table";
+
+            // ✅ Table header with proper class for styling
+            const thead = document.createElement("thead");
+            thead.innerHTML = `
+            <tr>
+                <th class="deletion"></th>
+                <th>Test Name</th>
+                <th class="valuecell">Value</th>
+                <th>Unit</th>
+                <th>Reference</th>
+            </tr>
+        `;
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            const headingRow = document.createElement("tr");
+            headingRow.className = "section-heading-row";
+            headingRow.innerHTML = `
+                <td colspan="5" class="section-heading-cell">
+                    <div class="section-heading-wrap">
+                        <div class="section-heading-text">${buildCategoryHeadingMarkup(categoryData)}</div>
+                        <span class="delete-btn section-delete-btn" title="Delete Pannel">
+                            <i class="fa-sharp fa-solid fa-xmark"></i>
+                        </span>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(headingRow);
+            headingRow.querySelector(".section-delete-btn")?.addEventListener("click", () => {
+                section.remove();
+            });
+
+            categoryData.tests.forEach((test, rowIndex) => {
+                const hasMultipleParameters = Array.isArray(test?.parameters) && test.parameters.length > 1;
+
+                if (hasMultipleParameters) {
+                    const parentRow = document.createElement("tr");
+
+                    if (test.pagebreak) {
+                        parentRow.classList.add("page-break");
+                    }
+                    parentRow.classList.add("multi-test-row");
+                    parentRow.innerHTML = `
+                        <td class="wrong">
+                            <span class="delete-row-icon" title="Delete Row">
+                                <i class="fa-sharp fa-solid fa-xmark"></i>
+                            </span>
+                        </td>
+                        <td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
+                            ${escapeHtml(buildMultiParameterTestName(test))}
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    `;
+                    tbody.appendChild(parentRow);
+
+                    test.parameters.forEach((param) => {
+                        const paramRow = document.createElement("tr");
+                        paramRow.classList.add("multi-test-row"); // ✅ Remove padding/indentation
+
+                        if (param?.pagebreak) {
+                            paramRow.classList.add("page-break");
+                        }
+
+                        paramRow.innerHTML = `
+                            <td class="wrong">
+                                <span class="delete-row-icon" title="Delete Row">
+                                    <i class="fa-sharp fa-solid fa-xmark"></i>
+                                </span>
+                            </td>
+                            <td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
+                                <div class="parameter-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${escapeHtml(buildParameterDisplayName(param))}</div>
+                            </td>
+                            <td class="high-low">
+                                <div class="HL"><span></span></div>
+                                <span>${escapeHtml(buildTestRowValue(param))}</span>
+                            </td>
+                            <td>${escapeHtml(buildTestRowUnit(param))}</td>
+                            <td>${escapeHtml(buildTestRowReference(param))}</td>
+                        `;
+                        tbody.appendChild(paramRow);
+                    });
+
+                    // ✅ Render Remark for multi-parameter test (No extra indentation, aligned left)
+                    if (test.remark) {
+                        // Removed multi-test-row class as it was causing issues with alignment for remarks/details
+                        const remarkRow = document.createElement("tr");
+                        remarkRow.classList.add("multi-test-row");
+                        const remarkCellEmpty = document.createElement("td");
+                        remarkCellEmpty.classList.add("wrong");
+
+                        const remarkCell = document.createElement("td");
+                        remarkCell.colSpan = 4;
+                        remarkCell.className = "remark-row";
+                        remarkCell.style.paddingLeft = "0";
+                        remarkCell.style.marginLeft = "0";
+                        remarkCell.style.textIndent = "0";
+                        remarkCell.innerHTML = `Remark: ${test.remark}`; // No div/span to avoid 55% margin-left
+
+                        remarkRow.appendChild(remarkCellEmpty);
+                        remarkRow.appendChild(remarkCell);
+                        tbody.appendChild(remarkRow);
+                    }
+
+                    // ✅ Render Details for multi-parameter test (No extra indentation, aligned left)
+                    if (test.details) {
+                        // Removed multi-test-row class as it was causing issues with alignment for remarks/details
+                        const detailsRow = document.createElement("tr");
+                        detailsRow.classList.add("multi-test-row");
+                        const detailsCellEmpty = document.createElement("td");
+                        detailsCellEmpty.classList.add("wrong");
+
+                        const detailsCell = document.createElement("td");
+                        detailsCell.colSpan = 4;
+                        detailsCell.className = "details-row";
+                        detailsCell.style.paddingLeft = "0";
+                        detailsCell.style.marginLeft = "0";
+                        detailsCell.style.textIndent = "0";
+                        detailsCell.innerHTML = `<div class="documented-content" style="margin: 0; padding: 0;">${test.details}</div>`;
+
+                        detailsRow.appendChild(detailsCellEmpty);
+                        detailsRow.appendChild(detailsCell);
+                        tbody.appendChild(detailsRow);
+                    }
+
+                    return;
+                }
+
+                let testRow;
+
+                if (test.testName) {
+                    testRow = document.createElement("tr");
+                    const rawTestName = String(test?.testName ?? "");
+                    const isParameterRow = Boolean(test?.isParameter) || /id=(["'])parameters\1/.test(rawTestName);
+                    const isMultiHeaderRow = Boolean(test?.isMultiHeader) || (!isParameterRow && !!rawTestName && !test?.value && !test?.unit && !test?.reference);
+
+                    if (isMultiHeaderRow || isParameterRow) {
+                        testRow.classList.add("multi-test-row");
+                    }
+
+                    if (test.pagebreak) {
+                        testRow.classList.add('page-break');
+                    }
+
+                    let isBold = false;
+                    let testNameSuffix = "";
+
+                    if (test.reference) {
+                        const referenceParts = test.reference.split(" - ");
+                        if (referenceParts.length === 2) {
+                            const lowerLimit = parseFloat(referenceParts[0]);
+                            const upperLimit = parseFloat(referenceParts[1]);
+                            const testValue = parseFloat(test.value);
+
+                            if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
+                                if (testValue < lowerLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "L";
+                                } else if (testValue > upperLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "H";
+                                }
+                            }
+                        }
+                    }
+
+                    if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
+                        isBold = true;
+                    }
+
+                    if (isBold) {
+                        testRow.style.fontWeight = "bold";
+                        testRow.classList.add('BoldRow');
+                    }
+
+                    // ✅ Style only the multi-parameter parent test name
+                    const renderedTestName = rawTestName
+                        ? (isMultiHeaderRow
+                            ? escapeHtml(toTitleCase(stripHtmlToText(rawTestName)))
+                            : rawTestName)
+                        : "";
+
+                    // ✅ FIXED: Documented test with proper colspan
+                    if (test.isDocumented) {
+                        testRow.innerHTML = `
+                    <td class="wrong">
+                        <span class="delete-row-icon" title="Delete Row">
+                            <i class="fa-sharp fa-solid fa-xmark"></i>
+                        </span>
+                    </td>
+                    <td colspan="4" style="padding: 0; border: none;">
+                        <div class="documented-content">
+                            ${isMultiHeaderRow
+                                ? `<div class="test-name multi-test-name">${renderedTestName || ""}</div>`
+                                : (renderedTestName || "")}
+                        </div>
+                    </td>
+                `;
+                    } else {
+                        // ✅ Regular test row
+                        testRow.innerHTML = `
+                    <td class="wrong">
+                        <span class="delete-row-icon" title="Delete Row">
+                            <i class="fa-sharp fa-solid fa-xmark"></i>
+                        </span>
+                    </td>
+                    ${isMultiHeaderRow
+                        ? `<td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${renderedTestName || ""}</td>`
+                        : (renderedTestName || "")}
+                    <td class="high-low">
+                        <div class="HL"><span>${testNameSuffix}</span></div>
+                        <span>${test.value || ""}</span>
+                    </td>
+                    <td>${test.unit || ""}</td>
+                    <td>${test.reference || ""}</td>
+                `;
+                    }
+
+                    tbody.appendChild(testRow);
+                }
+
+
+                // ✅ Remark row
+                if (test.remark) {
+                    const remarkRow = document.createElement("tr");
+                    const remarkCellEmpty = document.createElement("td");
+                    remarkCellEmpty.classList.add("wrong");
+
+                    const remarkCell = document.createElement("td");
+                    remarkCell.colSpan = 4;
+                    remarkCell.className = "remark-row";
+                    remarkCell.innerHTML = `<div>Remark:</div> <span>${test.remark}</span>`;
+
+                    remarkRow.appendChild(remarkCellEmpty);
+                    remarkRow.appendChild(remarkCell);
+                    tbody.appendChild(remarkRow);
+                }
+
+                // ✅ FIXED: Details row (can contain CKEditor content)
+                if (test.details) {
+                    const detailsRow = document.createElement("tr");
+
+                    const detailsCellEmpty = document.createElement("td");
+                    detailsCellEmpty.classList.add("wrong");
+
+                    const detailsCell = document.createElement("td");
+                    detailsCell.colSpan = 4;
+                    detailsCell.className = "details-row";
+
+                    // ✅ Wrap details in documented-content div for proper isolation
+                    detailsCell.innerHTML = `
+        <div class="documented-content">
+            ${test.details}
+        </div>
+    `;
+
+                    detailsRow.appendChild(detailsCellEmpty);
+                    detailsRow.appendChild(detailsCell);
+
+                    // ✅ Remove any unwanted spacing/margins
+                    detailsRow.style.margin = "0";
+                    detailsRow.style.padding = "0";
+
+                    tbody.appendChild(detailsRow);
+                }
+
+                // Delete functionality
+                const deleteIcon = testRow?.querySelector(".delete-row-icon");
+                if (deleteIcon) {
+                    deleteIcon.addEventListener("click", () => {
+                        const currentRow = deleteIcon.closest("tr");
+                        let nextRow = currentRow.nextElementSibling;
+
+                        if (nextRow && nextRow.querySelector(".remark-row")) {
+                            nextRow.remove();
+                            nextRow = currentRow.nextElementSibling;
+                        }
+                        if (nextRow && nextRow.querySelector(".details-row")) {
+                            nextRow.remove();
+                        }
+
+                        currentRow.remove();
+                    });
+                }
+            });
+
+            // ✅ FIXED: Table-level advice, notes, remarks (can contain CKEditor content)
+            if (categoryData.advice) {
+                const adviceRow = document.createElement("tr");
+                const adviceCellEmpty = document.createElement("td");
+                adviceCellEmpty.classList.add("wrong");
+
+                const adviceCell = document.createElement("td");
+                adviceCell.colSpan = 4;
+                adviceCell.className = "advice";
+                adviceCell.innerHTML = `
+                <div>Advice:</div> 
+                <span class="documented-content">${categoryData.advice}</span>
+            `;
+
+                adviceRow.appendChild(adviceCellEmpty);
+                adviceRow.appendChild(adviceCell);
+                tbody.appendChild(adviceRow);
+            }
+
+            if (categoryData.notes) {
+                const notesRow = document.createElement("tr");
+                const notesCellEmpty = document.createElement("td");
+                notesCellEmpty.classList.add("wrong");
+
+                const notesCell = document.createElement("td");
+                notesCell.colSpan = 4;
+                notesCell.className = "notes";
+                notesCell.innerHTML = `
+                <div>Notes:</div> 
+                <span class="documented-content">${categoryData.notes}</span>
+            `;
+
+                notesRow.appendChild(notesCellEmpty);
+                notesRow.appendChild(notesCell);
+                tbody.appendChild(notesRow);
+            }
+
+            if (categoryData.remarks) {
+                const remarksRow = document.createElement("tr");
+                const remarksCellEmpty = document.createElement("td");
+                remarksCellEmpty.classList.add("wrong");
+
+                const remarksCell = document.createElement("td");
+                remarksCell.colSpan = 4;
+                remarksCell.className = "remarks";
+                remarksCell.innerHTML = `
+                <div>Remarks:</div> 
+                <span class="documented-content">${categoryData.remarks}</span>
+            `;
+
+                remarksRow.appendChild(remarksCellEmpty);
+                remarksRow.appendChild(remarksCell);
+                tbody.appendChild(remarksRow);
+            }
+
+            table.appendChild(tbody);
+
+            // ✅ FIXED: Interpretation (can contain CKEditor content)
+            if (categoryData.interpretation) {
+                const interpretationRow = document.createElement("tr");
+                const interpretationCellEmpty = document.createElement("td");
+                interpretationCellEmpty.classList.add("wrong");
+
+                const interpretationCell = document.createElement("td");
+                interpretationCell.colSpan = 4;
+
+                const interpretation = document.createElement("div");
+                interpretation.className = "interpretation";
+                interpretation.innerHTML = `
+                <p style="font-weight: bold;">Interpretation</p> 
+                <div class="documented-content">${categoryData.interpretation}</div>
+            `;
+
+                interpretationCell.appendChild(interpretation);
+                interpretationRow.appendChild(interpretationCellEmpty);
+                interpretationRow.appendChild(interpretationCell);
+                tbody.appendChild(interpretationRow);
+            }
+
+            section.appendChild(table);
+
+            container.appendChild(section);
+        });
+
+        // Additional details
+        if (data.MoreDetails) {
+            const MoreDetails = document.createElement("div");
+            MoreDetails.className = "moreDetails";
+            MoreDetails.innerHTML = `
+            <span>Additional Findings :-</span><br> 
+            <div class="documented-content">${data.MoreDetails}</div>
+        `;
+            container.appendChild(MoreDetails);
+        }
+
+        await Promise.all(barcodeTasks);
+    }
+
+
+    // Call the function to render the data
+    await renderData(report);
+
+    async function fetchTemplateImages() {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/templates`, { method: "POST" }); // Update URL as per your backend
+            const data = await response.json();
+
+            if (data.urls && Array.isArray(data.urls)) {
+                const imageurl = data.urls[0].template;
+                return imageurl;
+            } else {
+                console.error('No URLs found:', data);
+            }
+        } catch (error) {
+            console.error('Error fetching template images:', error);
+        }
+    };
+
+    // await convertAllImagesToBase64();
+    await signoffdivfunction();
+    downloadpdffunction();
+
+    async function signoffdivfunction() {
+        if (report.signOff) {
+            // Select all buttons with the class 'click'
+            const targetButtons = document.querySelectorAll(".click");
+
+            // Remove the 'sign' class from each button
+            targetButtons.forEach(button => {
+                if (button.classList.contains("sign")) {
+                    button.classList.remove("sign");
+                }
+            });
+        }
+
+        document.getElementById("signOff").addEventListener("click", async function (e) {
+
+            const loader = e.target.closest(".downloadDiv").querySelector("#loadingOverlay");
+
+            if (!loader) {
+                console.error("Loading overlay not found");
+                return;
+            }
+
+            loader.style.display = 'flex';
+            e.target.disable = true;
+
+            // Select all target buttons
+            const targetButtons = document.querySelectorAll(".click");
+
+            // Toggle class for each target button
+            targetButtons.forEach(button => {
+                button.classList.toggle("sign");
+            });
+            //saving pdf data into database
+            const htmlContent = document.querySelector('.container2').outerHTML;
+            const cssContent = document.getElementById('stying').innerHTML;
+            const header = document.querySelector('.report-details').outerHTML;
+            const footer = document.querySelector('.signed-off-div').outerHTML;
+            investigationmargin = countLines();
+            // Check if any button has the 'sign' class
+            const anyButtonHasSign = Array.from(targetButtons).some(button => button.classList.contains('sign'));
+            let signoff
+
+            if (anyButtonHasSign) {
+                signoff = false;
+            } else {
+                signoff = true;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/editReportsignofffield`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ value1, signoff }),
+                });
+
+                if (!response.ok) throw new Error('signoff field no updated');
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin, bookingId: report.bookingId, isdocumented: report.isDocumented, format: user.pdfFormat }),
+                });
+
+                if (!response.ok) throw new Error('data not saved');
+
+                await updatebookingisreportreadyfield(report.bookingId);
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+            } finally {
+                loader.style.display = 'none';
+                e.target.disable = false;
+            }
+        });
+    }
+
+    async function updatebookingisreportreadyfield(bookingid) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/CompleteBookingcontroller`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ bookingid }),
+            });
+            if (!response.ok) {
+                console.log("status not updated");
+            }
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    async function fetchLabSignAndSetInputs() {
+        try {
+            // Send a POST request to the API with value1 in the request body
+            const response = await fetch(`/api/v1/user/getDoctorsSign`);
+
+            // Check if the response is okay
+            if (!response.ok) {
+                console.log('Failed to fetch data from API');
+            }
+
+            // Parse the response JSON
+            const data = await response.json();
+
+            if (data) {
+                return {
+                    labinchargeinfo: data.labinchargeinfo,
+                    sign: data.labinchargesign
+                };
+            }
+            return {
+                labinchargeinfo: null,
+                sign: null
+            };
+
+        } catch (error) {
+            console.error('Error fetching data and setting inputs:', error.message);
+        }
+    };
+
+    // -----------------------------------new pdf generator--------------------------------------
+    async function downloadpdffunction({ labinchargesign = null, checkBox = false, labinchargeinfo = "",
+        backgroundImageUrl = null, headermargin, footermargin, marginRight, marginLeft,
+        labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow, HLinred: HLinred,
+        BoldRow, showInvest, DownloadPdf = true } = {}) {
+        document.getElementById('downloadPDF').addEventListener('click', async (e) => {
+            const loader = e.target.closest(".downloadDiv").querySelector("#loadingOverlay");
+
+            if (!loader) {
+                console.error("Loading overlay not found");
+                return;
+            }
+
+            loader.style.display = 'flex';
+            e.target.disable = true;
+
+
+            //saving pdf data into database
+            const htmlContent = document.querySelector('.container2').outerHTML;
+            const cssContent = document.getElementById('stying').innerHTML;
+            const header = document.querySelector('.report-details').outerHTML;
+            const footer = document.querySelector('.signed-off-div').outerHTML;
+            investigationmargin = countLines();
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin, format: user.pdfFormat }),
+                });
+
+                if (!response.ok) throw new Error('data not saved');
+
+                console.log("labinchargesign edited successfully");
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        value1, labinchargesign, checkBox, backgroundImageUrl,
+                        headermargin, footermargin, marginRight, marginLeft, labinchargeinfo: labinchargeinfo,
+                        labinchargesignurl: sign, selectedFontSize, RowSpacing, HighLow, HLinred,
+                        BoldRow, showInvest, DownloadPdf, format: user.pdfFormat
+
+                    }),
+                });
+
+                if (!response.ok) throw new Error('PDF generation failed');
+
+                // Creating blob from response
+                const pdfBlob = await response.blob();
+
+                // Creating a download link for the PDF
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(pdfBlob);
+                link.download = `${report.patientName}.pdf`;
+                link.click();
+                window.open(link);
+
+                await updatebookingisreportreadyfield(report.bookingId);
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+            } finally {
+                loader.style.display = 'none';
+                e.target.disable = false;
+            }
+        });
+    }
+
+    // Function to Print a Specific Area
+    document.getElementById('BrowserPrint').addEventListener('click', function () {
+        // Select the area to print
+        const printArea = document.getElementById('container').innerHTML;
+        const styling = document.querySelector('style').innerHTML;
+
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        printWindow.document.open();
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Report</title>
+                <style>
+                    ${styling}
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .container { width: 100%; }
+                    .header { text-align: center; }
+                    .barcode-div { margin-top: 20px; text-align: center; }
+                </style>
+            </head>
+            <body onload="window.print(); window.close();">
+                ${printArea}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    });
+
+
+    await sendReport();
+
+    function hidecontent() {
+        if (user.showprintsetting === false) {
+            document.getElementById('printsettingbutton').style.display = "none";
+        }
+        if (user.tenantId.modelType === "1layer") {
+            const style = document.getElementById("stying");
+            style.textContent += `
+            @media print {
+            .barcode-div2 {
+                top: 6%;
+            }
+            }
+            `;
+            const contents = document.querySelectorAll('.forhide');
+            contents.forEach(elem => {
+                elem.style.display = "none";
+            })
+        }
+    }
+    hidecontent();
 })();

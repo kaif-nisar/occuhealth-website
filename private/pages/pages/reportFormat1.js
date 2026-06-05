@@ -390,6 +390,95 @@
 
         return [...new Set([...acceptedbarcode, ...tableBarcodes])];
     }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function normalizeSampleText(value) {
+        return String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    }
+
+    function splitSampleTestNames(value) {
+        return String(value ?? "")
+            .split(",")
+            .map((item) => normalizeSampleText(item))
+            .filter(Boolean);
+    }
+
+    function getReportSampleDetails(reportData = {}) {
+        const sampleDetails = [];
+        const seen = new Set();
+        const sections = Array.isArray(reportData?.sampleDetails) && reportData.sampleDetails.length
+            ? [{ sampleDetails: reportData.sampleDetails }]
+            : (Array.isArray(reportData?.CategoryAndTest) ? reportData.CategoryAndTest : []);
+
+        sections.forEach((section) => {
+            (section?.sampleDetails || []).forEach((entry) => {
+                const barcodeId = String(entry?.barcodeId ?? "").trim();
+                const sampleType = String(entry?.sampleType ?? "").trim();
+                const testNames = Array.isArray(entry?.testNames) ? entry.testNames.filter(Boolean) : [];
+
+                if (!barcodeId && !sampleType) {
+                    return;
+                }
+
+                const key = `${barcodeId}__${sampleType}`;
+                if (seen.has(key)) {
+                    return;
+                }
+
+                seen.add(key);
+                sampleDetails.push({ barcodeId, sampleType, testNames });
+            });
+        });
+
+        if (sampleDetails.length) {
+            return sampleDetails;
+        }
+
+        const booking = JSON.parse(localStorage.getItem('booking')) || {};
+        (booking.tableData || []).forEach((item) => {
+            const barcodeId = String(item?.barcodeId ?? "").trim();
+            const sampleType = String(item?.typeOfSample ?? "").trim();
+            const testNames = splitSampleTestNames(item?.testName);
+            const key = `${barcodeId}__${sampleType}`;
+
+            if ((!barcodeId && !sampleType) || seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            sampleDetails.push({ barcodeId, sampleType, testNames });
+        });
+
+        return sampleDetails;
+    }
+
+    function buildSampleDetailsMarkup(reportData = {}) {
+        const sampleDetails = getReportSampleDetails(reportData);
+
+        if (!sampleDetails.length) {
+            return "";
+        }
+
+        return sampleDetails.map((item) => {
+            const label = [item.barcodeId, item.sampleType].filter(Boolean).join(" | ");
+            const tooltip = item.testNames?.length ? item.testNames.join(", ") : label;
+            return `
+                <span class="sample-chip" title="${escapeHtml(tooltip)}"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#eef4ff;color:#1a73e8;font-size:12px;font-weight:600;white-space:nowrap;margin:0 6px 6px 0;">
+                    ${escapeHtml(label)}
+                </span>
+            `;
+        }).join("");
+    }
+
     function formatDateTime(timestamp) {
         const date = new Date(timestamp);
 
@@ -408,6 +497,7 @@
 
     async function populateHeader() {
         document.getElementById("booking-registeration-number").innerText = report.reg_id;
+        const sampleDetailsMarkup = buildSampleDetailsMarkup(report);
 
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
@@ -419,6 +509,7 @@
                 <div class="format1-infor-div forhide fixedheightdiv"><div class="format1-tags">Lab Name:</div> <div class="value">${report.labName} </div></div>
                 <div class="format1-infor-div forhide" id="investDiv"><div class="format1-tags">Investigations:</div> <div class="value"><span id="investigationarray">
                 ${report.uniquetestArray} </span></div></div>
+                ${sampleDetailsMarkup ? `<div class="format1-infor-div forhide" id="sampleDiv"><div class="format1-tags">Sample / Barcode:</div><div class="value" style="display:flex;flex-wrap:wrap;gap:4px;">${sampleDetailsMarkup}</div></div>` : ""}
             </div>
             <div class="format1-right2">
                 <div>

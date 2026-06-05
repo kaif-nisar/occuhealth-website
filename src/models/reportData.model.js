@@ -17,6 +17,12 @@ const tabledataSchema = new Schema({
     }
 })
 
+const sampleDetailSchema = new Schema({
+    barcodeId: String,
+    sampleType: String,
+    testNames: [String]
+}, { _id: false });
+
 const categoryAndTestSchema = new Schema({
     category: String,
     advice: String,
@@ -24,7 +30,8 @@ const categoryAndTestSchema = new Schema({
     notes: String,
     remarks: String,
     title: String,
-    tests: [tabledataSchema]
+    tests: [tabledataSchema],
+    sampleDetails: [sampleDetailSchema]
 })
 
 const reportData = new Schema({
@@ -120,6 +127,7 @@ const reportData = new Schema({
     categorizedPDF: Boolean,
     MoreDetails: String,
     uniquetestArray: [String],
+    sampleDetails: [sampleDetailSchema],
     signOff: {
         type: Boolean,
         default: false

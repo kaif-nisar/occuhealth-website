@@ -611,7 +611,248 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, showInvest, BoldRo
                     </div>
                     </body>
                 </html>`,
-            footerTemplate: `
+                footerTemplate: `
+                <html>
+                    <head>
+                        <style>
+                         *{
+                                margin: 0px;
+                                padding: 0px;
+                                box-sizing: border-box;
+                            }
+                            ${cssContent}
+                            .pdf-footer-div {
+                            width: 92%; 
+                            display: flex;
+                            justify-content: center;
+                            font-size: 12px; 
+                            font-weight: 450; 
+                            text-align: center; 
+                            margin: 0px auto;
+                            margin-bottom: ${footermarginPx}px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                <div class="pdf-footer-div">
+                    ${footer}
+                </div>
+                    </body>
+                </html>`,
+                margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `10px`, right: `10px` },
+            });
+            updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
+            return renderedPdf;
+        });
+
+        const finalPdfBuffer = await addBackgroundToPdf(pdfBuffer, backgroundImageUrl);
+
+        if (!finalPdfBuffer) {
+            console.error('Final PDF buffer is null');
+            res.status(500).send('Failed to generate final PDF');
+            return;
+        }
+
+        const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
+        let responsePdfBuffer = finalpdfbufferwithmargin;
+
+        if (enforceSecureReportPdf) {
+            responsePdfBuffer = await flattenPdfToSecureBuffer(finalpdfbufferwithmargin);
+        }
+
+
+        // Dynamically build the update object
+        const updateData = {
+            showInvest: showInvest,
+            BoldRow: BoldRow,
+            HLinred: HLinred,
+            HighLow: HighLow,
+            RowSpacing: parseFloat(RowSpacing),
+            selectedFontSize: parseFloat(selectedFontSize),
+            reportId: reportId,
+            htmlContent: htmlContent,
+            cssContent: cssContent,
+            header: header,
+            footer: footer,
+            headermargin: headermargin,
+            footermargin: footermargin,
+            marginRight: marginRight,
+            marginLeft: marginLeft,
+            investigationmargin: investigationmargin,
+            showlab: showlab,
+            showdoctorfirst: showdoctorfirst,
+            showdoctorsecond: showdoctorsecond,
+            fileInputLab: fileInputLab,
+            fileInputDoctorleft: fileInputDoctorleft,
+            fileInputDoctorright: fileInputDoctorright,
+            fileInputLabtext: fileInputLabtext,
+            fileInputDoctorlefttext: fileInputDoctorlefttext,
+            fileInputDoctorrighttext: fileInputDoctorrighttext,
+            updatedAt: new Date()
+        };
+
+        // Add backgroundImageUrl to the update object only if it is not empty
+        if (backgroundImageUrl) {
+            updateData.backgroundImageUrl = backgroundImageUrl;
+        }
+
+        // Save the path to the database
+        const getcustomization = await customization.findOneAndUpdate(
+            { reportId: reportId }, // Or use some identifier
+            updateData,
+            {
+                new: true,  // Return the updated document
+                upsert: true, // Create new record if it doesn't exist
+            }
+        );
+
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="final_report.pdf"');
+        res.setHeader('Content-Length', responsePdfBuffer.length);
+        res.end(responsePdfBuffer);
+
+    } catch (error) {
+        console.error('Error generating final PDF:', error.message);
+        res.status(500).send('Error generating final PDF');
+    }
+}
+const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
+    selectedFontSize, reportId, htmlContent,
+    cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
+    marginLeft, investigationmargin, showlab, showdoctorfirst,
+    showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
+
+    investigationmargin = parseFloat(investigationmargin) + 20;
+
+    const format3 = pdfformat === "reportFormat3" ? true : false;
+
+    const cmToPx = (cm) => cm * 37.795;
+
+    let headermarginPx;
+    let footermarginPx;
+    let marginRightPx;
+    let marginLeftPx;
+
+    // Conversion from cm to px
+    if (marginRight || marginLeft) {
+        marginRightPx = cmToPx(parseFloat(marginRight));
+        marginLeftPx = cmToPx(parseFloat(marginLeft));
+    }
+
+    headermarginPx = cmToPx(parseFloat(headermargin));
+    footermarginPx = cmToPx(parseFloat(footermargin));
+
+    try {
+        const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
+        htmlContent = inlinedSegments.htmlContent;
+        header = inlinedSegments.header;
+        footer = inlinedSegments.footer;
+
+        const pdfBuffer = await withQueuedPdfPage(`report-pdf:${reportId}`, async (page) => {
+            const contentWithCssAndImage = `
+            <html>
+                <head>
+                    <style>
+                     *{
+                                margin: 0px;
+                                padding: 0px;
+                                box-sizing: border-box;
+                            }
+                        ${cssContent}
+                        .wrong i, .delete-btn i {
+                            display: none;
+                        }
+                        h2 {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        }
+                        .headings {
+                        margin-top: 0 !important;
+                        margin-bottom: 0px !important;
+                        }
+                        tr,th {
+                            font-size: ${selectedFontSize}px !important;
+                        }
+                        td {
+                            padding-top: ${parseFloat(RowSpacing) / 2}px !important;
+                            padding-bottom: ${parseFloat(RowSpacing) / 2}px !important;
+                        }
+                        td .HL span {
+                        display: ${HighLow ? 'block' : 'none'};
+                        }
+                        .high-low span{
+                        color: ${HLinred ? 'red' : 'black'} !important;
+                        }
+                        .BoldRow {
+                        font-weight: ${BoldRow ? 'bold' : '400'} !important; 
+                        }
+                        .deletion {
+                        display: none !important;
+                        }
+                        td.wrong {
+                        display: none !important;
+                        }
+                        .details-row {
+                            font-size: 10px !important;
+                        }
+                        .methods {
+                            font-size: 8px !important;
+                            color: #565656 !important;
+                            margin-top: 2px !important;
+                        }
+                                        table {
+                width: 98% !important;
+                margin: 0 auto !important;
+            }
+                    </style>
+                </head>
+                <body>
+                    <div class="middle">
+                    ${htmlContent}
+                    </div>
+                </body>
+            </html>`;
+
+            await page.setContent(contentWithCssAndImage, { waitUntil: 'domcontentloaded', timeout: pdfContentLoadTimeout });
+            await waitForPdfDocumentReady(page);
+
+            const renderStart = Date.now();
+            const renderedPdf = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                displayHeaderFooter: true,
+                headerTemplate: `
+                <html>
+                    <head>
+                        <style>
+                            *{
+                                margin: 0px;
+                                padding: 0px;
+                                box-sizing: border-box;
+                            }
+                            .pdf-header-div {
+                                width: 95%; 
+                                margin:  0 auto;
+                                margin-top: ${format3 ? "0" : headermargin}cm !important;
+                            }
+                            .report-details-innerDiv2 {
+                            width: 100%;
+                            font-size: 12px;
+                            }
+                            #investDiv {
+                            display: ${showInvest ? 'flex' : 'none'} !important;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="pdf-header-div"> 
+                        ${header}
+                    </div>
+                    </body>
+                </html>`,
+                footerTemplate: `
                 <html>
                     <head>
                         <style>
@@ -724,7 +965,7 @@ const getpdfcontroller = async (req, res) => {
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format } = req.body;
 
     let pdfformat;
     const tid = req.user.tenantId._id;
@@ -795,6 +1036,7 @@ const getpdfcontroller = async (req, res) => {
                 fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
                 fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
                 DownloadPdf: Boolean(DownloadPdf),
+                format: format || gettingcustomization?.format || "",
                 res
             };
         } else {
@@ -829,6 +1071,7 @@ const getpdfcontroller = async (req, res) => {
                 fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
                 fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
                 DownloadPdf: Boolean(DownloadPdf),
+                format: format || gettingcustomization?.format || "",
                 res
             };
         }
@@ -838,8 +1081,15 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.layerone = true;
         }
 
+        console.log("format in controller:", mergedValues.format);
+        // if (format === "reportformat4") {
+        //     await pdfgeneratorcontroller3(mergedValues);
+        //     return;
+        // }
+
         // Generate the PDF with merged values
-        await pdfgeneratorcontroller2(mergedValues);
+        // await pdfgeneratorcontroller2(mergedValues);
+            await pdfgeneratorcontroller3(mergedValues);
 
     } catch (error) {
         console.error('Error fetching PDF:', error.message);
@@ -1124,10 +1374,10 @@ async function generateSinglePdfBuffer(mergedValues, user) {
 
         const renderStart = Date.now();
         const renderedPdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        displayHeaderFooter: true,
-        headerTemplate: `
+            format: 'A4',
+            printBackground: true,
+            displayHeaderFooter: true,
+            headerTemplate: `
             <html>
                 <head>
                     <style>
@@ -1162,7 +1412,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                 </div>
                 </body>
             </html>`,
-        footerTemplate: `
+            footerTemplate: `
             <html>
                 <head>
                     <style>
@@ -1190,13 +1440,13 @@ async function generateSinglePdfBuffer(mergedValues, user) {
             </div>
                 </body>
             </html>`,
-        margin: {
-            top: `${headermarginPx + (format3 ? ((mergedValues.investigationmargin * 1.10) + (layerone ? (mergedValues.investigationmargin < 110 ? 75 : 15) : (mergedValues.investigationmargin < 160 ? 55 : 0))) : ((mergedValues.investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`,
-            bottom: '175px',
-            left: `10px`,
-            right: `10px`
-        },
-    });
+            margin: {
+                top: `${headermarginPx + (format3 ? ((mergedValues.investigationmargin * 1.10) + (layerone ? (mergedValues.investigationmargin < 110 ? 75 : 15) : (mergedValues.investigationmargin < 160 ? 55 : 0))) : ((mergedValues.investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`,
+                bottom: '175px',
+                left: `10px`,
+                right: `10px`
+            },
+        });
         updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
         return renderedPdf;
     });

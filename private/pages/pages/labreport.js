@@ -110,6 +110,89 @@ async function loadfunction() {
         return bookedNames;
     }
 
+    function stripHtmlToText(value) {
+        const temp = document.createElement("div");
+        temp.innerHTML = String(value ?? "");
+        return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
+    }
+
+    function normalizeComparableText(value) {
+        return stripHtmlToText(value).toLowerCase();
+    }
+
+    function splitBookingTestNames(value) {
+        return String(value ?? "")
+            .split(",")
+            .map((item) => normalizeComparableText(item))
+            .filter(Boolean);
+    }
+
+    const bookingSampleIndex = (booking.tableData || [])
+        .map((item) => ({
+            barcodeId: normalizeShortName(item?.barcodeId),
+            sampleType: normalizeShortName(item?.typeOfSample),
+            testNames: splitBookingTestNames(item?.testName)
+        }))
+        .filter((item) => item.barcodeId || item.sampleType || item.testNames.length > 0);
+
+    function buildSampleDetailsForTable(tableData = []) {
+        const tableTestNames = new Set();
+
+        tableData.forEach((item) => {
+            const testName = normalizeComparableText(item?.testName);
+            if (testName) {
+                tableTestNames.add(testName);
+            }
+        });
+
+        const sampleDetails = [];
+        const seen = new Set();
+
+        bookingSampleIndex.forEach((entry) => {
+            const isMatchingEntry = entry.testNames.length === 0
+                ? false
+                : entry.testNames.some((testName) => tableTestNames.has(testName));
+
+            if (!isMatchingEntry) {
+                return;
+            }
+
+            const key = `${entry.barcodeId}__${entry.sampleType}`;
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            sampleDetails.push({
+                barcodeId: entry.barcodeId,
+                sampleType: entry.sampleType,
+                testNames: entry.testNames
+            });
+        });
+
+        if (!sampleDetails.length) {
+            const fallbackDetails = [];
+            const fallbackSeen = new Set();
+
+            bookingSampleIndex.forEach((entry) => {
+                const key = `${entry.barcodeId}__${entry.sampleType}`;
+                if (fallbackSeen.has(key)) {
+                    return;
+                }
+                fallbackSeen.add(key);
+                fallbackDetails.push({
+                    barcodeId: entry.barcodeId,
+                    sampleType: entry.sampleType,
+                    testNames: entry.testNames
+                });
+            });
+
+            return fallbackDetails;
+        }
+
+        return sampleDetails;
+    }
+
     if (user.showRandomBtn) {
         showRandomBtn.style.display = 'block';
     } else {
@@ -809,7 +892,7 @@ async function loadfunction() {
                 // Row for tests with multiple parameters
                 row.innerHTML = `
                 <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
-                <td class="test-name">${test.Name}</td>
+                <td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${test.Name}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -824,7 +907,7 @@ async function loadfunction() {
                     paramRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
                     paramRow.innerHTML = `
         <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
-        <td style="padding-left: 20px;" class="test-name" id="parameters">${param.Para_name}</td>
+        <td class="test-name" id="parameters" style="padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${param.Para_name}</td>
         <td class="unit">
             <div class="value-column">
                 <div class="formulaIcon"></div>
@@ -2228,7 +2311,7 @@ async function loadfunction() {
                 // ✅ Har row ke liye pagebreak check karo
                 const pagebreak = row?.cells[0]?.querySelector('input[type="checkbox"]')?.checked || false;
 
-                const testName = row.querySelector(".test-name")?.outerHTML || null;
+                const testName = row.querySelector(".test-name")?.textContent?.trim() || null;
                 const valueInput = row.querySelector(".unit input")?.value || null;
                 const unit = row.querySelector(".unit + td")?.textContent?.trim() || null;
                 const reference = row.querySelector(".reference")?.textContent?.trim() || null;
@@ -2250,6 +2333,9 @@ async function loadfunction() {
                 // ✅ Main test row
                 if (testName || valueInput || unit || reference || editorContent) {
                     console.log("testname pagebreak:", pagebreak);
+                    const isParameter = row.querySelector("#parameters") !== null;
+                    const isMultiHeader = row.querySelector(".test-name") !== null && (valueInput === null || valueInput === "") && !isParameter && !isDocumented;
+
                     const testObject = {
                         pagebreak: pagebreak,
                         testName: editorContent || testName,
@@ -2257,6 +2343,8 @@ async function loadfunction() {
                         unit,
                         reference,
                         isDocumented,
+                        isMultiHeader,
+                        isParameter
                     };
 
                     tableData.push(testObject);
@@ -2277,6 +2365,7 @@ async function loadfunction() {
                                 unit: null,
                                 reference: null,
                                 isDocumented: false,
+                                isParameter: true, // Remarks of a test should align with parameters
                                 remark: value  // ✅ Remark property add
                             };
 
@@ -2308,6 +2397,7 @@ async function loadfunction() {
                                     unit: null,
                                     reference: null,
                                     isDocumented: false,
+                                    isParameter: true, // Details should align left
                                     details: innerContent  // ✅ Details property add
                                 };
 
@@ -2332,6 +2422,7 @@ async function loadfunction() {
             }
 
             if (tableData.length > 0 || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {
+                const sampleDetails = buildSampleDetailsForTable(tableData);
                 allTableData.push({
                     category,
                     title,
@@ -2340,6 +2431,7 @@ async function loadfunction() {
                     remarks: tableRemarks,
                     advice: tableAdvice,
                     interpretation: tableInterpretation,
+                    sampleDetails,
                 });
             }
         });
