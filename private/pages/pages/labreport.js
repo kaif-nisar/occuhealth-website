@@ -15,6 +15,96 @@ async function loadfunction() {
     // for sample receiving time 
     let recievedOn;
     const showRandomBtn = document.getElementById('randomresult');
+    const formulaBasedTestNames = new Set([
+        "Neutrophils-Absolute Count",
+        "Lymphocytes-Absolute Count",
+        "Eosinophil-Absolute Count",
+        "Monocyte- Absolute Count",
+        "Basophils-Absolute Count",
+        "Neutrophil Lymphocyte Ratio",
+        "Mean Corpuscular Volume (MCV)",
+        "Mean Corpuscular Hemoglobin (MCH)",
+        "Mean Corpuscular Hemoglobin Concentration (MCHC)",
+        "VLDL Cholesterol",
+        "LDL Cholesterol",
+        "LDL / HDL Ratio",
+        "Total Cholesterol / HDL",
+        "TG / HDL",
+        "Non-HDL cholesterol",
+        "Serum Bilirubin (Indirect)",
+        "Globulin",
+        "A/G Ratio",
+        "Sgot/Sgpt Ratio Formula",
+        "BUN",
+        "Urea / Creatinine Ratio",
+        "BUN / Creatinine Ratio",
+        "Transferrin Saturation",
+        "Estimated average glucose"
+    ]);
+
+    async function fetchAbnormalHighlightSettings() {
+        const candidateIds = [
+            booking?.reportId,
+            booking?.report?._id,
+            booking?.report,
+            booking?._id,
+            localStorage.getItem("myKey")
+        ].filter(Boolean);
+
+        const uniqueIds = [...new Set(candidateIds)];
+
+        for (const reportId of uniqueIds) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/getting-pdf-data`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ reportId })
+                });
+
+                if (!response.ok) {
+                    continue;
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.log("Error fetching abnormal highlight settings:", error);
+            }
+        }
+
+        return null;
+    }
+
+    function normalizeResultText(value) {
+        return String(value ?? "")
+            .replace(/<[^>]*>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+    }
+
+    function isFormulaBasedInput(input) {
+        if (!input) {
+            return false;
+        }
+
+        const testId = input.getAttribute("data-id") || "";
+        return formulaBasedTestNames.has(testId) || Boolean(input.closest("tr")?.querySelector(".formulaIcon .icon"));
+    }
+
+    function focusWithCenteredScroll(element) {
+        if (!element) {
+            return;
+        }
+
+        smoothScrollTo(element);
+        window.setTimeout(() => {
+            element.focus({ preventScroll: true });
+        }, 120);
+    }
+
+    let highlightAbnormalResults = false;
 
     function getBookingBarcodeList() {
         const acceptedbarcode = Array.isArray(booking.acceptedbarcode) ? booking.acceptedbarcode.filter(Boolean) : [];
@@ -263,42 +353,48 @@ async function loadfunction() {
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 
+    const abnormalHighlightSettings = await fetchAbnormalHighlightSettings();
+    highlightAbnormalResults = Boolean(abnormalHighlightSettings?.HLinred);
+
     // Function to apply logic to each abnormal input field 
     const processInput = (input) => {
         const row = input.closest("tr"); // Get the row containing the input
         const highLowSpan = row.querySelector(".HighLow"); // Get the span for L/H display
         const inputValue = input.value.trim(); // Get the input value as a string and trim whitespace
-        const numericValue = parseFloat(inputValue); // Parse the numeric value from the input
+        const normalizedValue = normalizeResultText(inputValue);
+        const numericValue = parseFloat(inputValue.replace(/,/g, "")); // Parse the numeric value from the input
         const lowerValue = parseFloat(input.getAttribute('data-lower'));
         const upperValue = parseFloat(input.getAttribute('data-upper'));
 
-        // Reset styling and span content if input is invalid
-        if (isNaN(numericValue) && inputValue.toLowerCase() !== "positive") {
-            row.style.fontWeight = "normal";
-            input.style.fontWeight = "normal";
-            highLowSpan.textContent = "";
-            return;
+        let isAbnormal = false;
+        let suffix = "";
+
+        if (normalizedValue === "positive") {
+            isAbnormal = true;
+        } else if (!Number.isNaN(numericValue) && !Number.isNaN(lowerValue) && !Number.isNaN(upperValue)) {
+            if (numericValue < lowerValue) {
+                isAbnormal = true;
+                suffix = "L";
+            } else if (numericValue > upperValue) {
+                isAbnormal = true;
+                suffix = "H";
+            }
         }
 
-        // Apply logic for bold styling and L/H display
-        if (inputValue.toLowerCase() === "positive") {
-            // If the input is "positive" (case-insensitive)
+        highLowSpan.textContent = isAbnormal ? suffix : "";
+
+        if (isAbnormal && highlightAbnormalResults) {
             row.style.fontWeight = "bold";
             input.style.fontWeight = "bold";
-            highLowSpan.textContent = ""; // No L or H for "positive"
-        } else if (numericValue < lowerValue) {
-            row.style.fontWeight = "bold";
-            input.style.fontWeight = "bold";
-            highLowSpan.textContent = "L"; // Low
-        } else if (numericValue > upperValue) {
-            row.style.fontWeight = "bold";
-            highLowSpan.textContent = "H"; // High
-            input.style.fontWeight = "bold";
+            row.style.color = "red";
+            input.style.color = "red";
+            highLowSpan.style.color = "red";
         } else {
-            // Reset to normal if none of the conditions match
             row.style.fontWeight = "normal";
             input.style.fontWeight = "normal";
-            highLowSpan.textContent = "";
+            row.style.color = "";
+            input.style.color = "";
+            highLowSpan.style.color = "";
         }
     };
 
@@ -1370,6 +1466,48 @@ async function loadfunction() {
             });
         });
     }
+
+    function getNextEditableInput(currentInput, direction = 1) {
+        const inputs = Array.from(document.querySelectorAll(".value-input"));
+        const currentIndex = inputs.indexOf(currentInput);
+
+        if (currentIndex === -1) {
+            return null;
+        }
+
+        let nextIndex = currentIndex + direction;
+
+        while (nextIndex >= 0 && nextIndex < inputs.length) {
+            const candidate = inputs[nextIndex];
+            if (candidate && !isFormulaBasedInput(candidate)) {
+                return candidate;
+            }
+            nextIndex += direction;
+        }
+
+        return null;
+    }
+
+    document.addEventListener("keydown", (event) => {
+        const activeInput = event.target.closest?.(".value-input");
+        if (!activeInput) {
+            return;
+        }
+
+        if (event.key !== "Enter" && event.key !== "Tab") {
+            return;
+        }
+
+        const nextDirection = event.key === "Tab" && event.shiftKey ? -1 : 1;
+        const nextInput = getNextEditableInput(activeInput, nextDirection);
+
+        if (!nextInput) {
+            return;
+        }
+
+        event.preventDefault();
+        focusWithCenteredScroll(nextInput);
+    });
 
     // Handle input changes and update formula row
     function handleInputChange(resultInputs) {
@@ -2524,8 +2662,7 @@ async function loadfunction() {
             const editorContainer = field.querySelector("[id^='editorContent']");
 
             if (input && input.value.trim() === "" && savebtn) {
-                smoothScrollTo(field);
-                field.focus();
+                focusWithCenteredScroll(input);
                 return false; // Stop after the first empty field
             }
             else if (editorContainer) {
