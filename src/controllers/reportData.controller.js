@@ -6,6 +6,8 @@ import mongoose from "mongoose"
 import { User } from "../models/user.model.js";
 import { Tenant } from "../models/tenant.model.js";
 import { newBooking } from "../models/NewBooking.model.js";
+import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
+import { customization } from "../models/printsetting.model.js";
 
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
@@ -256,7 +258,14 @@ const getReportController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    return res.status(200).json(Report);
+    const printSettings = (await customization.findOne({ reportId: Report._id }).lean()) ||
+        (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
+        {};
+
+    return res.status(200).json({
+        ...Report.toObject(),
+        printSettings,
+    });
 });
 const getReportControlleruser = asyncHandler(async (req, res) => {
     const { value1, bookingId , tenantId} = req.body;
@@ -289,7 +298,14 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    return res.status(200).json(Report);
+    const printSettings = (await customization.findOne({ reportId: Report._id }).lean()) ||
+        (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
+        {};
+
+    return res.status(200).json({
+        ...Report.toObject(),
+        printSettings,
+    });
 });
 
 export {

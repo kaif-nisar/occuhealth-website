@@ -42,7 +42,7 @@ const customizationSchema = new mongoose.Schema(
     },
     HLinred: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     HighLow: {
       type: Boolean,

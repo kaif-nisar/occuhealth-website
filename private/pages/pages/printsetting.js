@@ -63,6 +63,12 @@ function toggleAccordion(button) {
             document.getElementById('abnormal-results-red').checked = data.HLinred;
             document.getElementById('abnormal-results-bold').checked = data.BoldRow;
             document.getElementById('show-investigations').checked = data.showInvest;
+            localStorage.setItem("printSettings", JSON.stringify({
+                HighLow: data.HighLow,
+                HLinred: data.HLinred,
+                BoldRow: data.BoldRow,
+                showInvest: data.showInvest
+            }));
 
             console.log('Input fields updated successfully');
         } catch (error) {
@@ -519,6 +525,13 @@ function toggleAccordion(button) {
         const HLinred = document.getElementById('abnormal-results-red').checked;
         const BoldRow = document.getElementById('abnormal-results-bold').checked;
         const showInvest = document.getElementById('show-investigations').checked;
+
+        localStorage.setItem("printSettings", JSON.stringify({
+            HighLow,
+            HLinred,
+            BoldRow,
+            showInvest
+        }));
 
         autogeneratingpdf({
             selectedFontSize: selectedFontSize, RowSpacing: RowSpacing,

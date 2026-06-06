@@ -248,6 +248,10 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                                 padding: 0px;
                                 box-sizing: border-box;
                             }
+                        html, body, table, tr, th, td, div, span, input, button, textarea, select, p {
+                            font-family: "Tahoma", "Arial", sans-serif !important;
+                            letter-spacing: 0.1px;
+                        }
                         ${cssContent}
                         .wrong i, .delete-btn i {
                             display: none;
@@ -271,10 +275,13 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                         display: ${HighLow ? 'block' : 'none'};
                         }
                         .high-low span{
-                        color: ${HLinred ? 'red' : 'black'} !important;
+                        color: ${HLinred ? '#9b111e' : 'black'} !important;
                         }
-                        .BoldRow {
-                        font-weight: ${BoldRow ? 'bold' : '400'} !important; 
+                        .BoldRow, .BoldRow td, .BoldRow th, .BoldRow td * {
+                        font-weight: ${BoldRow ? '700' : '400'} !important; 
+                        }
+                        .abnormal-result, .abnormal-result * {
+                        color: ${HLinred ? '#9b111e' : 'inherit'} !important;
                         }
                         .deletion {
                         display: none !important;
@@ -347,6 +354,10 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                                 margin: 0px;
                                 padding: 0px;
                                 box-sizing: border-box;
+                            }
+                            html, body, table, tr, th, td, div, span, input, button, textarea, select, p {
+                                font-family: "Tahoma", "Arial", sans-serif !important;
+                                letter-spacing: 0.1px;
                             }
                             ${cssContent}
                             .pdf-footer-div {

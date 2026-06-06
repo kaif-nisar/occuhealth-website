@@ -1147,19 +1147,24 @@ async function loadPage(page, Name, _id, BASE_URL, name) {
 
   clearOldPage();
 
-  fetch(`pages/pages/${page}.html`)
+  // Prevent stale page assets from stacking up across navigation.
+  document.querySelectorAll('script[data-dynamic-page-script="true"]').forEach((script) => script.remove());
+
+  const assetVersion = String(Date.now());
+
+  fetch(`pages/pages/${page}.html?v=${assetVersion}`)
     .then((response) => response.text())
     .then((html) => {
       const container = document.querySelector(".content-box");
       container.innerHTML = html;
 
       // Load associated scripts
-      loadScript(`./editor.js`)
+      loadScript(`./editor.js?v=${assetVersion}`)
         .then(() => {
           // Script loaded successfully
         })
         .catch((error) => console.error(error));
-      loadScript(`pages/pages/${page}.js`)
+      loadScript(`pages/pages/${page}.js?v=${assetVersion}`)
         .then(() => {
           // Script loaded successfully
           // Check for print setting button after page script loads
@@ -1211,6 +1216,7 @@ function loadScript(url) {
     const script = document.createElement("script");
     script.src = url;
     script.async = true;
+    script.dataset.dynamicPageScript = "true";
     script.onload = () => resolve(script);
     script.onerror = (err) =>
       reject(new Error(`Failed to load script: ${url}`));

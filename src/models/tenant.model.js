@@ -176,6 +176,11 @@ tenantSchema.statics.deactivateExpiredSubscriptions = async function () {
   }
 };
 
+// Backward-compatible alias used by older scheduler code
+tenantSchema.statics.deactivateExpiredTenants = async function () {
+  return this.deactivateExpiredSubscriptions();
+};
+
 // Static method to get users with expiring subscriptions
 tenantSchema.statics.getExpiringSubscriptions = async function (days = 5) {
   const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);

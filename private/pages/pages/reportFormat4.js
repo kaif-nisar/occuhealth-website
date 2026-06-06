@@ -526,13 +526,11 @@
     }
 
     function buildMultiParameterTestName(test = {}) {
-        return toTitleCase(normalizeDisplayTitle(test?.Name || stripHtmlToText(test?.testName)));
+        return String(normalizeDisplayTitle(test?.Name || stripHtmlToText(test?.testName))).toUpperCase();
     }
 
     function toTitleCase(value = "") {
-        return String(value)
-            .toLowerCase()
-            .replace(/\b\w/g, (char) => char.toUpperCase());
+        return String(value).toUpperCase();
     }
 
     function buildParameterDisplayName(param = {}) {
@@ -741,6 +739,18 @@
 
     barcodegenerator();
 
+    const storedPrintSettings = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("printSettings") || "{}");
+        } catch {
+            return {};
+        }
+    })();
+    const reportPrintSettings = report?.printSettings || {};
+    const activePrintSettings = { ...storedPrintSettings, ...reportPrintSettings };
+    const highlightAbnormalResults = Boolean(activePrintSettings.HLinred);
+    const boldAbnormalRows = activePrintSettings.BoldRow ?? true;
+
     async function generateSectionBarcode(barcodeNumber, imageId, labelId) {
         if (!barcodeNumber) {
             const label = document.getElementById(labelId);
@@ -778,6 +788,77 @@
         }
     }
 
+
+    function getAbnormalResultState(test = {}) {
+        const stripHtmlToText = (value) => {
+            const temp = document.createElement("div");
+            temp.innerHTML = String(value ?? "");
+            return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
+        };
+
+        const reference = stripHtmlToText(test?.reference ?? test?.text ?? "");
+        const rawValue = stripHtmlToText(test?.value ?? test?.result ?? test?.defaultresult ?? "");
+
+        if (!reference || !rawValue) {
+            return { isAbnormal: false, suffix: "" };
+        }
+
+        const normalizedReference = reference.toLowerCase();
+        const normalizedValue = rawValue.toLowerCase();
+        const numericValue = parseFloat(rawValue.replace(/,/g, ""));
+        const rangeMatch = reference.match(/^\s*(-?\d*\.?\d+)\s*-\s*(-?\d*\.?\d+)\s*$/);
+
+        if (rangeMatch && !Number.isNaN(numericValue)) {
+            const lower = parseFloat(rangeMatch[1]);
+            const upper = parseFloat(rangeMatch[2]);
+
+            if (!Number.isNaN(lower) && !Number.isNaN(upper)) {
+                if (numericValue < lower) {
+                    return { isAbnormal: true, suffix: "L" };
+                }
+
+                if (numericValue > upper) {
+                    return { isAbnormal: true, suffix: "H" };
+                }
+            }
+        }
+
+        if (normalizedReference.includes("positive") && !normalizedValue.includes("positive")) {
+            return { isAbnormal: true, suffix: "" };
+        }
+
+        if (normalizedReference.includes("negative") && !normalizedValue.includes("negative")) {
+            return { isAbnormal: true, suffix: "" };
+        }
+
+        if (normalizedValue.includes("positive") || normalizedValue.includes("abnormal")) {
+            return { isAbnormal: true, suffix: "" };
+        }
+
+        return { isAbnormal: false, suffix: "" };
+    }
+
+    function applyAbnormalStyles(cell, isAbnormal) {
+        if (!cell) return;
+
+        const row = cell.closest("tr");
+        if (row) {
+            const shouldBold = isAbnormal && boldAbnormalRows;
+            row.style.fontWeight = shouldBold ? "700" : "";
+            if (shouldBold) {
+                row.classList.add("BoldRow");
+            } else {
+                row.classList.remove("BoldRow");
+            }
+        }
+
+        const shouldColor = isAbnormal && highlightAbnormalResults;
+        if (shouldColor) {
+            cell.style.color = "#b71c1c";
+        } else {
+            cell.style.color = "#000";
+        }
+    }
 
     async function renderData(data) {
         const container = document.getElementById("tables-container");
@@ -842,8 +923,8 @@
                                 <i class="fa-sharp fa-solid fa-xmark"></i>
                             </span>
                         </td>
-                        <td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
-                            ${escapeHtml(buildMultiParameterTestName(test))}
+                        <td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
+                            <span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${escapeHtml(buildMultiParameterTestName(test))}</span>
                         </td>
                         <td></td>
                         <td></td>
@@ -851,13 +932,17 @@
                     `;
                     tbody.appendChild(parentRow);
 
-                    test.parameters.forEach((param) => {
+                    test.parameters.forEach((param, paramIndex) => {
                         const paramRow = document.createElement("tr");
                         paramRow.classList.add("multi-test-row"); // ✅ Remove padding/indentation
 
                         if (param?.pagebreak) {
                             paramRow.classList.add("page-break");
                         }
+
+                        const { isAbnormal: isParamAbnormal, suffix: paramSuffix } = getAbnormalResultState(param);
+                        const isPrimaryParameter = paramIndex === 0;
+                        const renderedParameterName = escapeHtml(String(buildParameterDisplayName(param)).toUpperCase());
 
                         paramRow.innerHTML = `
                             <td class="wrong">
@@ -866,15 +951,19 @@
                                 </span>
                             </td>
                             <td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
-                                <div class="parameter-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${escapeHtml(buildParameterDisplayName(param))}</div>
+                                <div class="parameter-name${isPrimaryParameter ? " primary-parameter-name" : ""}" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${renderedParameterName}</div>
                             </td>
-                            <td class="high-low">
-                                <div class="HL"><span></span></div>
+                            <td class="high-low${highlightAbnormalResults && isParamAbnormal ? " abnormal-result" : ""}">
+                                <div class="HL"><span>${paramSuffix}</span></div>
                                 <span>${escapeHtml(buildTestRowValue(param))}</span>
                             </td>
                             <td>${escapeHtml(buildTestRowUnit(param))}</td>
                             <td>${escapeHtml(buildTestRowReference(param))}</td>
                         `;
+                        const paramAbnormalCell = paramRow.querySelector(".high-low");
+                        if (paramAbnormalCell) {
+                            applyAbnormalStyles(paramAbnormalCell, isParamAbnormal);
+                        }
                         tbody.appendChild(paramRow);
                     });
 
@@ -939,41 +1028,12 @@
                         testRow.classList.add('page-break');
                     }
 
-                    let isBold = false;
-                    let testNameSuffix = "";
-
-                    if (test.reference) {
-                        const referenceParts = test.reference.split(" - ");
-                        if (referenceParts.length === 2) {
-                            const lowerLimit = parseFloat(referenceParts[0]);
-                            const upperLimit = parseFloat(referenceParts[1]);
-                            const testValue = parseFloat(test.value);
-
-                            if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
-                                if (testValue < lowerLimit) {
-                                    isBold = true;
-                                    testNameSuffix = "L";
-                                } else if (testValue > upperLimit) {
-                                    isBold = true;
-                                    testNameSuffix = "H";
-                                }
-                            }
-                        }
-                    }
-
-                    if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
-                        isBold = true;
-                    }
-
-                    if (isBold) {
-                        testRow.style.fontWeight = "bold";
-                        testRow.classList.add('BoldRow');
-                    }
+                    const { isAbnormal, suffix: testNameSuffix } = getAbnormalResultState(test);
 
                     // ✅ Style only the multi-parameter parent test name
                     const renderedTestName = rawTestName
                         ? (isMultiHeaderRow
-                            ? escapeHtml(toTitleCase(stripHtmlToText(rawTestName)))
+                            ? escapeHtml(String(stripHtmlToText(rawTestName)).toUpperCase())
                             : rawTestName)
                         : "";
 
@@ -988,7 +1048,7 @@
                     <td colspan="4" style="padding: 0; border: none;">
                         <div class="documented-content">
                             ${isMultiHeaderRow
-                                ? `<div class="test-name multi-test-name">${renderedTestName || ""}</div>`
+                                ? `<div class="test-name multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${renderedTestName || ""}</div>`
                                 : (renderedTestName || "")}
                         </div>
                     </td>
@@ -1002,15 +1062,20 @@
                         </span>
                     </td>
                     ${isMultiHeaderRow
-                        ? `<td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${renderedTestName || ""}</td>`
-                        : (renderedTestName || "")}
-                    <td class="high-low">
+                        ? `<td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${renderedTestName || ""}</span></td>`
+                        : `<td class="test-name">${renderedTestName || ""}</td>`}
+                    <td class="high-low${highlightAbnormalResults && isAbnormal ? " abnormal-result" : ""}">
                         <div class="HL"><span>${testNameSuffix}</span></div>
                         <span>${test.value || ""}</span>
                     </td>
                     <td>${test.unit || ""}</td>
                     <td>${test.reference || ""}</td>
                 `;
+                    }
+
+                    const abnormalCell = testRow.querySelector(".high-low");
+                    if (abnormalCell) {
+                        applyAbnormalStyles(abnormalCell, isAbnormal);
                     }
 
                     tbody.appendChild(testRow);
@@ -1426,7 +1491,7 @@
                 <title>Print Report</title>
                 <style>
                     ${styling}
-                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    body { font-family: "Arial", "Helvetica Neue", Helvetica, sans-serif; margin: 20px; }
                     .container { width: 100%; }
                     .header { text-align: center; }
                     .barcode-div { margin-top: 20px; text-align: center; }

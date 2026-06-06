@@ -1081,15 +1081,14 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.layerone = true;
         }
 
-        console.log("format in controller:", mergedValues.format);
-        // if (format === "reportformat4") {
-        //     await pdfgeneratorcontroller3(mergedValues);
-        //     return;
-        // }
+        console.log("format in controller:", mergedValues.pdfformat);
+        if (mergedValues.pdfformat === "reportFormat4") {
+            await pdfgeneratorcontroller3(mergedValues);
+            return;
+        }
 
         // Generate the PDF with merged values
-        // await pdfgeneratorcontroller2(mergedValues);
-            await pdfgeneratorcontroller3(mergedValues);
+        await pdfgeneratorcontroller2(mergedValues);
 
     } catch (error) {
         console.error('Error fetching PDF:', error.message);

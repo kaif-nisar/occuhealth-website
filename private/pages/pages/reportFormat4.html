@@ -10,6 +10,17 @@
 
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style id="stying">
+        html,
+        body,
+        button,
+        input,
+        select,
+        textarea,
+        table {
+            font-family: "Tahoma", "Arial", sans-serif !important;
+            letter-spacing: 0.1px;
+        }
+
         .container {
             width: 100%;
             height: auto;
@@ -88,6 +99,7 @@
         }
 
         .left2 {
+            width: 60%;
             display: inline-block;
         }
 
@@ -456,8 +468,29 @@
         .test-name.multi-test-name {
             font-weight: 700 !important;
             text-decoration: underline !important;
-            text-transform: capitalize !important;
+            text-transform: uppercase !important;
+            display: inline-block;
+            width: 100%;
             line-height: 1.15;
+        }
+
+        .parameter-name.primary-parameter-name {
+            font-weight: 700 !important;
+            text-decoration: underline !important;
+            text-transform: uppercase !important;
+            display: inline-block;
+            width: 100%;
+            line-height: 1.15;
+        }
+
+        .BoldRow td,
+        .BoldRow th,
+        .BoldRow td * {
+            font-weight: 700 !important;
+        }
+
+        .abnormal-result {
+            color: #9b111e !important;
         }
 
         tbody {

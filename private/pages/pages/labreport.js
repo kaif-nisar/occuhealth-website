@@ -15,6 +15,30 @@ async function loadfunction() {
     // for sample receiving time 
     let recievedOn;
     const showRandomBtn = document.getElementById('randomresult');
+    const printSettings = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("printSettings") || "{}");
+        } catch {
+            return {};
+        }
+    })();
+    let abnormalResultRed = Boolean(printSettings.HLinred);
+    const abnormalResultColor = "#b71c1c";
+
+    // ✅ Fetch latest print settings from server to ensure red styling works 100%
+    try {
+        const settingsResponse = await fetch(`${BASE_URL}/api/v1/user/getting-pdf-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reportId: booking._id }),
+        });
+        if (settingsResponse.ok) {
+            const settingsData = await settingsResponse.json();
+            abnormalResultRed = Boolean(settingsData.HLinred);
+        }
+    } catch (e) {
+        console.warn("Failed to fetch latest print settings from server, using local defaults.");
+    }
 
     function getBookingBarcodeList() {
         const acceptedbarcode = Array.isArray(booking.acceptedbarcode) ? booking.acceptedbarcode.filter(Boolean) : [];
@@ -272,50 +296,78 @@ async function loadfunction() {
         const lowerValue = parseFloat(input.getAttribute('data-lower'));
         const upperValue = parseFloat(input.getAttribute('data-upper'));
 
-        // Reset styling and span content if input is invalid
-        if (isNaN(numericValue) && inputValue.toLowerCase() !== "positive") {
-            row.style.fontWeight = "normal";
-            input.style.fontWeight = "normal";
-            highLowSpan.textContent = "";
-            return;
-        }
+        const normalizedValue = inputValue.toLowerCase();
+        const isPositive = normalizedValue.includes("positive") || 
+                           normalizedValue.includes("reactive") || 
+                           normalizedValue.includes("abnormal") ||
+                           (normalizedValue.includes("detected") && !normalizedValue.includes("not"));
+        const isLow = !isNaN(numericValue) && !isNaN(lowerValue) && numericValue < lowerValue;
+        const isHigh = !isNaN(numericValue) && !isNaN(upperValue) && numericValue > upperValue;
 
-        // Apply logic for bold styling and L/H display
-        if (inputValue.toLowerCase() === "positive") {
-            // If the input is "positive" (case-insensitive)
+        const isAbnormal = isPositive || isLow || isHigh;
+
+        if (isAbnormal) {
             row.style.fontWeight = "bold";
             input.style.fontWeight = "bold";
-            highLowSpan.textContent = ""; // No L or H for "positive"
-        } else if (numericValue < lowerValue) {
-            row.style.fontWeight = "bold";
-            input.style.fontWeight = "bold";
-            highLowSpan.textContent = "L"; // Low
-        } else if (numericValue > upperValue) {
-            row.style.fontWeight = "bold";
-            highLowSpan.textContent = "H"; // High
-            input.style.fontWeight = "bold";
+            
+            // Set color based on print settings
+            if (abnormalResultRed) {
+                row.style.color = abnormalResultColor;
+                input.style.color = abnormalResultColor;
+            } else {
+                row.style.color = "black";
+                input.style.color = "black";
+            }
+
+            if (isLow) highLowSpan.textContent = "L";
+            else if (isHigh) highLowSpan.textContent = "H";
+            else highLowSpan.textContent = "";
         } else {
-            // Reset to normal if none of the conditions match
             row.style.fontWeight = "normal";
             input.style.fontWeight = "normal";
+            row.style.color = "black";
+            input.style.color = "black";
             highLowSpan.textContent = "";
         }
     };
 
-    // for adding event listener to all fields
     function addInputListeners() {
-        // Select all input fields within the table body
-        const inputs = document.querySelectorAll(".value-input");
+        const inputs = Array.from(document.querySelectorAll(".value-input"));
 
-        // Process each input on load
-        inputs.forEach((input) => {
-
-            // Process the input on page load for default values
+        inputs.forEach((input, index) => {
             processInput(input);
 
-            // Add input event listener for real-time updates
-            input.addEventListener("input", async (event) => {
+            input.addEventListener("input", () => {
                 processInput(input);
+            });
+
+            // ✅ Smooth scroll to center on focus
+            input.addEventListener("focus", () => {
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+
+            // ✅ Enter and Tab navigation with formula skipping
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) {
+                    // Prevent default behavior to handle custom navigation
+                    e.preventDefault();
+
+                    let nextIndex = index + 1;
+                    while (nextIndex < inputs.length) {
+                        const nextInput = inputs[nextIndex];
+                        const row = nextInput.closest("tr");
+                        
+                        // Skip formula fields (detect via calculator icon)
+                        const isFormula = row.querySelector(".formulaIcon .icon") !== null;
+                        
+                        // Find the next input that is not a formula and is visible
+                        if (!isFormula && nextInput.offsetParent !== null) {
+                            nextInput.focus();
+                            break;
+                        }
+                        nextIndex++;
+                    }
+                }
             });
         });
     }
@@ -892,7 +944,9 @@ async function loadfunction() {
                 // Row for tests with multiple parameters
                 row.innerHTML = `
                 <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
-                <td class="test-name" style="font-weight: 700 !important; text-decoration: underline !important; text-transform: capitalize !important; padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${test.Name}</td>
+                <td class="test-name" style="padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
+                    <span style="font-weight: 700 !important; text-decoration: underline !important; text-transform: uppercase !important; display: inline-block; width: 100%;">${String(test.Name || "").toUpperCase()}</span>
+                </td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -916,8 +970,8 @@ async function loadfunction() {
                     name="parameterName" 
                     data-shortnames="${escapeAttribute(JSON.stringify(paramShortNames))}" 
                     data-id="${param.Para_name.replace(/\s+/g, '')}" 
-                    data-lower="${lowerValue || ""}" 
-                    data-upper="${upperValue || ""}"
+                    data-lower="${(lowerValue !== undefined && lowerValue !== null) ? lowerValue : ""}" 
+                    data-upper="${(upperValue !== undefined && upperValue !== null) ? upperValue : ""}"
                     data-for-random="${param.forRandom || false}"
                     data-lower-range="${param.lowerRange || ""}"
                     data-upper-range="${param.upperRange || ""}"
@@ -992,8 +1046,8 @@ async function loadfunction() {
                 class="value-input" 
                 data-shortnames="${escapeAttribute(JSON.stringify(testShortNames))}" 
                 data-id="${test.Name}" 
-                data-lower="${lowerValue || ""}" 
-                data-upper="${upperValue || ""}"
+                data-lower="${(lowerValue !== undefined && lowerValue !== null) ? lowerValue : ""}" 
+                data-upper="${(upperValue !== undefined && upperValue !== null) ? upperValue : ""}"
                 data-for-random="${test.parameters?.[0]?.forRandom || false}"
                 data-lower-range="${test.parameters?.[0]?.lowerRange || ""}"
                 data-upper-range="${test.parameters?.[0]?.upperRange || ""}"
