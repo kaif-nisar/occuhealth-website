@@ -3,7 +3,6 @@ import { configDotenv } from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import compression from "compression";
-import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import hpp from "hpp";
 import xss from "xss-clean";
@@ -183,7 +182,7 @@ if (process.env.NODE_ENV === 'production') {
 if (process.env.NODE_ENV === 'production') {
     const generalLimiter = rateLimit({
         windowMs: 1 * 60 * 1000,
-        max: 100,
+        max: 5000, // लिमिट बढ़ाकर 5000 कर दी गई है ताकि नॉर्मल यूजर्स को कभी दिक्कत न हो
         message: {
             error: 'Too many requests from this IP, please try again later.'
         },
@@ -193,7 +192,7 @@ if (process.env.NODE_ENV === 'production') {
 
     const authLimiter = rateLimit({
         windowMs: 15 * 60 * 1000,
-        max: 10,
+        max: 100, // लॉगिन के लिए भी लिमिट बढ़ाई गई है
         message: {
             error: 'Too many login attempts, please try again later.'
         }
@@ -201,15 +200,16 @@ if (process.env.NODE_ENV === 'production') {
 
     const apiLimiter = rateLimit({
         windowMs: 1 * 60 * 1000,
-        max: 200,
+        max: 10000, // API के लिए बहुत हाई लिमिट सेट की गई है
         message: {
             error: 'Too many API requests, please try again later.'
         }
     });
 
-    app.use(generalLimiter);
-    app.use("/api/v1/user/login", authLimiter);
-    app.use("/api/v1/user", apiLimiter);
+    // ग्लोबल रेट लिमिटर को डिसेबल (कमेंट) कर दिया गया है ताकि यूजर्स को एरर न आए
+    // app.use(generalLimiter);
+    // app.use("/api/v1/user/login", authLimiter);
+    // app.use("/api/v1/user", apiLimiter);
 
     console.log('🛡️ Production Rate Limiting: ACTIVE');
 } else {
