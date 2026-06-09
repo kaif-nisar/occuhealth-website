@@ -384,22 +384,6 @@
 
         return [...new Set([...acceptedbarcode, ...tableBarcodes])];
     }
-
-    function escapeHtml(value) {
-        return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
-
-    function stripHtmlToText(value) {
-        const temp = document.createElement("div");
-        temp.innerHTML = String(value ?? "");
-        return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
-    }
-
     function formatDateTime(timestamp) {
         const date = new Date(timestamp);
 
@@ -500,89 +484,6 @@
 
     barcodegenerator();
 
-    const storedPrintSettings = (() => {
-        try {
-            return JSON.parse(localStorage.getItem("printSettings") || "{}");
-        } catch {
-            return {};
-        }
-    })();
-    const reportPrintSettings = report?.printSettings || {};
-    const activePrintSettings = { ...storedPrintSettings, ...reportPrintSettings };
-    const highlightAbnormalResults = Boolean(activePrintSettings.HLinred);
-    const boldAbnormalRows = activePrintSettings.BoldRow ?? true;
-
-    function getAbnormalResultState(test = {}) {
-        const stripHtmlToText = (value) => {
-            const temp = document.createElement("div");
-            temp.innerHTML = String(value ?? "");
-            return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
-        };
-
-        const reference = stripHtmlToText(test?.reference ?? test?.text ?? "");
-        const rawValue = stripHtmlToText(test?.value ?? test?.result ?? test?.defaultresult ?? "");
-
-        if (!reference || !rawValue) {
-            return { isAbnormal: false, suffix: "" };
-        }
-
-        const normalizedReference = reference.toLowerCase();
-        const normalizedValue = rawValue.toLowerCase();
-        const numericValue = parseFloat(rawValue.replace(/,/g, ""));
-        const rangeMatch = reference.match(/^\s*(-?\d*\.?\d+)\s*-\s*(-?\d*\.?\d+)\s*$/);
-
-        if (rangeMatch && !Number.isNaN(numericValue)) {
-            const lower = parseFloat(rangeMatch[1]);
-            const upper = parseFloat(rangeMatch[2]);
-
-            if (!Number.isNaN(lower) && !Number.isNaN(upper)) {
-                if (numericValue < lower) {
-                    return { isAbnormal: true, suffix: "L" };
-                }
-
-                if (numericValue > upper) {
-                    return { isAbnormal: true, suffix: "H" };
-                }
-            }
-        }
-
-        if (normalizedReference.includes("positive") && !normalizedValue.includes("positive")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        if (normalizedReference.includes("negative") && !normalizedValue.includes("negative")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        if (normalizedValue.includes("positive") || normalizedValue.includes("abnormal")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        return { isAbnormal: false, suffix: "" };
-    }
-
-
-    function applyAbnormalStyles(cell, isAbnormal) {
-        if (!cell) return;
-
-        const row = cell.closest("tr");
-        if (row) {
-            const shouldBold = isAbnormal && boldAbnormalRows;
-            row.style.fontWeight = shouldBold ? "700" : "";
-            if (shouldBold) {
-                row.classList.add("BoldRow");
-            } else {
-                row.classList.remove("BoldRow");
-            }
-        }
-
-        const shouldColor = isAbnormal && highlightAbnormalResults;
-        if (shouldColor) {
-            cell.style.color = "#c62828";
-        } else {
-            cell.style.color = "#000";
-        }
-    }
 
     function renderData(data) {
         const container = document.getElementById("tables-container");
@@ -653,19 +554,41 @@
                 
                 if (test.testName) {
                     testRow = document.createElement("tr");
-                    const rawTestName = String(test?.testName ?? "");
-                    const isParameterRow = Boolean(test?.isParameter) || /id=(["'])parameters\1/.test(rawTestName);
-                    const isMultiHeaderRow = Boolean(test?.isMultiHeader) || (!isParameterRow && !!rawTestName && !test?.value && !test?.unit && !test?.reference);
-
-                    if (isMultiHeaderRow || isParameterRow) {
-                        testRow.classList.add("multi-test-row");
-                    }
 
                     if (test.pagebreak) {
                         testRow.classList.add('page-break');
                     }
 
-                    const { isAbnormal, suffix: testNameSuffix } = getAbnormalResultState(test);
+                    let isBold = false;
+                    let testNameSuffix = "";
+
+                    if (test.reference) {
+                        const referenceParts = test.reference.split(" - ");
+                        if (referenceParts.length === 2) {
+                            const lowerLimit = parseFloat(referenceParts[0]);
+                            const upperLimit = parseFloat(referenceParts[1]);
+                            const testValue = parseFloat(test.value);
+
+                            if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
+                                if (testValue < lowerLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "L";
+                                } else if (testValue > upperLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "H";
+                                }
+                            }
+                        }
+                    }
+
+                    if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
+                        isBold = true;
+                    }
+
+                    if (isBold) {
+                        testRow.style.fontWeight = "bold";
+                        testRow.classList.add('BoldRow');
+                    }
 
                     // ✅ FIXED: Documented test with proper colspan
                     if (test.isDocumented) {
@@ -677,9 +600,7 @@
                     </td>
                     <td colspan="4" style="padding: 0; border: none;">
                         <div class="documented-content">
-                            ${isMultiHeaderRow
-                                ? `<div class="test-name multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</div>`
-                                : (test.testName || "")}
+                            ${test.testName || ""}
                         </div>
                     </td>
                 `;
@@ -691,21 +612,14 @@
                             <i class="fa-sharp fa-solid fa-xmark"></i>
                         </span>
                     </td>
-                    ${isMultiHeaderRow
-                        ? `<td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</span></td>`
-                        : `<td class="test-name">${test.testName || ""}</td>`}
-                    <td class="high-low${highlightAbnormalResults && isAbnormal ? " abnormal-result" : ""}">
+                    ${test.testName || ""}
+                    <td class="high-low">
                         <div class="HL"><span>${testNameSuffix}</span></div>
                         <span>${test.value || ""}</span>
                     </td>
                     <td>${test.unit || ""}</td>
                     <td>${test.reference || ""}</td>
                 `;
-                    }
-
-                    const abnormalCell = testRow.querySelector(".high-low");
-                    if (abnormalCell) {
-                        applyAbnormalStyles(abnormalCell, isAbnormal);
                     }
 
                     tbody.appendChild(testRow);

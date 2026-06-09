@@ -1,4 +1,6 @@
 async function bookingload() {
+    // Load SheetJS library for Excel/CSV parsing
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
     const userfallback = userId;
     // Cache DOM elements - ek baar select karo, baar baar nahi
     const DOM = {
@@ -8,7 +10,13 @@ async function bookingload() {
         testSelection: document.getElementById('test-selection'),
         discountpercentage: document.getElementById('discount-percentage'),
         tableBody: document.getElementById('tableBody'),
-        selectedtests: document.getElementById('test-selected'),
+        selectedTests: document.getElementById('test-selected'),
+        bulkFileInput: document.getElementById('bulk-booking-file-input'),
+        readBulkFileBtn: document.getElementById('read-bulk-file-btn'),
+        bulkPreviewContainer: document.getElementById('bulk-booking-preview-container'),
+        bulkPreviewTable: document.getElementById('bulk-booking-preview-table'),
+        confirmBulkBookingsBtn: document.getElementById('confirm-bulk-bookings-btn'),
+        bulkProgress: document.getElementById('bulk-booking-progress'),
         loader: document.querySelector('.loader')
     };
 
@@ -36,6 +44,16 @@ async function bookingload() {
         }
     }
 
+    // Helper function to dynamically load scripts
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
     // Optimized: Generate random ID without multiple checks (probabilistic approach)
     function generateRandomId() {
         return "OH" + Math.floor(Math.random() * 10000000000);
@@ -138,7 +156,7 @@ async function bookingload() {
     // Optimized: Event delegation for test selection (single listener)
     function setupTestSelection() {
         if (!DOM.testSelection || !DOM.tableBody || !DOM.selectedtests) return;
-
+        
         DOM.testSelection.addEventListener('click', (e) => {
             // FIX: Ensure we get the actual test element, not a child
             const test = e.target.classList.contains('tests-name-option') 
@@ -187,7 +205,7 @@ async function bookingload() {
         total += testPrice;
         updatePriceDisplay();
 
-        DOM.selectedtests.appendChild(selectedTag);
+        DOM.selectedTests.appendChild(selectedTag);
 
         // Remove handler
         selectedTag.addEventListener('click', () => handleTestRemove(selectedTag, test));
@@ -344,7 +362,7 @@ async function bookingload() {
 
     function filterSelectedTests(query) {
         document.querySelectorAll(".realSelectedTests").forEach(option => {
-            const text = option.textContent.toLowerCase();
+            const text = option.textContent.toLowerCase(); // FIX: Use textContent
             const shortname = (option.getAttribute('shortname') || '').toLowerCase();
             option.style.display = (text.includes(query) || shortname.includes(query)) ? '' : 'none';
         });
@@ -781,7 +799,7 @@ async function bookingload() {
 
                 // Add test IDs
                 const testIds = [];
-                const selectedTestSpans = DOM.selectedtests?.querySelectorAll('span');
+                const selectedTestSpans = DOM.selectedTests?.querySelectorAll('span');
                 if (selectedTestSpans) {
                     selectedTestSpans.forEach(span => {
                         const id = span.getAttribute('data-id');
@@ -879,6 +897,268 @@ async function bookingload() {
             console.warn("Last booking error:", error);
         }
     }
+
+    // --- Bulk Booking Functionality ---
+    let bulkBookingsData = []; // Stores parsed and validated data from file
+
+    // Download template
+    document.getElementById('download-bulk-template-btn')?.addEventListener('click', () => {
+        const headers = [
+            "Patient Name", "Age Value", "Age Unit", "Gender", "Patient Phone",
+            "Doctor Name", "Lab Name", "Clinical History", "Test Names",
+            "Discount Amount", "Discount Percentage", "Courier Name", "Courier ID"
+        ];
+        const data = [headers];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Bulk Bookings");
+        XLSX.writeFile(wb, "bulk_booking_template.xlsx");
+    });
+
+    // Read and parse file
+    DOM.readBulkFileBtn?.addEventListener('click', () => {
+        const file = DOM.bulkFileInput?.files[0];
+        if (!file) {
+            alert("Please select a file.");
+            return;
+        }
+
+        DOM.bulkProgress.style.display = 'block';
+        DOM.bulkProgress.querySelector('span').textContent = 'Reading file...';
+        DOM.confirmBulkBookingsBtn.style.display = 'none';
+        DOM.bulkPreviewContainer.style.display = 'none';
+        document.getElementById('bulk-booking-summary').style.display = 'none';
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (json.length < 2) {
+                    alert("No data found in file.");
+                    DOM.bulkProgress.style.display = 'none';
+                    return;
+                }
+
+                const headers = json[0];
+                const rows = json.slice(1);
+
+                await processBulkBookingData(headers, rows);
+            } catch (error) {
+                console.error("Error reading file:", error);
+                alert("Error reading file. Please ensure it is a valid Excel/CSV file.");
+                DOM.bulkProgress.style.display = 'none';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    async function processBulkBookingData(headers, rows) {
+        DOM.bulkProgress.querySelector('span').textContent = 'Validating data...';
+        bulkBookingsData = [];
+        let hasErrors = false;
+
+        // Fetch all tests/panels/packages for validation
+        const allTestsData = await fetchAllData();
+        const testNameMap = new Map(); // Map testName to {id, collection}
+        
+        [...allTestsData.tests, ...allTestsData.panels, ...allTestsData.packages].forEach(item => {
+            const name = item.testName || item.panelName || item.packageName;
+            const id = item.testId || item.panelId || item.packageId || item._id;
+            let collection;
+            let price = 0;
+            let sampleTypes = []; // Initialize as empty array
+
+            if (item.testName) { // It's a single test
+                collection = 'testSchema';
+                price = item.myPrice || item.finalPrice || item.basePrice || 0;
+                sampleTypes = Array.isArray(item.sampleType) ? item.sampleType : (item.sampleType ? [item.sampleType] : []);
+            } else if (item.panelName) { // It's a panel
+                collection = 'addPannel';
+                price = item.myPrice || item.finalPrice || item.basePrice || 0;
+                sampleTypes = Array.isArray(item.sample_types) ? item.sample_types : (item.sample_types ? [item.sample_types] : []);
+            } else if (item.packageName) { // It's a package
+                collection = 'Package';
+                price = item.myPrice || item.finalPrice || item.basePrice || 0;
+                // Packages might have both testSample and pannelSample
+                let pkgSampleTypes = [];
+                if (item.testSample) pkgSampleTypes.push(...(Array.isArray(item.testSample) ? item.testSample : [item.testSample]));
+                if (item.pannelSample) pkgSampleTypes.push(...(Array.isArray(item.pannelSample) ? item.pannelSample : [item.pannelSample]));
+                sampleTypes = [...new Set(pkgSampleTypes)].filter(Boolean); // Ensure unique and non-empty
+            }
+            
+            if (name && id && collection) {
+                testNameMap.set(name.toLowerCase(), { id, collection, price, sampleTypes });
+            }
+        });
+
+        const requiredHeaders = ["Patient Name", "Age Value", "Age Unit", "Gender", "Test Names"];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        if (missingHeaders.length > 0) {
+            alert(`Required headers missing in file: ${missingHeaders.join(', ')}`);
+            DOM.bulkProgress.style.display = 'none';
+            return;
+        }
+
+        const previewHeaders = [...headers, "Status/Errors"];
+        const headerRow = DOM.bulkPreviewTable.querySelector('thead tr');
+        headerRow.innerHTML = previewHeaders.map(h => `<th>${h}</th>`).join('');
+        const tbody = DOM.bulkPreviewTable.querySelector('tbody');
+        tbody.innerHTML = '';
+
+        for (const rowData of rows) {
+            const booking = {};
+            let rowErrors = [];
+            const displayRow = {};
+
+            headers.forEach((header, index) => {
+                const value = rowData[index];
+                displayRow[header] = value; // For preview table
+                booking[header.replace(/\s/g, '')] = value; // Clean header for internal use
+            });
+
+            // Client-side validation
+            if (!booking.PatientName) rowErrors.push("Patient Name is required.");
+            else booking.PatientName = booking.PatientName.toUpperCase(); // Capitalize
+
+            if (!booking.AgeValue || isNaN(Number(booking.AgeValue))) rowErrors.push("Age Value is required and must be a number.");
+            if (!booking.AgeUnit || !["Years", "Months", "Days"].includes(booking.AgeUnit)) rowErrors.push("Age Unit must be 'Years', 'Months', or 'Days'.");
+            if (!booking.Gender || !["Male", "Female", "Any"].includes(booking.Gender)) rowErrors.push("Gender must be 'Male', 'Female', or 'Any'.");
+            
+            const testNamesRaw = booking.TestNames ? String(booking.TestNames).split(',').map(t => t.trim()).filter(Boolean) : [];
+            if (testNamesRaw.length === 0) rowErrors.push("At least one Test Name is required.");
+
+            const resolvedTestIds = []; // Array of just IDs
+            const resolvedTableData = [];
+            const uniqueSampleTypes = new Set();
+            let totalBookingPrice = 0; // Initialize total price for this booking
+            
+            for (const testName of testNamesRaw) {
+                const mappedTest = testNameMap.get(testName.toLowerCase());
+                if (mappedTest) {
+                    resolvedTestIds.push(mappedTest.id); // Just the ID
+                    totalBookingPrice += mappedTest.price; // Sum up prices
+                    mappedTest.sampleTypes.forEach(s => uniqueSampleTypes.add(s));
+                } else {
+                    rowErrors.push(`Test Name '${testName}' not found.`);
+                }
+            }
+            
+            // Construct tableData for each unique sample type
+            let order = 1;
+            uniqueSampleTypes.forEach(sample => {
+                resolvedTableData.push({
+                    order: order++,
+                    typeOfSample: sample,
+                    barcodeId: generateRandomId(), // Generate unique barcode for each sample
+                    confirmBarcodeId: generateRandomId(),
+                    testName: testNamesRaw.join(', '), // All tests for this sample type
+                    ids: resolvedTestIds.map(id => ({ id, collectionName: testNameMap.get(testNamesRaw[0].toLowerCase())?.collection })) // Assuming all tests are from same collection for simplicity, refine if needed
+                });
+            });
+
+            if (rowErrors.length > 0) {
+                hasErrors = true;
+            }
+
+            bulkBookingsData.push({
+                originalData: booking,
+                processedData: {
+                    // Ensure all fields are explicitly set, defaulting to empty string or 0 if not present
+                    PatientName: String(booking.PatientName || '').toUpperCase(),
+                    AgeValue: Number(booking.AgeValue || 0),
+                    AgeUnit: String(booking.AgeUnit || ''),
+                    Gender: String(booking.Gender || ''),
+                    PatientPhone: String(booking.PatientPhone || ''),
+                    DoctorName: String(booking.DoctorName || ''),
+                    LabName: String(booking.LabName || ''),
+                    ClinicalHistory: String(booking.ClinicalHistory || ''),
+                    DiscountAmount: Number(booking.DiscountAmount || 0),
+                    DiscountPercentage: Number(booking.DiscountPercentage || 0),
+                    CourierName: String(booking.CourierName || ''),
+                    CourierId: String(booking.CourierId || ''),
+                    
+                    TestIds: resolvedTestIds, // Array of just IDs
+                    TableData: resolvedTableData,
+                    createdbyuser: username,
+                    userId: userId,
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+                    Total: totalBookingPrice // Add calculated total price
+                },
+                errors: rowErrors
+            });
+
+            // Render row in preview table
+            const tr = document.createElement('tr');
+            tr.innerHTML = previewHeaders.map(h => {
+                if (h === "Patient Name") return `<td class="${rowErrors.length > 0 ? 'error-cell' : ''}">${displayRow[h] ? displayRow[h].toUpperCase() : ''}</td>`;
+                if (h === "Status/Errors") return `<td class="${rowErrors.length > 0 ? 'error-cell' : ''}">${rowErrors.join(', ') || 'OK'}</td>`;
+                return `<td class="${rowErrors.length > 0 ? 'error-cell' : ''}">${displayRow[h] || ''}</td>`;
+            }).join('');
+            tbody.appendChild(tr);
+        }
+
+        DOM.bulkPreviewContainer.style.display = 'block';
+        DOM.bulkProgress.style.display = 'none';
+        DOM.confirmBulkBookingsBtn.style.display = 'block';
+        DOM.confirmBulkBookingsBtn.disabled = hasErrors;
+        if (hasErrors) {
+            document.getElementById('bulk-booking-summary').textContent = 'Bulk booking cannot be confirmed due to errors.';
+            document.getElementById('bulk-booking-summary').style.color = 'red';
+            document.getElementById('bulk-booking-summary').style.display = 'block';
+        } else {
+            document.getElementById('bulk-booking-summary').textContent = `${bulkBookingsData.length} bookings are ready.`;
+            document.getElementById('bulk-booking-summary').style.color = 'green';
+            document.getElementById('bulk-booking-summary').style.display = 'block';
+        }
+    }
+
+    // Confirm bulk bookings
+    DOM.confirmBulkBookingsBtn?.addEventListener('click', async () => {
+        if (bulkBookingsData.length === 0 || DOM.confirmBulkBookingsBtn.disabled) {
+            alert("No valid booking data or errors exist.");
+            return;
+        }
+
+        DOM.bulkProgress.style.display = 'block';
+        DOM.bulkProgress.querySelector('span').textContent = 'Creating bookings...';
+        DOM.confirmBulkBookingsBtn.disabled = true;
+
+        try {
+            const bookingsToSend = bulkBookingsData.map(item => item.processedData);
+            const response = await fetch(`${BASE_URL}/api/v1/user/bulk-bookings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookingsToSend)
+            });
+
+            const apiResponse = await response.json();
+            const resultData = (apiResponse && typeof apiResponse === 'object' && apiResponse.data && typeof apiResponse.data === 'object')
+                ? apiResponse.data
+                : (apiResponse && typeof apiResponse === 'object' ? apiResponse : {});
+            const successfulBookings = Array.isArray(resultData.successfulBookings) ? resultData.successfulBookings : [];
+            const failedBookings = Array.isArray(resultData.failedBookings) ? resultData.failedBookings : [];
+
+            if (response.ok) {
+                alert(`Bulk booking completed successfully. Successful: ${successfulBookings.length}, Failed: ${failedBookings.length}`);
+                location.reload(); // Reload page after successful bulk booking
+            } else {
+                alert(`Error in bulk booking: ${apiResponse?.message || 'Unknown error'}`);
+                console.error("Bulk booking error:", apiResponse);
+            }
+        } catch (error) {
+            console.error("Error in bulk booking API call:", error);
+            alert("A network error occurred while performing bulk booking.");
+        } finally {
+            DOM.bulkProgress.style.display = 'none';
+            DOM.confirmBulkBookingsBtn.disabled = false;
+        }
+    });
 
     function hideContentForSingleLayer() {
         if (user?.tenantId?.modelType === "1layer") {

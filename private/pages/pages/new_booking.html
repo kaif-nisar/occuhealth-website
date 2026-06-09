@@ -853,6 +853,55 @@
             </div>
             <button class="submit-btn" id="submit-btn"><i class="fas fa-paper-plane"></i> Submit</button>
         </div>
+
+        <!-- Bulk Booking Section -->
+        <div class="section" style="margin-top: 3rem;">
+            <div class="section-header">
+                <div class="count-booking">2</div>
+                <h2>Bulk Booking Upload</h2>
+            </div>
+            <div class="section-content" style="flex-direction: column;">
+                <p style="margin-bottom: 1rem; color: #555;">
+                    Upload multiple bookings at once using Excel (.xlsx, .xls) or CSV (.csv) files.
+                    Please ensure your file has the correct column headers and data format.
+                </p>
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                    <button id="download-bulk-template-btn" class="input-group button" style="background-color: #28a745; color: white; border-radius: 4px; padding: 8px 15px; cursor: pointer; border: none;">
+                        <i class="fas fa-download" style="margin-right: 8px;"></i> Download Template
+                    </button>
+                    <div class="file-input" style="flex-grow: 1;">
+                        <input type="file" id="bulk-booking-file-input" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                    </div>
+                    <button id="read-bulk-file-btn" class="input-group button" style="background-color: #007bff; color: white; border-radius: 4px; padding: 8px 15px; cursor: pointer; border: none;">
+                        <i class="fas fa-upload" style="margin-right: 8px;"></i> Read File
+                    </button>
+                </div>
+
+                <div id="bulk-booking-progress" style="margin-top: 1rem; font-weight: bold; color: #333; display: none;">
+                    <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
+                    <span>Processing...</span>
+                </div>
+
+                <div id="bulk-booking-preview-container" style="margin-top: 2rem; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; display: none;">
+                    <table id="bulk-booking-preview-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <!-- Headers will be dynamically generated here -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be dynamically loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <button id="confirm-bulk-bookings-btn" class="submit-btn" style="margin-top: 2rem; background-color: #ff5a5f; display: none;" disabled>
+                    <i class="fas fa-paper-plane"></i> Confirm Bulk Booking
+                </button>
+                <div id="bulk-booking-summary" style="margin-top: 1rem; font-weight: bold; display: none;"></div>
+            </div>
+        </div>
+
     </div>
     <!-- adding doctor page  -->
     <div class="modal" id="modal">

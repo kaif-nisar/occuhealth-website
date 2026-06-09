@@ -192,7 +192,7 @@ import {
   getbarcodetestsandpannels,
   rejectBookingcontroller,
   deleteBarcode,
-  getTestNameController,
+  getTestNameController, bulkBookingsController,
   getBookingcontroller,
   editBookingController,
   CompleteBookingcontroller,
@@ -885,6 +885,9 @@ router.route("/new-booking").post(upload.fields([
   }
 ]),
   verifyJWT, checkStaffPermission("canManageBookings"), NewBookingcontroller);
+
+// New bulk booking endpoint
+router.route("/bulk-bookings").post(verifyJWT, checkStaffPermission("canManageBookings"), bulkBookingsController);
 
 // // new booking controller
 router.route("/editbookingbookedtests").post(upload.fields([

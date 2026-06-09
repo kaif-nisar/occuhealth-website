@@ -628,6 +628,63 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
     }
 });
 
+/**
+ * बल्क बुकिंग को प्रोसेस करने वाला कंट्रोलर
+ * यह फ्रंटएंड से मिले JSON ऐरे को प्रोसेस करके डेटाबेस में बुकिंग्स बनाता है।
+ */
+const bulkBookingsController = asyncHandler(async (req, res) => {
+    const bookingsData = req.body;
+    const tenantId = req.user.tenantId._id;
+    const createdBy = req.user._id;
+    const createdbyuser = req.user.username;
+
+    if (!Array.isArray(bookingsData) || bookingsData.length === 0) {
+        throw new ApiError(400, "No booking data found to process.");
+    }
+
+    const successfulBookings = [];
+    const failedBookings = [];
+
+    for (const booking of bookingsData) {
+        try {
+            // रोगी का नाम कैपिटलाइज़ करना (Capitalize Patient Name)
+            const capitalizedName = String(booking.PatientName || booking.patientName || "").toUpperCase();
+
+            const bookingObj = {
+                bookingId: booking.barcodeId || "OH" + Math.floor(Math.random() * 10000000000),
+                date: booking.date || new Date().toISOString().split('T')[0],
+                time: booking.time || new Date().toTimeString().split(' ')[0].substring(0, 5),
+                patientName: capitalizedName,
+                year: booking.year || `${booking.AgeValue || ''} ${booking.AgeUnit || ''}`.trim(),
+                gender: booking.gender || booking.Gender || "Any",
+                patientPhone: booking.patientPhone || booking.PatientPhone || "",
+                doctorName: booking.doctorName || booking.DoctorName || "",
+                labName: booking.labName || booking.LabName || "",
+                clinicalHistory: booking.clinicalHistory || booking.ClinicalHistory || "",
+                total: Number(booking.total || booking.Total || 0),
+                testIds: booking.testIds || booking.TestIds || [],
+                tableData: booking.tableData || booking.TableData || [],
+                tenantId,
+                createdBy,
+                createdbyuser,
+                status: "pending"
+            };
+
+            const created = await newBooking.create([bookingObj]);
+            successfulBookings.push({ bookingId: created[0].bookingId, patientName: capitalizedName });
+        } catch (error) {
+            failedBookings.push({ 
+                patient: booking.PatientName || booking.patientName || "Unknown", 
+                error: error.message 
+            });
+        }
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { successfulBookings, failedBookings }, "Bulk booking process completed.")
+    );
+});
+
 const cancelBookingController = asyncHandler(async (req, res) => {
     const session = await mongoose.startSession(); // Start a session for the transaction
     session.startTransaction(); // Start the transaction
@@ -4049,5 +4106,6 @@ export {
     DeleteBookingByParamsController,
     SearchBookingController,
     cancelBookingController,
-    getAllCancelledBookingsController
+    getAllCancelledBookingsController,
+    bulkBookingsController
 }

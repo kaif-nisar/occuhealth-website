@@ -6,6 +6,7 @@ import compression from "compression";
 import helmet from "helmet";
 import hpp from "hpp";
 import xss from "xss-clean";
+import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import { monitorEventLoopDelay } from "perf_hooks";
 import Connect_DB from "./src/db/index.js";

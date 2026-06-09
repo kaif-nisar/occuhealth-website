@@ -390,101 +390,6 @@
 
         return [...new Set([...acceptedbarcode, ...tableBarcodes])];
     }
-
-    function escapeHtml(value) {
-        return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
-
-    function stripHtmlToText(value) {
-        const temp = document.createElement("div");
-        temp.innerHTML = String(value ?? "");
-        return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
-    }
-
-    function normalizeSampleText(value) {
-        return String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
-    }
-
-    function splitSampleTestNames(value) {
-        return String(value ?? "")
-            .split(",")
-            .map((item) => normalizeSampleText(item))
-            .filter(Boolean);
-    }
-
-    function getReportSampleDetails(reportData = {}) {
-        const sampleDetails = [];
-        const seen = new Set();
-        const sections = Array.isArray(reportData?.sampleDetails) && reportData.sampleDetails.length
-            ? [{ sampleDetails: reportData.sampleDetails }]
-            : (Array.isArray(reportData?.CategoryAndTest) ? reportData.CategoryAndTest : []);
-
-        sections.forEach((section) => {
-            (section?.sampleDetails || []).forEach((entry) => {
-                const barcodeId = String(entry?.barcodeId ?? "").trim();
-                const sampleType = String(entry?.sampleType ?? "").trim();
-                const testNames = Array.isArray(entry?.testNames) ? entry.testNames.filter(Boolean) : [];
-
-                if (!barcodeId && !sampleType) {
-                    return;
-                }
-
-                const key = `${barcodeId}__${sampleType}`;
-                if (seen.has(key)) {
-                    return;
-                }
-
-                seen.add(key);
-                sampleDetails.push({ barcodeId, sampleType, testNames });
-            });
-        });
-
-        if (sampleDetails.length) {
-            return sampleDetails;
-        }
-
-        const booking = JSON.parse(localStorage.getItem('booking')) || {};
-        (booking.tableData || []).forEach((item) => {
-            const barcodeId = String(item?.barcodeId ?? "").trim();
-            const sampleType = String(item?.typeOfSample ?? "").trim();
-            const testNames = splitSampleTestNames(item?.testName);
-            const key = `${barcodeId}__${sampleType}`;
-
-            if ((!barcodeId && !sampleType) || seen.has(key)) {
-                return;
-            }
-
-            seen.add(key);
-            sampleDetails.push({ barcodeId, sampleType, testNames });
-        });
-
-        return sampleDetails;
-    }
-
-    function buildSampleDetailsMarkup(reportData = {}) {
-        const sampleDetails = getReportSampleDetails(reportData);
-
-        if (!sampleDetails.length) {
-            return "";
-        }
-
-        return sampleDetails.map((item) => {
-            const label = [item.barcodeId, item.sampleType].filter(Boolean).join(" | ");
-            const tooltip = item.testNames?.length ? item.testNames.join(", ") : label;
-            return `
-                <span class="sample-chip" title="${escapeHtml(tooltip)}"
-                    style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#eef4ff;color:#1a73e8;font-size:12px;font-weight:600;white-space:nowrap;margin:0 6px 6px 0;">
-                    ${escapeHtml(label)}
-                </span>
-            `;
-        }).join("");
-    }
-
     function formatDateTime(timestamp) {
         const date = new Date(timestamp);
 
@@ -503,7 +408,6 @@
 
     async function populateHeader() {
         document.getElementById("booking-registeration-number").innerText = report.reg_id;
-        const sampleDetailsMarkup = buildSampleDetailsMarkup(report);
 
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
@@ -515,7 +419,6 @@
                 <div class="format1-infor-div forhide fixedheightdiv"><div class="format1-tags">Lab Name:</div> <div class="value">${report.labName} </div></div>
                 <div class="format1-infor-div forhide" id="investDiv"><div class="format1-tags">Investigations:</div> <div class="value"><span id="investigationarray">
                 ${report.uniquetestArray} </span></div></div>
-                ${sampleDetailsMarkup ? `<div class="format1-infor-div forhide" id="sampleDiv"><div class="format1-tags">Sample / Barcode:</div><div class="value" style="display:flex;flex-wrap:wrap;gap:4px;">${sampleDetailsMarkup}</div></div>` : ""}
             </div>
             <div class="format1-right2">
                 <div>
@@ -597,84 +500,6 @@
 
     barcodegenerator();
 
-    const storedPrintSettings = (() => {
-        try {
-            return JSON.parse(localStorage.getItem("printSettings") || "{}");
-        } catch {
-            return {};
-        }
-    })();
-    const reportPrintSettings = report?.printSettings || {};
-    const activePrintSettings = { ...storedPrintSettings, ...reportPrintSettings };
-    const highlightAbnormalResults = Boolean(activePrintSettings.HLinred);
-    const boldAbnormalRows = activePrintSettings.BoldRow ?? true;
-
-    function getAbnormalResultState(test = {}) {
-
-        const reference = stripHtmlToText(test?.reference ?? test?.text ?? "");
-        const rawValue = stripHtmlToText(test?.value ?? test?.result ?? test?.defaultresult ?? "");
-
-        if (!reference || !rawValue) {
-            return { isAbnormal: false, suffix: "" };
-        }
-
-        const normalizedReference = reference.toLowerCase();
-        const normalizedValue = rawValue.toLowerCase();
-        const numericValue = parseFloat(rawValue.replace(/,/g, ""));
-        const rangeMatch = reference.match(/^\s*(-?\d*\.?\d+)\s*-\s*(-?\d*\.?\d+)\s*$/);
-
-        if (rangeMatch && !Number.isNaN(numericValue)) {
-            const lower = parseFloat(rangeMatch[1]);
-            const upper = parseFloat(rangeMatch[2]);
-
-            if (!Number.isNaN(lower) && !Number.isNaN(upper)) {
-                if (numericValue < lower) {
-                    return { isAbnormal: true, suffix: "L" };
-                }
-
-                if (numericValue > upper) {
-                    return { isAbnormal: true, suffix: "H" };
-                }
-            }
-        }
-
-        if (normalizedReference.includes("positive") && !normalizedValue.includes("positive")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        if (normalizedReference.includes("negative") && !normalizedValue.includes("negative")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        if (normalizedValue.includes("positive") || normalizedValue.includes("abnormal")) {
-            return { isAbnormal: true, suffix: "" };
-        }
-
-        return { isAbnormal: false, suffix: "" };
-    }
-
-
-    function applyAbnormalStyles(cell, isAbnormal) {
-        if (!cell) return;
-
-        const row = cell.closest("tr");
-        if (row) {
-            const shouldBold = isAbnormal && boldAbnormalRows;
-            row.style.fontWeight = shouldBold ? "700" : "";
-            if (shouldBold) {
-                row.classList.add("BoldRow");
-            } else {
-                row.classList.remove("BoldRow");
-            }
-        }
-
-        const shouldColor = isAbnormal && highlightAbnormalResults;
-        if (shouldColor) {
-            cell.style.color = "#c62828";
-        } else {
-            cell.style.color = "#000";
-        }
-    }
 
     function renderData(data) {
         const container = document.getElementById("tables-container"); // Main container
@@ -757,19 +582,41 @@
                 
                 if (test.testName) {
                     testRow = document.createElement("tr");
-                    const rawTestName = String(test?.testName ?? "");
-                    const isParameterRow = Boolean(test?.isParameter) || /id=(["'])parameters\1/.test(rawTestName);
-                    const isMultiHeaderRow = Boolean(test?.isMultiHeader) || (!isParameterRow && !!rawTestName && !test?.value && !test?.unit && !test?.reference);
-
-                    if (isMultiHeaderRow || isParameterRow) {
-                        testRow.classList.add("multi-test-row");
-                    }
 
                     if (test.pagebreak) {
                         testRow.classList.add('page-break');
                     }
 
-                    const { isAbnormal, suffix: testNameSuffix } = getAbnormalResultState(test);
+                    let isBold = false;
+                    let testNameSuffix = "";
+
+                    if (test.reference) {
+                        const referenceParts = test.reference.split(" - ");
+                        if (referenceParts.length === 2) {
+                            const lowerLimit = parseFloat(referenceParts[0]);
+                            const upperLimit = parseFloat(referenceParts[1]);
+                            const testValue = parseFloat(test.value);
+
+                            if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
+                                if (testValue < lowerLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "L";
+                                } else if (testValue > upperLimit) {
+                                    isBold = true;
+                                    testNameSuffix = "H";
+                                }
+                            }
+                        }
+                    }
+
+                    if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
+                        isBold = true;
+                    }
+
+                    if (isBold) {
+                        testRow.style.fontWeight = "bold";
+                        testRow.classList.add('BoldRow');
+                    }
 
                     // ✅ FIXED: Documented test with proper colspan
                     if (test.isDocumented) {
@@ -781,9 +628,7 @@
                     </td>
                     <td colspan="4" style="padding: 0; border: none;">
                         <div class="documented-content">
-                            ${isMultiHeaderRow
-                                ? `<div class="test-name multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</div>`
-                                : (test.testName || "")}
+                            ${test.testName || ""}
                         </div>
                     </td>
                 `;
@@ -795,21 +640,14 @@
                             <i class="fa-sharp fa-solid fa-xmark"></i>
                         </span>
                     </td>
-                    ${isMultiHeaderRow
-                        ? `<td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</span></td>`
-                        : `<td class="test-name">${test.testName || ""}</td>`}
-                    <td class="high-low${highlightAbnormalResults && isAbnormal ? " abnormal-result" : ""}">
+                    ${test.testName || ""}
+                    <td class="high-low">
                         <div class="HL"><span>${testNameSuffix}</span></div>
                         <span>${test.value || ""}</span>
                     </td>
                     <td>${test.unit || ""}</td>
                     <td>${test.reference || ""}</td>
                 `;
-                    }
-
-                    const abnormalCell = testRow.querySelector(".high-low");
-                    if (abnormalCell) {
-                        applyAbnormalStyles(abnormalCell, isAbnormal);
                     }
 
                     tbody.appendChild(testRow);
