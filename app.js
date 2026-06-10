@@ -240,7 +240,17 @@ app.use(cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      exposedHeaders: [
+        'x-rtb-fingerprint-id',
+        'request-id',
+        'x-request-id',
+        'x-ratelimit-limit',
+        'x-ratelimit-remaining',
+        'x-ratelimit-reset',
+        'content-type',
+        'authorization'
+    ]
 }));
 
 app.use(compression({
@@ -258,6 +268,14 @@ app.use(compression({
         return compression.filter(req, res);
     }
 }));
+
+// Permissions Policy for device sensors (fixes Razorpay warnings)
+app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 
+        'accelerometer=(), gyroscope=(), magnetometer=(), geolocation=(), payment=*'
+    );
+    next();
+});
 
 app.use((req, res, next) => {
     const startTime = process.hrtime.bigint();
