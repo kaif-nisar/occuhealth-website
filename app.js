@@ -139,12 +139,19 @@ if (process.env.NODE_ENV === 'production') {
                     "blob:",
                     "https://res.cloudinary.com"
                 ],
-                frameSrc: ["'self'", "blob:"],
+                 frameSrc: [
+                    "'self'", 
+                    "blob:",
+                    "https://checkout.razorpay.com",
+                    "https://api.razorpay.com"
+                ],
                 connectSrc: [
                     "'self'",
                     "https:",
                     "blob:",
                     "https://res.cloudinary.com",
+                    "https://checkout.razorpay.com",
+                    "https://api.razorpay.com",
                     "wss:"
                 ],
                 fontSrc: ["'self'", "https:", "data:"],
