@@ -640,7 +640,7 @@
                             <i class="fa-sharp fa-solid fa-xmark"></i>
                         </span>
                     </td>
-                    ${test.testName || ""}
+                    <td class="test-name">${test.testName || ""}</td>
                     <td class="high-low">
                         <div class="HL"><span>${testNameSuffix}</span></div>
                         <span>${test.value || ""}</span>
@@ -941,6 +941,9 @@
                 e.target.disable = false;
             }
         });
+
+        // Bulk finalize uses this as the handoff point before it clicks sign off.
+        window.__bulkFinalizeReportReady = true;
     }
 
     async function updatebookingisreportreadyfield(bookingid) {

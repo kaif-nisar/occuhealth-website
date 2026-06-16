@@ -9,6 +9,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { invoices } from '../models/invoicepdf.model.js';
 import { certificates } from '../models/certificate.model.js';
+import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -770,5 +771,3 @@ export {
     invoicepdfgenerator,
     certificatepdfgenerator
 };
-
-

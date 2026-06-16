@@ -27,6 +27,15 @@ async function allcases() {
     const closePopupBtn = document.getElementById("closePopup");
     const messagesDiv = document.getElementById("messages");
 
+    // Global variables for attachment modal
+    const attachmentModal = document.getElementById("attachmentModal");
+    const cancelAttachModalBtn = document.getElementById("cancelAttachModal");
+    const saveAttachmentsBtn = document.getElementById("saveAttachmentsBtn");
+    const attachmentFileInput = document.getElementById("attachmentFileInput");
+    const attachmentListContainer = document.getElementById("attachmentListContainer");
+    const targetBookingIdSpan = document.getElementById("targetBookingId");
+    let currentBookingIdForAttachments = null;
+
     function showLoader() {
         document.querySelector(".loader").style.display = "flex";
     }
@@ -193,6 +202,18 @@ async function allcases() {
                 barcodeHtml = (booking.acceptedbarcode || []).join(" ") || "";
             }
 
+            // Attachment column HTML
+            // Assuming booking object now includes attachments from customization model
+            const attachmentCount = booking.attachments ? booking.attachments.length : 0;
+            const attachmentHtml = `
+                <td>
+                    <div class="attachment-btn" data-booking-id="${booking.bookingId}" title="${attachmentCount > 0 ? 'Manage Attachments' : 'Upload Attachments'}">
+                        <i class="fas fa-paperclip"></i>
+                        ${attachmentCount > 0 ? `<span class="attachment-count">${attachmentCount}</span>` : ''}
+                    </div>
+                </td>
+            `;
+
             // HTML for row - ✅ REMOVED onclick from three dots icon
             if (booking.isreportready) {
                 row.innerHTML = `
@@ -202,6 +223,7 @@ async function allcases() {
                 <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
                 <td style="white-space: normal;">${barcodeHtml}</td>
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
+                ${attachmentHtml}
                 <td class="actions">
                     <div class="enter-result">
                         <a data-page="reportFormat" class="edit-report"><i class="fa-solid fa-pen-to-square"></i> View report</a>
@@ -222,6 +244,7 @@ async function allcases() {
                 <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
                 <td style="white-space: normal;">${barcodeHtml}</td>
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
+                ${attachmentHtml}
                 <td class="actions">
                     <div class="enter-result">
                         <a data-page="labreport" class="view-bill"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
@@ -581,6 +604,114 @@ async function allcases() {
         localStorage.setItem("regId", JSON.stringify(regId));
     }
 
+    // --- Attachment Modal Functions ---
+    async function showAttachmentModal(bookingId) {
+        currentBookingIdForAttachments = bookingId;
+        targetBookingIdSpan.textContent = bookingId;
+        attachmentListContainer.innerHTML = ''; 
+
+        showLoader();
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/get-customization-by-booking/${encodeURIComponent(bookingId)}`);
+            const data = await response.json();
+
+            if (response.ok && data.attachments && data.attachments.length > 0) {
+                renderAttachmentList(data.attachments);
+            } else {
+                attachmentListContainer.innerHTML = '<p style="text-align: center; color: #888; padding: 15px;">No attachments yet.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching attachments:', error);
+            attachmentListContainer.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 15px;">Error loading attachments.</p>';
+        } finally {
+            hideLoader();
+        }
+
+        attachmentModal.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+
+    function renderAttachmentList(attachments) {
+        attachmentListContainer.innerHTML = '';
+        attachments.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        attachments.forEach(attach => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'attach-item';
+            itemDiv.setAttribute('data-attachment-id', attach.publicId);
+
+            const fileIcon = attach.fileType === 'pdf' ? '<i class="fas fa-file-pdf" style="color:#e74c3c"></i>' : '<i class="fas fa-image" style="color:#3498db"></i>';
+
+            itemDiv.innerHTML = `
+                <div class="attach-info">
+                    ${fileIcon}
+                    <span class="attach-name" title="${attach.fileName}">${attach.fileName}</span>
+                </div>
+                <div style="display:flex; gap: 12px; align-items:center;">
+                    <i class="fas fa-trash remove-attach" style="cursor: pointer; color:#d9534f;" title="Remove Attachment"></i>
+                </div>
+            `;
+            attachmentListContainer.appendChild(itemDiv);
+        });
+
+        attachmentListContainer.querySelectorAll('.remove-attach').forEach(btn => btn.addEventListener('click', deleteAttachment));
+    }
+
+    async function deleteAttachment(event) {
+        const itemDiv = event.target.closest('.attach-item');
+        const publicId = itemDiv.getAttribute('data-attachment-id');
+        
+        if (!confirm('Are you sure you want to delete this attachment?')) return;
+
+        showLoader();
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/delete-attachment`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingId: currentBookingIdForAttachments, publicId })
+            });
+
+            if (response.ok) {
+                await showAttachmentModal(currentBookingIdForAttachments);
+                await fetchBookings(currentPage);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                alert(errorData.message || 'Attachment delete nahi ho paya.');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Attachment delete karte waqt error aaya.');
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function saveAttachments() {
+        if (!currentBookingIdForAttachments) return;
+        const files = attachmentFileInput.files;
+        if (files.length === 0) return alert('Please select files to upload.');
+
+        const formData = new FormData();
+        formData.append('bookingId', currentBookingIdForAttachments);
+        for (let i = 0; i < files.length; i++) formData.append('attachments', files[i]);
+
+        showLoader();
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/upload-attachments`, { method: 'POST', body: formData });
+            if (response.ok) {
+                attachmentFileInput.value = '';
+                await showAttachmentModal(currentBookingIdForAttachments);
+                await fetchBookings(currentPage);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                alert(errorData.message || 'Attachment upload nahi ho paya.');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Attachment upload karte waqt error aaya.');
+        } finally { hideLoader(); }
+    }
+
     function setupEventListeners() {
         const nextBtn = document.getElementById("next");
         const prevBtn = document.getElementById("previous");
@@ -689,6 +820,26 @@ async function allcases() {
                 }
             });
         }
+
+        // --- Attachment Modal Event Listeners ---
+        // Delegated event listener for attachment button clicks
+        tableBody.addEventListener('click', async function(e) {
+            const target = e.target.closest('.attachment-btn');
+            if (target) {
+                const bookingId = target.getAttribute('data-booking-id');
+                await showAttachmentModal(bookingId);
+            }
+        });
+
+        if (cancelAttachModalBtn) {
+            cancelAttachModalBtn.addEventListener('click', () => {
+                attachmentModal.style.display = 'none';
+                overlay.style.display = 'none';
+                attachmentFileInput.value = ''; // Clear file input
+            });
+        }
+
+        if (saveAttachmentsBtn) saveAttachmentsBtn.addEventListener('click', saveAttachments);
     }
 
     setupEventListeners();

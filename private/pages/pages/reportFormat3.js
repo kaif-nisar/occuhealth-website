@@ -683,7 +683,7 @@
                         </span>
                     </td>
                     ${isMultiHeaderRow
-                        ? `<td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</span></td>`
+                        ? `<td class="test-name"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${escapeHtml(String(stripHtmlToText(test.testName)).toUpperCase())}</span></td>`
                         : `<td class="test-name">${test.testName || ""}</td>`}
                     <td class="high-low${highlightAbnormalResults && isAbnormal ? " abnormal-result" : ""}">
                         <div class="HL"><span>${testNameSuffix}</span></div>

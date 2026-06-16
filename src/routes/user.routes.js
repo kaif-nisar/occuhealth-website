@@ -285,6 +285,11 @@ import {
   getAllInvoices, getpdfcontrolleruser, mergePdfsController, certificatepdfgenerator
 } from "../controllers/pdfgenerator.controller.js";
 import {
+  deleteBookingAttachment,
+  getBookingAttachments,
+  uploadBookingAttachments,
+} from "../controllers/bookingAttachment.controller.js";
+import {
   SaveReportController, getReportController,
   editReportsignofffieldController, getReportControlleruser
 } from "../controllers/reportData.controller.js"
@@ -926,6 +931,9 @@ router.route("/delete-lab").delete(verifyJWT, deleteLabController);
 // // get all bookings controller
 router.route("/get-bookings").post(verifyJWT, checkStaffPermission("canViewReports"), getAllBookingsController)
 router.route("/list-bookings-admin").get(verifyJWT, checkStaffPermission("canViewReports"), getAdminListBookingsController)
+router.route("/get-customization-by-booking/:bookingId").get(verifyJWT, getBookingAttachments)
+router.route("/upload-attachments").post(verifyJWT, upload.array("attachments", 10), uploadBookingAttachments)
+router.route("/delete-attachment").delete(verifyJWT, deleteBookingAttachment)
 
 // // get all cancelled bookings controller
 router.route("/get-cancelled-bookings").post(verifyJWT, getAllCancelledBookingsController)

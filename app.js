@@ -11,6 +11,7 @@ import mongoSanitize from "express-mongo-sanitize";
 import { monitorEventLoopDelay } from "perf_hooks";
 import Connect_DB from "./src/db/index.js";
 import userRouter from "./src/routes/user.routes.js";
+import bulkBookingRouter from "./src/routes/bulkBooking.routes.js";
 import { verifyJWT, verifyProtectedStaticJWT, verifyProtectedSuperAdminStatic, verifySuperAdmin } from "./middlewares/auth.middleware.js";
 import { initializeSchedulers } from "./src/utils/subscriptionScheduler.js";
 import { cleanupCustomizationsOnStartup } from "./src/utils/customizationCleanup.js";
@@ -493,6 +494,7 @@ app.use((error, req, res, next) => {
 import targetRouter from "./src/routes/target.routes.js";
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/bulk-bookings", bulkBookingRouter);
 app.use("/api/v1/target", targetRouter);
 
 // Health Check Route

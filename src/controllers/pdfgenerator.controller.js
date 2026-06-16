@@ -13,6 +13,7 @@ import * as cheerio from 'cheerio';
 import { invoices } from '../models/invoicepdf.model.js';
 import { certificates } from '../models/certificate.model.js';
 import { defaultpdfsetting } from '../models/defaultpdfsettings.model.js';
+import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -474,7 +475,7 @@ const convertImagesInHtmlToBase64 = async (htmlContent) => {
     return $.html();
 };
 
-const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
+const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingId, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
     selectedFontSize, reportId, htmlContent,
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
@@ -654,10 +655,18 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, showInvest, BoldRo
         }
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
-        let responsePdfBuffer = finalpdfbufferwithmargin;
+
+        // ✅ FIX: Attach uploaded files from "All Cases" to the end of the PDF
+        const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
+            pdfBuffer: finalpdfbufferwithmargin,
+            tenantId,
+            bookingId
+        });
+
+        let responsePdfBuffer = attachmentAwareBuffer;
 
         if (enforceSecureReportPdf) {
-            responsePdfBuffer = await flattenPdfToSecureBuffer(finalpdfbufferwithmargin);
+            responsePdfBuffer = await flattenPdfToSecureBuffer(attachmentAwareBuffer);
         }
 
 
@@ -717,7 +726,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, showInvest, BoldRo
         res.status(500).send('Error generating final PDF');
     }
 }
-const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
+const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingId, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
     selectedFontSize, reportId, htmlContent,
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
@@ -895,10 +904,18 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, showInvest, BoldRo
         }
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
-        let responsePdfBuffer = finalpdfbufferwithmargin;
+
+        // ✅ FIX: Attach uploaded files from "All Cases" to the end of the PDF
+        const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
+            pdfBuffer: finalpdfbufferwithmargin,
+            tenantId,
+            bookingId
+        });
+
+        let responsePdfBuffer = attachmentAwareBuffer;
 
         if (enforceSecureReportPdf) {
-            responsePdfBuffer = await flattenPdfToSecureBuffer(finalpdfbufferwithmargin);
+            responsePdfBuffer = await flattenPdfToSecureBuffer(attachmentAwareBuffer);
         }
 
 
@@ -955,6 +972,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, showInvest, BoldRo
 
     } catch (error) {
         console.error('Error generating final PDF:', error.message);
+        console.error('Error generating final PDF:', error.message, error.stack);
         res.status(500).send('Error generating final PDF');
     }
 }
@@ -1008,6 +1026,7 @@ const getpdfcontroller = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfformat: pdfformat,
+                tenantId: tid, // ✅ Added tenantId
                 showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic     
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
@@ -1015,7 +1034,7 @@ const getpdfcontroller = async (req, res) => {
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
                 reportId: value1,
-                bookingId: bookingId || gettingcustomization?.bookingId || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1043,6 +1062,7 @@ const getpdfcontroller = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfformat: pdfformat,
+                tenantId: tid, // ✅ Added tenantId
                 showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic     
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
@@ -1050,7 +1070,7 @@ const getpdfcontroller = async (req, res) => {
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
                 reportId: value1,
-                bookingId: bookingId || gettingcustomization?.bookingId || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1112,8 +1132,6 @@ const saveOrUpdatePdfSetting = async ({
     selectedFontSize,
 }) => {
     try {
-
-
         // tenantId के आधार पर रिकॉर्ड खोजें
         let existingSetting = await defaultpdfsetting.findOne({ tenantId });
 
@@ -1455,12 +1473,17 @@ async function generateSinglePdfBuffer(mergedValues, user) {
 
     // Adjust margins
     const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
+    const attachmentAwarePdfBuffer = await mergePdfWithBookingAttachments({
+        pdfBuffer: finalpdfbufferwithmargin,
+        tenantId: mergedValues.tenantId,
+        bookingId: mergedValues.bookingId,
+    });
 
     if (enforceSecureReportPdf) {
-        return flattenPdfToSecureBuffer(finalpdfbufferwithmargin);
+        return flattenPdfToSecureBuffer(attachmentAwarePdfBuffer);
     }
 
-    return finalpdfbufferwithmargin;
+    return attachmentAwarePdfBuffer;
 }
 
 
@@ -1470,7 +1493,7 @@ const getpdfcontrolleruser = async (req, res) => {
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId } = req.body;
 
     try {
         // Attempt to fetch data from the database
@@ -1481,6 +1504,8 @@ const getpdfcontrolleruser = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfFormat,
+                tenantId: tenantId || gettingcustomization?.tenantId || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
@@ -1514,6 +1539,8 @@ const getpdfcontrolleruser = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfFormat,
+                tenantId: tenantId || gettingcustomization?.tenantId || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     

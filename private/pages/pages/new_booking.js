@@ -59,6 +59,89 @@ async function bookingload() {
         return "OH" + Math.floor(Math.random() * 10000000000);
     }
 
+    function normalizeList(value) {
+        if (Array.isArray(value)) {
+            return value
+                .map(item => String(item ?? "").trim())
+                .filter(Boolean);
+        }
+
+        return String(value ?? "")
+            .split(",")
+            .map(item => item.trim())
+            .filter(Boolean);
+    }
+
+    function getCatalogItemName(item) {
+        return item?.Name
+            || item?.name
+            || item?.packageName
+            || item?.testName
+            || item?.panelName
+            || item?.pannelname
+            || "";
+    }
+
+    function getCatalogItemId(item) {
+        return item?._id
+            || item?.testId
+            || item?.panelId
+            || item?.packageId
+            || "";
+    }
+
+    function getCatalogItemCollection(item) {
+        if (item?.Name || item?.testName) return "testSchema";
+        if (item?.name || item?.panelName) return "addPannel";
+        if (item?.packageName) return "Package";
+        return "";
+    }
+
+    function getCatalogItemPrice(item) {
+        const rawPrice = item?.final_price
+            ?? item?.finalPrice
+            ?? item?.packageFee
+            ?? item?.Price
+            ?? item?.price
+            ?? item?.myPrice
+            ?? item?.basePrice
+            ?? 0;
+
+        return Number(rawPrice) || 0;
+    }
+
+    function getCatalogItemSampleTypes(item) {
+        if (item?.Name) {
+            return normalizeList(item.sampleType);
+        }
+
+        if (item?.name) {
+            return normalizeList(item.sample_types);
+        }
+
+        if (item?.packageName) {
+            const directSamples = [
+                ...normalizeList(item.sampleType),
+                ...normalizeList(item.sample_types),
+                ...normalizeList(item.testSample),
+                ...normalizeList(item.pannelSample),
+            ];
+            const nestedSamples = [];
+
+            (Array.isArray(item.testIds) ? item.testIds : []).forEach((test) => {
+                nestedSamples.push(...normalizeList(test?.sampleType));
+            });
+
+            (Array.isArray(item.pannelIds) ? item.pannelIds : []).forEach((panel) => {
+                nestedSamples.push(...normalizeList(panel?.sample_types));
+            });
+
+            return [...new Set([...directSamples, ...nestedSamples])];
+        }
+
+        return normalizeList(item?.sampleType || item?.sample_types);
+    }
+
     // Optimized: Test rendering with DocumentFragment for better performance
     function renderTests(testData, panelData, packageData) {
         if (!DOM.testSelection) return;
@@ -90,8 +173,7 @@ async function bookingload() {
         // Render packages
         if (Array.isArray(packageData)) {
             packageData.forEach(pkg => {
-                const combinedSamples = [...(pkg.sampleType || []), ...(pkg.sample_types || [])];
-                const uniqueSamples = [...new Set(combinedSamples)].filter(item => item);
+                const uniqueSamples = getCatalogItemSampleTypes(pkg);
 
                 const span = createTestElement(pkg, 'Package', {
                     price: pkg.myPrice || pkg.finalPrice || pkg.basePrice || 0,
@@ -109,9 +191,9 @@ async function bookingload() {
     // Helper: Create test element efficiently
     function createTestElement(item, collection, options = {}) {
         const span = document.createElement('span');
-        const id = item.testId || item.panelId || item.packageId;
-        const name = options.name || item.testName || item.panelName || item.packageName;
-        const sampleType = options.sampleType || item.sampleType || '';
+        const id = getCatalogItemId(item);
+        const name = options.name || getCatalogItemName(item);
+        const sampleType = options.sampleType || getCatalogItemSampleTypes(item);
 
         span.id = id;
         span.className = 'tests-name-option';
@@ -155,7 +237,7 @@ async function bookingload() {
 
     // Optimized: Event delegation for test selection (single listener)
     function setupTestSelection() {
-        if (!DOM.testSelection || !DOM.tableBody || !DOM.selectedtests) return;
+        if (!DOM.testSelection || !DOM.tableBody || !DOM.selectedTests) return;
         
         DOM.testSelection.addEventListener('click', (e) => {
             // FIX: Ensure we get the actual test element, not a child
@@ -906,6 +988,7 @@ async function bookingload() {
         const headers = [
             "Patient Name", "Age Value", "Age Unit", "Gender", "Patient Phone",
             "Doctor Name", "Lab Name", "Clinical History", "Test Names",
+            "Test Results",
             "Discount Amount", "Discount Percentage", "Courier Name", "Courier ID"
         ];
         const data = [headers];
@@ -964,39 +1047,21 @@ async function bookingload() {
 
         // Fetch all tests/panels/packages for validation
         const allTestsData = await fetchAllData();
-        const testNameMap = new Map(); // Map testName to {id, collection}
-        
-        [...allTestsData.tests, ...allTestsData.panels, ...allTestsData.packages].forEach(item => {
-            const name = item.testName || item.panelName || item.packageName;
-            const id = item.testId || item.panelId || item.packageId || item._id;
-            let collection;
-            let price = 0;
-            let sampleTypes = []; // Initialize as empty array
+        const testNameMap = new Map(); // Name lookup for the tests/panels/packages shown in the modal
 
-            if (item.testName) { // It's a single test
-                collection = 'testSchema';
-                price = item.myPrice || item.finalPrice || item.basePrice || 0;
-                sampleTypes = Array.isArray(item.sampleType) ? item.sampleType : (item.sampleType ? [item.sampleType] : []);
-            } else if (item.panelName) { // It's a panel
-                collection = 'addPannel';
-                price = item.myPrice || item.finalPrice || item.basePrice || 0;
-                sampleTypes = Array.isArray(item.sample_types) ? item.sample_types : (item.sample_types ? [item.sample_types] : []);
-            } else if (item.packageName) { // It's a package
-                collection = 'Package';
-                price = item.myPrice || item.finalPrice || item.basePrice || 0;
-                // Packages might have both testSample and pannelSample
-                let pkgSampleTypes = [];
-                if (item.testSample) pkgSampleTypes.push(...(Array.isArray(item.testSample) ? item.testSample : [item.testSample]));
-                if (item.pannelSample) pkgSampleTypes.push(...(Array.isArray(item.pannelSample) ? item.pannelSample : [item.pannelSample]));
-                sampleTypes = [...new Set(pkgSampleTypes)].filter(Boolean); // Ensure unique and non-empty
-            }
-            
+        [...allTestsData.tests, ...allTestsData.panels, ...allTestsData.packages].forEach(item => {
+            const name = getCatalogItemName(item);
+            const id = getCatalogItemId(item);
+            const collection = getCatalogItemCollection(item);
+            const price = getCatalogItemPrice(item);
+            const sampleTypes = getCatalogItemSampleTypes(item);
+
             if (name && id && collection) {
                 testNameMap.set(name.toLowerCase(), { id, collection, price, sampleTypes });
             }
         });
 
-        const requiredHeaders = ["Patient Name", "Age Value", "Age Unit", "Gender", "Test Names"];
+        const requiredHeaders = ["Patient Name", "Age Value", "Age Unit", "Gender", "Test Names", "Test Results"];
         const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
         if (missingHeaders.length > 0) {
             alert(`Required headers missing in file: ${missingHeaders.join(', ')}`);
@@ -1032,32 +1097,48 @@ async function bookingload() {
             const testNamesRaw = booking.TestNames ? String(booking.TestNames).split(',').map(t => t.trim()).filter(Boolean) : [];
             if (testNamesRaw.length === 0) rowErrors.push("At least one Test Name is required.");
 
-            const resolvedTestIds = []; // Array of just IDs
+            const resolvedTestEntries = [];
             const resolvedTableData = [];
             const uniqueSampleTypes = new Set();
-            let totalBookingPrice = 0; // Initialize total price for this booking
+            let totalBookingPrice = 0; // Keep the booking total aligned with the resolved tests
+            const testResultsRaw = booking.TestResults ? String(booking.TestResults).split(',').map(t => t.trim()) : [];
             
             for (const testName of testNamesRaw) {
                 const mappedTest = testNameMap.get(testName.toLowerCase());
                 if (mappedTest) {
-                    resolvedTestIds.push(mappedTest.id); // Just the ID
+                    resolvedTestEntries.push({
+                        id: mappedTest.id,
+                        collectionName: mappedTest.collection,
+                        name: testName,
+                        sampleTypes: mappedTest.sampleTypes,
+                    });
                     totalBookingPrice += mappedTest.price; // Sum up prices
                     mappedTest.sampleTypes.forEach(s => uniqueSampleTypes.add(s));
                 } else {
                     rowErrors.push(`Test Name '${testName}' not found.`);
                 }
             }
+
+            if (testResultsRaw.length === 0 || testResultsRaw.some(result => result === "")) {
+                rowErrors.push("Test Results are required.");
+            } else if (testResultsRaw.length !== testNamesRaw.length) {
+                rowErrors.push("Test Results count must match Test Names count.");
+            }
             
-            // Construct tableData for each unique sample type
+            // One row per sample type, same as the manual booking flow.
             let order = 1;
             uniqueSampleTypes.forEach(sample => {
+                const sampleTestEntries = resolvedTestEntries.filter(entry =>
+                    Array.isArray(entry.sampleTypes) && entry.sampleTypes.includes(sample)
+                );
+                const generatedBarcode = generateRandomId();
                 resolvedTableData.push({
                     order: order++,
                     typeOfSample: sample,
-                    barcodeId: generateRandomId(), // Generate unique barcode for each sample
-                    confirmBarcodeId: generateRandomId(),
-                    testName: testNamesRaw.join(', '), // All tests for this sample type
-                    ids: resolvedTestIds.map(id => ({ id, collectionName: testNameMap.get(testNamesRaw[0].toLowerCase())?.collection })) // Assuming all tests are from same collection for simplicity, refine if needed
+                    barcodeId: generatedBarcode,
+                    confirmBarcodeId: generatedBarcode,
+                    testName: sampleTestEntries.map(e => e.name).join(', '),
+                    ids: sampleTestEntries.map(item => ({ id: item.id, collectionName: item.collectionName }))
                 });
             });
 
@@ -1068,27 +1149,28 @@ async function bookingload() {
             bulkBookingsData.push({
                 originalData: booking,
                 processedData: {
-                    // Ensure all fields are explicitly set, defaulting to empty string or 0 if not present
-                    PatientName: String(booking.PatientName || '').toUpperCase(),
-                    AgeValue: Number(booking.AgeValue || 0),
-                    AgeUnit: String(booking.AgeUnit || ''),
-                    Gender: String(booking.Gender || ''),
-                    PatientPhone: String(booking.PatientPhone || ''),
-                    DoctorName: String(booking.DoctorName || ''),
-                    LabName: String(booking.LabName || ''),
-                    ClinicalHistory: String(booking.ClinicalHistory || ''),
-                    DiscountAmount: Number(booking.DiscountAmount || 0),
-                    DiscountPercentage: Number(booking.DiscountPercentage || 0),
-                    CourierName: String(booking.CourierName || ''),
-                    CourierId: String(booking.CourierId || ''),
-                    
-                    TestIds: resolvedTestIds, // Array of just IDs
-                    TableData: resolvedTableData,
+                    // Align keys with standard booking payload for automation
+                    barcodeId: generateRandomId(), 
+                    patientName: String(booking.PatientName || '').toUpperCase(),
+                    year: `${booking.AgeValue || ''} ${booking.AgeUnit || ''}`.trim(),
+                    gender: String(booking.Gender || ''),
+                    patientPhone: String(booking.PatientPhone || ''),
+                    doctorName: String(booking.DoctorName || ''),
+                    labName: String(booking.LabName || ''),
+                    clinicalHistory: String(booking.ClinicalHistory || ''),
+                    discountamount: Number(booking.DiscountAmount || 0),
+                    discountunit: String(booking.DiscountPercentage || '').replace('%', ''),
+                    courierName: String(booking.CourierName || ''),
+                    courierId: String(booking.CourierId || ''),
+                    testNames: testNamesRaw,
+                    testResults: testResultsRaw,
+                    testIds: resolvedTestEntries.map(item => item.id),
+                    tableData: resolvedTableData,
                     createdbyuser: username,
                     userId: userId,
                     date: new Date().toISOString().split('T')[0],
                     time: new Date().toTimeString().split(' ')[0].substring(0, 5),
-                    Total: totalBookingPrice // Add calculated total price
+                    total: totalBookingPrice
                 },
                 errors: rowErrors
             });
@@ -1131,7 +1213,7 @@ async function bookingload() {
 
         try {
             const bookingsToSend = bulkBookingsData.map(item => item.processedData);
-            const response = await fetch(`${BASE_URL}/api/v1/user/bulk-bookings`, {
+            const response = await fetch(`${BASE_URL}/api/v1/bulk-bookings/auto-finalize`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bookingsToSend)
@@ -1145,7 +1227,15 @@ async function bookingload() {
             const failedBookings = Array.isArray(resultData.failedBookings) ? resultData.failedBookings : [];
 
             if (response.ok) {
-                alert(`Bulk booking completed successfully. Successful: ${successfulBookings.length}, Failed: ${failedBookings.length}`);
+                const failureNotes = failedBookings
+                    .slice(0, 3)
+                    .map((item, index) => `${index + 1}. ${item.patient || 'Unknown'} - ${item.error || 'Unknown error'}`)
+                    .join('\n');
+
+                alert(
+                    `Bulk booking completed successfully. Successful: ${successfulBookings.length}, Failed: ${failedBookings.length}` +
+                    (failureNotes ? `\n\nFirst failures:\n${failureNotes}` : "")
+                );
                 location.reload(); // Reload page after successful bulk booking
             } else {
                 alert(`Error in bulk booking: ${apiResponse?.message || 'Unknown error'}`);

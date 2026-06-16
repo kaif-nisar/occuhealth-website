@@ -78,7 +78,19 @@ const getDoctorsSign = async (req, res) => {
         });
 
         if (!labsigndata) {
-            return res.status(404).json({ message: 'No doctor signature found' });
+            // Keep the API soft-failing here so report automation can finish cleanly.
+            return res.status(200).json({
+                showlabinchargesign: false,
+                showfirstdoctorsign: false,
+                showseconddoctorsign: false,
+                labinchargeinfo: "",
+                firstdoctorsigninfo: "",
+                seconddoctorsigninfo: "",
+                labinchargesign: "",
+                firstdoctorsign: "",
+                seconddoctorsign: "",
+                isAvailable: false,
+            });
         }
 
         res.status(200).json(labsigndata);

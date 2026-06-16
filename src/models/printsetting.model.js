@@ -116,7 +116,17 @@ const customizationSchema = new mongoose.Schema({
     format: {
         type: String,
         default: ""
-    }
+    },
+    attachments: [
+        {
+            url: String,
+            publicId: String,
+            fileType: { type: String, enum: ['image', 'pdf'] },
+            fileName: String,
+            order: { type: Number, default: 0 },
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ],
 },
     { timestamps: true }
 );

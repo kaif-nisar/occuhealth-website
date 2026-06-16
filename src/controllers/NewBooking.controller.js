@@ -15,10 +15,51 @@ import { bookedTestsresult } from "../models/Testvalues.model.js";
 import { lisdata } from "../models/lismodel.js";
 import { Target } from "../models/target.model.js";
 import { Counter, categorydb } from "../models/category.model.js";
+import { customization } from "../models/printsetting.model.js";
 
 const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
+const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
+
+async function attachBookingAttachments(bookings, tenantId) {
+    if (!bookings.length) {
+        return bookings;
+    }
+
+    const bookingIds = bookings.map((booking) => booking.bookingId);
+    const attachmentDocs = await customization.find(
+        {
+            tenantId,
+            bookingId: { $in: bookingIds },
+            format: BOOKING_ATTACHMENT_FORMAT,
+        },
+        {
+            bookingId: 1,
+            attachments: 1,
+        }
+    ).lean();
+
+    const attachmentMap = new Map();
+    attachmentDocs.forEach((doc) => {
+        attachmentMap.set(
+            doc.bookingId,
+            (doc.attachments || []).map((attachment) => ({
+                url: attachment.url || "",
+                publicId: attachment.publicId || "",
+                fileType: attachment.fileType || "image",
+                fileName: attachment.fileName || "attachment",
+                order: attachment.order || 0,
+                uploadedAt: attachment.uploadedAt || new Date(),
+            }))
+        );
+    });
+
+    return bookings.map((booking) => ({
+        ...booking,
+        attachments: attachmentMap.get(booking.bookingId) || [],
+    }));
+}
 
 const findbookingId = async (req, res) => {
     const randomId = req.query.randomId;
@@ -655,15 +696,16 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
                 date: booking.date || new Date().toISOString().split('T')[0],
                 time: booking.time || new Date().toTimeString().split(' ')[0].substring(0, 5),
                 patientName: capitalizedName,
-                year: booking.year || `${booking.AgeValue || ''} ${booking.AgeUnit || ''}`.trim(),
-                gender: booking.gender || booking.Gender || "Any",
-                patientPhone: booking.patientPhone || booking.PatientPhone || "",
-                doctorName: booking.doctorName || booking.DoctorName || "",
-                labName: booking.labName || booking.LabName || "",
-                clinicalHistory: booking.clinicalHistory || booking.ClinicalHistory || "",
-                total: Number(booking.total || booking.Total || 0),
-                testIds: booking.testIds || booking.TestIds || [],
-                tableData: booking.tableData || booking.TableData || [],
+                year: booking.year || "",
+                gender: booking.gender || "Any",
+                patientPhone: booking.patientPhone || "",
+                doctorName: booking.doctorName || "",
+                labName: booking.labName || "",
+                clinicalHistory: booking.clinicalHistory || "",
+                total: Number(booking.total || 0),
+                testIds: booking.testIds || [],
+                testResults: booking.testResults || [], // Required for automated browser to fill values
+                tableData: booking.tableData || [],
                 tenantId,
                 createdBy,
                 createdbyuser,
@@ -1833,8 +1875,10 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
         });
     }
 
+    const bookingsWithAttachments = await attachBookingAttachments(bookings, req.user.tenantId._id);
+
     return res.status(200).json({
-        bookings,
+        bookings: bookingsWithAttachments,
         total,
         page: pageNumber,
         limit: limitNumber,
@@ -2058,6 +2102,7 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
     ]);
 
     bookings = await attachBookingBarcodeDetails(bookings, tenantId);
+    bookings = await attachBookingAttachments(bookings, tenantId);
 
     const summary = {
         total,

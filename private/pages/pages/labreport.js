@@ -2773,6 +2773,9 @@ async function loadfunction() {
         }
     }
     populatedoctorvisibility();
+
+    // Bulk finalize waits on this instead of assuming the buttons are wired already.
+    window.__bulkFinalizeLabreportReady = true;
 }
 
 async function initialization() {

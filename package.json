@@ -52,6 +52,7 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "browser-sync": "^3.0.4"
+    "browser-sync": "^3.0.4",
+    "eslint": "^10.4.1"
   }
 }

@@ -916,14 +916,14 @@
                     if (test.pagebreak) {
                         parentRow.classList.add("page-break");
                     }
-                    parentRow.classList.add("multi-test-row");
+                    parentRow.classList.add("multi-test-row"); // Keep this class for other styling
                     parentRow.innerHTML = `
                         <td class="wrong">
                             <span class="delete-row-icon" title="Delete Row">
                                 <i class="fa-sharp fa-solid fa-xmark"></i>
                             </span>
                         </td>
-                        <td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
+                        <td class="test-name">
                             <span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${escapeHtml(buildMultiParameterTestName(test))}</span>
                         </td>
                         <td></td>
@@ -944,14 +944,14 @@
                         const isPrimaryParameter = paramIndex === 0;
                         const renderedParameterName = escapeHtml(String(buildParameterDisplayName(param)).toUpperCase());
 
-                        paramRow.innerHTML = `
+                        paramRow.innerHTML = ` 
                             <td class="wrong">
                                 <span class="delete-row-icon" title="Delete Row">
                                     <i class="fa-sharp fa-solid fa-xmark"></i>
                                 </span>
                             </td>
-                            <td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">
-                                <div class="parameter-name${isPrimaryParameter ? " primary-parameter-name" : ""}" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${renderedParameterName}</div>
+                            <td class="test-name">
+                                <div class="parameter-name${isPrimaryParameter ? " primary-parameter-name" : ""}" style="text-indent: 0 !important;">${renderedParameterName}</div>
                             </td>
                             <td class="high-low${highlightAbnormalResults && isParamAbnormal ? " abnormal-result" : ""}">
                                 <div class="HL"><span>${paramSuffix}</span></div>
@@ -1059,10 +1059,10 @@
                     <td class="wrong">
                         <span class="delete-row-icon" title="Delete Row">
                             <i class="fa-sharp fa-solid fa-xmark"></i>
-                        </span>
+                        </span> 
                     </td>
                     ${isMultiHeaderRow
-                        ? `<td class="test-name" style="padding-left: 0 !important; padding-right: 0 !important; margin-left: 0 !important; text-indent: 0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${renderedTestName || ""}</span></td>`
+                        ? `<td class="test-name"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${renderedTestName || ""}</span></td>`
                         : `<td class="test-name">${renderedTestName || ""}</td>`}
                     <td class="high-low${highlightAbnormalResults && isAbnormal ? " abnormal-result" : ""}">
                         <div class="HL"><span>${testNameSuffix}</span></div>
