@@ -76,9 +76,8 @@ async function bookingload() {
         return item?.Name
             || item?.name
             || item?.packageName
-            || item?.testName
-            || item?.panelName
-            || item?.pannelname
+            || item?.testName // ✅ Added for testSchema
+            || item?.panelName // ✅ Added for addPannel
             || "";
     }
 
@@ -1044,25 +1043,43 @@ async function bookingload() {
         DOM.bulkProgress.querySelector('span').textContent = 'Validating data...';
         bulkBookingsData = [];
         let hasErrors = false;
+        let detailedErrors = []; // ✅ To store first 5-10 specific errors
 
         // Fetch all tests/panels/packages for validation
         const allTestsData = await fetchAllData();
         const testNameMap = new Map(); // Name lookup for the tests/panels/packages shown in the modal
 
         [...allTestsData.tests, ...allTestsData.panels, ...allTestsData.packages].forEach(item => {
-            const name = getCatalogItemName(item);
+            const name = getCatalogItemName(item).trim();
             const id = getCatalogItemId(item);
             const collection = getCatalogItemCollection(item);
             const price = getCatalogItemPrice(item);
             const sampleTypes = getCatalogItemSampleTypes(item);
+            const shortName = (item?.Short_name || item?.Short || "").trim();
 
             if (name && id && collection) {
                 testNameMap.set(name.toLowerCase(), { id, collection, price, sampleTypes });
+                if (shortName && shortName !== name) testNameMap.set(shortName.toLowerCase(), { id, collection, price, sampleTypes }); // Only map if shortName is distinct and not empty
             }
         });
 
-        const requiredHeaders = ["Patient Name", "Age Value", "Age Unit", "Gender", "Test Names", "Test Results"];
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        // ✅ Normalize Headers (Case-insensitive)
+        const headerIndices = {};
+        headers.forEach((h, i) => {
+            if (h) headerIndices[String(h).trim().toLowerCase()] = i;
+        });
+
+        const requiredFields = [
+            { key: "patient name", label: "Patient Name" },
+            { key: "age value", label: "Age Value" },
+            { key: "age unit", label: "Age Unit" },
+            { key: "gender", label: "Gender" },
+            { key: "test names", label: "Test Names" },
+            { key: "test results", label: "Test Results" }
+        ];
+
+        const missingHeaders = requiredFields.filter(f => headerIndices[f.key] === undefined).map(f => f.label);
+        
         if (missingHeaders.length > 0) {
             alert(`Required headers missing in file: ${missingHeaders.join(', ')}`);
             DOM.bulkProgress.style.display = 'none';
@@ -1075,33 +1092,53 @@ async function bookingload() {
         const tbody = DOM.bulkPreviewTable.querySelector('tbody');
         tbody.innerHTML = '';
 
-        for (const rowData of rows) {
+        rows.forEach((rowData, rowIndex) => {
+            // ✅ खाली रो को छोड़ें (Skip Trailing Empty Rows): 
+            if (!rowData || rowData.length === 0 || rowData.every(cell => cell === null || cell === undefined || String(cell).trim() === "")) {
+                return;
+            }
+
             const booking = {};
             let rowErrors = [];
             const displayRow = {};
 
-            headers.forEach((header, index) => {
-                const value = rowData[index];
-                displayRow[header] = value; // For preview table
-                booking[header.replace(/\s/g, '')] = value; // Clean header for internal use
+            // ✅ Extract data using normalized indices
+            requiredFields.forEach(f => {
+                const val = rowData[headerIndices[f.key]];
+                booking[f.key.replace(/\s/g, '')] = (val === null || val === undefined) ? "" : String(val).trim();
             });
 
-            // Client-side validation
-            if (!booking.PatientName) rowErrors.push("Patient Name is required.");
-            else booking.PatientName = booking.PatientName.toUpperCase(); // Capitalize
+            // Optional fields
+            ["patient phone", "doctor name", "lab name", "clinical history", "discount amount", "discount percentage", "courier name", "courier id"].forEach(f => {
+                const idx = headerIndices[f];
+                const val = (idx !== undefined) ? rowData[idx] : "";
+                booking[f.replace(/\s/g, '')] = (val === null || val === undefined) ? "" : String(val).trim();
+            });
 
-            if (!booking.AgeValue || isNaN(Number(booking.AgeValue))) rowErrors.push("Age Value is required and must be a number.");
-            if (!booking.AgeUnit || !["Years", "Months", "Days"].includes(booking.AgeUnit)) rowErrors.push("Age Unit must be 'Years', 'Months', or 'Days'.");
-            if (!booking.Gender || !["Male", "Female", "Any"].includes(booking.Gender)) rowErrors.push("Gender must be 'Male', 'Female', or 'Any'.");
+            headers.forEach((h, i) => { displayRow[h] = rowData[i]; });
+
+            // Client-side validation
+            if (!booking.patientname) rowErrors.push("Patient Name is missing");
+            else booking.patientname = booking.patientname.toUpperCase();
+
+            const parsedAge = parseFloat(booking.agevalue);
+            if (isNaN(parsedAge)) rowErrors.push("Age Value must be a number");
+
+            const normalizedAgeUnit = ["years", "months", "days"].find(u => u === String(booking.ageunit || "").toLowerCase());
+            if (!normalizedAgeUnit) rowErrors.push("Invalid Age Unit (use Years/Months/Days)");
             
-            const testNamesRaw = booking.TestNames ? String(booking.TestNames).split(',').map(t => t.trim()).filter(Boolean) : [];
-            if (testNamesRaw.length === 0) rowErrors.push("At least one Test Name is required.");
+            const normalizedGender = ["male", "female", "any"].find(g => g === String(booking.gender || "").toLowerCase());
+            if (!normalizedGender) rowErrors.push("Invalid Gender");
+            
+            const testNamesRaw = String(booking.testnames || "").split(',').map(t => t.trim()).filter(Boolean);
+            if (testNamesRaw.length === 0) rowErrors.push("At least one Test Name required");
 
             const resolvedTestEntries = [];
             const resolvedTableData = [];
             const uniqueSampleTypes = new Set();
             let totalBookingPrice = 0; // Keep the booking total aligned with the resolved tests
-            const testResultsRaw = booking.TestResults ? String(booking.TestResults).split(',').map(t => t.trim()) : [];
+            // ✅ Ensure testResultsRaw is always an array, even if empty, to maintain sequence
+            const testResultsRaw = String(booking.testresults || "").split(',').map(t => t.trim());
             
             for (const testName of testNamesRaw) {
                 const mappedTest = testNameMap.get(testName.toLowerCase());
@@ -1112,22 +1149,17 @@ async function bookingload() {
                         name: testName,
                         sampleTypes: mappedTest.sampleTypes,
                     });
+                    // ✅ Sum up prices only for successfully mapped tests
                     totalBookingPrice += mappedTest.price; // Sum up prices
                     mappedTest.sampleTypes.forEach(s => uniqueSampleTypes.add(s));
                 } else {
-                    rowErrors.push(`Test Name '${testName}' not found.`);
+                    rowErrors.push(`Test '${testName}' not found in DB`);
                 }
             }
 
-            if (testResultsRaw.length === 0 || testResultsRaw.some(result => result === "")) {
-                rowErrors.push("Test Results are required.");
-            } else if (testResultsRaw.length !== testNamesRaw.length) {
-                rowErrors.push("Test Results count must match Test Names count.");
-            }
-            
             // One row per sample type, same as the manual booking flow.
             let order = 1;
-            uniqueSampleTypes.forEach(sample => {
+            Array.from(uniqueSampleTypes).forEach(sample => {
                 const sampleTestEntries = resolvedTestEntries.filter(entry =>
                     Array.isArray(entry.sampleTypes) && entry.sampleTypes.includes(sample)
                 );
@@ -1144,24 +1176,24 @@ async function bookingload() {
 
             if (rowErrors.length > 0) {
                 hasErrors = true;
+                if (detailedErrors.length < 5) detailedErrors.push(`Row ${rowIndex + 2}: ${rowErrors.join(', ')}`);
             }
 
             bulkBookingsData.push({
                 originalData: booking,
                 processedData: {
-                    // Align keys with standard booking payload for automation
                     barcodeId: generateRandomId(), 
-                    patientName: String(booking.PatientName || '').toUpperCase(),
-                    year: `${booking.AgeValue || ''} ${booking.AgeUnit || ''}`.trim(),
-                    gender: String(booking.Gender || ''),
-                    patientPhone: String(booking.PatientPhone || ''),
-                    doctorName: String(booking.DoctorName || ''),
-                    labName: String(booking.LabName || ''),
-                    clinicalHistory: String(booking.ClinicalHistory || ''),
-                    discountamount: Number(booking.DiscountAmount || 0),
-                    discountunit: String(booking.DiscountPercentage || '').replace('%', ''),
-                    courierName: String(booking.CourierName || ''),
-                    courierId: String(booking.CourierId || ''),
+                    patientName: booking.patientname,
+                    year: `${booking.agevalue} ${booking.ageunit}`,
+                    gender: booking.gender,
+                    patientPhone: booking.patientphone,
+                    doctorName: booking.doctorname,
+                    labName: booking.labname,
+                    clinicalHistory: booking.clinicalhistory,
+                    discountamount: Number(booking.discountamount || 0),
+                    discountunit: String(booking.discountpercentage || '').replace('%', ''),
+                    courierName: booking.couriername,
+                    courierId: booking.courierid,
                     testNames: testNamesRaw,
                     testResults: testResultsRaw,
                     testIds: resolvedTestEntries.map(item => item.id),
@@ -1183,14 +1215,14 @@ async function bookingload() {
                 return `<td class="${rowErrors.length > 0 ? 'error-cell' : ''}">${displayRow[h] || ''}</td>`;
             }).join('');
             tbody.appendChild(tr);
-        }
+        });
 
         DOM.bulkPreviewContainer.style.display = 'block';
         DOM.bulkProgress.style.display = 'none';
         DOM.confirmBulkBookingsBtn.style.display = 'block';
         DOM.confirmBulkBookingsBtn.disabled = hasErrors;
         if (hasErrors) {
-            document.getElementById('bulk-booking-summary').textContent = 'Bulk booking cannot be confirmed due to errors.';
+            document.getElementById('bulk-booking-summary').innerHTML = `<strong>Errors found in ${detailedErrors.length} or more rows:</strong><br>${detailedErrors.join('<br>')}`;
             document.getElementById('bulk-booking-summary').style.color = 'red';
             document.getElementById('bulk-booking-summary').style.display = 'block';
         } else {

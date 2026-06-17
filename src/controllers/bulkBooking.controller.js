@@ -27,6 +27,11 @@ const splitCommaValues = (value) =>
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0);
 
+const splitResults = (value) =>
+    String(value ?? "")
+        .split(",")
+        .map((entry) => entry.trim());
+
 const toSerializable = (value) => JSON.parse(JSON.stringify(value ?? null));
 
 const waitForNextPaint = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -310,7 +315,7 @@ const normalizeBookingInput = (bookingInput = {}) => {
     let ageUnit = matchAllowedValue(bookingInput.AgeUnit || bookingInput.ageUnit, ALLOWED_AGE_UNITS);
     const gender = matchAllowedValue(bookingInput.Gender || bookingInput.gender, ALLOWED_GENDERS);
     const testNames = splitCommaValues(bookingInput.TestNames || bookingInput.testNames || bookingInput.testName);
-    const testResults = splitCommaValues(bookingInput.TestResults || bookingInput.testResults || bookingInput.results);
+    const testResults = splitResults(bookingInput.TestResults || bookingInput.testResults || bookingInput.results);
 
     // Bulk sheets sometimes carry age as a single "30 Years" string.
     // Keep that path open so we don't reject valid rows on formatting alone.
@@ -351,10 +356,6 @@ const normalizeBookingInput = (bookingInput = {}) => {
 
     if (testResults.length === 0) {
         throw new ApiError(400, "Test Results are required for bulk auto finalize.");
-    }
-
-    if (testNames.length !== testResults.length) {
-        throw new ApiError(400, "Test Names and Test Results count must match.");
     }
 
     if (tableData.length === 0) {
