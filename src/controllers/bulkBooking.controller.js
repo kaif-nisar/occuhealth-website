@@ -1,4 +1,3 @@
-import puppeteer from "puppeteer";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -10,6 +9,9 @@ import { reports } from "../models/reportData.model.js";
 import { testSchema } from "../models/newTest.model.js";
 import { addPannel } from "../models/AddPannel.model.js";
 import { Package } from "../models/addPackage.model.js";
+import { customization } from "../models/printsetting.model.js";
+import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
+import { doctorsign } from "../models/labinchargesign.model.js";
 
 const AUTO_FINALIZE_ORIGIN = process.env.AUTO_FINALIZE_ORIGIN || `http://localhost:${process.env.PORT || 3000}`;
 const ACCESS_TOKEN_SECRET = process.env.SUPER_ADMIN_ACCESS_TOKEN_SECRET;
@@ -44,6 +46,41 @@ const uniqueByKey = (items, keyFn) => {
 
     return output;
 };
+
+const convertAgeToDays = (ageStr) => {
+    if (!ageStr) return 0;
+    const [val, unit] = ageStr.split(" ");
+    const age = parseInt(val) || 0;
+    if (unit?.toLowerCase() === "years") return age * 365;
+    if (unit?.toLowerCase() === "months") return age * 30;
+    if (unit?.toLowerCase() === "days") return age;
+    return age * 365;
+};
+
+const getReferenceRangeValues = (patientDays, gender, normalValues = []) => {
+    if (!normalValues.length) return { lower: null, upper: null, text: "" };
+    const match = normalValues.find(range => {
+        const minDays = convertAgeToDays(`${range.minAge} ${range.minAgeUnit}`);
+        const maxDays = convertAgeToDays(`${range.maxAge} ${range.maxAgeUnit}`);
+        const genderMatch = range.gender === "Any" || range.gender === gender;
+        return genderMatch && patientDays >= minDays && patientDays <= maxDays;
+    });
+    return match ? { lower: parseFloat(match.lowerValue), upper: parseFloat(match.upperValue), text: `${match.lowerValue} - ${match.upperValue}` } : { lower: null, upper: null, text: "" };
+};
+
+const checkAbnormality = (value, lower, upper) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+        const val = String(value).toLowerCase();
+        if (val.includes("positive") || val.includes("reactive") || (val.includes("detected") && !val.includes("not"))) return "H";
+        return "";
+    }
+    if (lower !== null && num < lower) return "L";
+    if (upper !== null && num > upper) return "H";
+    return "";
+};
+
+const stripHtml = (html) => String(html || "").replace(/<[^>]*>?/gm, '');
 
 const createRandomBookingId = () => `OH${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const ALLOWED_AGE_UNITS = new Set(["Years", "Months", "Days"]);
@@ -196,6 +233,24 @@ const normalizeTableData = (bookingInput = {}) => {
             : [];
 
     if (resolvedTests.length === 0) {
+        // If resolvedTests is missing, check if individual test names were provided in TestNames
+        const testNames = splitCommaValues(bookingInput.TestNames || bookingInput.testNames || bookingInput.testName);
+        if (testNames.length > 0) {
+            // Create dummy table data entries based on unique sample types (defaulting to Blood if unknown)
+            return [{
+                order: 1,
+                typeOfSample: "Blood",
+                barcodeId: createRandomBookingId(),
+                confirmBarcodeId: createRandomBookingId(),
+                testName: testNames.join(", "),
+                ids: testNames.map(name => ({
+                    id: new mongoose.Types.ObjectId(), // This is a placeholder, will be resolved during hydration
+                    collectionName: "testSchema",
+                    nameHint: name
+                }))
+            }];
+        }
+
         return [];
     }
 
@@ -523,203 +578,218 @@ const fillResultsInLabReport = async (page, testNames, testResults) => {
     return fillOutcome;
 };
 
-const runBrowserFinalize = async ({
-    bookingSnapshot,
-    user,
-    accessToken,
-    refreshToken,
-    testNames,
-    testResults,
-}) => {
-    const BROWSER_READY_TIMEOUT_MS = 120000;
-    const browser = await puppeteer.launch({
-        headless: "new",
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-        ],
+const calculateDerivedResults = (valuesMap) => {
+    const getV = (key) => parseFloat(valuesMap.get(key)) || 0;
+
+    // Formula logic from labreport.js
+    if (valuesMap.has("NeutrophilsPercentage") && valuesMap.has("TotalLeucocytesCount")) {
+        valuesMap.set("Neutrophils-AbsoluteCount", ((getV("NeutrophilsPercentage") / 100) * getV("TotalLeucocytesCount")).toFixed(2));
+    }
+    if (valuesMap.has("LymphocytePercentage") && valuesMap.has("TotalLeucocytesCount")) {
+        valuesMap.set("Lymphocytes-AbsoluteCount", ((getV("LymphocytePercentage") / 100) * getV("TotalLeucocytesCount")).toFixed(2));
+    }
+    if (valuesMap.has("EosinophilsPercentage") && valuesMap.has("TotalLeucocytesCount")) {
+        valuesMap.set("Eosinophil-AbsoluteCount", ((getV("EosinophilsPercentage") / 100) * getV("TotalLeucocytesCount")).toFixed(2));
+    }
+    if (valuesMap.has("MonocytesPercentage") && valuesMap.has("TotalLeucocytesCount")) {
+        valuesMap.set("Monocyte-AbsoluteCount", ((getV("MonocytesPercentage") / 100) * getV("TotalLeucocytesCount")).toFixed(2));
+    }
+    if (valuesMap.has("BasophilsPercentage") && valuesMap.has("TotalLeucocytesCount")) {
+        valuesMap.set("Basophils-AbsoluteCount", ((getV("BasophilsPercentage") / 100) * getV("TotalLeucocytesCount")).toFixed(2));
+    }
+    if (valuesMap.has("Hematocrit(HCT)") && valuesMap.has("TotalRedBloodCellCount")) {
+        valuesMap.set("MeanCorpuscularVolume(MCV)", ((getV("Hematocrit(HCT)") * 10) / getV("TotalRedBloodCellCount")).toFixed(2));
+    }
+    if (valuesMap.has("Hemoglobin") && valuesMap.has("TotalRedBloodCellCount")) {
+        valuesMap.set("MeanCorpuscularHemoglobin(MCH)", ((getV("Hemoglobin") * 10) / getV("TotalRedBloodCellCount")).toFixed(2));
+    }
+    if (valuesMap.has("Hemoglobin") && valuesMap.has("Hematocrit(HCT)")) {
+        valuesMap.set("MeanCorpuscularHemoglobinConcentration(MCHC)", ((getV("Hemoglobin") * 100) / getV("Hematocrit(HCT)")).toFixed(2));
+    }
+    if (valuesMap.has("Triglycerides")) {
+        valuesMap.set("VLDLCholesterol", (getV("Triglycerides") / 5).toFixed(2));
+    }
+    if (valuesMap.has("TotalCholesterol") && valuesMap.has("HDLCholesterol") && valuesMap.has("VLDLCholesterol")) {
+        valuesMap.set("LDLCholesterol", (getV("TotalCholesterol") - getV("HDLCholesterol") - getV("VLDLCholesterol")).toFixed(2));
+    }
+    if (valuesMap.has("SerumUrea")) {
+        valuesMap.set("BUN", (getV("SerumUrea") * 0.467).toFixed(2));
+    }
+};
+
+const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy) => {
+    // 1. Get hydrated data (Tests & Panels)
+    const barcodeDoc = await acceptedBarcode.findOne({ 
+        tenantId, 
+        bookingId: booking.bookingId 
+    }).lean();
+    
+    if (!barcodeDoc) throw new ApiError(404, "Barcodes not found for booking");
+
+    const bDate = new Date(booking.date);
+    const [hrs, mins] = String(booking.time || "00:00").split(':');
+    const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
+    const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
+    const reportedOn = new Date(receivedOn.getTime() + 30 * 60 * 1000);
+
+    const testIds = barcodeDoc.barcodes.flatMap(b => b.testIds || []);
+    const singleTestIds = testIds.filter(t => t.collectionName === "testSchema").map(t => t.id);
+    const panelIds = testIds.filter(t => t.collectionName === "addPannel").map(t => t.id);
+
+    // Sort tests and panels by order to maintain sequence
+    const [allSingleTests, allPanels] = await Promise.all([
+        testSchema.find({ _id: { $in: singleTestIds } }).sort({ order: 1 }).lean(),
+        addPannel.find({ _id: { $in: panelIds } })
+            .populate({ path: "testsId", options: { sort: { order: 1 } } })
+            .sort({ order: 1 })
+            .lean()
+    ]);
+
+    const patientDays = convertAgeToDays(booking.year);
+    const valuesMap = new Map();
+    normalized.testNames.forEach((name, i) => {
+        const cleanName = String(name || "").replace(/\s+/g, "").toLowerCase();
+        valuesMap.set(cleanName, normalized.testResults[i]);
     });
 
-    try {
-        const createContext = browser.createBrowserContext
-            ? browser.createBrowserContext.bind(browser)
-            : browser.createIncognitoBrowserContext.bind(browser);
+    // 2. Apply formulas
+    calculateDerivedResults(valuesMap);
 
-        const context = await createContext();
-        const page = await context.newPage();
-        page.setDefaultTimeout(BROWSER_READY_TIMEOUT_MS);
-        page.setDefaultNavigationTimeout(BROWSER_READY_TIMEOUT_MS);
-        page.on("console", (message) => {
-            const text = message.text();
-            if (text) {
-                console.log(`[bulk-finalize browser:${message.type()}] ${text}`);
-            }
-        });
-        page.on("pageerror", (error) => {
-            console.error("[bulk-finalize browser pageerror]", error.message);
-        });
-        page.on("requestfailed", (request) => {
-            console.error("[bulk-finalize browser requestfailed]", request.url(), request.failure()?.errorText || "unknown");
-        });
+    // 3. Build reportData (CategoryAndTest) - Grouped by Category
+    const reportData = [];
+    const categoryMap = new Map();
 
-        const logStep = (message) => {
-            console.log(`[bulk-finalize] ${message}`);
-        };
-
-        const browserUser = toSerializable(user);
-        const browserBooking = toSerializable(bookingSnapshot);
-
-        await page.setCookie({
-            name: "accessToken",
-            value: accessToken,
-            url: AUTO_FINALIZE_ORIGIN,
-        });
-
-        await page.setCookie({
-            name: "refreshToken",
-            value: refreshToken,
-            url: AUTO_FINALIZE_ORIGIN,
-        });
-
-        // Seed the app shell before any page script runs.
-        await page.evaluateOnNewDocument((payload) => {
-            localStorage.setItem("user", JSON.stringify(payload.user));
-            localStorage.setItem("accessToken", payload.accessToken);
-            localStorage.setItem("refreshToken", payload.refreshToken);
-            localStorage.setItem("booking", JSON.stringify(payload.booking));
-            localStorage.setItem("myKey", payload.booking?._id || "");
-            if (payload.user?.pdfFormat) {
-                localStorage.setItem("pdfformat", payload.user.pdfFormat);
-            }
-            window.user = payload.user;
-            window.userId = payload.user?._id || "";
-            window.username = payload.user?.username || "";
-            window.userRole = payload.user?.role || "";
-            window.role = payload.user?.role || "";
-            window.Name = payload.user?.fullName || "";
-            window.booking = payload.booking;
-            window.myKey = payload.booking?._id || "";
-        }, {
-            user: browserUser,
-            accessToken,
-            refreshToken,
-            booking: browserBooking,
-        });
-
-        // labreport.js reads value1 during startup, so keep the booking id in the URL.
-        logStep(`Opening labreport for ${bookingSnapshot.bookingId}`);
-        await page.goto(`${AUTO_FINALIZE_ORIGIN}/admin/admin.html?page=labreport&value1=${encodeURIComponent(bookingSnapshot.bookingId)}`, {
-            waitUntil: "domcontentloaded",
-            timeout: BROWSER_READY_TIMEOUT_MS,
-        });
-
-        await page.waitForFunction(() => Boolean(window.user) && Boolean(localStorage.getItem("booking")), {
-            timeout: BROWSER_READY_TIMEOUT_MS,
-        });
-
-        await page.waitForFunction(() => window.__bulkFinalizeLabreportReady === true, {
-            timeout: BROWSER_READY_TIMEOUT_MS,
-        });
-        logStep(`Labreport shell ready for ${bookingSnapshot.bookingId}`);
-
-        await page.waitForSelector("#finalBtn", { timeout: BROWSER_READY_TIMEOUT_MS });
-        await fillResultsInLabReport(page, testNames, testResults);
-        await page.waitForFunction(() => {
-            const inputs = Array.from(document.querySelectorAll("#tables-container .value-input"));
-            return inputs.length > 0 && inputs.every((input) => String(input.value ?? "").trim().length > 0);
-        }, { timeout: BROWSER_READY_TIMEOUT_MS });
-
-        const saveReportResponsePromise = page.waitForResponse(
-            (response) =>
-                response.request().method() === "POST" &&
-                response.url().includes("/api/v1/user/saveReportData"),
-            { timeout: BROWSER_READY_TIMEOUT_MS }
-        );
-
-        const finalNavigationPromise = page.waitForNavigation({
-            waitUntil: "domcontentloaded",
-            timeout: BROWSER_READY_TIMEOUT_MS,
-        }).catch(() => null);
-
-        logStep(`Submitting final labreport for ${bookingSnapshot.bookingId}`);
-        await page.click("#finalBtn");
-
-        const saveReportResponse = await saveReportResponsePromise;
-        if (!saveReportResponse.ok()) {
-            throw new Error(`saveReportData failed with status ${saveReportResponse.status()}`);
+    const addTestToReport = (test, isFromPanel = false) => {
+        const catName = normalizeText(test.category?.category || test.category || "Unknown");
+        if (!categoryMap.has(catName)) {
+            categoryMap.set(catName, { category: catName, title: catName, tests: [] });
+            reportData.push(categoryMap.get(catName));
         }
+        const categoryGroup = categoryMap.get(catName);
 
-        await finalNavigationPromise;
+        if (test.parameters?.length > 1) {
+            categoryGroup.tests.push({
+                testName: test.Name,
+                isMultiHeader: true,
+                pagebreak: false
+            });
+            test.parameters.forEach(param => {
+                const cleanParamName = String(param.Para_name || "").replace(/\s+/g, "").toLowerCase();
+                const val = valuesMap.get(cleanParamName) ?? param.defaultresult ?? "";
+                const ref = getReferenceRangeValues(patientDays, booking.gender, param.NormalValue);
+                categoryGroup.tests.push({
+                    testName: param.Para_name,
+                    value: val,
+                    unit: param.unit,
+                    reference: ref.text,
+                    isParameter: true,
+                    pagebreak: false,
+                    isAbnormal: checkAbnormality(val, ref.lower, ref.upper)
+                });
+            });
+        } else {
+            const param = test.parameters?.[0] || {};
+            const cleanTestName = String(test.Name || "").replace(/\s+/g, "").toLowerCase();
+            const val = valuesMap.get(cleanTestName) ?? param.defaultresult ?? "";
+            const ref = getReferenceRangeValues(patientDays, booking.gender, param.NormalValue);
+            categoryGroup.tests.push({
+                testName: test.Name,
+                value: val,
+                unit: param.unit,
+                reference: ref.text,
+                pagebreak: false,
+                isAbnormal: checkAbnormality(val, ref.lower, ref.upper)
+            });
+        }
+    };
 
-        await page.waitForFunction(() => window.__bulkFinalizeReportReady === true, {
-            timeout: BROWSER_READY_TIMEOUT_MS,
+    allPanels.forEach(panel => {
+        panel.testsId.forEach(test => addTestToReport(test, true));
+    });
+    allSingleTests.forEach(test => addTestToReport(test, false));
+
+    // 4. Save to reports - FIX: Avoid spreading _id from booking
+    const bookingSnapshot = booking.toObject ? booking.toObject() : { ...booking };
+    const reportPayload = { ...bookingSnapshot };
+    
+    // CRITICAL FIX: Remove IDs that would conflict with reports collection
+    delete reportPayload._id;
+    delete reportPayload.__v;
+    delete reportPayload.createdAt;
+    delete reportPayload.updatedAt;
+
+    const savedReport = await reports.findOneAndUpdate(
+        { bookingId: booking.bookingId, tenantId },
+        {
+            ...reportPayload,
+            CategoryAndTest: reportData,
+            reg_id: booking.bookingId,
+            status: "completed",
+            signOff: true,
+            collectedOn,
+            receivedOn,
+            reportedOn,
+            categorizedPDF: true, // Start categories on new page
+            uniquetestArray: normalized.testNames
+        },
+        { upsert: true, new: true }
+    );
+
+    // 5. Populate customization (PDF Metadata)
+    const pSettings = await defaultpdfsetting.findOne({ tenantId }).lean() || {};
+    const sigs = await doctorsign.findOne({ tenantId }).lean() || {};
+
+    // These will be rendered by the reportFormat pages eventually, 
+    // but customization needs shell metadata for immediate PDF generation.
+    const headerHtml = `<div class="report-details-innerDiv2"><div class="left2"><div class="infor-div"><div class="tags">Patient Name:</div><div class="value">${booking.patientName}</div></div><div class="infor-div"><div class="tags">Age / Sex:</div><div class="value">${booking.year} / ${booking.gender}</div></div><div class="infor-div"><div class="tags">Reg. no:</div><div class="value">${booking.bookingId}</div></div></div></div>`;
+
+    const footerHtml = `
+        <div class="signed-off-div2">
+            ${sigs.showlabinchargesign ? `<div class="signdivstyleclass"><img src="${sigs.labinchargesign}" width="90" /><br>${sigs.labinchargeinfo}</div>` : ''}
+            ${sigs.showfirstdoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.firstdoctorsign}" width="90" /><br>${sigs.firstdoctorsigninfo}</div>` : ''}
+            ${sigs.showseconddoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.seconddoctorsign}" width="90" /><br>${sigs.seconddoctorsigninfo}</div>` : ''}
+        </div>`;
+
+    let bodyHtml = '<div class="container2">';
+    reportData.forEach((cat, index) => {
+        const pageBreakClass = (index > 0) ? 'page-break' : '';
+        bodyHtml += `<div class="section ${pageBreakClass}"><h3>${cat.category}</h3><table class="test-table"><thead><tr><th>Test Name</th><th>Value</th><th>Unit</th><th>Reference</th></tr></thead><tbody>`;
+        cat.tests.forEach(t => {
+            if (t.isMultiHeader) return; // Skip title rows in simple HTML
+            const style = t.isAbnormal ? 'style="font-weight:700; color:#b71c1c;"' : '';
+            bodyHtml += `<tr ${style}><td>${t.testName}</td><td>${t.value || ""}</td><td>${t.unit || ""}</td><td>${t.reference || ""}</td></tr>`;
         });
-        logStep(`Report format ready for ${bookingSnapshot.bookingId}`);
+        bodyHtml += '</tbody></table></div>';
+    });
+    bodyHtml += '</div>';
 
-        await page.waitForSelector("#signOff", { timeout: BROWSER_READY_TIMEOUT_MS });
+    await customization.findOneAndUpdate(
+        { reportId: savedReport._id, tenantId },
+        {
+            tenantId,
+            createdBy,
+            reportId: savedReport._id,
+            bookingId: booking.bookingId,
+            header: headerHtml,
+            footer: footerHtml,
+            htmlContent: bodyHtml,
+            cssContent: "", // Basic stying can be added here
+            headermargin: pSettings.headermargin || "2.8",
+            footermargin: pSettings.footermargin || "1",
+            selectedFontSize: pSettings.selectedFontSize || 12,
+            RowSpacing: pSettings.RowSpacing || 7,
+            updatedAt: new Date()
+        },
+        { upsert: true }
+    );
 
-        const signoffRequests = [
-            page.waitForResponse(
-                (response) =>
-                    response.request().method() === "POST" &&
-                    response.url().includes("/api/v1/user/editReportsignofffield"),
-                { timeout: BROWSER_READY_TIMEOUT_MS }
-            ),
-            page.waitForResponse(
-                (response) =>
-                    response.request().method() === "POST" &&
-                    response.url().includes("/api/v1/user/adding-pdf-data"),
-                { timeout: BROWSER_READY_TIMEOUT_MS }
-            ),
-            page.waitForResponse(
-                (response) =>
-                    response.request().method() === "POST" &&
-                    response.url().includes("/api/v1/user/CompleteBookingcontroller"),
-                { timeout: BROWSER_READY_TIMEOUT_MS }
-            ),
-        ];
+    // 6. Update Booking status
+    await newBooking.findOneAndUpdate(
+        { bookingId: booking.bookingId, tenantId },
+        { status: "completed", isreportready: true }
+    );
 
-        logStep(`Signing off report for ${bookingSnapshot.bookingId}`);
-        await page.click("#signOff");
-        const [signoffResponse, pdfDataResponse, completeResponse] = await Promise.all(signoffRequests);
-
-        if (!signoffResponse.ok()) {
-            throw new Error(`editReportsignofffield failed with status ${signoffResponse.status()}`);
-        }
-
-        if (!pdfDataResponse.ok()) {
-            throw new Error(`adding-pdf-data failed with status ${pdfDataResponse.status()}`);
-        }
-
-        if (!completeResponse.ok()) {
-            throw new Error(`CompleteBookingcontroller failed with status ${completeResponse.status()}`);
-        }
-        logStep(`Report sign off completed for ${bookingSnapshot.bookingId}`);
-
-        const reportDoc = await reports
-            .findOne({
-                tenantId: browserUser?.tenantId?._id || browserUser?.tenantId || user?.tenantId?._id || user?.tenantId,
-                bookingId: bookingSnapshot.bookingId,
-            })
-            .lean();
-
-        const bookingDoc = await newBooking
-            .findOne({
-                tenantId: browserUser?.tenantId?._id || browserUser?.tenantId || user?.tenantId?._id || user?.tenantId,
-                bookingId: bookingSnapshot.bookingId,
-            })
-            .select("status isreportready")
-            .lean();
-
-        return {
-            reportId: reportDoc?._id || null,
-            bookingStatus: bookingDoc?.status || null,
-            isreportready: Boolean(bookingDoc?.isreportready),
-        };
-    } finally {
-        await browser.close().catch(() => {});
-    }
+    return { reportId: savedReport._id };
 };
 
 const processBulkAutoFinalizeRow = async (bookingInput, req) => {
@@ -743,6 +813,11 @@ const processBulkAutoFinalizeRow = async (bookingInput, req) => {
 
         const tableData = normalizeTableData(bookingInput);
         const barcodeEntries = await saveAcceptedBarcodeDocument(tenantId, bookingId, tableData, session);
+        
+        const bDate = new Date(booking.date);
+        const [hrs, mins] = String(booking.time || "00:00").split(':');
+        const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
+        const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
 
         // Create the report shell first. The browser step fills the rows, then sign-off closes the loop.
         await reports.findOneAndUpdate(
@@ -766,6 +841,9 @@ const processBulkAutoFinalizeRow = async (bookingInput, req) => {
                 labName: booking.labName || "",
                 franchisee: booking.franchisee || "",
                 clinicalHistory: booking.clinicalHistory || "",
+                collectedOn,
+                receivedOn,
+                categorizedPDF: true,
                 total: Number(booking.total || 0),
                 status: booking.status || "pending",
                 signOff: false,
@@ -780,31 +858,21 @@ const processBulkAutoFinalizeRow = async (bookingInput, req) => {
         await session.commitTransaction();
         session.endSession();
 
-        const { accessToken, refreshToken } = buildAuthTokens(req.user);
-        const bookingSnapshot = buildBrowserBookingSnapshot(
+        // Replace Puppeteer with direct backend finalization
+        const finalizeResult = await finalizeReportOnBackend(
             booking,
-            bookingInput,
-            tableData.length > 0 ? tableData : barcodeEntries.map((entry) => ({
-                ...entry,
-                confirmBarcodeId: entry.barcode,
-            })),
-            bookingId
+            normalized,
+            tenantId,
+            createdBy
         );
-
-        const finalizeResult = await runBrowserFinalize({
-            bookingSnapshot,
-            user: req.user,
-            accessToken,
-            refreshToken,
-            testNames: normalized.testNames,
-            testResults: normalized.testResults,
-        });
+        
+        const updatedBooking = await newBooking.findOne({ bookingId, tenantId }).select("status isreportready").lean();
 
         return {
             bookingId,
             reportId: finalizeResult.reportId,
-            status: finalizeResult.bookingStatus || "completed",
-            isreportready: finalizeResult.isreportready,
+            status: updatedBooking.status,
+            isreportready: updatedBooking.isreportready,
             patientName: booking.patientName,
         };
     } catch (error) {

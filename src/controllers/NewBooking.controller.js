@@ -703,8 +703,7 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
                 labName: booking.labName || "",
                 clinicalHistory: booking.clinicalHistory || "",
                 total: Number(booking.total || 0),
-                testIds: booking.testIds || [],
-                testResults: booking.testResults || [], // Required for automated browser to fill values
+                bulkUploadedResults: booking.bulkUploadedResults || [],
                 tableData: booking.tableData || [],
                 tenantId,
                 createdBy,
