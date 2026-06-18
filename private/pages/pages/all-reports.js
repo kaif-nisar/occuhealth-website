@@ -203,6 +203,7 @@
                 if (patientDetails) {
                     autogeneratingpdf({
                         value1: patientDetails._id,
+                        bookingId: patientDetails.bookingId,
                         startDate: letterPadOption,
                         patientname
                     });
@@ -211,7 +212,7 @@
         });
     }
 
-    async function autogeneratingpdf({ value1 = "", startDate = "", patientname, labinchargesign = null,
+    async function autogeneratingpdf({ value1 = "", bookingId = "", startDate = "", patientname, labinchargesign = null,
         checkBox = false, labinchargeinfo = "", backgroundImageUrl = null, headermargin, footermargin,
         marginRight, marginLeft, labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest } = {}) {
@@ -225,8 +226,8 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    value1, labinchargesign, checkBox: startDate === "with" ? false : true, labinchargeinfo,
+                body: JSON.stringify({ // Add bookingId here
+                    value1, bookingId, labinchargesign, checkBox: startDate === "with" ? false : true, labinchargeinfo,
                     backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
                     labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest
                 })
@@ -424,6 +425,7 @@
 
             await autogeneratingpdf({
                 value1: patientDetails._id,
+                bookingId: patientDetails.bookingId,
                 startDate: letterPadOption,
                 patientname: patientbooking.patientName,
                 labinchargesign: null,

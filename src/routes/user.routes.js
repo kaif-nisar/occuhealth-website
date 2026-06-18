@@ -209,6 +209,7 @@ import {
   SearchBookingController,
   cancelBookingController
 } from "../controllers/NewBooking.controller.js";
+import { bulkAutoFinalizeController } from "../controllers/bulkBooking.controller.js";
 import {
   addDoctorsController, allDoctorsController,
   updateDoctorController, deleteDoctorController,
@@ -893,6 +894,7 @@ router.route("/new-booking").post(upload.fields([
 
 // New bulk booking endpoint
 router.route("/bulk-bookings").post(verifyJWT, checkStaffPermission("canManageBookings"), bulkBookingsController);
+router.route("/bulk-booking-auto-finalize").post(verifyJWT, checkStaffPermission("canManageBookings"), bulkAutoFinalizeController);
 
 // // new booking controller
 router.route("/editbookingbookedtests").post(upload.fields([

@@ -479,7 +479,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     selectedFontSize, reportId, htmlContent,
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
-    showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+    showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
     investigationmargin = parseFloat(investigationmargin) + 20;
@@ -890,6 +890,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                     </body>
                 </html>`,
                 margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `10px`, right: `10px` },
+                margin: { top: `${headermarginPx + investigationmargin}px`, bottom: '175px', left: `10px`, right: `10px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -1027,14 +1028,14 @@ const getpdfcontroller = async (req, res) => {
             mergedValues = {
                 pdfformat: pdfformat,
                 tenantId: tid, // ✅ Added tenantId
-                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic     
+                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
                 reportId: value1,
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "", 
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1063,7 +1064,7 @@ const getpdfcontroller = async (req, res) => {
             mergedValues = {
                 pdfformat: pdfformat,
                 tenantId: tid, // ✅ Added tenantId
-                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic     
+                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
@@ -1071,7 +1072,7 @@ const getpdfcontroller = async (req, res) => {
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
                 reportId: value1,
                 bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
-                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
+                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Request > Database > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
@@ -1505,7 +1506,7 @@ const getpdfcontrolleruser = async (req, res) => {
             mergedValues = {
                 pdfFormat,
                 tenantId: tenantId || gettingcustomization?.tenantId || "",
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
+                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "", 
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     

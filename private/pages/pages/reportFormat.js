@@ -213,7 +213,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ value1 })
+                    body: JSON.stringify({ value1, bookingId: report.bookingId })
                 });
                 if (!response.ok) throw new Error('PDF generation failed');
 
@@ -994,7 +994,8 @@
                         value1, labinchargesign, checkBox, backgroundImageUrl,
                         headermargin, footermargin, marginRight, marginLeft, labinchargeinfo: labinchargeinfo,
                         labinchargesignurl: sign, selectedFontSize, RowSpacing, HighLow, HLinred,
-                        BoldRow, showInvest, DownloadPdf
+                        BoldRow, showInvest, DownloadPdf,
+                        bookingId: report.bookingId
                     }),
                 });
 

@@ -220,6 +220,7 @@
     // Auto-generate PDF
     async function autogeneratingpdf({
       value1,
+      bookingId = "",
       labinchargesign = null, 
       checkBox = false, 
       labinchargeinfo = "",
@@ -245,7 +246,8 @@
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
+          body: JSON.stringify({ 
+            bookingId,
             value1, labinchargesign, checkBox, backgroundImageUrl,
             headermargin, footermargin, marginRight, marginLeft,
             labinchargeinfo, labinchargesignurl, selectedFontSize,
@@ -313,7 +315,7 @@
           return;
         }
 
-        await autogeneratingpdf({ value1: patientDetails._id, patientname });
+        await autogeneratingpdf({ value1: patientDetails._id, bookingId: patientDetails.bookingId, patientname });
 
       } catch (error) {
         console.error("Error fetching report:", error);

@@ -59,6 +59,19 @@ async function bookingload() {
         return "OH" + Math.floor(Math.random() * 10000000000);
     }
 
+    async function fetchWalletAmount(id) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/get-wallet-balance?userId=${id}`);
+            const data = await response.json();
+            if (data.success) {
+                const balanceDisplay = document.getElementById('wallet-balance');
+                if (balanceDisplay) balanceDisplay.innerText = `Wallet Balance: Rs. ${data.balance.toFixed(2)}`;
+            }
+        } catch (error) {
+            console.error("Error fetching wallet balance:", error);
+        }
+    }
+
     function normalizeList(value) {
         if (Array.isArray(value)) {
             return value
@@ -227,7 +240,12 @@ async function bookingload() {
             ]);
 
             console.log("Fetched data:", { tests, panels, packages });
-            return { tests, panels, packages };
+            // Normalize results: API returns can be direct arrays or objects with data key
+            return { 
+                tests: tests?.tests || tests?.data || (Array.isArray(tests) ? tests : []),
+                panels: panels?.panels || panels?.data || (Array.isArray(panels) ? panels : []),
+                packages: packages?.packages || packages?.data || (Array.isArray(packages) ? packages : [])
+            };
         } catch (error) {
             console.error("Error fetching data:", error);
             return { tests: [], panels: [], packages: [] };
@@ -759,10 +777,6 @@ async function bookingload() {
     function setupFranchiseeHandler() {
         const select = document.getElementById('franchisee-select');
         if (!select) return;
-        if (user.role !== "admin" && user.role !== "staff" ) {
-            fetchWalletAmount(userfallback)
-
-        }
         select.addEventListener('change', async function () {
             const option = select.selectedOptions[0];
             const franchiseeId = option.getAttribute("data-id");
@@ -1049,6 +1063,7 @@ async function bookingload() {
         const allTestsData = await fetchAllData();
         const testNameMap = new Map(); // Name lookup for the tests/panels/packages shown in the modal
 
+        // Optimized: Build map in a single pass instead of nested loops
         [...allTestsData.tests, ...allTestsData.panels, ...allTestsData.packages].forEach(item => {
             const name = getCatalogItemName(item).trim();
             const id = getCatalogItemId(item);
@@ -1062,7 +1077,6 @@ async function bookingload() {
                 if (shortName && shortName !== name) testNameMap.set(shortName.toLowerCase(), { id, collection, price, sampleTypes }); // Only map if shortName is distinct and not empty
             }
         });
-
         // ✅ Normalize Headers (Case-insensitive)
         const headerIndices = {};
         headers.forEach((h, i) => {
@@ -1074,14 +1088,13 @@ async function bookingload() {
             { key: "age value", label: "Age Value" },
             { key: "age unit", label: "Age Unit" },
             { key: "gender", label: "Gender" },
-            { key: "test names", label: "Test Names" },
-            { key: "test results", label: "Test Results" }
+            { key: "test names", label: "Test Names" }
         ];
 
         const missingHeaders = requiredFields.filter(f => headerIndices[f.key] === undefined).map(f => f.label);
         
         if (missingHeaders.length > 0) {
-            alert(`Required headers missing in file: ${missingHeaders.join(', ')}`);
+            alert(`Required headers missing in file: ${missingHeaders.join(', ')}. Please check the template.`);
             DOM.bulkProgress.style.display = 'none';
             return;
         }
@@ -1089,7 +1102,7 @@ async function bookingload() {
         const previewHeaders = [...headers, "Status/Errors"];
         const headerRow = DOM.bulkPreviewTable.querySelector('thead tr');
         headerRow.innerHTML = previewHeaders.map(h => `<th>${h}</th>`).join('');
-        const tbody = DOM.bulkPreviewTable.querySelector('tbody');
+        const tbody = DOM.bulkPreviewTable.querySelector('tbody'); // Use a local variable for tbody
         tbody.innerHTML = '';
 
         rows.forEach((rowData, rowIndex) => {
@@ -1109,7 +1122,7 @@ async function bookingload() {
             });
 
             // Optional fields
-            ["patient phone", "doctor name", "lab name", "clinical history", "discount amount", "discount percentage", "courier name", "courier id"].forEach(f => {
+            ["patient phone", "test results", "doctor name", "lab name", "clinical history", "discount amount", "discount percentage", "courier name", "courier id"].forEach(f => {
                 const idx = headerIndices[f];
                 const val = (idx !== undefined) ? rowData[idx] : "";
                 booking[f.replace(/\s/g, '')] = (val === null || val === undefined) ? "" : String(val).trim();
@@ -1139,7 +1152,7 @@ async function bookingload() {
             let totalBookingPrice = 0; // Keep the booking total aligned with the resolved tests
             // ✅ Ensure testResultsRaw is always an array, even if empty, to maintain sequence
             const testResultsRaw = String(booking.testresults || "").split(',').map(t => t.trim());
-            
+            const testResultsFiltered = testResultsRaw.filter(Boolean); // Filter out empty strings
             for (const testName of testNamesRaw) {
                 const mappedTest = testNameMap.get(testName.toLowerCase());
                 if (mappedTest) {
@@ -1195,7 +1208,7 @@ async function bookingload() {
                     courierName: booking.couriername,
                     courierId: booking.courierid,
                     testNames: testNamesRaw,
-                    testResults: testResultsRaw,
+                    testResults: testResultsFiltered, // Use filtered results
                     testIds: resolvedTestEntries.map(item => item.id),
                     tableData: resolvedTableData,
                     createdbyuser: username,
@@ -1216,11 +1229,21 @@ async function bookingload() {
             }).join('');
             tbody.appendChild(tr);
         });
+        
+        // ✅ Fix: Explicitly handle case where no valid data is found after filtering
+        if (bulkBookingsData.length === 0 && !hasErrors) {
+            document.getElementById('bulk-booking-summary').innerHTML = `<strong>No valid booking data found in the file.</strong> Please ensure your file contains patient and test details.`;
+            document.getElementById('bulk-booking-summary').style.color = 'orange'; // Use a warning color
+            document.getElementById('bulk-booking-summary').style.display = 'block';
+            DOM.confirmBulkBookingsBtn.style.display = 'none'; // Hide button if no data
+            DOM.bulkProgress.style.display = 'none';
+            return; // Exit early
+        }
 
         DOM.bulkPreviewContainer.style.display = 'block';
         DOM.bulkProgress.style.display = 'none';
-        DOM.confirmBulkBookingsBtn.style.display = 'block';
-        DOM.confirmBulkBookingsBtn.disabled = hasErrors;
+        DOM.confirmBulkBookingsBtn.style.display = bulkBookingsData.length > 0 ? 'block' : 'none';
+        DOM.confirmBulkBookingsBtn.disabled = hasErrors || bulkBookingsData.length === 0;
         if (hasErrors) {
             document.getElementById('bulk-booking-summary').innerHTML = `<strong>Errors found in ${detailedErrors.length} or more rows:</strong><br>${detailedErrors.join('<br>')}`;
             document.getElementById('bulk-booking-summary').style.color = 'red';
@@ -1245,7 +1268,7 @@ async function bookingload() {
 
         try {
             const bookingsToSend = bulkBookingsData.map(item => item.processedData);
-            const response = await fetch(`${BASE_URL}/api/v1/bulk-bookings/auto-finalize`, {
+            const response = await fetch(`${BASE_URL}/api/v1/user/bulk-booking-auto-finalize`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bookingsToSend)
@@ -1305,27 +1328,45 @@ async function bookingload() {
             setDateTime();
             hideContentForSingleLayer();
 
+            // Populate dropdowns first
+            await populateDropdowns();
+
+            // After dropdowns are populated, get the initially selected franchisee and fetch wallet amount
+            const franchiseeSelect = document.getElementById('franchisee-select');
+            if (franchiseeSelect && user.role !== "admin" && user.role !== "staff") {
+                const initialSelectedOption = franchiseeSelect.selectedOptions[0];
+                const initialFranchiseeId = initialSelectedOption ? initialSelectedOption.getAttribute("data-id") : null;
+                if (initialFranchiseeId) {
+                    fetchWalletAmount(initialFranchiseeId);
+                }
+            } else if (user.role !== "admin" && user.role !== "staff") {
+                // If no franchisee select, use the logged-in user's ID
+                fetchWalletAmount(userfallback);
+            }
+
             // Setup UI elements that don't need data
             setupModals();
             setupSearch();
             setupInputHandlers();
             setupFormSubmissions();
             setupBookingSubmit();
-
-            // Fetch all data in parallel (critical path)
+            
+            // Now fetch other data
             const [dataResult] = await Promise.allSettled([
                 Promise.all([
                     fetchAllData(),
-                    populateDropdowns(),
                     loadLastBooking()
                 ])
             ]);
 
-            // Render tests after data is loaded
             if (dataResult.status === 'fulfilled') {
                 const [allData] = dataResult.value;
                 renderTests(allData.tests, allData.panels, allData.packages);
                 setupTestSelection();
+            } else {
+                // ✅ Fix: Explicitly log and alert if initial data fetching fails
+                console.error("Initial data fetching failed:", dataResult.reason);
+                alert("Failed to load initial test data. Please refresh the page.");
             }
 
         } catch (error) {

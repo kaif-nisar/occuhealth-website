@@ -87,6 +87,20 @@ const checkAbnormality = (value, lower, upper) => {
 
 const stripHtml = (html) => String(html || "").replace(/<[^>]*>?/gm, '');
 
+const formatDateTime = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return String(date);
+    return d.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+    }).replace(",", "");
+};
+
 const createRandomBookingId = () => `OH${Date.now()}${Math.floor(Math.random() * 1000)}`;
 const ALLOWED_AGE_UNITS = new Set(["Years", "Months", "Days"]);
 const ALLOWED_GENDERS = new Set(["Male", "Female", "Any"]);
@@ -731,7 +745,8 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
             receivedOn,
             reportedOn,
             categorizedPDF: true, // Start categories on new page
-            uniquetestArray: normalized.testNames
+            uniquetestArray: normalized.testNames,
+            MoreDetails: booking.clinicalHistory || ""
         },
         { upsert: true, new: true }
     );
@@ -740,28 +755,142 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     const pSettings = await defaultpdfsetting.findOne({ tenantId }).lean() || {};
     const sigs = await doctorsign.findOne({ tenantId }).lean() || {};
 
-    // These will be rendered by the reportFormat pages eventually, 
-    // but customization needs shell metadata for immediate PDF generation.
-    const headerHtml = `<div class="report-details-innerDiv2"><div class="left2"><div class="infor-div"><div class="tags">Patient Name:</div><div class="value">${booking.patientName}</div></div><div class="infor-div"><div class="tags">Age / Sex:</div><div class="value">${booking.year} / ${booking.gender}</div></div><div class="infor-div"><div class="tags">Reg. no:</div><div class="value">${booking.bookingId}</div></div></div></div>`;
+    const datePart = booking.date instanceof Date ? booking.date.toISOString().split('T')[0] : new Date(booking.date).toISOString().split('T')[0];
+    const regOn = formatDateTime(datePart + "T" + (booking.time || "00:00"));
+    const collOn = formatDateTime(collectedOn);
+    const recOn = formatDateTime(receivedOn);
+    const repOn = formatDateTime(reportedOn);
+
+    const headerHtml = `
+    <div class="report-details">
+        <div class="report-details-innerDiv2">
+            <div class="left2">
+                <div class="infor-div"><div class="tags"><strong>Patient Name :</strong></div><div class="value"><strong>${booking.patientName?.toUpperCase()}</strong></div></div>
+                <div class="infor-div forhide"><div class="tags">Lab Name :</div> <div class="value">${booking.labName || ""}</div></div>
+                <div class="infor-div"><div class="tags">Age / Sex :</div> <div class="value">${booking.year} / ${booking.gender}</div></div>
+                <div class="infor-div"><div class="tags">Referred By :</div> <div class="value">${booking.doctorName || "Self"}</div></div>
+                <div class="infor-div"><div class="tags">Reg. no :</div> <div class="value">${booking.bookingId}</div></div>
+                <div class="infor-div forhide" id="investDiv">
+                    <div class="tags">Investigations :</div> 
+                    <div class="value">${normalized.testNames.join(", ")}</div>
+                </div>
+            </div>
+            <div class="right2">
+                <div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2">Registered on :</div>
+                        <div class="time-div">${regOn}</div>
+                    </div>
+                    <div class="registered-div2 forhide">
+                        <div class="registeration-tag2">Collected on :</div>
+                        <div class="time-div">${collOn}</div>
+                    </div>
+                    <div class="registered-div2 forhide">
+                        <div class="registeration-tag2">Received on :</div>
+                        <div class="time-div">${recOn}</div>
+                    </div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2">Reported on :</div>
+                        <div class="time-div">${repOn}</div>
+                    </div>
+                    <div class="registered-div2">
+                        <div class="registeration-tag2"><strong>Report Status :</strong></div>
+                        <div class="time-div"><strong>${booking.status || "Completed"}</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
 
     const footerHtml = `
-        <div class="signed-off-div2">
-            ${sigs.showlabinchargesign ? `<div class="signdivstyleclass"><img src="${sigs.labinchargesign}" width="90" /><br>${sigs.labinchargeinfo}</div>` : ''}
-            ${sigs.showfirstdoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.firstdoctorsign}" width="90" /><br>${sigs.firstdoctorsigninfo}</div>` : ''}
-            ${sigs.showseconddoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.seconddoctorsign}" width="90" /><br>${sigs.seconddoctorsigninfo}</div>` : ''}
+        <div class="signed-off-div">
+            <div class="signed-off-div2">
+                ${sigs.showlabinchargesign ? `<div class="signdivstyleclass"><img src="${sigs.labinchargesign}" width="90" height="32" /><br><div class="textspan">${sigs.labinchargeinfo}</div></div>` : ''}
+                ${sigs.showfirstdoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.firstdoctorsign}" width="90" height="32" /><br><div class="textspan">${sigs.firstdoctorsigninfo}</div></div>` : ''}
+                <div class="right-sign signdivstyleclass" style="display: ${sigs.showseconddoctorsign ? 'flex' : 'none'};">
+                    <img src="${sigs.seconddoctorsign || ""}" width="90" height="32" /><br>
+                    <div class="textspan">${sigs.seconddoctorsigninfo || ""}</div>
+                </div>
+                <div class="sign click qr-div format3qrdiv">
+                    <img id="qrimg" src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1730987604/vximbk8olbhmhmhp5ele.jpg" width="80" height="80">
+                </div>
+            </div>
         </div>`;
+
+    const cssContent = `
+        .container2 { width: 100%; margin: 0 auto; }
+        .report-details { width: 100%; margin-top: 1rem; }
+        .report-details-innerDiv2 { position: relative; width: 95%; border: 1px solid black; padding: 5px; font-size: 13px; display: flex; justify-content: space-between; margin: 0 auto; }
+        .left2 { width: 55%; }
+        .right2 { width: 40%; border-left: 1px solid #ccc; padding-left: 10px; }
+        .infor-div { display: table; table-layout: fixed; width: 100%; margin-bottom: 2px; }
+        .tags { display: table-cell; width: 110px; font-weight: bold; vertical-align: top; }
+        .value { display: table-cell; word-wrap: break-word; vertical-align: top; }
+        .registered-div2 { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .registeration-tag2 { width: 110px; font-weight: bold; }
+        .time-div { flex: 1; text-align: right; }
+        .test-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .test-table thead th { border-bottom: 2px solid #333; text-align: left; padding: 8px 5px; font-size: 14px; background-color: #f8f9fa; }
+        .test-table td { padding: 5px; font-size: 13px; vertical-align: top; border-bottom: 1px solid #eee; }
+        .section h2 { text-align: center; margin: 15px 0 5px; font-size: 18px; color: #1a73e8; }
+        .section h3 { text-align: center; margin: 0 0 10px; font-size: 14px; font-style: italic; }
+        .page-break { page-break-before: always; }
+        .signed-off-div { width: 95%; margin: 2rem auto; }
+        .signed-off-div2 { display: flex; justify-content: space-around; align-items: flex-end; }
+        .signdivstyleclass { text-align: center; width: 25%; font-size: 12px; }
+        .qr-div { width: 80px; height: 80px; }
+        .high-low { display: flex; align-items: center; }
+        .HL { width: 30px; font-weight: bold; color: #d32f2f; }
+        .BoldRow { font-weight: bold; }
+        .documented-content { line-height: 1.5; word-wrap: break-word; }
+        .documented-content table { width: 100% !important; border-collapse: collapse !important; margin: 10px 0 !important; }
+        .documented-content td { border: 1px solid #ddd !important; padding: 5px !important; }
+        .interpretation { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 4px; }
+        .remark-row, .advice, .notes, .remarks { font-style: italic; font-size: 12px; color: #444; padding: 5px 0; }
+    `;
 
     let bodyHtml = '<div class="container2">';
     reportData.forEach((cat, index) => {
         const pageBreakClass = (index > 0) ? 'page-break' : '';
-        bodyHtml += `<div class="section ${pageBreakClass}"><h3>${cat.category}</h3><table class="test-table"><thead><tr><th>Test Name</th><th>Value</th><th>Unit</th><th>Reference</th></tr></thead><tbody>`;
+        bodyHtml += `<div class="section ${pageBreakClass}"><h2>${cat.category}</h2><h3>${(cat.title && cat.title !== cat.category) ? cat.title : ''}</h3><table class="test-table"><thead><tr><th style="width:40%">Test Name</th><th style="width:20%">Value</th><th style="width:15%">Unit</th><th style="width:25%">Reference</th></tr></thead><tbody>`;
         cat.tests.forEach(t => {
-            if (t.isMultiHeader) return; // Skip title rows in simple HTML
-            const style = t.isAbnormal ? 'style="font-weight:700; color:#b71c1c;"' : '';
-            bodyHtml += `<tr ${style}><td>${t.testName}</td><td>${t.value || ""}</td><td>${t.unit || ""}</td><td>${t.reference || ""}</td></tr>`;
+            if (t.isMultiHeader) {
+                bodyHtml += `<tr><td colspan="4" style="font-weight:700; text-decoration:underline; padding-top:10px;">${String(t.testName).toUpperCase()}</td></tr>`;
+                return;
+            }
+            
+            if (t.isDocumented) {
+                bodyHtml += `<tr><td colspan="4"><div class="documented-content">${t.testName}</div></td></tr>`;
+            } else {
+                const boldClass = t.isAbnormal ? 'class="BoldRow"' : '';
+                const hlColor = t.isAbnormal && pSettings.HLinred ? 'style="color:#d32f2f;"' : '';
+                bodyHtml += `<tr ${boldClass}><td>${t.testName}</td><td class="high-low" ${hlColor}><div class="HL">${t.isAbnormal || ''}</div><span>${t.value || ""}</span></td><td>${t.unit || ""}</td><td>${t.reference || ""}</td></tr>`;
+            }
+
+            if (t.remark) {
+                bodyHtml += `<tr><td colspan="4" class="remark-row"><strong>Remark:</strong> ${t.remark}</td></tr>`;
+            }
+            if (t.details) {
+                bodyHtml += `<tr><td colspan="4"><div class="documented-content">${t.details}</div></td></tr>`;
+            }
         });
-        bodyHtml += '</tbody></table></div>';
+        
+        if (cat.advice) bodyHtml += `<tr><td colspan="4" class="advice"><strong>Advice:</strong> <span class="documented-content">${cat.advice}</span></td></tr>`;
+        if (cat.notes) bodyHtml += `<tr><td colspan="4" class="notes"><strong>Notes:</strong> <span class="documented-content">${cat.notes}</span></td></tr>`;
+        if (cat.remarks) bodyHtml += `<tr><td colspan="4" class="remarks"><strong>Remarks:</strong> <span class="documented-content">${cat.remarks}</span></td></tr>`;
+        
+        bodyHtml += '</tbody></table>';
+        
+        if (cat.interpretation) {
+            bodyHtml += `<div class="interpretation"><strong>Interpretation:</strong><div class="documented-content">${cat.interpretation}</div></div>`;
+        }
+        bodyHtml += '</div>';
     });
+    
+    if (savedReport.MoreDetails) {
+        bodyHtml += `<div class="moreDetails" style="margin-top:20px; padding:10px; border-top:1px solid #ddd;"><strong>Additional Findings:</strong><div class="documented-content">${savedReport.MoreDetails}</div></div>`;
+    }
+
     bodyHtml += '</div>';
 
     await customization.findOneAndUpdate(
@@ -774,9 +903,10 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
             header: headerHtml,
             footer: footerHtml,
             htmlContent: bodyHtml,
-            cssContent: "", // Basic stying can be added here
+            cssContent: cssContent,
             headermargin: pSettings.headermargin || "2.8",
             footermargin: pSettings.footermargin || "1",
+            investigationmargin: 140,
             selectedFontSize: pSettings.selectedFontSize || 12,
             RowSpacing: pSettings.RowSpacing || 7,
             updatedAt: new Date()
