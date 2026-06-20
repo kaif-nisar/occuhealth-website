@@ -12,6 +12,10 @@ import { Package } from "../models/addPackage.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
 import { doctorsign } from "../models/labinchargesign.model.js";
+import { Tenant } from "../models/tenant.model.js";
+import { createCanvas } from "canvas";
+import JsBarcode from "jsbarcode";
+import qr from "qrcode";
 
 const AUTO_FINALIZE_ORIGIN = process.env.AUTO_FINALIZE_ORIGIN || `http://localhost:${process.env.PORT || 3000}`;
 const ACCESS_TOKEN_SECRET = process.env.SUPER_ADMIN_ACCESS_TOKEN_SECRET;
@@ -754,48 +758,106 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     // 5. Populate customization (PDF Metadata)
     const pSettings = await defaultpdfsetting.findOne({ tenantId }).lean() || {};
     const sigs = await doctorsign.findOne({ tenantId }).lean() || {};
+    const tenantDetails = await Tenant.findById(tenantId).select("modelType").lean();
+    const is1Layer = tenantDetails?.modelType === "1layer";
+    const forhideStyle = is1Layer ? 'style="display: none;"' : '';
+
+    const formatReportDateTime = (dateVal) => {
+        if (!dateVal) return "";
+        const date = new Date(dateVal);
+        if (isNaN(date.getTime())) return String(dateVal);
+
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const amPm = hours >= 12 ? 'PM' : 'AM';
+
+        hours = (hours % 12 || 12).toString().padStart(2, '0');
+
+        return `${day}-${month}-${year} <span>${hours}:${minutes} ${amPm}</span>`;
+    };
 
     const datePart = booking.date instanceof Date ? booking.date.toISOString().split('T')[0] : new Date(booking.date).toISOString().split('T')[0];
-    const regOn = formatDateTime(datePart + "T" + (booking.time || "00:00"));
-    const collOn = formatDateTime(collectedOn);
-    const recOn = formatDateTime(receivedOn);
-    const repOn = formatDateTime(reportedOn);
+    const regOn = formatReportDateTime(datePart + "T" + (booking.time || "00:00"));
+    const collOn = formatReportDateTime(collectedOn);
+    const recOn = formatReportDateTime(receivedOn);
+    const repOn = formatReportDateTime(reportedOn);
+
+    let barcodeImageSrc = "";
+    try {
+        const barcodeDoc = await acceptedBarcode.findOne({ tenantId, bookingId: booking.bookingId }).lean();
+        const barcodesList = barcodeDoc?.barcodes?.map(b => b.barcode) || [];
+        const barcodeNumber = barcodesList[0] || booking.bookingId;
+        
+        if (barcodeNumber) {
+            const canvas = createCanvas(800, 180);
+            JsBarcode(canvas, barcodeNumber, {
+                format: "CODE128",
+                width: 2,
+                height: 110,
+                fontSize: 20,
+                font: "sans-serif",
+                textColor: "#000000",
+                displayValue: true,
+                background: "#ffffff",
+                margin: 10,
+                textMargin: 5,
+            });
+            barcodeImageSrc = canvas.toDataURL("image/png");
+        }
+    } catch (err) {
+        console.error("Error generating barcode in bulk booking:", err.message);
+    }
+
+    let qrCodeDataUrl = "";
+    try {
+        const qrLink = `${AUTO_FINALIZE_ORIGIN}/pages/pages/download_reports.html?value=${encodeURIComponent(savedReport._id)}&id=${encodeURIComponent(tenantId)}`;
+        qrCodeDataUrl = await qr.toDataURL(qrLink, { margin: 2 });
+    } catch (err) {
+        console.error("Error generating QR code in bulk booking:", err.message);
+    }
 
     const headerHtml = `
     <div class="report-details">
         <div class="report-details-innerDiv2">
             <div class="left2">
-                <div class="infor-div"><div class="tags"><strong>Patient Name :</strong></div><div class="value"><strong>${booking.patientName?.toUpperCase()}</strong></div></div>
-                <div class="infor-div forhide"><div class="tags">Lab Name :</div> <div class="value">${booking.labName || ""}</div></div>
-                <div class="infor-div"><div class="tags">Age / Sex :</div> <div class="value">${booking.year} / ${booking.gender}</div></div>
-                <div class="infor-div"><div class="tags">Referred By :</div> <div class="value">${booking.doctorName || "Self"}</div></div>
-                <div class="infor-div"><div class="tags">Reg. no :</div> <div class="value">${booking.bookingId}</div></div>
-                <div class="infor-div forhide" id="investDiv">
-                    <div class="tags">Investigations :</div> 
+                <div class="infor-div"><div class="tags">Patient Name:</div><div class="value">${booking.patientName?.toUpperCase()}</div></div>
+                <div class="infor-div"><div class="tags">Age / Sex:</div> <div class="value">${booking.year} / ${booking.gender}</div></div>
+                <div class="infor-div"><div class="tags">Referred By:</div> <div class="value">${booking.doctorName || "Self"}</div></div>
+                <div class="infor-div"><div class="tags">Reg. no:</div> <div class="value">${booking.bookingId}</div></div>
+                <div class="infor-div forhide" ${forhideStyle}><div class="tags">Lab Name:</div> <div class="value">${booking.labName || ""}</div></div>
+                <div class="infor-div forhide" id="investDiv" ${is1Layer ? 'style="display: none;"' : ''}>
+                    <div class="tags">Investigations:</div> 
                     <div class="value">${normalized.testNames.join(", ")}</div>
                 </div>
             </div>
             <div class="right2">
                 <div>
                     <div class="registered-div2">
-                        <div class="registeration-tag2">Registered on :</div>
+                        <div class="registeration-tag2">Registered on:</div>
                         <div class="time-div">${regOn}</div>
                     </div>
-                    <div class="registered-div2 forhide">
-                        <div class="registeration-tag2">Collected on :</div>
+                    <div class="registered-div2 forhide" ${forhideStyle}>
+                        <div class="registeration-tag2">Collected on:</div>
                         <div class="time-div">${collOn}</div>
                     </div>
-                    <div class="registered-div2 forhide">
-                        <div class="registeration-tag2">Received on :</div>
+                    <div class="registered-div2 forhide" ${forhideStyle}>
+                        <div class="registeration-tag2">Received on:</div>
                         <div class="time-div">${recOn}</div>
                     </div>
                     <div class="registered-div2">
-                        <div class="registeration-tag2">Reported on :</div>
+                        <div class="registeration-tag2">Reported on:</div>
                         <div class="time-div">${repOn}</div>
                     </div>
-                    <div class="registered-div2">
-                        <div class="registeration-tag2"><strong>Report Status :</strong></div>
-                        <div class="time-div"><strong>${booking.status || "Completed"}</strong></div>
+                </div>
+            </div>
+            <div class="barcode-div2">
+                <div class="barcode2">
+                    <div id="barcodeContainer2">
+                        <img id="barcodeImage" src="${barcodeImageSrc}" alt="Generated Barcode" />
                     </div>
                 </div>
             </div>
@@ -805,93 +867,727 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     const footerHtml = `
         <div class="signed-off-div">
             <div class="signed-off-div2">
-                ${sigs.showlabinchargesign ? `<div class="signdivstyleclass"><img src="${sigs.labinchargesign}" width="90" height="32" /><br><div class="textspan">${sigs.labinchargeinfo}</div></div>` : ''}
-                ${sigs.showfirstdoctorsign ? `<div class="signdivstyleclass"><img src="${sigs.firstdoctorsign}" width="90" height="32" /><br><div class="textspan">${sigs.firstdoctorsigninfo}</div></div>` : ''}
-                <div class="right-sign signdivstyleclass" style="display: ${sigs.showseconddoctorsign ? 'flex' : 'none'};">
+                <div class="left-sign signdivstyleclass" style="display: ${sigs.showlabinchargesign ? 'block' : 'none'};">
+                    <img src="${sigs.labinchargesign || ""}" width="90" height="32" /><br>
+                    <div class="textspan">${sigs.labinchargeinfo || ""}</div>
+                </div>
+                <div class="left-sign signdivstyleclass" style="display: ${sigs.showfirstdoctorsign ? 'block' : 'none'};">
+                    <img src="${sigs.firstdoctorsign || ""}" width="90" height="32" /><br>
+                    <div class="textspan">${sigs.firstdoctorsigninfo || ""}</div>
+                </div>
+                <div class="sign click qr-div format3qrdiv" style="display: block;">
+                    <img id="qrimg" src="${qrCodeDataUrl}" width="100" height="100">
+                </div>
+                <div class="right-sign signdivstyleclass" style="display: ${sigs.showseconddoctorsign ? 'block' : 'none'};">
                     <img src="${sigs.seconddoctorsign || ""}" width="90" height="32" /><br>
                     <div class="textspan">${sigs.seconddoctorsigninfo || ""}</div>
-                </div>
-                <div class="sign click qr-div format3qrdiv">
-                    <img id="qrimg" src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1730987604/vximbk8olbhmhmhp5ele.jpg" width="80" height="80">
                 </div>
             </div>
         </div>`;
 
-    const cssContent = `
-        .container2 { width: 100%; margin: 0 auto; }
-        .report-details { width: 100%; margin-top: 1rem; }
-        .report-details-innerDiv2 { position: relative; width: 95%; border: 1px solid black; padding: 5px; font-size: 13px; display: flex; justify-content: space-between; margin: 0 auto; }
-        .left2 { width: 55%; }
-        .right2 { width: 40%; border-left: 1px solid #ccc; padding-left: 10px; }
-        .infor-div { display: table; table-layout: fixed; width: 100%; margin-bottom: 2px; }
-        .tags { display: table-cell; width: 110px; font-weight: bold; vertical-align: top; }
-        .value { display: table-cell; word-wrap: break-word; vertical-align: top; }
-        .registered-div2 { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .registeration-tag2 { width: 110px; font-weight: bold; }
-        .time-div { flex: 1; text-align: right; }
-        .test-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .test-table thead th { border-bottom: 2px solid #333; text-align: left; padding: 8px 5px; font-size: 14px; background-color: #f8f9fa; }
-        .test-table td { padding: 5px; font-size: 13px; vertical-align: top; border-bottom: 1px solid #eee; }
-        .section h2 { text-align: center; margin: 15px 0 5px; font-size: 18px; color: #1a73e8; }
-        .section h3 { text-align: center; margin: 0 0 10px; font-size: 14px; font-style: italic; }
-        .page-break { page-break-before: always; }
-        .signed-off-div { width: 95%; margin: 2rem auto; }
-        .signed-off-div2 { display: flex; justify-content: space-around; align-items: flex-end; }
-        .signdivstyleclass { text-align: center; width: 25%; font-size: 12px; }
-        .qr-div { width: 80px; height: 80px; }
-        .high-low { display: flex; align-items: center; }
-        .HL { width: 30px; font-weight: bold; color: #d32f2f; }
-        .BoldRow { font-weight: bold; }
-        .documented-content { line-height: 1.5; word-wrap: break-word; }
-        .documented-content table { width: 100% !important; border-collapse: collapse !important; margin: 10px 0 !important; }
-        .documented-content td { border: 1px solid #ddd !important; padding: 5px !important; }
-        .interpretation { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 4px; }
-        .remark-row, .advice, .notes, .remarks { font-style: italic; font-size: 12px; color: #444; padding: 5px 0; }
+    let cssContent = `
+        .container {
+            width: 100%;
+            height: auto;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 50px 25px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            overflow: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-details {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .report-details-innerDiv2 {
+            position: relative;
+            width: 95%;
+            border: 1px solid black;
+            padding: 0px 5px;
+        }
+
+        .left2 {
+            display: inline-block;
+        }
+
+        .right2 {
+            position: absolute;
+            display: inline-block;
+            left: 58%;
+            transform: translateX(-50%);
+        }
+
+        .registeration-tag2 {
+            width: 110px;
+            display: inline-grid;
+        }
+
+        .registered-div2 {
+            width: 144%;
+            padding-top: 3px;
+            padding-bottom: 3px;
+        }
+
+        .time-div {
+            width: 43%;
+            display: inline-flex;
+            justify-content: space-between;
+        }
+
+        .barcode-div2 {
+            display: inline-block;
+            position: absolute;
+            right: 2%;
+            top: 25%;
+        }
+
+        #barcodeImage {
+            height: 50px;
+            width: 100px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        th,
+        td {
+            text-align: left;
+        }
+
+        th {
+            font-size: 14px;
+            color: rgb(44, 44, 44)
+        }
+
+        td {
+            font-size: 13px;
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .signed-off-div {
+            width: 92%;
+            bottom: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 4rem;
+            overflow: auto;
+        }
+
+        .container2 {
+            width: 95%;
+            margin: 0px auto;
+        }
+
+        .infor-div {
+            display: table;
+            table-layout: fixed;
+            border: none;
+        }
+
+        .tags {
+            display: table-cell;
+            min-width: 110px;
+            vertical-align: top;
+            box-sizing: border-box;
+        }
+
+        .value {
+            display: table-cell;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        .sign {
+            display: none;
+        }
+
+        .details-row {
+            padding-left: 20px;
+            font-size: 10px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .headings {
+            margin: 10px;
+        }
+
+        tbody {
+            border-bottom: 1px solid rgb(44, 44, 44);
+            font-size: 16px;
+            padding-top: 1rem;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .wrong i,
+        .delete-btn i {
+            font-weight: 700;
+            color: #7474746d;
+        }
+
+        .wrong i:hover,
+        .delete-btn i:hover {
+            font-weight: 700;
+            color: #2b2b2b;
+        }
+
+        .delete-btn i {
+            font-size: 1.5rem;
+            padding-left: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        th,
+        td {
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .deletion {
+            width: 1rem;
+        }
+
+        .test-name {
+            width: 40%;
+            margin: 0px;
+            padding: 0rem 0rem;
+            position: relative;
+        }
+
+        td {
+            padding-top: 2px;
+        }
+
+        .notes,
+        .remark-row,
+        .advice,
+        .remarks {
+            padding-left: 10px;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .notes span,
+        .remark-row span,
+        .advice span,
+        .remarks span {
+            margin-left: 55%;
+        }
+
+        .notes div,
+        .advice div,
+        .remarks div,
+        .remark-row div {
+            display: inline-block;
+            width: 60px;
+        }
+
+        .moreDetails {
+            margin-top: 1rem;
+        }
+
+        .moreDetails span {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        .moreDetails div {
+            padding-left: 16px;
+        }
+
+        .valuecell {
+            padding-left: 52px !important;
+        }
+
+        .high-low div {
+            width: 50px;
+            display: inline-block;
+        }
+
+        .high-low span {
+            display: inline-block;
+        }
+
+        th .valuecell {
+            padding-left: 0px;
+        }
+
+        #investDiv {
+            display: flex;
+        }
+
+        .signed-off-div2 {
+            width: 92%;
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .signed-off-div,
+        .container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .signed-off-div::-webkit-scrollbar,
+        .container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .signdivstyleclass {
+            width: 20%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .qr-div {
+            width: 9%;
+        }
+
+        .documented-content {
+            overflow-x: auto;
+            word-wrap: break-word;
+            background: white;
+        }
+
+        .documented-content table {
+            border-collapse: separate !important;
+            border-spacing: 0;
+            margin: 10px 0;
+            width: 100% !important;
+        }
+
+        .documented-content table td,
+        .documented-content table th {
+            border: 1px solid #ddd !important;
+            padding: 8px;
+        }
+
+        td[colspan="4"] {
+            vertical-align: top;
+        }
+
+        .documented-content p {
+            margin: 5px 0;
+        }
+
+        .documented-content ul,
+        .documented-content ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .documented-content h1,
+        .documented-content h2,
+        .documented-content h3 {
+            margin: 10px 0 5px 0;
+        }
+
+        thead tr {
+            background-color: #f5f5f5 !important;
+        }
+
+        thead th {
+            background-color: #f5f5f5 !important;
+            font-weight: 600;
+            padding: 8px 0px !important;
+            border-bottom: 2px solid #ddd !important;
+        }
+
+        .documented-content {
+            overflow-x: auto;
+            word-wrap: break-word;
+            background: white;
+        }
+
+        .documented-content table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            margin: 10px 0 !important;
+            width: 100% !important;
+            background: white !important;
+        }
+
+        .documented-content table td,
+        .documented-content table th {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            background: white !important;
+        }
+
+        .documented-content table thead th {
+            background-color: #e9ecef !important;
+            font-weight: 600;
+        }
+
+        .documented-content p {
+            margin: 8px 0;
+        }
+
+        .documented-content ul,
+        .documented-content ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .documented-content h1 {
+            font-size: 1.8em;
+            margin: 15px 0 10px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h2 {
+            font-size: 1.5em;
+            margin: 12px 0 8px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h3 {
+            font-size: 1.3em;
+            margin: 10px 0 6px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h4,
+        .documented-content h5,
+        .documented-content h6 {
+            margin: 8px 0 4px 0;
+            font-weight: bold;
+        }
+
+        .documented-content blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .documented-content pre {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .documented-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .documented-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .documented-content a {
+            color: #1a73e8;
+            text-decoration: underline;
+        }
+
+        td[colspan="4"] {
+            vertical-align: top;
+            padding: 0 !important;
+        }
+
+        .details-row {
+            padding: 0 !important;
+            font-size: 13px;
+        }
+
+        .details-row .documented-content {
+            padding-left: 20px;
+        }
+
+        .interpretation {
+            padding: 10px;
+        }
+
+        .interpretation p {
+            margin: 5px 0;
+        }
+
+        .moreDetails .documented-content {
+            padding-left: 20px;
+        }
+
+        @media print {
+            thead tr {
+                background-color: #f5f5f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            thead th {
+                background-color: #f5f5f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .documented-content table td,
+            .documented-content table th {
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        @media screen and (max-width: 956px) {
+            .high-low div {
+                text-align: center;
+            }
+
+            .report-details-innerDiv2 {
+                font-size: 12px;
+            }
+
+            td {
+                font-size: 11px;
+            }
+
+            .container22 {
+                min-width: 712px;
+            }
+
+            .signed-off-div {
+                width: 95%;
+            }
+
+            .signed-off-div2 {
+                min-width: 712px;
+            }
+
+            .downloadDiv button span {
+                display: none;
+            }
+
+            #downloadPDF i,
+            #signOff i,
+            #PDFsetting i,
+            #BrowserPrint i,
+            #sendReport i {
+                font-size: 1rem;
+                margin: 0px;
+            }
+
+            #downloadPDF,
+            #signOff,
+            #PDFsetting,
+            #BrowserPrint,
+            #sendReport {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .popup-modal {
+                width: 100%;
+            }
+
+            .popup-content {
+                width: 40rem;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media print {
+            table,
+            tr,
+            td,
+            p {
+                margin: 0 !important;
+                border-spacing: 0 !important;
+                border-collapse: collapse !important;
+                line-height: 1 !important;
+            }
+
+            .infor-div {
+                padding-top: 0px !important;
+                padding-bottom: 0px !important;
+            }
+
+            .registered-div2 {
+                padding-top: 0px !important;
+                padding-bottom: 0px !important;
+            }
+
+            .signed-off-div2 {
+                justify-content: space-between;
+            }
+            .barcode-div2 {
+                top: 18% !important;
+            }
+        }
     `;
+
+    if (is1Layer) {
+        cssContent += `
+        @media print {
+            .barcode-div2 {
+                top: 6%;
+            }
+        }
+        `;
+    }
 
     let bodyHtml = '<div class="container2">';
     reportData.forEach((cat, index) => {
         const pageBreakClass = (index > 0) ? 'page-break' : '';
-        bodyHtml += `<div class="section ${pageBreakClass}"><h2>${cat.category}</h2><h3>${(cat.title && cat.title !== cat.category) ? cat.title : ''}</h3><table class="test-table"><thead><tr><th style="width:40%">Test Name</th><th style="width:20%">Value</th><th style="width:15%">Unit</th><th style="width:25%">Reference</th></tr></thead><tbody>`;
-        cat.tests.forEach(t => {
-            if (t.isMultiHeader) {
-                bodyHtml += `<tr><td colspan="4" style="font-weight:700; text-decoration:underline; padding-top:10px;">${String(t.testName).toUpperCase()}</td></tr>`;
-                return;
-            }
-            
-            if (t.isDocumented) {
-                bodyHtml += `<tr><td colspan="4"><div class="documented-content">${t.testName}</div></td></tr>`;
-            } else {
-                const boldClass = t.isAbnormal ? 'class="BoldRow"' : '';
-                const hlColor = t.isAbnormal && pSettings.HLinred ? 'style="color:#d32f2f;"' : '';
-                bodyHtml += `<tr ${boldClass}><td>${t.testName}</td><td class="high-low" ${hlColor}><div class="HL">${t.isAbnormal || ''}</div><span>${t.value || ""}</span></td><td>${t.unit || ""}</td><td>${t.reference || ""}</td></tr>`;
+        bodyHtml += `<div class="section ${pageBreakClass}">`;
+        
+        bodyHtml += `<div class="headings">`;
+        bodyHtml += `<h2>${cat.category}<span class="delete-btn wrong"><i class="fa-sharp fa-solid fa-xmark" title="Delete Entire category section"></i></span></h2>`;
+        if (cat.category !== cat.title && cat.title && !cat.title.includes('Unknown Title')) {
+            bodyHtml += `<h3>${cat.title}<span class="delete-btn"><i class="fa-sharp fa-solid fa-xmark" title="Delete Pannel"></i></span></h3>`;
+        }
+        bodyHtml += `</div>`;
+        
+        bodyHtml += `<table class="test-table">`;
+        bodyHtml += `<thead><tr><th class="deletion"></th><th>Test Name</th><th class="valuecell">Value</th><th>Unit</th><th>Reference</th></tr></thead>`;
+        bodyHtml += `<tbody>`;
+
+        cat.tests.forEach((test) => {
+            let isBold = false;
+            let testNameSuffix = "";
+
+            if (test.reference) {
+                const referenceParts = test.reference.split(" - ");
+                if (referenceParts.length === 2) {
+                    const lowerLimit = parseFloat(referenceParts[0]);
+                    const upperLimit = parseFloat(referenceParts[1]);
+                    const testValue = parseFloat(test.value);
+
+                    if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
+                        if (testValue < lowerLimit) {
+                            isBold = true;
+                            testNameSuffix = "L";
+                        } else if (testValue > upperLimit) {
+                            isBold = true;
+                            testNameSuffix = "H";
+                        }
+                    }
+                }
             }
 
-            if (t.remark) {
-                bodyHtml += `<tr><td colspan="4" class="remark-row"><strong>Remark:</strong> ${t.remark}</td></tr>`;
+            if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
+                isBold = true;
             }
-            if (t.details) {
-                bodyHtml += `<tr><td colspan="4"><div class="documented-content">${t.details}</div></td></tr>`;
+
+            const boldClass = isBold ? 'class="BoldRow" style="font-weight: bold;"' : '';
+            const rowPageBreakClass = test.pagebreak ? 'page-break' : '';
+            
+            if (test.isMultiHeader) {
+                bodyHtml += `<tr class="${rowPageBreakClass}"><td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td><td colspan="4" style="font-weight:700; text-decoration:underline; padding-top:10px;">${String(test.testName).toUpperCase()}</td></tr>`;
+            } else if (test.isDocumented) {
+                bodyHtml += `<tr ${boldClass} class="${rowPageBreakClass}"><td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td><td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${test.testName || ""}</div></td></tr>`;
+            } else {
+                bodyHtml += `<tr ${boldClass} class="${rowPageBreakClass}">
+                    <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                    <td class="test-name">${test.testName || ""}</td>
+                    <td class="high-low">
+                        <div class="HL"><span>${testNameSuffix}</span></div>
+                        <span>${test.value || ""}</span>
+                    </td>
+                    <td>${test.unit || ""}</td>
+                    <td>${test.reference || ""}</td>
+                </tr>`;
+            }
+
+            if (test.remark) {
+                bodyHtml += `<tr><td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> <span>${test.remark}</span></td></tr>`;
+            }
+            if (test.details) {
+                bodyHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row"><div class="documented-content">${test.details}</div></td></tr>`;
             }
         });
-        
-        if (cat.advice) bodyHtml += `<tr><td colspan="4" class="advice"><strong>Advice:</strong> <span class="documented-content">${cat.advice}</span></td></tr>`;
-        if (cat.notes) bodyHtml += `<tr><td colspan="4" class="notes"><strong>Notes:</strong> <span class="documented-content">${cat.notes}</span></td></tr>`;
-        if (cat.remarks) bodyHtml += `<tr><td colspan="4" class="remarks"><strong>Remarks:</strong> <span class="documented-content">${cat.remarks}</span></td></tr>`;
-        
-        bodyHtml += '</tbody></table>';
-        
-        if (cat.interpretation) {
-            bodyHtml += `<div class="interpretation"><strong>Interpretation:</strong><div class="documented-content">${cat.interpretation}</div></div>`;
+
+        if (cat.advice) {
+            bodyHtml += `<tr><td class="wrong"></td><td colspan="4" class="advice"><div>Advice:</div> <span class="documented-content">${cat.advice}</span></td></tr>`;
         }
-        bodyHtml += '</div>';
+        if (cat.notes) {
+            bodyHtml += `<tr><td class="wrong"></td><td colspan="4" class="notes"><div>Notes:</div> <span class="documented-content">${cat.notes}</span></td></tr>`;
+        }
+        if (cat.remarks) {
+            bodyHtml += `<tr><td class="wrong"></td><td colspan="4" class="remarks"><div>Remarks:</div> <span class="documented-content">${cat.remarks}</span></td></tr>`;
+        }
+
+        bodyHtml += '</tbody>';
+
+        if (cat.interpretation) {
+            bodyHtml += `<tbody><tr><td class="wrong"></td><td colspan="4"><div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content">${cat.interpretation}</div></div></td></tr></tbody>`;
+        }
+
+        bodyHtml += '</table>';
+        bodyHtml += '</div>'; // End of section
     });
-    
+
     if (savedReport.MoreDetails) {
-        bodyHtml += `<div class="moreDetails" style="margin-top:20px; padding:10px; border-top:1px solid #ddd;"><strong>Additional Findings:</strong><div class="documented-content">${savedReport.MoreDetails}</div></div>`;
+        bodyHtml += `<div class="moreDetails"><span>Additional Findings :-</span><br><div class="documented-content">${savedReport.MoreDetails}</div></div>`;
     }
 
-    bodyHtml += '</div>';
+    bodyHtml += '</div>'; // End of container2
 
     await customization.findOneAndUpdate(
         { reportId: savedReport._id, tenantId },

@@ -446,7 +446,7 @@ const convertImageToBase64 = async (imageUrl) => {
         const buffer = Buffer.from(response.data, 'binary');
         return buffer.toString('base64');
     } catch (error) {
-        console.error('Error fetching image:', error);
+        console.error('Error fetching image:', error.message || error);
         return null;
     }
 };
