@@ -462,7 +462,7 @@ let userId;
         await SuperAdmin.findByIdAndUpdate(req.user._id, {
             $push: {
                 activities: {
-                    activityType: "Other",
+                    activityType: "other",
                     details: {
                         staffId: req.user._id,
                         staffName: req.user.fullName,

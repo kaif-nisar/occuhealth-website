@@ -82,11 +82,16 @@ async function submitAmount() {
 }
 
 function loadCreditData() {
-    fetch(`${BASE_URL}/api/v1/user/fetchFranchisee`)
+    fetch(`${BASE_URL}/api/v1/user/fetchFranchisee`, {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+        }
+    })
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                populateDropdowns(result.data);
+                populateDropdowns(Array.isArray(result.data) ? result.data : []);
             } else {
                 console.error('Error fetching data:', result.message);
             }
@@ -101,8 +106,11 @@ function populateDropdowns(data) {
     superFranchiseeSelect.innerHTML = '<option value="" disabled>-- Select Franchisee --</option>';
     franchiseeSelect.innerHTML = '<option value="" disabled>-- Select Franchisee --</option>';
     subFranchiseeSelect.innerHTML = '<option value="" disabled>-- Select Franchisee --</option>';
-    
-    document.querySelector('.current-amount').innerHTML = `<i class="fas fa-coins"></i> Current Amount: ${user.bookingWallet}`;
+
+    const currentAmountDisplay = document.querySelector('.current-amount');
+    if (currentAmountDisplay && typeof user !== 'undefined' && user?.bookingWallet != null) {
+        currentAmountDisplay.innerHTML = `<i class="fas fa-coins"></i> Current Amount: ${user.bookingWallet}`;
+    }
 
     data.forEach(user => {
         const option = document.createElement('option');
@@ -169,15 +177,17 @@ async function handleSubmit(event, role) {
     await fetch(endpoint, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(payload)
     })
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                console.log('Transaction successful! New balance:', result.data.adminWallet);
-                alert(`Transaction successful! New balance: ${result.data.adminWallet}`);
+                const balance = result?.data?.adminWallet ?? result?.data?.franchiseeWallet ?? 'updated';
+                console.log('Transaction successful! New balance:', balance);
+                alert(`Transaction successful! New balance: ${balance}`);
             } else {
                 console.error('Transaction failed:', result.message);
                 alert(`Transaction failed: ${result.message}`);

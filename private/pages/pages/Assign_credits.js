@@ -1,7 +1,6 @@
 async function loadFranchisees() {
-    
     try {
-        const response = await fetch(`${BASE_URL}/api/v1/user/franchisee-data?userId=${userId}`, {
+        const response = await fetch(`${BASE_URL}/api/v1/user/fetchFranchisee`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -18,7 +17,8 @@ async function loadFranchisees() {
             const franchiseeDropdown = document.getElementById('franchisee');
             franchiseeDropdown.innerHTML = '<option value="">-- Select Franchisee --</option>';
 
-            data.franchisees.forEach(franchisee => {
+            const franchisees = Array.isArray(data.data) ? data.data : [];
+            franchisees.forEach(franchisee => {
                 const option = document.createElement('option');
                 option.value = franchisee._id;
                 option.textContent = `${franchisee.fullName} (${franchisee.email})`;
@@ -38,8 +38,9 @@ async function submitTransaction() {
     const transactionType = document.getElementById('transaction-type').value;
     const credits = document.getElementById('credits').value;
     const remarks = document.getElementById('remarks').value;
+    const amount = Number(credits);
 
-    if (!franchiseeId || !credits) {
+    if (!franchiseeId || !Number.isFinite(amount) || amount <= 0) {
         return alert('Please fill in all required fields.');
     }
 
@@ -53,11 +54,15 @@ async function submitTransaction() {
             body: JSON.stringify({
                 franchiseeId,
                 transactionType,
-                amount: parseInt(credits, 10),
+                amount,
                 remarks,
                 userId
             }),
         });
+
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
 
         const data = await response.json();
         if (data.success) {
