@@ -26,6 +26,34 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
     console.warn("⚠️ Razorpay keys not found, using mock Razorpay object");
 
     razorpay = {
+      contacts: {
+        create: async (options) => {
+          console.log("🔧 Mock contact created with options:", options);
+          return {
+            id: "cont_mock_123456",
+            ...options
+          };
+        }
+      },
+      fundAccounts: {
+        create: async (options) => {
+          console.log("🔧 Mock fund account created with options:", options);
+          return {
+            id: "fa_mock_123456",
+            ...options
+          };
+        }
+      },
+      payouts: {
+        create: async (options) => {
+          console.log("🔧 Mock payout created with options:", options);
+          return {
+            id: "pout_mock_123456",
+            status: "queued",
+            ...options
+          };
+        }
+      },
         subscriptions: {
             create: async (options) => {
                 console.log("🔧 Mock subscription created with options:", options);
@@ -520,17 +548,19 @@ export const processWithdrawalRequest = async (req, res) => {
           requestId: requestId
         });
 
-        withdrawalRequest.payoutStatus = "completed";
-        withdrawalRequest.status = "processed";
+        const isManualPayout = payoutResult.mode === "manual" || payoutResult.status === "manual_pending";
+
+        withdrawalRequest.payoutStatus = isManualPayout ? "pending" : "completed";
+        withdrawalRequest.status = isManualPayout ? "approved" : "processed";
         withdrawalRequest.payoutReference = payoutResult.payoutId;
-        withdrawalRequest.payoutMode = "razorpay_payout";
+        withdrawalRequest.payoutMode = isManualPayout ? "manual" : "razorpay_payout";
 
         await user.logActivity("withdrawal_processed", {
           requestId: requestId,
           amount: withdrawalRequest.amount,
           processedBy: superAdminId,
           payoutReference: payoutResult.payoutId,
-          payoutMode: "razorpay_payout"
+          payoutMode: withdrawalRequest.payoutMode
         });
 
       } catch (payoutError) {
@@ -556,6 +586,8 @@ export const processWithdrawalRequest = async (req, res) => {
           error: payoutError.message,
           processedBy: superAdminId
         });
+
+        await user.save();
 
         return res.status(200).json({
           success: true,
@@ -966,8 +998,16 @@ const initiateRazorpayPayout = async (payoutData) => {
     throw new Error("Payout amount exceeds maximum limit of ₹1,00,000");
   }
 
-  if (!razorpay || !process.env.RAZORPAY_KEY_ID) {
-    throw new Error("Razorpay not configured for payouts");
+  const canUseRazorpayPayout = Boolean(
+    razorpay?.contacts?.create &&
+    razorpay?.fundAccounts?.create &&
+    razorpay?.payouts?.create &&
+    process.env.RAZORPAY_KEY_ID &&
+    process.env.RAZORPAY_KEY_SECRET
+  );
+
+  if (!canUseRazorpayPayout) {
+    return initiateManualPayout(payoutData);
   }
 
   try {
