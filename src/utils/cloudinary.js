@@ -1,6 +1,7 @@
 import { configDotenv } from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs/promises"; // Use promises for cleaner asynchronous file handling
+import { Readable } from "stream";
 
 configDotenv();
 
@@ -82,6 +83,44 @@ const uploadOnCloudinary = async (localFilePath, options = {}) => {
     }
 };
 
+const uploadBufferOnCloudinary = async (fileBuffer, options = {}) => {
+    try {
+        if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+            throw new Error("File buffer is required for upload.");
+        }
+
+        const {
+            resourceType = "raw",
+            folder,
+            uniqueFilename = false,
+        } = options;
+
+        return await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    resource_type: resourceType,
+                    use_filename: true,
+                    unique_filename: uniqueFilename,
+                    overwrite: false,
+                    ...(folder ? { folder } : {}),
+                },
+                (error, result) => {
+                    if (error) {
+                        return reject(error);
+                    }
+
+                    return resolve(result);
+                }
+            );
+
+            Readable.from(fileBuffer).pipe(uploadStream);
+        });
+    } catch (error) {
+        console.error("Error uploading buffer to Cloudinary:", error);
+        throw error;
+    }
+};
+
 const deleteFromCloudinary = async (publicId, options = {}) => {
     try {
         if (!publicId) {
@@ -131,4 +170,4 @@ const buildCloudinaryImageUrl = (publicId, options = {}) => {
 };
 
 
-export { uploadOnCloudinary, deleteFromCloudinary, buildCloudinaryImageUrl };
+export { uploadOnCloudinary, uploadBufferOnCloudinary, deleteFromCloudinary, buildCloudinaryImageUrl };

@@ -73,6 +73,70 @@ async function allcases() {
         return allowedAttachmentExtensions.has(extension);
     }
 
+    function isAttachmentImageFile(file) {
+        if (!file) return false;
+
+        const mimeType = String(file.type || file.mimetype || "").toLowerCase();
+        const extension = getFileExtension(file.name || file.originalname || "");
+
+        return mimeType.startsWith("image/") || (allowedAttachmentExtensions.has(extension) && extension !== ".pdf");
+    }
+
+    async function prepareAttachmentFileForUpload(file) {
+        if (!file || !isAttachmentImageFile(file)) {
+            return file;
+        }
+
+        // Leave GIFs untouched so we don't accidentally strip animation.
+        const mimeType = String(file.type || "").toLowerCase();
+        if (mimeType === "image/gif") {
+            return file;
+        }
+
+        if (typeof window === "undefined" || typeof document === "undefined" || typeof createImageBitmap !== "function") {
+            return file;
+        }
+
+        try {
+            const bitmap = await createImageBitmap(file);
+            const maxEdge = 1600;
+            const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+
+            const context = canvas.getContext("2d");
+            if (!context) {
+                return file;
+            }
+
+            context.drawImage(bitmap, 0, 0, width, height);
+            if (typeof bitmap.close === "function") {
+                bitmap.close();
+            }
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, "image/jpeg", 0.82);
+            });
+
+            if (!blob) {
+                return file;
+            }
+
+            const baseName = String(file.name || "attachment").replace(/\.[^.]+$/, "") || "attachment";
+            return new File([blob], `${baseName}.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+            });
+        } catch (error) {
+            console.warn("Attachment image normalization skipped:", error);
+            return file;
+        }
+    }
+
     function showLoader() {
         document.querySelector(".loader").style.display = "flex";
     }
@@ -725,7 +789,7 @@ async function allcases() {
 
     async function saveAttachments() {
         if (!currentBookingIdForAttachments) return;
-        const files = attachmentFileInput.files;
+        const files = Array.from(attachmentFileInput.files || []);
         if (files.length === 0) return alert('Please select files to upload.');
 
         const unsupportedFiles = Array.from(files).filter((file) => !isSupportedAttachmentFile(file));
@@ -735,20 +799,41 @@ async function allcases() {
             return;
         }
 
-        const formData = new FormData();
-        formData.append('bookingId', currentBookingIdForAttachments);
-        for (let i = 0; i < files.length; i++) formData.append('attachments', files[i]);
-
         showLoader();
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/upload-attachments`, { method: 'POST', body: formData });
-            if (response.ok) {
+            const failures = [];
+            let successfulUploads = 0;
+
+            for (const file of files) {
+                const preparedFile = await prepareAttachmentFileForUpload(file);
+                const formData = new FormData();
+                formData.append('bookingId', currentBookingIdForAttachments);
+
+                const uploadName = preparedFile?.name || file.name || 'attachment';
+                formData.append('attachments', preparedFile, uploadName);
+
+                const response = await fetch(`${BASE_URL}/api/v1/user/upload-attachments`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    successfulUploads += 1;
+                    continue;
+                }
+
+                const errorData = await response.json().catch(() => ({}));
+                failures.push(`${file.name || 'Attachment'}: ${errorData.message || 'Attachment upload nahi ho paya.'}`);
+            }
+
+            if (successfulUploads > 0) {
                 attachmentFileInput.value = '';
                 await showAttachmentModal(currentBookingIdForAttachments);
                 await fetchBookings(currentPage);
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                alert(errorData.message || 'Attachment upload nahi ho paya.');
+            }
+
+            if (failures.length > 0) {
+                alert(`Kuch files upload nahi ho paayi:\n${failures.join("\n")}`);
             }
         } catch (error) {
             console.error('Upload error:', error);

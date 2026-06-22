@@ -1,5 +1,5 @@
 import { customization } from "../models/printsetting.model.js";
-import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadBufferOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs/promises";
 
 const ATTACHMENT_DOC_FORMAT = "bookingAttachments";
@@ -55,7 +55,45 @@ const resolveAttachmentFileMeta = (file) => {
         };
     }
 
+    // Some mobile camera pickers return empty or generic metadata even though the payload is an image.
+    if (!mimeType || mimeType === "application/octet-stream") {
+        return {
+            fileType: "image",
+            resourceType: "auto",
+            mimeType: mimeType || "image/*",
+            fileExtension: extension,
+        };
+    }
+
     return null;
+};
+
+const uploadAttachmentBuffer = async (fileBuffer, meta) => {
+    const uploadOptions = {
+        resourceType: "auto",
+        folder: ATTACHMENT_FOLDER,
+        uniqueFilename: true,
+    };
+
+    try {
+        return await uploadBufferOnCloudinary(fileBuffer, uploadOptions);
+    } catch (error) {
+        const looksLikeImage = Boolean(
+            meta?.fileType === "image" ||
+            meta?.mimeType?.startsWith("image/") ||
+            SUPPORTED_IMAGE_EXTENSIONS.has(meta?.fileExtension || "")
+        );
+
+        if (!looksLikeImage) {
+            throw error;
+        }
+
+        // Some mobile camera formats can be finicky. Retry as raw so the file still uploads.
+        return await uploadBufferOnCloudinary(fileBuffer, {
+            ...uploadOptions,
+            resourceType: "raw",
+        });
+    }
 };
 
 const normalizeAttachment = (attachment) => ({
@@ -132,11 +170,8 @@ const uploadBookingAttachments = async (req, res) => {
                 );
             }
 
-            const result = await uploadOnCloudinary(file.path, {
-                resourceType: meta.resourceType,
-                folder: ATTACHMENT_FOLDER,
-                uniqueFilename: true,
-            });
+            const fileBuffer = await fs.readFile(file.path);
+            const result = await uploadAttachmentBuffer(fileBuffer, meta);
 
             uploadedAttachments.push({
                 url: result.secure_url,
