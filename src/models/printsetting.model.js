@@ -123,6 +123,9 @@ const customizationSchema = new mongoose.Schema({
             publicId: String,
             fileType: { type: String, enum: ['image', 'pdf'] },
             fileName: String,
+            resourceType: { type: String, enum: ['image', 'raw'], default: 'image' },
+            mimeType: String,
+            fileExtension: String,
             order: { type: Number, default: 0 },
             uploadedAt: { type: Date, default: Date.now }
         }

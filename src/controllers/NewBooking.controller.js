@@ -49,6 +49,9 @@ async function attachBookingAttachments(bookings, tenantId) {
                 publicId: attachment.publicId || "",
                 fileType: attachment.fileType || "image",
                 fileName: attachment.fileName || "attachment",
+                resourceType: attachment.resourceType || (attachment.fileType === "pdf" ? "raw" : "image"),
+                mimeType: attachment.mimeType || "",
+                fileExtension: attachment.fileExtension || "",
                 order: attachment.order || 0,
                 uploadedAt: attachment.uploadedAt || new Date(),
             }))

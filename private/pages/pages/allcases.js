@@ -35,6 +35,43 @@ async function allcases() {
     const attachmentListContainer = document.getElementById("attachmentListContainer");
     const targetBookingIdSpan = document.getElementById("targetBookingId");
     let currentBookingIdForAttachments = null;
+    const allowedAttachmentExtensions = new Set([
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".gif",
+        ".bmp",
+        ".tif",
+        ".tiff",
+        ".avif",
+        ".heic",
+        ".heif",
+        ".pdf",
+    ]);
+
+    function getFileExtension(fileName = "") {
+        const dotIndex = String(fileName).lastIndexOf(".");
+        if (dotIndex < 0) return "";
+        return String(fileName).slice(dotIndex).toLowerCase();
+    }
+
+    function isSupportedAttachmentFile(file) {
+        if (!file) return false;
+
+        const mimeType = String(file.type || file.mimetype || "").toLowerCase();
+        const extension = getFileExtension(file.name || file.originalname || "");
+
+        if (mimeType === "application/pdf" || extension === ".pdf") {
+            return true;
+        }
+
+        if (mimeType.startsWith("image/")) {
+            return true;
+        }
+
+        return allowedAttachmentExtensions.has(extension);
+    }
 
     function showLoader() {
         document.querySelector(".loader").style.display = "flex";
@@ -690,6 +727,13 @@ async function allcases() {
         if (!currentBookingIdForAttachments) return;
         const files = attachmentFileInput.files;
         if (files.length === 0) return alert('Please select files to upload.');
+
+        const unsupportedFiles = Array.from(files).filter((file) => !isSupportedAttachmentFile(file));
+        if (unsupportedFiles.length > 0) {
+            const names = unsupportedFiles.map((file) => file.name).join(", ");
+            alert(`Unsupported file selected: ${names}. Please use JPG, PNG, WEBP, HEIC, HEIF or PDF files.`);
+            return;
+        }
 
         const formData = new FormData();
         formData.append('bookingId', currentBookingIdForAttachments);
