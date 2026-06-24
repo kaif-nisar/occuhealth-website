@@ -17,11 +17,44 @@ import { createCanvas } from "canvas";
 import JsBarcode from "jsbarcode";
 import qr from "qrcode";
 
-const AUTO_FINALIZE_ORIGIN = process.env.AUTO_FINALIZE_ORIGIN || `http://localhost:${process.env.PORT || 3000}`;
 const ACCESS_TOKEN_SECRET = process.env.SUPER_ADMIN_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.SUPER_ADMIN_REFRESH_TOKEN_SECRET;
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "1d";
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "7d";
+
+const getPreferredOrigin = (req) => {
+    const requestOrigin = String(req?.headers?.origin || req?.get?.("origin") || "").trim();
+    if (requestOrigin) {
+        return requestOrigin.replace(/\/+$/, "");
+    }
+
+    const referer = String(req?.headers?.referer || req?.get?.("referer") || "").trim();
+    if (referer) {
+        try {
+            return new URL(referer).origin.replace(/\/+$/, "");
+        } catch (_) {
+            // Ignore malformed referer values and continue with other fallbacks.
+        }
+    }
+
+    const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
+    const forwardedHost = String(req?.headers?.["x-forwarded-host"] || "").split(",")[0].trim();
+    const requestHost = forwardedHost || String(req?.headers?.host || req?.get?.("host") || "").trim();
+    const protocol = forwardedProto || String(req?.protocol || "").trim() || "http";
+
+    if (requestHost) {
+        return `${protocol}://${requestHost}`.replace(/\/+$/, "");
+    }
+
+    const envOrigin =
+        process.env.AUTO_FINALIZE_ORIGIN ||
+        process.env.FRONTEND_APP_URL ||
+        process.env.APP_BASE_URL ||
+        process.env.PUBLIC_APP_URL ||
+        "";
+
+    return String(envOrigin).trim().replace(/\/+$/, "");
+};
 
 const normalizeText = (value) => String(value ?? "").trim();
 
@@ -903,8 +936,10 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
 
     let qrCodeDataUrl = "";
     try {
-        const qrLink = `${AUTO_FINALIZE_ORIGIN}/pages/pages/download_reports.html?value=${encodeURIComponent(savedReport._id)}&id=${encodeURIComponent(tenantId)}`;
-        qrCodeDataUrl = await qr.toDataURL(qrLink, { margin: 2 });
+        const qrUrl = new URL("/pages/pages/download_reports.html", getPreferredOrigin(req));
+        qrUrl.searchParams.set("value", String(savedReport._id));
+        qrUrl.searchParams.set("id", String(tenantId));
+        qrCodeDataUrl = await qr.toDataURL(qrUrl.toString(), { margin: 2 });
     } catch (err) {
         console.error("Error generating QR code in bulk booking:", err.message);
     }
