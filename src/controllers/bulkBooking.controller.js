@@ -710,7 +710,8 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
         return categoryMap.get(key);
     };
 
-    const buildTestDetailsHtml = (test, panelContext = null) => {
+    const buildTestDetailsHtml = (test, panelContext = null, options = {}) => {
+        const { includeInterpretation = true } = options;
         const parts = [];
         const hideMethodInstrument = Boolean(panelContext?.hideMethodInstrument);
         const hideInterpretation = Boolean(panelContext?.hideInterpretation);
@@ -724,7 +725,7 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
             }
         }
 
-        if (!hideInterpretation && test.interpretation) {
+        if (includeInterpretation && !hideInterpretation && test.interpretation) {
             parts.push(String(test.interpretation));
         }
 
@@ -753,7 +754,7 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
                 testName: test.Name,
                 isMultiHeader: true,
                 pagebreak: false,
-                details: buildTestDetailsHtml(test, panelContext),
+                details: buildTestDetailsHtml(test, panelContext, { includeInterpretation: false }),
             });
 
             test.parameters.forEach((param) => {
@@ -770,6 +771,15 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
                     isAbnormal: checkAbnormality(val, ref.lower, ref.upper),
                 });
             });
+
+            if (!panelContext?.hideInterpretation && test.interpretation) {
+                categoryGroup.tests.push({
+                    testName: "",
+                    isInterpretation: true,
+                    pagebreak: false,
+                    details: String(test.interpretation),
+                });
+            }
             return;
         }
 
@@ -1623,6 +1633,8 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
             
             if (test.isMultiHeader) {
                 bodyHtml += `<tr class="${rowPageBreakClass}"><td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td><td colspan="4" style="font-weight:700; text-decoration:underline; padding-top:10px;">${String(test.testName).toUpperCase()}</td></tr>`;
+            } else if (test.isInterpretation) {
+                bodyHtml += `<tr class="${rowPageBreakClass}"><td class="wrong"></td><td colspan="4" class="details-row interpretation-row"><div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content">${test.details || ""}</div></div></td></tr>`;
             } else if (test.isDocumented) {
                 bodyHtml += `<tr ${boldClass} class="${rowPageBreakClass}"><td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td><td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${test.testName || ""}</div></td></tr>`;
             } else {

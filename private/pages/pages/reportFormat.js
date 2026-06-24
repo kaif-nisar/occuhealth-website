@@ -550,8 +550,29 @@
             const tbody = document.createElement("tbody");
 
             categoryData.tests.forEach((test, rowIndex) => {
+                if (test?.isInterpretation) {
+                    const interpretationRow = document.createElement("tr");
+                    const interpretationCellEmpty = document.createElement("td");
+                    interpretationCellEmpty.classList.add("wrong");
+
+                    const interpretationCell = document.createElement("td");
+                    interpretationCell.colSpan = 4;
+                    interpretationCell.className = "details-row interpretation-row";
+                    interpretationCell.innerHTML = `
+                        <div class="interpretation">
+                            <p style="font-weight: bold;">Interpretation</p>
+                            <div class="documented-content">${test.details || ""}</div>
+                        </div>
+                    `;
+
+                    interpretationRow.appendChild(interpretationCellEmpty);
+                    interpretationRow.appendChild(interpretationCell);
+                    tbody.appendChild(interpretationRow);
+                    return;
+                }
+
                 let testRow;
-                
+
                 if (test.testName) {
                     testRow = document.createElement("tr");
 

@@ -908,6 +908,26 @@
             });
 
             categoryData.tests.forEach((test, rowIndex) => {
+                if (test?.isInterpretation) {
+                    const interpretationRow = document.createElement("tr");
+                    interpretationRow.classList.add("multi-test-row");
+                    const interpretationCellEmpty = document.createElement("td");
+                    interpretationCellEmpty.classList.add("wrong");
+
+                    const interpretationCell = document.createElement("td");
+                    interpretationCell.colSpan = 4;
+                    interpretationCell.className = "details-row";
+                    interpretationCell.style.paddingLeft = "0";
+                    interpretationCell.style.marginLeft = "0";
+                    interpretationCell.style.textIndent = "0";
+                    interpretationCell.innerHTML = `<div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content" style="margin: 0; padding: 0;">${test.details || ""}</div></div>`;
+
+                    interpretationRow.appendChild(interpretationCellEmpty);
+                    interpretationRow.appendChild(interpretationCell);
+                    tbody.appendChild(interpretationRow);
+                    return;
+                }
+
                 const hasMultipleParameters = Array.isArray(test?.parameters) && test.parameters.length > 1;
 
                 if (hasMultipleParameters) {
