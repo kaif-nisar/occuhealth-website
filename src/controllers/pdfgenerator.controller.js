@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import mongoose from 'mongoose';
 import puppeteer from 'puppeteer';
 import PQueue from 'p-queue';
 import fetch from 'node-fetch'; // Import node-fetch to handle fetching images
@@ -13,6 +14,7 @@ import * as cheerio from 'cheerio';
 import { invoices } from '../models/invoicepdf.model.js';
 import { certificates } from '../models/certificate.model.js';
 import { defaultpdfsetting } from '../models/defaultpdfsettings.model.js';
+import { reports } from '../models/reportData.model.js';
 import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js';
 
 // Fix for __dirname in ES modules
@@ -473,6 +475,30 @@ const convertImagesInHtmlToBase64 = async (htmlContent) => {
 
     // Return updated HTML with Base64 images
     return $.html();
+};
+
+const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
+    const reportSelect = 'tenantId bookingId';
+    let reportContext = null;
+
+    if (bookingId) {
+        reportContext = await reports.findOne({ bookingId }).select(reportSelect).lean();
+    }
+
+    if (!reportContext && value1 && mongoose.Types.ObjectId.isValid(value1)) {
+        reportContext = await reports.findOne({ _id: value1 }).select(reportSelect).lean();
+    }
+
+    if (!reportContext && value1) {
+        reportContext = await reports.findOne({ bookingId: value1 }).select(reportSelect).lean();
+    }
+
+    return {
+        reportContext,
+        resolvedReportId: reportContext?._id || value1 || "",
+        resolvedTenantId: tenantId || reportContext?.tenantId || "",
+        resolvedBookingId: bookingId || reportContext?.bookingId || value1 || "",
+    };
 };
 
 const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingId, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
@@ -1498,22 +1524,24 @@ const getpdfcontrolleruser = async (req, res) => {
 
     try {
         // Attempt to fetch data from the database
-        const gettingcustomization = await customization.findOne({ reportId: value1 });
+        const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId });
+        const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
         let mergedValues;
 
         if (checkBox || DownloadPdf) {
             // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfFormat,
-                tenantId: tenantId || gettingcustomization?.tenantId || "",
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "", 
+                pdfformat: pdfFormat,
+                layerone: layerOne,
+                tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "", 
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
                 RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 7,
                 selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
-                reportId: value1,
+                reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1539,16 +1567,17 @@ const getpdfcontrolleruser = async (req, res) => {
         } else {
             // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfFormat,
-                tenantId: tenantId || gettingcustomization?.tenantId || "",
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
+                pdfformat: pdfFormat,
+                layerone: layerOne,
+                tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
                 RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 8,
                 selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
-                reportId: value1,
+                reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
