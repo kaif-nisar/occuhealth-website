@@ -25,6 +25,14 @@ const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "7d";
 
 const normalizeText = (value) => String(value ?? "").trim();
 
+const escapeHtml = (value) =>
+    String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
 const splitCommaValues = (value) =>
     String(value ?? "")
         .split(",")
@@ -674,25 +682,81 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     // 2. Apply formulas
     calculateDerivedResults(valuesMap);
 
-    // 3. Build reportData (CategoryAndTest) - Grouped by Category
+    // 3. Build reportData (CategoryAndTest) - keep panel context so PDF can mirror
+    // the same method/instrument/interpretation logic used by the manual report pages.
     const reportData = [];
     const categoryMap = new Map();
 
-    const addTestToReport = (test, isFromPanel = false) => {
-        const catName = normalizeText(test.category?.category || test.category || "Unknown");
-        if (!categoryMap.has(catName)) {
-            categoryMap.set(catName, { category: catName, title: catName, tests: [] });
-            reportData.push(categoryMap.get(catName));
-        }
-        const categoryGroup = categoryMap.get(catName);
+    const getGroupKey = (category, title) => `${normalizeText(category || "Unknown")}__${normalizeText(title || category || "Unknown")}`;
 
-        if (test.parameters?.length > 1) {
+    const getOrCreateGroup = (category, title, panelContext = null) => {
+        const normalizedCategory = normalizeText(category || "Unknown");
+        const normalizedTitle = normalizeText(title || normalizedCategory);
+        const key = getGroupKey(normalizedCategory, normalizedTitle);
+
+        if (!categoryMap.has(key)) {
+            categoryMap.set(key, {
+                category: normalizedCategory,
+                title: normalizedTitle,
+                tests: [],
+                advice: "",
+                notes: "",
+                remarks: "",
+                interpretation: panelContext?.hideInterpretation ? (panelContext?.panelInterpretation || "") : "",
+            });
+            reportData.push(categoryMap.get(key));
+        }
+
+        return categoryMap.get(key);
+    };
+
+    const buildTestDetailsHtml = (test, panelContext = null) => {
+        const parts = [];
+        const hideMethodInstrument = Boolean(panelContext?.hideMethodInstrument);
+        const hideInterpretation = Boolean(panelContext?.hideInterpretation);
+
+        if (!hideMethodInstrument) {
+            if (test.method) {
+                parts.push(`<p class="methods">Method: ${escapeHtml(test.method)}</p>`);
+            }
+            if (test.instrument) {
+                parts.push(`<p class="methods">Instrument: ${escapeHtml(test.instrument)}</p>`);
+            }
+        }
+
+        if (!hideInterpretation && test.interpretation) {
+            parts.push(String(test.interpretation));
+        }
+
+        return parts.join("");
+    };
+
+    const addTestToReport = (test, panelContext = null) => {
+        const catName = normalizeText(test.category?.category || test.category || "Unknown");
+        const groupTitle = panelContext?.panelName || catName;
+        const categoryGroup = getOrCreateGroup(catName, groupTitle, panelContext);
+        const hasParameters = Array.isArray(test.parameters) && test.parameters.length > 1;
+        const isDocumentedTest = Boolean(test.isDocumentedTest);
+
+        if (isDocumentedTest) {
+            categoryGroup.tests.push({
+                testName: test.interpretation || test.details || escapeHtml(test.Name || test.name || ""),
+                isDocumented: true,
+                isDocumentedTest: true,
+                pagebreak: false,
+            });
+            return;
+        }
+
+        if (hasParameters) {
             categoryGroup.tests.push({
                 testName: test.Name,
                 isMultiHeader: true,
-                pagebreak: false
+                pagebreak: false,
+                details: buildTestDetailsHtml(test, panelContext),
             });
-            test.parameters.forEach(param => {
+
+            test.parameters.forEach((param) => {
                 const cleanParamName = String(param.Para_name || "").replace(/\s+/g, "").toLowerCase();
                 const val = valuesMap.get(cleanParamName) ?? param.defaultresult ?? "";
                 const ref = getReferenceRangeValues(patientDays, booking.gender, param.NormalValue);
@@ -703,29 +767,44 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
                     reference: ref.text,
                     isParameter: true,
                     pagebreak: false,
-                    isAbnormal: checkAbnormality(val, ref.lower, ref.upper)
+                    isAbnormal: checkAbnormality(val, ref.lower, ref.upper),
                 });
             });
-        } else {
-            const param = test.parameters?.[0] || {};
-            const cleanTestName = String(test.Name || "").replace(/\s+/g, "").toLowerCase();
-            const val = valuesMap.get(cleanTestName) ?? param.defaultresult ?? "";
-            const ref = getReferenceRangeValues(patientDays, booking.gender, param.NormalValue);
-            categoryGroup.tests.push({
-                testName: test.Name,
-                value: val,
-                unit: param.unit,
-                reference: ref.text,
-                pagebreak: false,
-                isAbnormal: checkAbnormality(val, ref.lower, ref.upper)
-            });
+            return;
         }
+
+        const param = test.parameters?.[0] || {};
+        const cleanTestName = String(test.Name || "").replace(/\s+/g, "").toLowerCase();
+        const val = valuesMap.get(cleanTestName) ?? param.defaultresult ?? "";
+        const ref = getReferenceRangeValues(patientDays, booking.gender, param.NormalValue);
+
+        categoryGroup.tests.push({
+            testName: test.Name,
+            value: val,
+            unit: param.unit,
+            reference: ref.text,
+            pagebreak: false,
+            isAbnormal: checkAbnormality(val, ref.lower, ref.upper),
+            details: buildTestDetailsHtml(test, panelContext),
+            method: test.method || "",
+            instrument: test.instrument || "",
+            interpretation: test.interpretation || "",
+        });
     };
 
-    allPanels.forEach(panel => {
-        panel.testsId.forEach(test => addTestToReport(test, true));
+    allPanels.forEach((panel) => {
+        const panelContext = {
+            isPanel: true,
+            panelName: panel.name || "",
+            hideInterpretation: Boolean(panel.hideInterpretation),
+            hideMethodInstrument: Boolean(panel.hideMethodInstrument),
+            panelInterpretation: panel.interpretation || "",
+        };
+
+        (panel.testsId || []).forEach((test) => addTestToReport(test, panelContext));
     });
-    allSingleTests.forEach(test => addTestToReport(test, false));
+
+    allSingleTests.forEach((test) => addTestToReport(test, null));
 
     // 4. Save to reports - FIX: Avoid spreading _id from booking
     const bookingSnapshot = booking.toObject ? booking.toObject() : { ...booking };
@@ -1353,6 +1432,10 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
 
         .details-row .documented-content {
             padding-left: 20px;
+        }
+
+        .methods {
+            margin: 4px 0;
         }
 
         .interpretation {
