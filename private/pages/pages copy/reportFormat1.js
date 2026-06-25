@@ -566,7 +566,7 @@
                 } else {
                     testRow.innerHTML = `
                     <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
-                    ${test.testName || ""}
+                    <td class="test-name">${test.testName || ""}</td>
                     <td class="high-low"><div class="HL"><span>${testNameSuffix}</span></div><span>${test.value || ""}</span></td>
                     <td>${test.unit || ""}</td>
                     <td>${test.reference || ""}</td>
