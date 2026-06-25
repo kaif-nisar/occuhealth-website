@@ -213,7 +213,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ value1, bookingId: report.bookingId })
+                    body: JSON.stringify({ value1 })
                 });
                 if (!response.ok) throw new Error('PDF generation failed');
 
@@ -374,16 +374,6 @@
             console.log(error)
         }
     }
-
-    function getBookingBarcodeList() {
-        const booking = JSON.parse(localStorage.getItem('booking')) || {};
-        const acceptedbarcode = Array.isArray(booking.acceptedbarcode) ? booking.acceptedbarcode.filter(Boolean) : [];
-        const tableBarcodes = Array.isArray(booking.tableData)
-            ? booking.tableData.map((item) => item?.barcodeId).filter(Boolean)
-            : [];
-
-        return [...new Set([...acceptedbarcode, ...tableBarcodes])];
-    }
     function formatDateTime(timestamp) {
         const date = new Date(timestamp);
 
@@ -452,22 +442,15 @@
     await populateHeader();
 
     async function barcodegenerator() {
-        const booking = JSON.parse(localStorage.getItem('booking')) || {};
-        const barcodeList = getBookingBarcodeList();
-        const barcodeNumber = barcodeList[0] || booking.bookingId || report.bookingId;
 
-        if (!barcodeNumber) {
-            console.warn("Barcode source not available for reportFormat");
-            return;
-        }
-
+        const booking = JSON.parse(localStorage.getItem('booking'));
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/generate-barcode?nonumber=false`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ number: barcodeNumber }),
+                body: JSON.stringify({ number: booking.acceptedbarcode[0] || booking.bookingId }),
             });
 
             if (response.ok) {
@@ -550,29 +533,8 @@
             const tbody = document.createElement("tbody");
 
             categoryData.tests.forEach((test, rowIndex) => {
-                if (test?.isInterpretation) {
-                    const interpretationRow = document.createElement("tr");
-                    const interpretationCellEmpty = document.createElement("td");
-                    interpretationCellEmpty.classList.add("wrong");
-
-                    const interpretationCell = document.createElement("td");
-                    interpretationCell.colSpan = 4;
-                    interpretationCell.className = "details-row interpretation-row";
-                    interpretationCell.innerHTML = `
-                        <div class="interpretation">
-                            <p style="font-weight: bold;">Interpretation</p>
-                            <div class="documented-content">${test.details || ""}</div>
-                        </div>
-                    `;
-
-                    interpretationRow.appendChild(interpretationCellEmpty);
-                    interpretationRow.appendChild(interpretationCell);
-                    tbody.appendChild(interpretationRow);
-                    return;
-                }
-
                 let testRow;
-
+                
                 if (test.testName) {
                     testRow = document.createElement("tr");
 
@@ -1015,8 +977,7 @@
                         value1, labinchargesign, checkBox, backgroundImageUrl,
                         headermargin, footermargin, marginRight, marginLeft, labinchargeinfo: labinchargeinfo,
                         labinchargesignurl: sign, selectedFontSize, RowSpacing, HighLow, HLinred,
-                        BoldRow, showInvest, DownloadPdf,
-                        bookingId: report.bookingId
+                        BoldRow, showInvest, DownloadPdf
                     }),
                 });
 
