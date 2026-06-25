@@ -13,6 +13,7 @@ import { customization } from "../models/printsetting.model.js";
 import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
 import { doctorsign } from "../models/labinchargesign.model.js";
 import { Tenant } from "../models/tenant.model.js";
+import { Template } from "../models/template.model.js";
 import { createCanvas } from "canvas";
 import JsBarcode from "jsbarcode";
 import qr from "qrcode";
@@ -880,6 +881,8 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     // 5. Populate customization (PDF Metadata)
     const pSettings = await defaultpdfsetting.findOne({ tenantId }).lean() || {};
     const sigs = await doctorsign.findOne({ tenantId }).lean() || {};
+    const templateDoc = await Template.findOne({ tenantId }).select("template").lean();
+    const backgroundImageUrl = templateDoc?.template || "";
     const tenantDetails = await Tenant.findById(tenantId).select("modelType").lean();
     const is1Layer = tenantDetails?.modelType === "1layer";
     const forhideStyle = is1Layer ? 'style="display: none;"' : '';
@@ -1730,11 +1733,21 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
             footer: footerHtml,
             htmlContent: bodyHtml,
             cssContent: cssContent,
+            backgroundImageUrl,
             headermargin: pSettings.headermargin || "2.8",
             footermargin: pSettings.footermargin || "1",
             investigationmargin: 140,
             selectedFontSize: pSettings.selectedFontSize || 12,
             RowSpacing: pSettings.RowSpacing || 7,
+            showlab: sigs.showlabinchargesign ?? false,
+            showdoctorfirst: sigs.showfirstdoctorsign ?? true,
+            showdoctorsecond: sigs.showseconddoctorsign ?? true,
+            fileInputLab: sigs.labinchargesign || "",
+            fileInputDoctorleft: sigs.firstdoctorsign || "",
+            fileInputDoctorright: sigs.seconddoctorsign || "",
+            fileInputLabtext: sigs.labinchargeinfo || "",
+            fileInputDoctorlefttext: sigs.firstdoctorsigninfo || "",
+            fileInputDoctorrighttext: sigs.seconddoctorsigninfo || "",
             updatedAt: new Date()
         },
         { upsert: true }

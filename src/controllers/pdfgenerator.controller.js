@@ -15,6 +15,7 @@ import { invoices } from '../models/invoicepdf.model.js';
 import { certificates } from '../models/certificate.model.js';
 import { defaultpdfsetting } from '../models/defaultpdfsettings.model.js';
 import { reports } from '../models/reportData.model.js';
+import { Template } from '../models/template.model.js';
 import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js';
 
 // Fix for __dirname in ES modules
@@ -499,6 +500,25 @@ const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
         resolvedTenantId: tenantId || reportContext?.tenantId || "",
         resolvedBookingId: bookingId || reportContext?.bookingId || value1 || "",
     };
+};
+
+const resolveLetterheadBackgroundImage = async ({ tenantId, backgroundImageUrl, customizationBackgroundImageUrl }) => {
+    const directBackground = String(backgroundImageUrl ?? "").trim();
+    if (directBackground) {
+        return directBackground;
+    }
+
+    const savedBackground = String(customizationBackgroundImageUrl ?? "").trim();
+    if (savedBackground) {
+        return savedBackground;
+    }
+
+    if (!tenantId) {
+        return "";
+    }
+
+    const templateDoc = await Template.findOne({ tenantId }).select("template").lean();
+    return String(templateDoc?.template ?? "").trim();
 };
 
 const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingId, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
@@ -1030,6 +1050,11 @@ const getpdfcontroller = async (req, res) => {
     try {
         // Attempt to fetch data from the database
         const gettingcustomization = await customization.findOne({ reportId: value1 });
+        const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
+            tenantId: tid,
+            backgroundImageUrl,
+            customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
+        });
 
         const defaultpdfsetting = await saveOrUpdatePdfSetting({
             tenantId: tid,
@@ -1102,7 +1127,7 @@ const getpdfcontroller = async (req, res) => {
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
-                backgroundImageUrl: backgroundImageUrl || gettingcustomization?.backgroundImageUrl || "",
+                backgroundImageUrl: resolvedBackgroundImageUrl,
                 headermargin: defaultpdfsetting?.headermargin || gettingcustomization?.headermargin || "2.8",
                 footermargin: defaultpdfsetting?.footermargin || gettingcustomization?.footermargin || "1",
                 marginRight: defaultpdfsetting?.marginRight || gettingcustomization?.marginRight || "0",
@@ -1526,13 +1551,22 @@ const getpdfcontrolleruser = async (req, res) => {
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId });
         const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
+        const userPdfFormat = req.user?.role === "admin"
+            ? req.user?.pdfFormat
+            : req.user?.createdBy?.pdfFormat;
+        const userLayerOne = req.user?.tenantId?.modelType === "1layer";
+        const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
+            tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id,
+            backgroundImageUrl,
+            customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
+        });
         let mergedValues;
 
         if (checkBox || DownloadPdf) {
             // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfformat: pdfFormat,
-                layerone: layerOne,
+                pdfformat: pdfFormat || userPdfFormat || gettingcustomization?.format || "",
+                layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "", 
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
@@ -1567,8 +1601,8 @@ const getpdfcontrolleruser = async (req, res) => {
         } else {
             // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfformat: pdfFormat,
-                layerone: layerOne,
+                pdfformat: pdfFormat || userPdfFormat || gettingcustomization?.format || "",
+                layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
@@ -1582,7 +1616,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
-                backgroundImageUrl: backgroundImageUrl || gettingcustomization?.backgroundImageUrl || "",
+                backgroundImageUrl: resolvedBackgroundImageUrl,
                 headermargin: headermargin || gettingcustomization?.headermargin || "2.8",
                 footermargin: footermargin || gettingcustomization?.footermargin || "1",
                 marginRight: marginRight || gettingcustomization?.marginRight || "0",
@@ -1602,7 +1636,7 @@ const getpdfcontrolleruser = async (req, res) => {
             };
         }
 
-        if (layerOne === "1layer") {
+        if (layerOne === "1layer" || userLayerOne) {
             mergedValues.showInvest = false;
             mergedValues.layerone = true;
         }

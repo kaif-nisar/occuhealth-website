@@ -201,11 +201,31 @@
 
                 patientDetails = await fetchreport(bookingId);
                 if (patientDetails) {
+                    const printSettings = patientDetails.printSettings || {};
                     autogeneratingpdf({
                         value1: patientDetails._id,
                         bookingId: patientDetails.bookingId,
                         startDate: letterPadOption,
-                        patientname
+                        patientname,
+                        backgroundImageUrl: printSettings.backgroundImageUrl || null,
+                        headermargin: printSettings.headermargin || null,
+                        footermargin: printSettings.footermargin || null,
+                        marginRight: printSettings.marginRight || null,
+                        marginLeft: printSettings.marginLeft || null,
+                        selectedFontSize: printSettings.selectedFontSize || null,
+                        RowSpacing: printSettings.RowSpacing || null,
+                        HighLow: printSettings.HighLow ?? null,
+                        HLinred: printSettings.HLinred ?? null,
+                        BoldRow: printSettings.BoldRow ?? null,
+                        showInvest: printSettings.showInvest ?? null,
+                        fileInputLab: printSettings.fileInputLab || "",
+                        fileInputDoctorleft: printSettings.fileInputDoctorleft || "",
+                        fileInputDoctorright: printSettings.fileInputDoctorright || "",
+                        fileInputLabtext: printSettings.fileInputLabtext || "",
+                        fileInputDoctorlefttext: printSettings.fileInputDoctorlefttext || "",
+                        fileInputDoctorrighttext: printSettings.fileInputDoctorrighttext || "",
+                        pdfFormat: printSettings.format || "",
+                        layerOne: printSettings.layerOne || ""
                     });
                 }
             }
@@ -215,7 +235,8 @@
     async function autogeneratingpdf({ value1 = "", bookingId = "", startDate = "", patientname, labinchargesign = null,
         checkBox = false, labinchargeinfo = "", backgroundImageUrl = null, headermargin, footermargin,
         marginRight, marginLeft, labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow,
-        HLinred, BoldRow, showInvest } = {}) {
+        HLinred, BoldRow, showInvest, pdfFormat = "", layerOne = "", fileInputLab = "", fileInputDoctorleft = "",
+        fileInputDoctorright = "", fileInputLabtext = "", fileInputDoctorlefttext = "", fileInputDoctorrighttext = "" } = {}) {
 
         const loader = document.querySelector('#loader1');
 
@@ -229,7 +250,9 @@
                 body: JSON.stringify({ // Add bookingId here
                     value1, bookingId, labinchargesign, checkBox: startDate === "with" ? false : true, labinchargeinfo,
                     backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
-                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest
+                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+                    pdfFormat, layerOne, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+                    fileInputDoctorlefttext, fileInputDoctorrighttext
                 })
             });
 
@@ -428,21 +451,30 @@
                 bookingId: patientDetails.bookingId,
                 startDate: letterPadOption,
                 patientname: patientbooking.patientName,
+                backgroundImageUrl: patientDetails.printSettings?.backgroundImageUrl || null,
+                headermargin: patientDetails.printSettings?.headermargin || null,
+                footermargin: patientDetails.printSettings?.footermargin || null,
+                marginRight: patientDetails.printSettings?.marginRight || null,
+                marginLeft: patientDetails.printSettings?.marginLeft || null,
+                selectedFontSize: patientDetails.printSettings?.selectedFontSize || null,
+                RowSpacing: patientDetails.printSettings?.RowSpacing || null,
+                HighLow: patientDetails.printSettings?.HighLow ?? null,
+                HLinred: patientDetails.printSettings?.HLinred ?? null,
+                BoldRow: patientDetails.printSettings?.BoldRow ?? null,
+                showInvest: patientDetails.printSettings?.showInvest ?? null,
+                fileInputLab: patientDetails.printSettings?.fileInputLab || "",
+                fileInputDoctorleft: patientDetails.printSettings?.fileInputDoctorleft || "",
+                fileInputDoctorright: patientDetails.printSettings?.fileInputDoctorright || "",
+                fileInputLabtext: patientDetails.printSettings?.fileInputLabtext || "",
+                fileInputDoctorlefttext: patientDetails.printSettings?.fileInputDoctorlefttext || "",
+                fileInputDoctorrighttext: patientDetails.printSettings?.fileInputDoctorrighttext || "",
+                pdfFormat: patientDetails.pdfFormat || patientDetails.printSettings?.format || "",
+                layerOne: patientDetails.layerOne || "",
                 labinchargesign: null,
                 checkBox: false,
                 labinchargeinfo: "",
-                backgroundImageUrl: null,
-                headermargin: null,
-                footermargin: null,
-                marginRight: null,
-                marginLeft: null,
                 labinchargesignurl: null,
-                selectedFontSize: null,
-                RowSpacing: null,
-                HighLow: null,
-                HLinred: null,
-                BoldRow: null,
-                showInvest: null
+                // Remaining values are already passed above when available from printSettings.
             });
 
         } catch (error) {

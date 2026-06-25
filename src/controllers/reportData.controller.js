@@ -237,6 +237,11 @@ const editReportsignofffieldController = asyncHandler(async (req, res) => {
 const getReportController = asyncHandler(async (req, res) => {
     const { value1, bookingId } = req.body;
     const tenantId = req.user.tenantId._id;
+    const user = await User.findOne({
+        _id: req.user._id,
+        tenantId: tenantId,
+    }).select("pdfFormat");
+    const usertenant = await Tenant.findById(tenantId).select("modelType");
     // console.log( typeof bookingId)
     // console.log(typeof value1)
     // Pehle bookingId ke basis par report dhundho
@@ -262,8 +267,12 @@ const getReportController = asyncHandler(async (req, res) => {
         (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
         {};
 
+    const responsePayload = Report.toObject();
+    responsePayload.pdfFormat = user?.pdfFormat || "";
+    responsePayload.layerOne = usertenant?.modelType || "";
+
     return res.status(200).json({
-        ...Report.toObject(),
+        ...responsePayload,
         printSettings,
     });
 });
@@ -291,8 +300,6 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         });
     }
 
-    Report.pdfFormat = user.pdfFormat;
-    Report.layerOne = usertenant.modelType;
     // Agar Report nahi mili to error throw karo
     if (!Report) {
         throw new ApiError(400, "Please try again after sometime, report not found");
@@ -302,8 +309,12 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
         {};
 
+    const responsePayload = Report.toObject();
+    responsePayload.pdfFormat = user?.pdfFormat || "";
+    responsePayload.layerOne = usertenant?.modelType || "";
+
     return res.status(200).json({
-        ...Report.toObject(),
+        ...responsePayload,
         printSettings,
     });
 });
