@@ -23,10 +23,14 @@ const sortAttachments = (attachments = []) => {
 };
 
 const fetchArrayBuffer = async (url) => {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+    });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch attachment from ${url}`);
+        throw new Error(`Failed to fetch attachment from ${url} (Status: ${response.status} ${response.statusText})`);
     }
 
     return await response.arrayBuffer();
@@ -121,20 +125,31 @@ const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId }
     basePages.forEach((page) => mergedDoc.addPage(page));
 
     for (const attachment of attachments) {
-        if (!attachment?.url && !attachment?.publicId) {
-            continue;
+        try {
+            if (!attachment?.url && !attachment?.publicId) {
+                continue;
+            }
+
+            const fileType = String(attachment.fileType || "").toLowerCase();
+            const isPdf = fileType === "pdf" || (attachment.url || "").toLowerCase().includes(".pdf");
+
+            if (isPdf) {
+                if (!attachment.url) {
+                    console.warn("[pdfAttachmentMerger] Skipping PDF attachment with missing URL:", attachment);
+                    continue;
+                }
+                const attachmentPdfBuffer = await fetchArrayBuffer(attachment.url);
+                await appendPdfBuffer(mergedDoc, attachmentPdfBuffer);
+                continue;
+            }
+
+            await appendImagePage(mergedDoc, attachment);
+        } catch (error) {
+            console.error(
+                `[pdfAttachmentMerger] Failed to merge attachment: file="${attachment?.fileName || 'unknown'}", url="${attachment?.url || ''}"`,
+                error.message || error
+            );
         }
-
-        const fileType = String(attachment.fileType || "").toLowerCase();
-        const isPdf = fileType === "pdf" || (attachment.url || "").toLowerCase().includes(".pdf");
-
-        if (isPdf) {
-            const attachmentPdfBuffer = await fetchArrayBuffer(attachment.url);
-            await appendPdfBuffer(mergedDoc, attachmentPdfBuffer);
-            continue;
-        }
-
-        await appendImagePage(mergedDoc, attachment);
     }
 
     return Buffer.from(await mergedDoc.save());
