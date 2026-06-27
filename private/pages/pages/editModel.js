@@ -4,15 +4,20 @@
   const tenantId = urlParams.get('modelId'); // yahi aapke user ki id hai
   if (!tenantId) return;
 
-  // Kisi element ko select karo
-  const myDiv = document.querySelector(".format1");
-  const myDiv2 = document.querySelector(".format2");
+  // Preview thumbnails for each report format box.
+  const formatPreviewMap = {
+    format1: `${BASE_URL}/images/format1.png`,
+    format2: `${BASE_URL}/images/format2.png`,
+    format3: `${BASE_URL}/images/format3.png`,
+    format4: `${BASE_URL}/images/format4.svg`,
+  };
 
-  // Format1 wala background set karo
-  myDiv.style.backgroundImage = `url("${BASE_URL}/images/format2.png")`;
-
-  // Ya format2 wala background set karo
-  myDiv2.style.backgroundImage = `url("${BASE_URL}/images/format3.png")`;
+  Object.entries(formatPreviewMap).forEach(([className, imageUrl]) => {
+    const el = document.querySelector(`.${className}`);
+    if (el) {
+      el.style.backgroundImage = `url("${imageUrl}")`;
+    }
+  });
 
   // Fetch user/admin details and pre-fill form
   try {
@@ -33,10 +38,16 @@
     document.getElementById('status').value = data.adminDetails.userId.isActive ? 'true' : 'false';
     document.getElementById('printsetting').checked = data.adminDetails.userId.showprintsetting;
     document.getElementById('testdatabase').checked = data.adminDetails.userId.showtestdatabase;
-    if (data.adminDetails.userId.pdfFormat === "reportFormat3") {
-      document.getElementById('format1').checked = true;
-    } else {
-      document.getElementById('format2').checked = true;
+    const formatIdMap = {
+      reportFormat1: 'format1',
+      reportFormat3: 'format2',
+      reportFormat: 'format3',
+      reportFormat4: 'format4',
+    };
+    const selectedFormatId = formatIdMap[data.adminDetails.userId.pdfFormat] || 'format1';
+    const selectedFormatInput = document.getElementById(selectedFormatId);
+    if (selectedFormatInput) {
+      selectedFormatInput.checked = true;
     }
 
     // Subscription Info

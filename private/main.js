@@ -219,7 +219,7 @@ class SPARouter {
             return this.pendingPageFetches.get(page);
         }
 
-        const pendingFetch = fetch(`pages/${page}.html`, { cache: 'force-cache' })
+        const pendingFetch = fetch(`pages/${page}.html`, { cache: 'no-cache' })
             .then(async (response) => {
                 if (!response.ok) {
                     throw new Error(`Failed to fetch page: ${response.status} ${response.statusText}`);

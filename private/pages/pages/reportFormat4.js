@@ -671,7 +671,7 @@
                 ${headerSampleTypeText ? `<div class="infor-div" id="sampleTypeDiv"><div class="tags">Sample Type :</div><div class="value">${escapeHtml(headerSampleTypeText)}</div></div>` : ""}
                 <div class="infor-div forhide" id="investDiv">
                     <div class="tags">Investigations :</div> 
-                        <div class="value">${report.uniquetestArray}
+                        <div class="value">${report.uniquetestArray}</div>
                         </div>
                 </div>
             </div>

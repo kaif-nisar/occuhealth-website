@@ -4,19 +4,20 @@
     const rentDetails = document.getElementById('rentDetails');
     let selectedLayer = null;
 
-    // Kisi element ko select karo
-    const myDiv = document.querySelector(".format1");
-    const myDiv2 = document.querySelector(".format2");
-    const myDiv3 = document.querySelector(".format3");
+    // Preview thumbnails for each report format box.
+    const formatPreviewMap = {
+        format1: `${BASE_URL}/images/format1.png`,
+        format2: `${BASE_URL}/images/format2.png`,
+        format3: `${BASE_URL}/images/format3.png`,
+        format4: `${BASE_URL}/images/format4.svg`,
+    };
 
-    // Format1 wala background set karo
-    myDiv.style.backgroundImage = `url("${BASE_URL}/images/format2.png")`;
-
-    // Ya format2 wala background set karo
-    myDiv2.style.backgroundImage = `url("${BASE_URL}/images/format3.png")`;
-
-    // Ya format2 wala background set karo
-    myDiv3.style.backgroundImage = `url("${BASE_URL}/images/format1.png")`;
+    Object.entries(formatPreviewMap).forEach(([className, imageUrl]) => {
+        const el = document.querySelector(`.${className}`);
+        if (el) {
+            el.style.backgroundImage = `url("${imageUrl}")`;
+        }
+    });
 
 
     modelCards.forEach(card => {

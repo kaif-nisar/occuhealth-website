@@ -936,7 +936,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                     </body>
                 </html>`,
                 margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `10px`, right: `10px` },
-                margin: { top: `${headermarginPx + investigationmargin}px`, bottom: '175px', left: `10px`, right: `10px` },
+                margin: { top: `${headermarginPx + investigationmargin - 40}px`, bottom: '175px', left: `10px`, right: `10px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;

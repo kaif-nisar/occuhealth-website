@@ -93,21 +93,80 @@
     }
 
     .format-choice {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .format-option {
       display: flex;
-      gap: 1.5rem;
-      flex-direction: row;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.9rem;
+      border: 1px solid #d8e1ea;
+      border-radius: 14px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      text-align: center;
+    }
+
+    .format-option:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .format-option input {
+      margin: 0;
+      accent-color: #28a745;
     }
 
     .format {
       height: 150px;
       width: 115px;
-      border: 1px solid grey;
-      border-radius: 2px;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
       background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #f8fafc;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
 
-    .format input {
-      margin: 5px;
+    .format-option input:checked ~ .format {
+      border-color: #28a745;
+      box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.14);
+      transform: scale(1.02);
+    }
+
+    .format-option strong {
+      display: block;
+      color: #333;
+      font-size: 0.98rem;
+    }
+
+    .format-option small {
+      display: block;
+      color: #64748b;
+      font-size: 0.8rem;
+      line-height: 1.25;
+    }
+
+    .format1 {
+      background-image: url("/images/format1.png");
+    }
+
+    .format2 {
+      background-image: url("/images/format2.png");
+    }
+
+    .format3 {
+      background-image: url("/images/format3.png");
+    }
+
+    .format4 {
+      background-image: url("/images/format4.svg");
     }
   </style>
 </head>
@@ -179,20 +238,29 @@
 
     <label for="leaseTerms">Pdf Format</label>
     <div class="form-group-edit format-choice">
-      <label for="format1">
-        <div class="format1 format">
-          <input type="radio" id="format1" name="format" value="reportFormat3">
-        </div>
+      <label class="format-option" for="format1">
+        <input type="radio" id="format1" name="format" value="reportFormat1">
+        <span class="format format1"></span>
+        <strong>Format 1</strong>
+        <small>Default report layout</small>
       </label>
-      <label for="format2">
-        <div class="format2 format">
-          <input type="radio" name="format" id="format2" value="reportFormat1">
-        </div>
+      <label class="format-option" for="format2">
+        <input type="radio" name="format" id="format2" value="reportFormat3">
+        <span class="format format2"></span>
+        <strong>Format 2</strong>
+        <small>Alternate report layout</small>
       </label>
-      <label for="format3">
-        <div class="format3 format">
-          <input type="radio" name="format" id="format3" value="reportFormat">
-        </div>
+      <label class="format-option" for="format3">
+        <input type="radio" name="format" id="format3" value="reportFormat">
+        <span class="format format3"></span>
+        <strong>Format 3</strong>
+        <small>Classic report layout</small>
+      </label>
+      <label class="format-option" for="format4">
+        <input type="radio" name="format" id="format4" value="reportFormat4">
+        <span class="format format4"></span>
+        <strong>Format 4</strong>
+        <small>New report layout</small>
       </label>
     </div>
     <div class="form-group-edit other-choice">
