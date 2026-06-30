@@ -179,6 +179,24 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Invalid JSON format for tableData or testIds");
         }
 
+        if (!Array.isArray(parsedSelectedTestIds)) {
+            parsedSelectedTestIds = [];
+        }
+
+        // Fallback: if no explicit testIds were sent, derive them from tableData entries
+        if (parsedSelectedTestIds.length === 0 && Array.isArray(parsedTableData)) {
+            parsedSelectedTestIds = parsedTableData.flatMap(entry => {
+                if (!Array.isArray(entry.ids)) return [];
+                return entry.ids
+                    .map(idInfo => idInfo && (idInfo.id || idInfo._id))
+                    .filter(Boolean);
+            });
+        }
+
+        // Normalize IDs and remove duplicates
+        parsedSelectedTestIds = Array.from(new Set(parsedSelectedTestIds.map(id => id.toString())));
+        console.log(`   Derived selected tests count: ${parsedSelectedTestIds.length}`, parsedSelectedTestIds);
+
         // Extract sampleBarcodeId from parsedTableData
         const sampleBarcodeId = parsedTableData.map(entry => entry.confirmBarcodeId).filter(id => id != null);
 
@@ -264,17 +282,22 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     testPrice: currentPrice,
                 });
 
-                let parentId = bookingUser.createdBy;
+                let parentId = bookingUser.createdBy || bookingUser.parentUser;
+                const startingParentId = parentId;
                 let childUsername = bookingUser.username;
+                let parentChainSteps = 0;
+
+                console.log(`   Commission chain start for booking user ${bookingUser.username}: parentId=${parentId}`);
 
                 if (!parentId) {
-                    console.warn(`⚠️ Booking user ${bookingUser.username} has no createdBy set — no commission chain exists.`);
+                    console.warn(`⚠️ Booking user ${bookingUser.username} has no createdBy or parentUser set — no commission chain exists.`);
                 }
 
                 // ============================================================
                 // Commission distribution loop — FIXED
                 // ============================================================
                 while (parentId) {
+                    parentChainSteps += 1;
                     // ✅ FIX: toString() ensure kiya cache key ke liye
                     let parentUser = parentUserCache.get(parentId.toString());
                     if (!parentUser) {
@@ -297,8 +320,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                         console.warn(`⚠️ COMMISSION SKIPPED — No assignedPrice for: ${parentUser.username} (ID: ${parentUser._id})`);
                         console.warn(`   Reason: This user's ID is not present in assignedPrices of this test/package.`);
                         console.warn(`   Fix: Admin should assign a price for this user.`);
-                        // ✅ FIX: currentPrice aur childUsername mat badlo — chain continue karo same values se
-                        parentId = parentUser.createdBy;
+                        parentId = parentUser.createdBy || parentUser.parentUser;
                         continue;
                     }
 
@@ -310,7 +332,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                         console.warn(`⚠️ COMMISSION SKIPPED — Negative commission for ${parentUser.username}`);
                         console.warn(`   Reason: parentPrice(₹${parentPrice}) > currentPrice(₹${currentPrice}). Price structure galat hai.`);
                         console.warn(`   Fix: Parent ka assigned price child se hamesha kam ya barabar hona chahiye.`);
-                        parentId = parentUser.createdBy;
+                        parentId = parentUser.createdBy || parentUser.parentUser;
                         childUsername = parentUser.username;
                         currentPrice = parentPrice;
                         continue;
@@ -319,7 +341,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     if (commissionForParent === 0) {
                         console.warn(`⚠️ COMMISSION SKIPPED — Zero commission for ${parentUser.username}`);
                         console.warn(`   Reason: Parent aur child ka price same hai (₹${currentPrice}). Koi margin nahi.`);
-                        parentId = parentUser.createdBy;
+                        parentId = parentUser.createdBy || parentUser.parentUser;
                         childUsername = parentUser.username;
                         currentPrice = parentPrice;
                         continue;
@@ -353,15 +375,16 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     parentUser.bookingWallet += commissionForParent;
                     await parentUser.save({ session });
 
-                    console.log(`✅ Commission credited to ${parentUser.username}: ₹${commissionForParent} | New wallet: ₹${parentUser.bookingWallet}`);
+                        console.log(`✅ Commission credited to ${parentUser.username}: ₹${commissionForParent} | New wallet: ₹${parentUser.bookingWallet}`);
 
                     // ✅ FIX: Sirf tab update karo jab commission successfully process hua ho
-                    parentId = parentUser.createdBy;
+                    parentId = parentUser.createdBy || parentUser.parentUser;
                     childUsername = parentUser.username;
                     currentPrice = parentPrice;
                 }
 
                 console.log(`\n📊 Commission distributed for this test — Total so far: ₹${totalCommission}`);
+                console.log(`   Commission chain end for booking user ${bookingUser.username}: startingParentId=${startingParentId}, steps=${parentChainSteps}`);
             }
 
             // Create ledger entry for booking user (debit)
@@ -1391,7 +1414,7 @@ const editbookingbookedtests = async (req, res) => {
                     testPrice: currentPrice,
                 });
 
-                let parentId = bookingUser.createdBy;
+                let parentId = bookingUser.createdBy || bookingUser.parentUser;
                 let childUsername = bookingUser.username;
 
                 while (parentId) {
@@ -1405,14 +1428,14 @@ const editbookingbookedtests = async (req, res) => {
                     const parentPrice = assignedPrices.find(price => price.userId.toString() === parentUser._id.toString())?.price;
 
                     if (!parentPrice) {
-                        parentId = parentUser.createdBy;
+                        parentId = parentUser.createdBy || parentUser.parentUser;
                         continue;
                     }
 
                     const commissionForParent = currentPrice - parentPrice;
 
                     if (commissionForParent <= 0) {
-                        parentId = parentUser.createdBy;
+                        parentId = parentUser.createdBy || parentUser.parentUser;
                         continue;
                     }
 

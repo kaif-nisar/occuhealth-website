@@ -160,10 +160,11 @@ const buildCloudinaryImageUrl = (publicId, options = {}) => {
     const {
         format = "png",
         secure = true,
+        resourceType = "image",
     } = options;
 
     return cloudinary.url(publicId, {
-        resource_type: "image",
+        resource_type: resourceType,
         secure,
         format,
     });

@@ -36,6 +36,35 @@ const fetchArrayBuffer = async (url) => {
     return await response.arrayBuffer();
 };
 
+const isPdfAttachment = (attachment = {}) => {
+    const fileType = String(attachment.fileType || "").toLowerCase();
+    const mimeType = String(attachment.mimeType || "").toLowerCase();
+    const resourceType = String(attachment.resourceType || "").toLowerCase();
+    const fileExtension = String(attachment.fileExtension || "").toLowerCase();
+    const attachmentUrl = String(attachment.url || "").toLowerCase();
+
+    return (
+        fileType === "pdf" ||
+        mimeType === "application/pdf" ||
+        resourceType === "raw" ||
+        fileExtension === ".pdf" ||
+        attachmentUrl.includes(".pdf")
+    );
+};
+
+const buildPdfAttachmentUrl = (attachment = {}) => {
+    const publicId = attachment?.publicId || "";
+    if (!publicId) {
+        return "";
+    }
+
+    const fileExtension = String(attachment?.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
+    return buildCloudinaryImageUrl(publicId, {
+        resourceType: "raw",
+        format: fileExtension,
+    });
+};
+
 const getBookingAttachments = async ({ tenantId, bookingId }) => {
     if (!tenantId || !bookingId) {
         return [];
@@ -130,16 +159,39 @@ const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId }
                 continue;
             }
 
-            const fileType = String(attachment.fileType || "").toLowerCase();
-            const isPdf = fileType === "pdf" || (attachment.url || "").toLowerCase().includes(".pdf");
+            const isPdf = isPdfAttachment(attachment);
 
             if (isPdf) {
-                if (!attachment.url) {
+                const pdfUrls = [...new Set([
+                    attachment.url || "",
+                    buildPdfAttachmentUrl(attachment) || "",
+                ])].filter(Boolean);
+
+                if (!pdfUrls.length) {
                     console.warn("[pdfAttachmentMerger] Skipping PDF attachment with missing URL:", attachment);
                     continue;
                 }
-                const attachmentPdfBuffer = await fetchArrayBuffer(attachment.url);
-                await appendPdfBuffer(mergedDoc, attachmentPdfBuffer);
+
+                let mergedPdfSuccessfully = false;
+
+                for (const pdfUrl of pdfUrls) {
+                    try {
+                        const attachmentPdfBuffer = await fetchArrayBuffer(pdfUrl);
+                        await appendPdfBuffer(mergedDoc, attachmentPdfBuffer);
+                        mergedPdfSuccessfully = true;
+                        break;
+                    } catch (error) {
+                        console.warn(
+                            `[pdfAttachmentMerger] PDF fetch failed for "${attachment?.fileName || 'unknown'}" using URL "${pdfUrl}"`,
+                            error.message || error
+                        );
+                    }
+                }
+
+                if (!mergedPdfSuccessfully) {
+                    console.warn("[pdfAttachmentMerger] Unable to merge PDF attachment after retrying URLs:", attachment);
+                }
+
                 continue;
             }
 
