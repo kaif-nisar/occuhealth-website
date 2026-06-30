@@ -1,6 +1,7 @@
 import { createCanvas, loadImage } from "canvas";
 import { PDFDocument } from "pdf-lib";
 import { customization } from "../models/printsetting.model.js";
+import { reports } from "../models/reportData.model.js";
 import { buildCloudinaryImageUrl } from "./cloudinary.js";
 
 const ATTACHMENT_DOC_FORMAT = "bookingAttachments";
@@ -65,16 +66,69 @@ const buildPdfAttachmentUrl = (attachment = {}) => {
     });
 };
 
+const sortAttachmentDocs = (docs = []) => {
+    return [...docs].sort((left, right) => {
+        const leftHasAttachments = Array.isArray(left?.attachments) && left.attachments.length > 0 ? 1 : 0;
+        const rightHasAttachments = Array.isArray(right?.attachments) && right.attachments.length > 0 ? 1 : 0;
+
+        if (leftHasAttachments !== rightHasAttachments) {
+            return rightHasAttachments - leftHasAttachments;
+        }
+
+        const leftFormatMatch = String(left?.format || "") === ATTACHMENT_DOC_FORMAT ? 1 : 0;
+        const rightFormatMatch = String(right?.format || "") === ATTACHMENT_DOC_FORMAT ? 1 : 0;
+
+        if (leftFormatMatch !== rightFormatMatch) {
+            return rightFormatMatch - leftFormatMatch;
+        }
+
+        const leftTime = new Date(left?.updatedAt || left?.createdAt || 0).getTime();
+        const rightTime = new Date(right?.updatedAt || right?.createdAt || 0).getTime();
+        return rightTime - leftTime;
+    });
+};
+
+const resolveAttachmentContext = async ({ tenantId, bookingId, reportId }) => {
+    let resolvedTenantId = tenantId || "";
+    let resolvedBookingId = bookingId || "";
+
+    if (resolvedTenantId && resolvedBookingId) {
+        return { resolvedTenantId, resolvedBookingId };
+    }
+
+    if (!reportId) {
+        return { resolvedTenantId, resolvedBookingId };
+    }
+
+    const reportContext = await reports.findOne({
+        $or: [
+            { _id: reportId },
+            { bookingId: reportId },
+        ],
+    }).select("tenantId bookingId").lean();
+
+    if (!reportContext) {
+        return { resolvedTenantId, resolvedBookingId };
+    }
+
+    resolvedTenantId = resolvedTenantId || reportContext.tenantId || "";
+    resolvedBookingId = resolvedBookingId || reportContext.bookingId || "";
+
+    return { resolvedTenantId, resolvedBookingId };
+};
+
 const getBookingAttachments = async ({ tenantId, bookingId }) => {
     if (!tenantId || !bookingId) {
         return [];
     }
 
-    const attachmentDoc = await customization.findOne({
+    const attachmentDocs = await customization.find({
         tenantId,
         bookingId,
-        format: ATTACHMENT_DOC_FORMAT,
-    }).select("attachments").lean();
+    }).select("attachments format updatedAt createdAt").lean();
+
+    const sortedDocs = sortAttachmentDocs(attachmentDocs);
+    const attachmentDoc = sortedDocs.find((doc) => Array.isArray(doc?.attachments) && doc.attachments.length > 0);
 
     return sortAttachments(attachmentDoc?.attachments || []);
 };
@@ -138,12 +192,25 @@ const appendPdfBuffer = async (targetDoc, pdfBuffer) => {
     });
 };
 
-const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId }) => {
-    if (!pdfBuffer?.length || !tenantId || !bookingId) {
+const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId, reportId }) => {
+    if (!pdfBuffer?.length) {
         return pdfBuffer;
     }
 
-    const attachments = await getBookingAttachments({ tenantId, bookingId });
+    const { resolvedTenantId, resolvedBookingId } = await resolveAttachmentContext({
+        tenantId,
+        bookingId,
+        reportId,
+    });
+
+    if (!resolvedTenantId || !resolvedBookingId) {
+        return pdfBuffer;
+    }
+
+    const attachments = await getBookingAttachments({
+        tenantId: resolvedTenantId,
+        bookingId: resolvedBookingId,
+    });
     if (!attachments.length) {
         return pdfBuffer;
     }

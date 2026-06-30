@@ -706,7 +706,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
         const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
             pdfBuffer: finalpdfbufferwithmargin,
             tenantId,
-            bookingId
+            bookingId,
+            reportId
         });
 
         let responsePdfBuffer = attachmentAwareBuffer;
@@ -956,7 +957,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
         const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
             pdfBuffer: finalpdfbufferwithmargin,
             tenantId,
-            bookingId
+            bookingId,
+            reportId
         });
 
         let responsePdfBuffer = attachmentAwareBuffer;
@@ -1529,6 +1531,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
         pdfBuffer: finalpdfbufferwithmargin,
         tenantId: mergedValues.tenantId,
         bookingId: mergedValues.bookingId,
+        reportId: mergedValues.reportId,
     });
 
     if (enforceSecureReportPdf) {
