@@ -53,7 +53,7 @@ const isPdfAttachment = (attachment = {}) => {
     );
 };
 
-const buildPdfAttachmentUrl = (attachment = {}) => {
+const buildPdfAttachmentUrl = (attachment = {}, resourceType = "raw") => {
     const publicId = attachment?.publicId || "";
     if (!publicId) {
         return "";
@@ -61,7 +61,7 @@ const buildPdfAttachmentUrl = (attachment = {}) => {
 
     const fileExtension = String(attachment?.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
     return buildCloudinaryImageUrl(publicId, {
-        resourceType: "raw",
+        resourceType: resourceType,
         format: fileExtension,
     });
 };
@@ -231,7 +231,9 @@ const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId, 
             if (isPdf) {
                 const pdfUrls = [...new Set([
                     attachment.url || "",
-                    buildPdfAttachmentUrl(attachment) || "",
+                    buildPdfAttachmentUrl(attachment, attachment.resourceType || "raw") || "",
+                    buildPdfAttachmentUrl(attachment, "raw") || "",
+                    buildPdfAttachmentUrl(attachment, "image") || "",
                 ])].filter(Boolean);
 
                 if (!pdfUrls.length) {

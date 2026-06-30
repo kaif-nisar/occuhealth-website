@@ -70,7 +70,7 @@ const resolveAttachmentFileMeta = (file) => {
 
 const uploadAttachmentBuffer = async (fileBuffer, meta) => {
     const uploadOptions = {
-        resourceType: "auto",
+        resourceType: meta?.resourceType || "auto",
         folder: ATTACHMENT_FOLDER,
         uniqueFilename: true,
     };
