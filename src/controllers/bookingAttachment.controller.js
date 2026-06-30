@@ -1,5 +1,6 @@
 import { customization } from "../models/printsetting.model.js";
-import { deleteFromCloudinary, uploadBufferOnCloudinary } from "../utils/cloudinary.js";
+import { buildCloudinaryImageUrl, deleteFromCloudinary, uploadBufferOnCloudinary } from "../utils/cloudinary.js";
+import { needsLegacyPdfRepair, repairLegacyPdfAttachment } from "../utils/legacyPdfAttachmentRepair.js";
 import fs from "fs/promises";
 
 const ATTACHMENT_DOC_FORMAT = "bookingAttachments";
@@ -26,6 +27,61 @@ const getFileExtension = (fileName = "") => {
     }
 
     return String(fileName).slice(lastDotIndex).toLowerCase();
+};
+
+const isPdfAttachment = (attachment = {}) => {
+    const fileType = String(attachment.fileType || "").toLowerCase();
+    const mimeType = String(attachment.mimeType || "").toLowerCase();
+    const fileExtension = String(attachment.fileExtension || "").toLowerCase();
+    const attachmentUrl = String(attachment.url || "").toLowerCase();
+
+    return (
+        fileType === "pdf" ||
+        mimeType === "application/pdf" ||
+        fileExtension === ".pdf" ||
+        attachmentUrl.includes(".pdf")
+    );
+};
+
+const buildLegacyPdfAttachmentUrl = (attachment = {}) => {
+    const publicId = String(attachment.publicId || "").trim();
+    const existingUrl = String(attachment.url || "").trim();
+    const fileExtension = String(attachment.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
+
+    if (publicId) {
+        return buildCloudinaryImageUrl(publicId, {
+            resourceType: "raw",
+            format: fileExtension,
+        });
+    }
+
+    if (existingUrl.includes("/image/upload/")) {
+        return existingUrl.replace("/image/upload/", "/raw/upload/");
+    }
+
+    return existingUrl;
+};
+
+const normalizeAttachmentUrl = (attachment = {}) => {
+    const normalized = {
+        url: String(attachment.url || "").trim(),
+        publicId: String(attachment.publicId || "").trim(),
+        fileType: String(attachment.fileType || "image").toLowerCase(),
+        fileName: attachment.fileName || "attachment",
+        resourceType: String(attachment.resourceType || (attachment.fileType === "pdf" ? "raw" : "image")).toLowerCase(),
+        mimeType: attachment.mimeType || "",
+        fileExtension: String(attachment.fileExtension || "").toLowerCase(),
+        order: Number(attachment.order || 0),
+        uploadedAt: attachment.uploadedAt || new Date(),
+    };
+
+    if (isPdfAttachment(normalized)) {
+        normalized.fileType = "pdf";
+        normalized.resourceType = "raw";
+        normalized.url = buildLegacyPdfAttachmentUrl(normalized);
+    }
+
+    return normalized;
 };
 
 const resolveAttachmentFileMeta = (file) => {
@@ -96,17 +152,7 @@ const uploadAttachmentBuffer = async (fileBuffer, meta) => {
     }
 };
 
-const normalizeAttachment = (attachment) => ({
-    url: attachment.url || "",
-    publicId: attachment.publicId || "",
-    fileType: attachment.fileType || "image",
-    fileName: attachment.fileName || "attachment",
-    resourceType: attachment.resourceType || (attachment.fileType === "pdf" ? "raw" : "image"),
-    mimeType: attachment.mimeType || "",
-    fileExtension: attachment.fileExtension || "",
-    order: attachment.order || 0,
-    uploadedAt: attachment.uploadedAt || new Date(),
-});
+const normalizeAttachment = (attachment) => normalizeAttachmentUrl(attachment);
 
 const cleanupUploadedAttachments = async (attachments = []) => {
     for (const attachment of attachments) {
@@ -246,11 +292,45 @@ const getBookingAttachments = async (req, res) => {
             tenantId,
             bookingId,
             format: ATTACHMENT_DOC_FORMAT,
-        }).select("bookingId attachments").lean();
+        }).select("bookingId attachments").exec();
+
+        const sourceAttachments = attachmentDoc?.attachments || [];
+        const normalizedAttachments = [];
+        let hasRepairs = false;
+
+        for (const attachment of sourceAttachments) {
+            let repairedAttachment = attachment;
+
+            if (needsLegacyPdfRepair(attachment)) {
+                const repaired = await repairLegacyPdfAttachment(attachment);
+                if (repaired) {
+                    repairedAttachment = repaired;
+                    hasRepairs = true;
+                }
+            }
+
+            normalizedAttachments.push(normalizeAttachment(repairedAttachment));
+        }
+
+        if (attachmentDoc && hasRepairs) {
+            attachmentDoc.attachments = normalizedAttachments.map((attachment) => ({
+                url: attachment.url,
+                publicId: attachment.publicId,
+                fileType: attachment.fileType,
+                fileName: attachment.fileName,
+                resourceType: attachment.resourceType,
+                mimeType: attachment.mimeType,
+                fileExtension: attachment.fileExtension,
+                order: attachment.order,
+                uploadedAt: attachment.uploadedAt,
+            }));
+            attachmentDoc.updatedAt = new Date();
+            await attachmentDoc.save();
+        }
 
         return res.status(200).json({
             bookingId,
-            attachments: (attachmentDoc?.attachments || []).map(normalizeAttachment),
+            attachments: normalizedAttachments,
         });
     } catch (error) {
         console.error("Get attachments error:", error);

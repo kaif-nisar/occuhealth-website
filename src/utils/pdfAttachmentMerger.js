@@ -3,6 +3,7 @@ import { PDFDocument } from "pdf-lib";
 import { customization } from "../models/printsetting.model.js";
 import { reports } from "../models/reportData.model.js";
 import { buildCloudinaryImageUrl } from "./cloudinary.js";
+import { needsLegacyPdfRepair, repairLegacyPdfAttachment } from "./legacyPdfAttachmentRepair.js";
 
 const ATTACHMENT_DOC_FORMAT = "bookingAttachments";
 const A4_PORTRAIT = { width: 595.28, height: 841.89 };
@@ -54,16 +55,22 @@ const isPdfAttachment = (attachment = {}) => {
 };
 
 const buildPdfAttachmentUrl = (attachment = {}, resourceType = "raw") => {
-    const publicId = attachment?.publicId || "";
-    if (!publicId) {
-        return "";
+    const publicId = String(attachment?.publicId || "").trim();
+    const fileExtension = String(attachment?.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
+    const attachmentUrl = String(attachment?.url || "").trim();
+
+    if (publicId) {
+        return buildCloudinaryImageUrl(publicId, {
+            resourceType: resourceType,
+            format: fileExtension,
+        });
     }
 
-    const fileExtension = String(attachment?.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
-    return buildCloudinaryImageUrl(publicId, {
-        resourceType: resourceType,
-        format: fileExtension,
-    });
+    if (attachmentUrl.includes("/image/upload/")) {
+        return attachmentUrl.replace("/image/upload/", "/raw/upload/");
+    }
+
+    return attachmentUrl;
 };
 
 const sortAttachmentDocs = (docs = []) => {
@@ -92,27 +99,37 @@ const resolveAttachmentContext = async ({ tenantId, bookingId, reportId }) => {
     let resolvedTenantId = tenantId || "";
     let resolvedBookingId = bookingId || "";
 
-    if (resolvedTenantId && resolvedBookingId) {
+    const isObjectId = (id) => {
+        return typeof id === "string" && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id);
+    };
+
+    if (resolvedTenantId && resolvedBookingId && !isObjectId(resolvedBookingId)) {
         return { resolvedTenantId, resolvedBookingId };
     }
 
-    if (!reportId) {
+    const lookupId = (resolvedBookingId && isObjectId(resolvedBookingId))
+        ? resolvedBookingId
+        : reportId;
+
+    if (!lookupId) {
         return { resolvedTenantId, resolvedBookingId };
     }
 
     const reportContext = await reports.findOne({
         $or: [
-            { _id: reportId },
-            { bookingId: reportId },
+            { _id: lookupId },
+            { bookingId: lookupId },
         ],
     }).select("tenantId bookingId").lean();
 
-    if (!reportContext) {
-        return { resolvedTenantId, resolvedBookingId };
+    if (reportContext) {
+        resolvedTenantId = resolvedTenantId || reportContext.tenantId || "";
+        resolvedBookingId = reportContext.bookingId || resolvedBookingId || "";
     }
 
-    resolvedTenantId = resolvedTenantId || reportContext.tenantId || "";
-    resolvedBookingId = resolvedBookingId || reportContext.bookingId || "";
+    if (isObjectId(resolvedBookingId)) {
+        resolvedBookingId = "";
+    }
 
     return { resolvedTenantId, resolvedBookingId };
 };
@@ -130,7 +147,45 @@ const getBookingAttachments = async ({ tenantId, bookingId }) => {
     const sortedDocs = sortAttachmentDocs(attachmentDocs);
     const attachmentDoc = sortedDocs.find((doc) => Array.isArray(doc?.attachments) && doc.attachments.length > 0);
 
-    return sortAttachments(attachmentDoc?.attachments || []);
+    if (!attachmentDoc) {
+        return [];
+    }
+
+    const normalizedAttachments = [];
+    let hasRepairs = false;
+
+    for (const attachment of attachmentDoc.attachments || []) {
+        let nextAttachment = attachment;
+
+        if (needsLegacyPdfRepair(attachment)) {
+            const repaired = await repairLegacyPdfAttachment(attachment);
+            if (repaired) {
+                nextAttachment = repaired;
+                hasRepairs = true;
+            }
+        }
+
+        normalizedAttachments.push({
+            url: nextAttachment.url || "",
+            publicId: nextAttachment.publicId || "",
+            fileType: nextAttachment.fileType || "image",
+            fileName: nextAttachment.fileName || "attachment",
+            resourceType: nextAttachment.resourceType || (nextAttachment.fileType === "pdf" ? "raw" : "image"),
+            mimeType: nextAttachment.mimeType || "",
+            fileExtension: nextAttachment.fileExtension || "",
+            order: nextAttachment.order || 0,
+            uploadedAt: nextAttachment.uploadedAt || new Date(),
+        });
+    }
+
+    if (hasRepairs && attachmentDoc._id) {
+        await customization.findByIdAndUpdate(attachmentDoc._id, {
+            attachments: normalizedAttachments,
+            updatedAt: new Date(),
+        });
+    }
+
+    return sortAttachments(normalizedAttachments);
 };
 
 const renderImageBufferToPng = async (buffer, fallbackUrl = "") => {

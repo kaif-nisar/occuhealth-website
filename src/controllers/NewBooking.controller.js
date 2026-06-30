@@ -22,6 +22,40 @@ const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sample
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
 
+const normalizeBookingAttachment = (attachment = {}) => ({
+    url: String(attachment.url || "").trim(),
+    publicId: String(attachment.publicId || "").trim(),
+    fileType: String(attachment.fileType || "image").toLowerCase(),
+    fileName: attachment.fileName || "attachment",
+    resourceType: String(attachment.resourceType || (attachment.fileType === "pdf" ? "raw" : "image")).toLowerCase(),
+    mimeType: attachment.mimeType || "",
+    fileExtension: String(attachment.fileExtension || "").toLowerCase(),
+    order: Number(attachment.order || 0),
+    uploadedAt: attachment.uploadedAt || new Date(),
+});
+
+const sortAttachmentDocs = (docs = []) => {
+    return [...docs].sort((left, right) => {
+        const leftHasAttachments = Array.isArray(left?.attachments) && left.attachments.length > 0 ? 1 : 0;
+        const rightHasAttachments = Array.isArray(right?.attachments) && right.attachments.length > 0 ? 1 : 0;
+
+        if (leftHasAttachments !== rightHasAttachments) {
+            return rightHasAttachments - leftHasAttachments;
+        }
+
+        const leftFormatMatch = String(left?.format || "") === BOOKING_ATTACHMENT_FORMAT ? 1 : 0;
+        const rightFormatMatch = String(right?.format || "") === BOOKING_ATTACHMENT_FORMAT ? 1 : 0;
+
+        if (leftFormatMatch !== rightFormatMatch) {
+            return rightFormatMatch - leftFormatMatch;
+        }
+
+        const leftTime = new Date(left?.updatedAt || left?.createdAt || 0).getTime();
+        const rightTime = new Date(right?.updatedAt || right?.createdAt || 0).getTime();
+        return rightTime - leftTime;
+    });
+};
+
 async function attachBookingAttachments(bookings, tenantId) {
     if (!bookings.length) {
         return bookings;
@@ -32,35 +66,45 @@ async function attachBookingAttachments(bookings, tenantId) {
         {
             tenantId,
             bookingId: { $in: bookingIds },
-            format: BOOKING_ATTACHMENT_FORMAT,
         },
         {
             bookingId: 1,
             attachments: 1,
+            format: 1,
+            updatedAt: 1,
+            createdAt: 1,
         }
     ).lean();
 
     const attachmentMap = new Map();
+    const groupedDocs = new Map();
+
     attachmentDocs.forEach((doc) => {
+        const bookingKey = String(doc?.bookingId || "").trim();
+        if (!bookingKey) {
+            return;
+        }
+
+        if (!groupedDocs.has(bookingKey)) {
+            groupedDocs.set(bookingKey, []);
+        }
+
+        groupedDocs.get(bookingKey).push(doc);
+    });
+
+    groupedDocs.forEach((docs, bookingIdKey) => {
+        const sortedDocs = sortAttachmentDocs(docs);
+        const selectedDoc = sortedDocs.find((doc) => Array.isArray(doc?.attachments) && doc.attachments.length > 0);
+
         attachmentMap.set(
-            doc.bookingId,
-            (doc.attachments || []).map((attachment) => ({
-                url: attachment.url || "",
-                publicId: attachment.publicId || "",
-                fileType: attachment.fileType || "image",
-                fileName: attachment.fileName || "attachment",
-                resourceType: attachment.resourceType || (attachment.fileType === "pdf" ? "raw" : "image"),
-                mimeType: attachment.mimeType || "",
-                fileExtension: attachment.fileExtension || "",
-                order: attachment.order || 0,
-                uploadedAt: attachment.uploadedAt || new Date(),
-            }))
+            bookingIdKey,
+            (selectedDoc?.attachments || []).map(normalizeBookingAttachment)
         );
     });
 
     return bookings.map((booking) => ({
         ...booking,
-        attachments: attachmentMap.get(booking.bookingId) || [],
+        attachments: attachmentMap.get(String(booking.bookingId || "").trim()) || [],
     }));
 }
 

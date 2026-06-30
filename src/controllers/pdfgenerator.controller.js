@@ -1051,7 +1051,8 @@ const getpdfcontroller = async (req, res) => {
 
     try {
         // Attempt to fetch data from the database
-        const gettingcustomization = await customization.findOne({ reportId: value1 });
+        const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId: tid });
+        const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
         const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
             tenantId: tid,
             backgroundImageUrl,
@@ -1080,15 +1081,15 @@ const getpdfcontroller = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfformat: pdfformat,
-                tenantId: tid, // ✅ Added tenantId
+                tenantId: pdfContext.resolvedTenantId || tid, // ✅ Added tenantId
                 showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
-                reportId: value1,
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "", 
+                reportId: pdfContext.resolvedReportId,
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "", 
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1116,15 +1117,15 @@ const getpdfcontroller = async (req, res) => {
             // Define fallback logic to prioritize database values first
             mergedValues = {
                 pdfformat: pdfformat,
-                tenantId: tid, // ✅ Added tenantId
+                tenantId: pdfContext.resolvedTenantId || tid, // ✅ Added tenantId
                 showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
                 BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
                 HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
-                reportId: value1,
-                bookingId: bookingId || gettingcustomization?.bookingId || value1 || "",
+                reportId: pdfContext.resolvedReportId,
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Request > Database > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",

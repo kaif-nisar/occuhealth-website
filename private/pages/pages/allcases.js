@@ -56,6 +56,38 @@ async function allcases() {
         return String(fileName).slice(dotIndex).toLowerCase();
     }
 
+    function isPdfAttachment(attachment = {}) {
+        const fileType = String(attachment.fileType || "").toLowerCase();
+        const mimeType = String(attachment.mimeType || "").toLowerCase();
+        const fileExtension = String(attachment.fileExtension || "").toLowerCase();
+        const url = String(attachment.url || "").toLowerCase();
+
+        return (
+            fileType === "pdf" ||
+            mimeType === "application/pdf" ||
+            fileExtension === ".pdf" ||
+            url.includes(".pdf")
+        );
+    }
+
+    function getOpenAttachmentUrl(attachment = {}) {
+        const url = String(attachment.url || "").trim();
+        const publicId = String(attachment.publicId || "").trim();
+        const fileExtension = String(attachment.fileExtension || ".pdf").replace(/^\./, "") || "pdf";
+
+        if (isPdfAttachment(attachment)) {
+            if (url.includes("/image/upload/")) {
+                return url.replace("/image/upload/", "/raw/upload/");
+            }
+
+            if (publicId && url) {
+                return url;
+            }
+        }
+
+        return url;
+    }
+
     function isSupportedAttachmentFile(file) {
         if (!file) return false;
 
@@ -740,6 +772,7 @@ async function allcases() {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'attach-item';
             itemDiv.setAttribute('data-attachment-id', attach.publicId);
+            itemDiv.setAttribute('data-attachment-url', getOpenAttachmentUrl(attach));
 
             const fileIcon = attach.fileType === 'pdf' ? '<i class="fas fa-file-pdf" style="color:#e74c3c"></i>' : '<i class="fas fa-image" style="color:#3498db"></i>';
 
@@ -749,13 +782,28 @@ async function allcases() {
                     <span class="attach-name" title="${attach.fileName}">${attach.fileName}</span>
                 </div>
                 <div style="display:flex; gap: 12px; align-items:center;">
+                    <i class="fas fa-eye open-attach" style="cursor: pointer; color:#2563eb;" title="Open Attachment"></i>
                     <i class="fas fa-trash remove-attach" style="cursor: pointer; color:#d9534f;" title="Remove Attachment"></i>
                 </div>
             `;
             attachmentListContainer.appendChild(itemDiv);
         });
 
+        attachmentListContainer.querySelectorAll('.open-attach').forEach(btn => btn.addEventListener('click', openAttachment));
         attachmentListContainer.querySelectorAll('.remove-attach').forEach(btn => btn.addEventListener('click', deleteAttachment));
+    }
+
+    function openAttachment(event) {
+        const itemDiv = event.target.closest('.attach-item');
+        if (!itemDiv) return;
+
+        const attachmentUrl = itemDiv.getAttribute('data-attachment-url');
+        if (!attachmentUrl) {
+            alert('Attachment URL missing.');
+            return;
+        }
+
+        window.open(attachmentUrl, '_blank', 'noopener,noreferrer');
     }
 
     async function deleteAttachment(event) {
