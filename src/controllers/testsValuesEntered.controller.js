@@ -1,5 +1,12 @@
 import { bookedTestsresult } from "../models/Testvalues.model.js";
 
+const normalizeEnteredValue = (value) => String(value ?? "").trim();
+
+const isBlankOrDotOnlyValue = (value) => {
+    const normalized = normalizeEnteredValue(value).replace(/\s+/g, "");
+    return normalized === "" || /^\.+$/.test(normalized);
+};
+
 const saveOrUpdateBookedTest = async (req, res) => {
     try {
         const { BookingId, EnteredValues } = req.body;
@@ -8,12 +15,32 @@ const saveOrUpdateBookedTest = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid input data" });
         }
 
-        console.log("Received EnteredValues:", EnteredValues);
+        const cleanedEnteredValues = EnteredValues.reduce((acc, entry) => {
+            if (!entry || typeof entry !== "object") {
+                return acc;
+            }
+
+            const comparableValue = normalizeEnteredValue(entry.currentvalue)
+                .replace(/<[^>]*>/g, " ")
+                .replace(/&nbsp;/gi, " ");
+
+            if (isBlankOrDotOnlyValue(comparableValue)) {
+                return acc;
+            }
+
+            acc.push({
+                ...entry,
+                currentvalue: normalizeEnteredValue(entry.currentvalue),
+            });
+            return acc;
+        }, []);
+
+        console.log("Received EnteredValues:", cleanedEnteredValues);
 
         // `findOneAndUpdate` se existing record update ya create karo
         const updatedRecord = await bookedTestsresult.findOneAndUpdate(
             { BookingId }, // Condition: Agar ye BookingId ka record milta hai to update hoga
-            { $set: { EnteredValues } }, // Update ya naya data set karega
+            { $set: { EnteredValues: cleanedEnteredValues } }, // Update ya naya data set karega
             { new: true, upsert: true } // Agar nahi milta to new create karega
         );
 

@@ -1286,6 +1286,7 @@
 
     // await convertAllImagesToBase64();
     await signoffdivfunction();
+    setupReportFormatKeyboardFlow();
     downloadpdffunction();
 
     async function signoffdivfunction() {
@@ -1370,6 +1371,40 @@
                 loader.style.display = 'none';
                 e.target.disable = false;
             }
+        });
+    }
+
+    function setupReportFormatKeyboardFlow() {
+        const signOffButton = document.getElementById("signOff");
+
+        if (!signOffButton) {
+            return;
+        }
+
+        const isTypingField = (element) => {
+            if (!element) return false;
+            const tagName = String(element.tagName || "").toUpperCase();
+            return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT" || element.isContentEditable;
+        };
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" || event.repeat) {
+                return;
+            }
+
+            const activeElement = document.activeElement;
+            if (isTypingField(activeElement)) {
+                return;
+            }
+
+            const activeTag = String(activeElement?.tagName || "").toUpperCase();
+            if (activeTag === "BUTTON" || activeTag === "A") {
+                return;
+            }
+
+            event.preventDefault();
+            signOffButton.focus();
+            signOffButton.click();
         });
     }
 

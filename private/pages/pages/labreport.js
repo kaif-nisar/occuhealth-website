@@ -287,6 +287,15 @@ async function loadfunction() {
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 
+    function normalizeReportFieldValue(value) {
+        return String(value ?? "").trim();
+    }
+
+    function isBlankOrDotOnlyValue(value) {
+        const compactValue = normalizeReportFieldValue(value).replace(/\s+/g, "");
+        return compactValue === "" || /^\.+$/.test(compactValue);
+    }
+
     // Function to apply logic to each abnormal input field 
     const processInput = (input) => {
         const row = input.closest("tr"); // Get the row containing the input
@@ -333,6 +342,7 @@ async function loadfunction() {
 
     function addInputListeners() {
         const inputs = Array.from(document.querySelectorAll(".value-input"));
+        const finalButton = document.getElementById("finalBtn");
 
         inputs.forEach((input, index) => {
             processInput(input);
@@ -356,20 +366,33 @@ async function loadfunction() {
                     while (nextIndex < inputs.length) {
                         const nextInput = inputs[nextIndex];
                         const row = nextInput.closest("tr");
-                        
-                        // Skip formula fields (detect via calculator icon)
+
+                        // Formula rows stay in place, so we skip them during keyboard flow.
                         const isFormula = row.querySelector(".formulaIcon .icon") !== null;
-                        
-                        // Find the next input that is not a formula and is visible
+
                         if (!isFormula && nextInput.offsetParent !== null) {
                             nextInput.focus();
-                            break;
+                            return;
                         }
+
                         nextIndex++;
+                    }
+
+                    if (finalButton) {
+                        finalButton.focus();
                     }
                 }
             });
         });
+
+        if (finalButton) {
+            finalButton.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    finalButton.click();
+                }
+            });
+        }
     }
 
     // ✅ CKEditor initialization with proper button setup
@@ -2347,6 +2370,10 @@ async function loadfunction() {
     function extractTableData() {
         const tables = document.querySelectorAll("#tables-container .section table");
         const allTableData = [];
+        const reportMeta = {
+            hasMeaningfulRows: false,
+            hasIncompleteRows: false,
+        };
 
         tables.forEach((table) => {
             const category = table.closest(".grouped-section").querySelector("h2")?.textContent || "Unknown Category";
@@ -2358,6 +2385,7 @@ async function loadfunction() {
             let tableRemarks = null;
             let tableAdvice = null;
             let tableInterpretation = null;
+            let tableHasMeaningfulRows = false;
 
             let lastTestObject = null;
 
@@ -2366,7 +2394,8 @@ async function loadfunction() {
                 const pagebreak = row?.cells[0]?.querySelector('input[type="checkbox"]')?.checked || false;
 
                 const testName = row.querySelector(".test-name")?.textContent?.trim() || null;
-                const valueInput = row.querySelector(".unit input")?.value || null;
+                const valueInputElement = row.querySelector(".unit input");
+                const valueInput = valueInputElement?.value ?? null;
                 const unit = row.querySelector(".unit + td")?.textContent?.trim() || null;
                 const reference = row.querySelector(".reference")?.textContent?.trim() || null;
 
@@ -2379,8 +2408,10 @@ async function loadfunction() {
                     const editorId = editorContainer.id;
                     const uniqueTestId = editorId.replace('editorContent-', '');
                     editorContent = getEditorContent(uniqueTestId);
-                    if (editorContent) {
+                    if (!isBlankOrDotOnlyValue(stripHtmlToText(editorContent))) {
                         isDocumented = true;
+                        tableHasMeaningfulRows = true;
+                        reportMeta.hasMeaningfulRows = true;
                     }
                 }
 
@@ -2389,11 +2420,20 @@ async function loadfunction() {
                     console.log("testname pagebreak:", pagebreak);
                     const isParameter = row.querySelector("#parameters") !== null;
                     const isMultiHeader = row.querySelector(".test-name") !== null && (valueInput === null || valueInput === "") && !isParameter && !isDocumented;
+                    const hasMeaningfulValue = !isBlankOrDotOnlyValue(valueInput);
+                    const hasDocumentedContent = !isBlankOrDotOnlyValue(stripHtmlToText(editorContent));
+
+                    // Blank result rows should not travel to the backend, but the report still needs
+                    // the rest of the table structure to stay intact.
+                    if (valueInputElement && !hasMeaningfulValue && !hasDocumentedContent) {
+                        reportMeta.hasIncompleteRows = true;
+                        return;
+                    }
 
                     const testObject = {
                         pagebreak: pagebreak,
                         testName: editorContent || testName,
-                        value: valueInput,
+                        value: hasMeaningfulValue ? normalizeReportFieldValue(valueInput) : null,
                         unit,
                         reference,
                         isDocumented,
@@ -2403,6 +2443,10 @@ async function loadfunction() {
 
                     tableData.push(testObject);
                     lastTestObject = testObject;
+                    if (hasMeaningfulValue || hasDocumentedContent) {
+                        tableHasMeaningfulRows = true;
+                        reportMeta.hasMeaningfulRows = true;
+                    }
                 } else {
                     // ✅ Detail/Remark/Notes rows - Ab yahan bhi separate objects banayenge
                     const colspanCell = row.querySelector("[colspan='3'], [colspan='4'], [colspan='5']");
@@ -2475,7 +2519,7 @@ async function loadfunction() {
                 }
             }
 
-            if (tableData.length > 0 || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {
+            if (tableHasMeaningfulRows || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {
                 const sampleDetails = buildSampleDetailsForTable(tableData);
                 allTableData.push({
                     category,
@@ -2490,7 +2534,10 @@ async function loadfunction() {
             }
         });
 
-        return allTableData;
+        return {
+            reportData: allTableData,
+            reportMeta,
+        };
     }
 
     function syncBookingStatusLocally(nextStatus) {
@@ -2516,7 +2563,7 @@ async function loadfunction() {
 
     // for saving data 
     async function saveTablesToDatabase(saveOnly) {
-        const extractedData = extractTableData();
+        const { reportData, reportMeta } = extractTableData();
         const isFinalAction = saveOnly;
         delete booking.__v;
         delete booking.updatedAt;
@@ -2537,7 +2584,9 @@ async function loadfunction() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    reportData: extractedData, reg_id: booking.bookingId, booking,
+                    reportData,
+                    reportMeta,
+                    reg_id: booking.bookingId, booking,
                     collectedOn, receivedOn, reportedOn, categorized, moredetails,
                     uniquetestArray: uniquetestArray2,
                     isdocumented,
@@ -2577,21 +2626,17 @@ async function loadfunction() {
             const input = field.querySelector('.value-input');
             const editorContainer = field.querySelector("[id^='editorContent']");
 
-            if (input && input.value.trim() === "" && savebtn) {
-                smoothScrollTo(field);
-                field.focus();
-                return false; // Stop after the first empty field
-            }
-            else if (editorContainer) {
+            if (editorContainer) {
                 const editorId = editorContainer.id;
                 const uniqueTestId = editorId.replace('editorContent-', ''); // ✅ Extract uniqueTestId
 
                 // ✅ CKEditor se data lena
                 const editorContent = getEditorContent(uniqueTestId);
+                const sanitizedEditorValue = stripHtmlToText(editorContent);
 
                 console.log(`Checking editor: ${uniqueTestId}`, editorContent); // Debug
 
-                if (editorContent) {
+                if (!isBlankOrDotOnlyValue(sanitizedEditorValue)) {
                     isdocumented = true;
                     const data = {
                         currentvalue: editorContent,
@@ -2604,6 +2649,9 @@ async function loadfunction() {
             } else if (input) {
                 const data_id = input.getAttribute('data-id');
                 const value = input.value.trim();
+                if (isBlankOrDotOnlyValue(value)) {
+                    continue;
+                }
                 const data = {
                     currentvalue: value,
                     TestinputId: data_id,
@@ -2627,8 +2675,7 @@ async function loadfunction() {
                 });
 
                 if (response.ok) {
-                    const res = await response.json();
-                    alert(res.message);
+                    await response.json();
                 }
             } catch (error) {
                 console.error("Error saving tables to database:", error);
@@ -2691,10 +2738,9 @@ async function loadfunction() {
     // Add an event listener for the submit button to trigger the API call
     document.getElementById("finalBtn").addEventListener("click", async (event) => {
         event.preventDefault(); // Prevent default form submission
-        const returned = await checkFields(true);
-        if (!returned) return;
+        await checkFields(true);
         await editdoctorsvisibility();
-        saveTablesToDatabase(true);
+        await saveTablesToDatabase(true);
     });
     // Add an event listener for the submit button to trigger the API call
     document.getElementById("saveBtn").addEventListener("click", async (event) => {

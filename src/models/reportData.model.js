@@ -128,6 +128,16 @@ const reportData = new Schema({
     MoreDetails: String,
     uniquetestArray: [String],
     sampleDetails: [sampleDetailSchema],
+    completionMeta: {
+        hasIncompleteRows: {
+            type: Boolean,
+            default: false
+        },
+        hasMeaningfulRows: {
+            type: Boolean,
+            default: false
+        }
+    },
     signOff: {
         type: Boolean,
         default: false

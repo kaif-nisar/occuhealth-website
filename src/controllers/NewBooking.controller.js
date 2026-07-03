@@ -12,6 +12,7 @@ import { acceptedBarcode } from "../models/samples.model.js";
 import mongoose from "mongoose";
 import { Conversation } from "../models/message.model.js";
 import { bookedTestsresult } from "../models/Testvalues.model.js";
+import { reports } from "../models/reportData.model.js";
 import { lisdata } from "../models/lismodel.js";
 import { Target } from "../models/target.model.js";
 import { Counter, categorydb } from "../models/category.model.js";
@@ -21,6 +22,32 @@ const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone ge
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
+const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
+
+const normalizeReportText = (value) => String(value ?? "").trim();
+
+const isBlankOrDotOnlyValue = (value) => {
+    const normalized = normalizeReportText(value).replace(/\s+/g, "");
+    return normalized === "" || /^\.+$/.test(normalized);
+};
+
+const isReportPartialFromStoredData = (reportDoc = {}) => {
+    const completionMeta = reportDoc?.completionMeta || {};
+
+    if (typeof completionMeta?.hasIncompleteRows === "boolean" || typeof completionMeta?.hasMeaningfulRows === "boolean") {
+        return Boolean(completionMeta.hasIncompleteRows) || !Boolean(completionMeta.hasMeaningfulRows);
+    }
+
+    if (reportDoc?.status === PARTIALLY_COMPLETED_STATUS) {
+        return true;
+    }
+
+    const sections = Array.isArray(reportDoc?.CategoryAndTest) ? reportDoc.CategoryAndTest : [];
+    return sections.some((section) =>
+        Array.isArray(section?.tests) &&
+        section.tests.some((test) => !isBlankOrDotOnlyValue(test?.value))
+    ) === false;
+};
 
 const normalizeBookingAttachment = (attachment = {}) => ({
     url: String(attachment.url || "").trim(),
@@ -2501,10 +2528,18 @@ const rejectBookingcontroller = async (req, res) => {
 const CompleteBookingcontroller = async (req, res) => {
     const { bookingid } = req.body;
 
+    const reportDoc = await reports.findOne({ bookingId: bookingid })
+        .select("completionMeta CategoryAndTest status")
+        .lean();
+
+    const bookingStatus = isReportPartialFromStoredData(reportDoc)
+        ? PARTIALLY_COMPLETED_STATUS
+        : "completed";
+
     const updatedStatus = await newBooking.findOneAndUpdate(
         { bookingId: bookingid },
         {
-            status: "completed",
+            status: bookingStatus,
             isreportready: true
         },
         { new: true }
@@ -2524,7 +2559,7 @@ const CompleteBookingcontroller = async (req, res) => {
                     details: {
                         staffId: req.user._id,
                         staffName: req.user.fullName,
-                        action: `${req.user.fullName} completed bookings status`,
+                        action: `${req.user.fullName} updated booking status to ${bookingStatus}`,
                         bookingName: updatedStatus.patientName,
                         bookingId: updatedStatus.bookingId,
                     },

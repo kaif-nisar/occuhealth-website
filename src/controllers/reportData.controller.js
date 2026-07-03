@@ -13,6 +13,11 @@ const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
 const normalizeSampleText = (value) => String(value ?? "").trim();
 
+const isBlankOrDotOnlyValue = (value) => {
+    const normalized = normalizeSampleText(value).replace(/\s+/g, "");
+    return normalized === "" || /^\.+$/.test(normalized);
+};
+
 const buildUniqueSampleDetails = (reportData = []) => {
     const sampleDetails = [];
     const seen = new Set();
@@ -53,6 +58,21 @@ function hasExactDotOnlyValue(reportData = []) {
     );
 }
 
+function hasMeaningfulReportValue(reportData = []) {
+    return reportData.some((section) =>
+        Array.isArray(section?.tests) &&
+        section.tests.some((test) => !isBlankOrDotOnlyValue(test?.value))
+    );
+}
+
+function shouldMarkReportPartial(reportData = [], reportMeta = {}) {
+    if (typeof reportMeta?.hasIncompleteRows === "boolean" || typeof reportMeta?.hasMeaningfulRows === "boolean") {
+        return Boolean(reportMeta.hasIncompleteRows) || !Boolean(reportMeta.hasMeaningfulRows);
+    }
+
+    return hasExactDotOnlyValue(reportData) || !hasMeaningfulReportValue(reportData);
+}
+
 
 const getReportByBookingId = async (req, res) => {
     const { bookingId } = req.params;
@@ -68,7 +88,7 @@ const getReportByBookingId = async (req, res) => {
 };
 
 const SaveReportController = asyncHandler(async (req, res) => {
-    const { reportData, reg_id, booking, collectedOn, receivedOn, reportedOn, categorized,
+    const { reportData, reportMeta, reg_id, booking, collectedOn, receivedOn, reportedOn, categorized,
         moredetails, uniquetestArray, isdocumented, saveMode } = req.body;
 
     const tenantId = req.user.tenantId._id;
@@ -87,17 +107,13 @@ const SaveReportController = asyncHandler(async (req, res) => {
     let bookingStatus = currentBookingStatus;
     const sampleDetails = buildUniqueSampleDetails(reportData);
 
-    const canUpdatePartialStatus = saveMode === "saveOnly"
-        && existingBooking
-        && !existingBooking.isreportready
-        && currentBookingStatus.toLowerCase() !== "completed";
+    const isPartialReport = shouldMarkReportPartial(reportData, reportMeta);
+    const normalizedCurrentStatus = String(currentBookingStatus || "").toLowerCase();
 
-    if (canUpdatePartialStatus) {
-        if (hasExactDotOnlyValue(reportData)) {
-            bookingStatus = PARTIALLY_COMPLETED_STATUS;
-        } else if (currentBookingStatus === PARTIALLY_COMPLETED_STATUS) {
-            bookingStatus = "pending";
-        }
+    if (saveMode === "final") {
+        bookingStatus = isPartialReport ? PARTIALLY_COMPLETED_STATUS : "completed";
+    } else if (saveMode === "saveOnly" && normalizedCurrentStatus !== "completed" && isPartialReport) {
+        bookingStatus = PARTIALLY_COMPLETED_STATUS;
     }
 
     const savedREport = await reports.findOneAndUpdate(
@@ -117,7 +133,11 @@ const SaveReportController = asyncHandler(async (req, res) => {
             MoreDetails: moredetails,
             uniquetestArray,
             sampleDetails,
-            isdocumented
+            isdocumented,
+            completionMeta: {
+                hasIncompleteRows: Boolean(reportMeta?.hasIncompleteRows),
+                hasMeaningfulRows: Boolean(reportMeta?.hasMeaningfulRows),
+            }
         },
         {
             upsert: true,
