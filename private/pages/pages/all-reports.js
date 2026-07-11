@@ -1,6 +1,7 @@
 (function hort() {
     let bookings = [];
     let allRows = [];
+    const REPORT_STATUS_FILTER = ["completed", "Partially Completed", "partial completed", "partial"];
 
     // ============= FIXED: Fetch Bookings =============
     async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
@@ -9,7 +10,7 @@
         }
         const tableBody = document.querySelector('#tab');
 
-        let query = `?status=completed&startDate=${startDate}&endDate=${endDate}`;
+        let query = `?status=${encodeURIComponent(REPORT_STATUS_FILTER.join(","))}&startDate=${startDate}&endDate=${endDate}`;
         if (franchiseeId) {
             query += `&franchiseeId=${franchiseeId}`;
         }

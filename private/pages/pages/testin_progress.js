@@ -61,6 +61,7 @@
     }
 
     // ============= API Functions =============
+    const REPORT_STATUS_FILTER = ["completed", "Partially Completed", "partial completed", "partial"];
 
     // Fetch completed bookings from API
     async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
@@ -76,7 +77,7 @@
       toggleLoader(true);
       
       // Construct the query parameters for the API request
-      let query = `?status=completed&startDate=${startDate}&endDate=${endDate}`;
+      let query = `?status=${encodeURIComponent(REPORT_STATUS_FILTER.join(","))}&startDate=${startDate}&endDate=${endDate}`;
       if (franchiseeId) {
         query += `&franchiseeId=${franchiseeId}`;
       }

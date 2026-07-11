@@ -187,7 +187,7 @@ async function allcases() {
             };
         }
 
-        if (normalizedStatus === "partially completed") {
+        if (normalizedStatus === "partially completed" || normalizedStatus === "partial completed" || normalizedStatus === "partial") {
             return {
                 rowBackground: "rgba(37, 99, 235, 0.2)",
                 badgeBackground: "#2563eb",
@@ -226,6 +226,36 @@ async function allcases() {
         };
     }
 
+    function getStatusFilterQueryValue(status) {
+        const normalizedStatus = (status || "").trim().toLowerCase();
+
+        if (!normalizedStatus) {
+            return "";
+        }
+
+        if (normalizedStatus === "completed") {
+            return "completed";
+        }
+
+        if (normalizedStatus === "partially completed" || normalizedStatus === "partial completed" || normalizedStatus === "partial" || normalizedStatus === "partially ready") {
+            return "Partially Completed,partial completed,partial";
+        }
+
+        if (normalizedStatus === "hold") {
+            return "Hold,hold";
+        }
+
+        if (normalizedStatus === "on hold") {
+            return "On Hold,on hold";
+        }
+
+        if (normalizedStatus === "clinical" || normalizedStatus === "clinical stated") {
+            return "clinical,clinical stated";
+        }
+
+        return status;
+    }
+
     async function fetchBookings(page = 1) {
         currentPage = page;
 
@@ -236,7 +266,7 @@ async function allcases() {
             gender: document.getElementById("gender").value.trim(),
             patientPhone: document.getElementById("patient-phone").value.trim(),
             labName: document.getElementById("lab-name").value.trim(),
-            status: document.getElementById("status").value.trim(),
+            status: getStatusFilterQueryValue(document.getElementById("status").value.trim()),
             franchisee: document.getElementById("franchisee").value.trim(),
             barcode: document.getElementById("barcode").value.trim(),
         };
@@ -288,7 +318,8 @@ async function allcases() {
         }
 
         bookings.forEach((booking) => {
-            if (booking.status === "cancelled" || booking.status === "On Hold") {
+            const normalizedBookingStatus = (booking.status || "").trim().toLowerCase();
+            if (normalizedBookingStatus === "cancelled" || normalizedBookingStatus === "canceled") {
                 return;
             }
 

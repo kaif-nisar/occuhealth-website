@@ -372,6 +372,9 @@ async function loadfunction() {
 
                         if (!isFormula && nextInput.offsetParent !== null) {
                             nextInput.focus();
+                            if (typeof nextInput.select === "function") {
+                                requestAnimationFrame(() => nextInput.select());
+                            }
                             return;
                         }
 

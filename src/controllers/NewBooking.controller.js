@@ -23,8 +23,65 @@ const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sample
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
+const BOOKING_STATUS_ALIAS_MAP = {
+    pending: ["pending"],
+    completed: ["completed"],
+    "partially completed": ["Partially Completed", "partial completed", "partial"],
+    "partial completed": ["Partially Completed", "partial completed", "partial"],
+    partial: ["Partially Completed", "partial completed", "partial"],
+    "partially ready": ["Partially Completed", "partial completed", "partial"],
+    hold: ["Hold", "hold"],
+    "on hold": ["On Hold", "on hold"],
+    clinical: ["clinical", "clinical stated"],
+    "clinical stated": ["clinical", "clinical stated"],
+    cancelled: ["cancelled", "canceled"],
+    canceled: ["cancelled", "canceled"],
+};
 
 const normalizeReportText = (value) => String(value ?? "").trim();
+
+function expandBookingStatusFilters(statusFilter = "") {
+    const rawFilters = Array.isArray(statusFilter)
+        ? statusFilter
+        : String(statusFilter)
+            .split(/[,|;]/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+    const expandedFilters = [];
+
+    rawFilters.forEach((value) => {
+        const normalized = value.toLowerCase();
+        const aliases = BOOKING_STATUS_ALIAS_MAP[normalized] || [value];
+        aliases.forEach((alias) => {
+            const normalizedAlias = String(alias || "").trim();
+            if (normalizedAlias) {
+                expandedFilters.push(normalizedAlias);
+            }
+        });
+    });
+
+    return [...new Set(expandedFilters)];
+}
+
+function buildBookingStatusQuery(statusFilter = "") {
+    const expandedFilters = expandBookingStatusFilters(statusFilter);
+
+    if (expandedFilters.length === 0) {
+        return null;
+    }
+
+    if (expandedFilters.length === 1) {
+        return {
+            $regex: `^${escapeRegex(expandedFilters[0])}$`,
+            $options: "i",
+        };
+    }
+
+    return {
+        $in: expandedFilters.map((status) => new RegExp(`^${escapeRegex(status)}$`, "i")),
+    };
+}
 
 const isBlankOrDotOnlyValue = (value) => {
     const normalized = normalizeReportText(value).replace(/\s+/g, "");
@@ -333,9 +390,18 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 console.log(`   Total assignedPrices entries: ${assignedPrices?.length || 0}`);
                 console.log(`   assignedPrices:`, JSON.stringify(assignedPrices));
 
-                let currentPrice = assignedPrices?.find(price =>
-                    price.userId.toString() === bookingUser._id.toString()
-                )?.price;
+                const getAssignedPriceForUser = (userId) => {
+                    const normalizedUserId = String(userId || "").trim();
+                    if (!normalizedUserId || !Array.isArray(assignedPrices)) {
+                        return undefined;
+                    }
+
+                    return assignedPrices.find((price) =>
+                        String(price?.userId || "").trim() === normalizedUserId
+                    )?.price;
+                };
+
+                let currentPrice = getAssignedPriceForUser(bookingUser._id);
 
                 if (currentPrice === undefined || currentPrice === null) {
                     console.error(`❌ BOOKING FAILED — No assignedPrice for booking user: ${bookingUser.username} (ID: ${bookingUser._id})`);
@@ -383,9 +449,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     console.log(`\n🔁 Checking commission for: ${parentUser.username} (Role: ${parentUser.role})`);
                     console.log(`   Child price being used (currentPrice): ₹${currentPrice}`);
 
-                    const parentPrice = assignedPrices.find(price =>
-                        price.userId.toString() === parentUser._id.toString()
-                    )?.price;
+                    const parentPrice = getAssignedPriceForUser(parentUser._id);
 
                     if (parentPrice === undefined || parentPrice === null) {
                         console.warn(`⚠️ COMMISSION SKIPPED — No assignedPrice for: ${parentUser.username} (ID: ${parentUser._id})`);
@@ -1474,7 +1538,18 @@ const editbookingbookedtests = async (req, res) => {
                 }
 
                 const assignedPrices = testOrPackage.assignedPrices;
-                let currentPrice = assignedPrices.find(price => price.userId.toString() === bookingUser._id.toString())?.price;
+                const getAssignedPriceForUser = (userId) => {
+                    const normalizedUserId = String(userId || "").trim();
+                    if (!normalizedUserId || !Array.isArray(assignedPrices)) {
+                        return undefined;
+                    }
+
+                    return assignedPrices.find((price) =>
+                        String(price?.userId || "").trim() === normalizedUserId
+                    )?.price;
+                };
+
+                let currentPrice = getAssignedPriceForUser(bookingUser._id);
 
                 if (!currentPrice) {
                     throw new ApiError(403, "No assigned price found for the current user");
@@ -1496,7 +1571,7 @@ const editbookingbookedtests = async (req, res) => {
                         parentUserCache.set(parentId, parentUser);
                     }
 
-                    const parentPrice = assignedPrices.find(price => price.userId.toString() === parentUser._id.toString())?.price;
+                    const parentPrice = getAssignedPriceForUser(parentUser._id);
 
                     if (!parentPrice) {
                         parentId = parentUser.createdBy || parentUser.parentUser;
@@ -1857,7 +1932,12 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
     if (gender) query.gender = { $regex: gender, $options: 'i' };
     if (patientPhone) query.patientPhone = { $regex: patientPhone, $options: 'i' };
     if (labName) query.labName = { $regex: labName, $options: 'i' };
-    if (status) query.status = { $regex: status, $options: 'i' };
+    const statusQuery = buildBookingStatusQuery(status);
+    if (statusQuery) {
+        query.status = statusQuery;
+    } else {
+        query.status = { $nin: ["cancelled", "canceled", "Hold", "On Hold", "hold", "on hold"] };
+    }
     if (franchisee) query.createdbyuser = { $regex: franchisee, $options: 'i' };
 
     // Handle barcode filter
@@ -3521,8 +3601,9 @@ const loadBooking = asyncHandler(async (req, res) => {
         }
 
         // ✅ Add status filter
-        if (status) {
-            query.status = status;
+        const statusQuery = buildBookingStatusQuery(status);
+        if (statusQuery) {
+            query.status = statusQuery;
         }
 
         // ✅ Add tenant filter
