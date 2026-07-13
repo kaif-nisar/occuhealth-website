@@ -117,6 +117,9 @@ const updatePdfMetrics = (partialMetrics = {}) => {
     };
 };
 
+const normalizePdfMarkup = (value) => String(value ?? "").trim();
+const hasPdfMarkup = (value) => normalizePdfMarkup(value).length > 0;
+
 const closeBrowserSafely = async (browser) => {
     if (!browser) {
         return;
@@ -1053,6 +1056,7 @@ const getpdfcontroller = async (req, res) => {
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId: tid });
         const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
+        console.log("Fetched customization from DB:", gettingcustomization);
         const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
             tenantId: tid,
             backgroundImageUrl,
@@ -1089,7 +1093,7 @@ const getpdfcontroller = async (req, res) => {
                 RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
                 selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
                 reportId: pdfContext.resolvedReportId,
-                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "", 
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
@@ -1156,7 +1160,6 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.layerone = true;
         }
 
-        console.log("format in controller:", mergedValues.pdfformat);
         if (mergedValues.pdfformat === "reportFormat4") {
             await pdfgeneratorcontroller3(mergedValues);
             return;
@@ -1572,7 +1575,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 pdfformat: pdfFormat || userPdfFormat || gettingcustomization?.format || "",
                 layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
-                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "", 
+                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
@@ -1640,6 +1643,12 @@ const getpdfcontrolleruser = async (req, res) => {
             };
         }
 
+        if (!hasPdfMarkup(mergedValues.htmlContent)) {
+            return res.status(400).json({
+                message: "PDF content is empty. Please wait for the report to finish loading and try again."
+            });
+        }
+
         if (layerOne === "1layer" || userLayerOne) {
             mergedValues.showInvest = false;
             mergedValues.layerone = true;
@@ -1668,6 +1677,8 @@ const savingPdfDatacontroller = async (req, res) => {
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId } = req.body;
 
+    // console.log("Received data for saving PDF customization:", header);
+
     // Best balance of safety + simplicity
     const vars = {
         reportId, htmlContent, cssContent, header, footer, backgroundImageUrl,
@@ -1675,6 +1686,12 @@ const savingPdfDatacontroller = async (req, res) => {
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId
     };
+
+    if (!hasPdfMarkup(htmlContent)) {
+        return res.status(400).json({
+            message: "Report HTML is empty. The report has not finished loading yet."
+        });
+    }
 
     const updateFields = {};
     for (const key in vars) {
@@ -1686,7 +1703,7 @@ const savingPdfDatacontroller = async (req, res) => {
         {
             reportId: reportId,
             tenantId: tenantId,
-            createdBy: userId
+            bookingId: bookingId
         }, // Or use some identifier
         updateFields,
         {

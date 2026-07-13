@@ -59,20 +59,39 @@
             return;
         }
 
-        try {
-            // Har image ko base64 me convert karke uska src update karna
-            for (let img of images) {
-                img.src = await imageToBase64(img.src);
+        // Har image ko alag handle karo, taaki ek fail ho to baaki images safe rahen.
+        for (let img of images) {
+            const currentSrc = String(img.getAttribute('src') || '').trim();
+
+            // data: aur blob: URLs already inline hain, unko dubara fetch mat karo.
+            if (!currentSrc || currentSrc.startsWith('data:') || currentSrc.startsWith('blob:')) {
+                continue;
             }
-            console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
-        } catch (error) {
-            console.error("Error converting images:", error);
+
+            try {
+                img.src = await imageToBase64(currentSrc);
+            } catch (error) {
+                console.warn("Image base64 conversion skipped for:", currentSrc, error);
+            }
         }
+
+        console.log(`${images.length} image(s) processed for PDF export.`);
     }
 
     // Image URL ko Base64 string me convert karne wala helper function
     async function imageToBase64(url) {
-        const response = await fetch(url);
+        const safeUrl = String(url || '').trim();
+
+        if (!safeUrl || safeUrl.startsWith('data:') || safeUrl.startsWith('blob:')) {
+            return safeUrl;
+        }
+
+        const response = await fetch(safeUrl, { cache: 'no-store' });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
+
         const blob = await response.blob();
 
         return new Promise((resolve, reject) => {
@@ -118,37 +137,63 @@
         return totallines;
     }
 
+    function getPdfDataSnapshot({ footerOverride = null, investigationOffset = 0 } = {}) {
+        const htmlContent = document.querySelector('.container2').outerHTML;
+        const cssContent = document.getElementById('stying').innerHTML;
+        const header = document.querySelector('.report-details').outerHTML;
+        const footer = footerOverride ?? document.querySelector('.signed-off-div').outerHTML;
+        const investigationmargin = countLines() + investigationOffset;
+
+        return {
+            htmlContent,
+            cssContent,
+            header,
+            footer,
+            investigationmargin
+        };
+    }
+
+    function buildPdfDataPayload(snapshot = {}, extraFields = {}) {
+        return {
+            labinchargesign: report.showLabIncharge,
+            reportId: value1,
+            backgroundImageUrl,
+            ...snapshot,
+            ...extraFields
+        };
+    }
+
+    async function savePdfData(payload) {
+        console.log("Saving PDF data:", payload);
+        const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const details = await response.text().catch(() => "");
+            throw new Error(details || `Data not saved (${response.status})`);
+        }
+
+        return response;
+    }
+
+    async function savePdfDataFromPage(snapshot = {}, extraFields = {}) {
+        return savePdfData(buildPdfDataPayload(snapshot, extraFields));
+    }
+
     // ==============================second sending code================================
 
     document.getElementById('PDFsettinganchr').addEventListener('click', async (event) => {
         event.preventDefault();
-        // Collecting the required data
-        const htmlContent = document.querySelector('.container2').outerHTML;
-        const cssContent = document.getElementById('stying').innerHTML;
-        const header = document.querySelector('.report-details').outerHTML;
-        const footer = document.querySelector('.signed-off-div').outerHTML;
-        const investigationmargin = countLines() + 20;
+        const pdfSnapshot = getPdfDataSnapshot({ investigationOffset: 20 });
 
         try {
             // Sending data to the backend
-            const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    labinchargesign: report.showLabIncharge,
-                    htmlContent,
-                    cssContent,
-                    header,
-                    footer,
-                    reportId: value1,
-                    backgroundImageUrl,
-                    investigationmargin
-                }),
-            });
-
-            if (!response.ok) throw new Error('Data not saved');
+            await savePdfDataFromPage(pdfSnapshot);
 
             console.log('Data added successfully');
             // If the response is OK, allow navigation
@@ -182,29 +227,18 @@
                 return;
             }
 
-            //saving pdf data into database
-            const htmlContent = document.querySelector('.container2').outerHTML;
-            const cssContent = document.getElementById('stying').innerHTML;
-            const header = document.querySelector('.report-details').outerHTML;
-            const footer = document.querySelector('.signed-off-div').outerHTML;
-            investigationmargin = countLines();
+            const pdfSnapshot = getPdfDataSnapshot({ footerOverride: "footer" });
             try {
                 loader.style.display = 'flex';
                 e.target.disable = true;
-                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin }),
-                });
-
-                if (!response.ok) throw new Error('data not saved');
+                await savePdfDataFromPage(pdfSnapshot);
 
                 console.log("data added successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
+                alert(error.message || 'Data save failed. PDF generation stopped.');
+                return;
             }
 
             try {
@@ -831,11 +865,7 @@
                 button.classList.toggle("sign");
             });
             //saving pdf data into database
-            const htmlContent = document.querySelector('.container2').outerHTML;
-            const cssContent = document.getElementById('stying').innerHTML;
-            const header = document.querySelector('.report-details').outerHTML;
-            const footer = document.querySelector('.signed-off-div').outerHTML;
-            investigationmargin = countLines();
+            const pdfSnapshot = getPdfDataSnapshot();
             // Check if any button has the 'sign' class
             const anyButtonHasSign = Array.from(targetButtons).some(button => button.classList.contains('sign'));
             let signoff
@@ -862,15 +892,10 @@
             }
 
             try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin, bookingId: report.bookingId, isdocumented: report.isDocumented }),
-                });
-
-                if (!response.ok) throw new Error('data not saved');
+                await savePdfDataFromPage(
+                    pdfSnapshot,
+                    { bookingId: report.bookingId, isdocumented: report.isDocumented }
+                );
 
                 await updatebookingisreportreadyfield(report.bookingId);
 
@@ -979,27 +1004,16 @@
             e.target.disable = true;
 
 
-            //saving pdf data into database
-            const htmlContent = document.querySelector('.container2').outerHTML;
-            const cssContent = document.getElementById('stying').innerHTML;
-            const header = document.querySelector('.report-details').outerHTML;
-            const footer = document.querySelector('.signed-off-div').outerHTML;
-            investigationmargin = countLines();
+            const pdfSnapshot = getPdfDataSnapshot();
             try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin }),
-                });
-
-                if (!response.ok) throw new Error('data not saved');
+                await savePdfDataFromPage(pdfSnapshot);
 
                 console.log("labinchargesign edited successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
+                alert(error.message || 'Data save failed. PDF generation stopped.');
+                return;
             }
 
             try {

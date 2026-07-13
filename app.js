@@ -449,10 +449,12 @@ app.use((req, res, next) => {
     }
 
     const contentLength = parseInt(req.headers['content-length'] || '0');
+    const requestSizeLimitMb = Math.max(100, Number.parseInt(process.env.API_REQUEST_SIZE_LIMIT_MB || "100", 10));
 
-    if (contentLength > 10 * 1024 * 1024) { // 10MB limit
+    if (contentLength > requestSizeLimitMb * 1024 * 1024) {
         return res.status(413).json({
-            error: 'Request too large'
+            error: 'Request too large',
+            limitMb: requestSizeLimitMb
         });
     }
     next();
@@ -462,8 +464,8 @@ app.use((req, res, next) => {
 // 📋 STANDARD MIDDLEWARES
 // ========================
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express.static("public", {
     etag: true,
     lastModified: true,
