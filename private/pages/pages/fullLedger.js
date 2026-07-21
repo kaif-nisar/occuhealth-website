@@ -1,371 +1,388 @@
-initializePage();
+(function() {
+'use strict';
 
-async function initializePage() {
-    await populateFranchiseeDropdown();
-    setupEventListeners();
+// ---- GLOBAL STATE ----
+var ALL = [];
+var openingBalance = 0;
+var closingBalance = 0;
+var currentPage = 1;
+var rowsPerPage = 50;
+var debounceTimer = null;
+var selectedFranchiseeName = '';
+var is1Layer = false;
+var currentFranchiseeId = null;
+var currentStartDate = '';
+var currentEndDate = '';
+
+// ---- STORE doctor/lab DROPDOWN DATA for dependent filtering ----
+var allDoctorsList = [];   // { _id, name }
+var allLabsList = [];       // { _id, name }
+var currentFranchiseeForDropdowns = null;  // which franchisee loaded the current dropdown data
+
+// ---- PAGE INIT ----
+init();
+
+async function init() {
+    await populateFranchisees();
+    bindEvents();
     setDefaultDates();
+    is1Layer = !!(user && user.tenantId && user.tenantId.modelType === '1layer');
+    document.querySelectorAll('.forone').forEach(function(el) { el.style.display = is1Layer ? 'table-cell' : 'none'; });
+    document.querySelectorAll('.formany').forEach(function(el) { el.style.display = is1Layer ? 'none' : 'table-cell'; });
 
-    // Show/hide columns based on user type
-    if (user.tenantId.modelType === '1layer') {
-        document.querySelectorAll('.forone').forEach(el => el.style.display = 'table-cell');
-        document.querySelectorAll('.formany').forEach(el => el.style.display = 'none');
-    } else {
-        document.querySelectorAll('.forone').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.formany').forEach(el => el.style.display = 'table-cell');
+    // On initial load, if "Self" is selected, load its doctors/labs (but don't auto-fetch ledger)
+    var fid = document.getElementById('franchisee-select').value;
+    if (fid) {
+        loadDoctorsLabsForFranchisee(fid === 'self' ? userId : fid);
     }
 }
 
-// Populate franchisee dropdown (your original)
-async function populateFranchiseeDropdown() {
+// ---- FRANCHISEE DROPDOWN ----
+async function populateFranchisees() {
     try {
-        const response = await fetch(`${BASE_URL}/api/v1/user/get-super-franchisee?userId=${userId}`);
-        const data = await response.json();
-
-        const select = document.getElementById('franchisee-select');
-        const items = Array.isArray(data) ? data : (data.message && Array.isArray(data.message) ? data.message : []);
-        items.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item._id || item.id;
-            option.textContent = item.fullName || item.username || item.name || 'Unnamed Franchisee';
-            select.appendChild(option);
+        var res = await fetch(BASE_URL + '/api/v1/user/get-super-franchisee?userId=' + userId);
+        var data = await res.json();
+        var sel = document.getElementById('franchisee-select');
+        var list = Array.isArray(data) ? data : (data.message && Array.isArray(data.message) ? data.message : []);
+        list.forEach(function(item) {
+            var o = document.createElement('option');
+            o.value = item._id || item.id;
+            o.textContent = item.fullName || item.username || item.name || 'Unnamed';
+            sel.appendChild(o);
         });
-    } catch (error) {
-        console.error("Error fetching franchisees:", error);
-    }
+    } catch(e) { console.error(e); }
 }
 
 function setDefaultDates() {
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-    document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+    var n = new Date();
+    document.getElementById('start-date').value = new Date(n.getFullYear(), n.getMonth(), 1).toISOString().split('T')[0];
+    document.getElementById('end-date').value = new Date(n.getFullYear(), n.getMonth()+1, 0).toISOString().split('T')[0];
 }
 
-function setupEventListeners() {
-    document.getElementById('view-ledger-btn').addEventListener('click', loadLedgerData);
-    document.getElementById('apply-filter-btn').addEventListener('click', applyFiltersAndRender);
-    document.getElementById('search').addEventListener('input', applyFiltersAndRender);
+// ---- EVENT BINDING ----
+function bindEvents() {
+    // View button — ONLY trigger fetch on explicit View click
+    document.getElementById('view-ledger-btn').addEventListener('click', fetchLedger);
 
-    document.querySelector('.download-excel').addEventListener('click', downloadExcel);
-    document.querySelector('.download-pdf').addEventListener('click', downloadPDF);
+    // Franchisee change -> reload doctor/lab dropdowns (NO auto-fetch of ledger)
+    document.getElementById('franchisee-select').addEventListener('change', function() {
+        var fid = this.value;
+        var actualId = fid === 'self' ? userId : fid;
+        resetDoctorLabDropdowns();
+        // Clear stored lists since franchisee changed
+        allDoctorsList = [];
+        allLabsList = [];
+        currentFranchiseeForDropdowns = null;
+        loadDoctorsLabsForFranchisee(actualId);
+        // Do NOT auto-fetch ledger — user must click View
+    });
+
+    // Doctor/Lab dropdown change — do NOT auto-fetch, user must click View
+    document.getElementById('doctor-select').addEventListener('change', function() {
+        // No auto-fetch — View button handles it
+    });
+    document.getElementById('lab-select').addEventListener('change', function() {
+        // No auto-fetch — View button handles it
+    });
+
+    // Search = client-side filter (debounced)
+    document.getElementById('search').addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(applyFilters, 300);
+    });
+
+    document.querySelector('.download-excel').addEventListener('click', exportExcel);
+    document.querySelector('.download-pdf').addEventListener('click', exportPDF);
+
+    document.getElementById('prev-page-btn').addEventListener('click', function(){ changePage(-1); });
+    document.getElementById('next-page-btn').addEventListener('click', function(){ changePage(1); });
+    document.getElementById('rows-per-page').addEventListener('change', function(e) {
+        rowsPerPage = e.target.value === 'all' ? 999999 : parseInt(e.target.value);
+        currentPage = 1;
+        applyFilters();
+    });
 }
 
-// Main loader
-async function loadLedgerData() {
-    const franchiseeSelect = document.getElementById('franchisee-select');
-    const selectedFranchisee = franchiseeSelect.value;
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
+// ---- RESET DOCTOR/LAB DROPDOWNS TO DEFAULT ----
+function resetDoctorLabDropdowns() {
+    var docSel = document.getElementById('doctor-select');
+    var labSel = document.getElementById('lab-select');
+    // Keep only first option ("All Doctors" / "All Labs")
+    while (docSel.options.length > 1) docSel.remove(1);
+    while (labSel.options.length > 1) labSel.remove(1);
+    docSel.value = 'all';
+    labSel.value = 'all';
+}
 
-    const franchiseeId = selectedFranchisee === 'self' ? userId : selectedFranchisee;
-
-    if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
-        return;
-    }
-
+// ---- LOAD DOCTORS & LABS SPECIFIC TO SELECTED FRANCHISEE ----
+async function loadDoctorsLabsForFranchisee(franchiseeId) {
+    if (!franchiseeId) return;
     try {
-        await loadAccountSummary(franchiseeId, startDate, endDate);
+        var res = await fetch(BASE_URL + '/api/v1/user/franchisee-doctors-labs?franchiseeId=' + franchiseeId);
+        var data = await res.json();
+        var docSel = document.getElementById('doctor-select');
+        var labSel = document.getElementById('lab-select');
 
-        // Fetch ledger entries (no doctor/lab params since backend not changing)
-        const q = new URLSearchParams({ userId: franchiseeId, startDate, endDate });
-        const response = await fetch(`${BASE_URL}/api/v1/user/ledgerEntries?${q.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch ledger entries');
-        const data = await response.json();
+        // Reset dropdowns before populating
+        resetDoctorLabDropdowns();
 
-        // Store transactions globally so filter can re-run easily
-        window.__ledgerData = data; // keep original data
+        allDoctorsList = [];
+        allLabsList = [];
+        currentFranchiseeForDropdowns = franchiseeId;
 
-        // Render all entries
-        renderLedgerEntries(data);
-
-        // Populate doctor & lab selects from transactions
-        populateDoctorLabFromTransactions(data.transactions || []);
-
-        // Update title
-        const start = new Date(startDate).toLocaleDateString();
-        const end = new Date(endDate).toLocaleDateString();
-        document.getElementById('accounts-summary-title').textContent = `Accounts Summary (${start} - ${end})`;
-
-    } catch (error) {
-        console.error('Error loading ledger data:', error);
-        alert('Error loading ledger data');
-    }
-}
-
-async function loadAccountSummary(franchiseeId, startDate, endDate) {
-    try {
-        const response = await fetch(`${BASE_URL}/api/v1/user/account-summary?userId=${franchiseeId}&startDate=${startDate}&endDate=${endDate}`);
-        const data = await response.json();
-        if (!response.ok) {
-            alert(data.message || 'Failed to fetch account summary');
-            return;
+        if (data.doctors && Array.isArray(data.doctors)) {
+            allDoctorsList = data.doctors;
+            data.doctors.forEach(function(d) {
+                var o = document.createElement('option');
+                o.value = d._id || d.name;
+                o.textContent = d.name || 'Unnamed';
+                docSel.appendChild(o);
+            });
         }
-        document.querySelector('.opening-balance').innerText = `Rs. ${data.openingBalance || 0}`;
-        document.querySelector('.closing-balance').innerText = `Rs. ${data.closingBalance || 0}`;
-        document.querySelector('.commission-amount').innerText = `Rs. ${data.commission || 0}`;
-        document.querySelector('.booking-amount').innerText = `Rs. ${data.bookingAmount || 0}`;
-        document.querySelector('.cancellation-refund').innerText = `Rs. ${data.cancellationRefund || 0}`;
-        document.querySelector('.deposit-amount').innerText = `Rs. ${data.depositAmount || 0}`;
-        document.querySelector('.debited-adjusted-amount').innerText = `Rs. ${data.debitedAdjustedAmount || 0}`;
-        document.querySelector('.inventory-debit').innerText = `Rs. ${data.inventoryDebit || 0}`;
-    } catch (error) {
-        console.error('Error fetching account summary:', error);
-        throw error;
+        if (data.labs && Array.isArray(data.labs)) {
+            allLabsList = data.labs;
+            data.labs.forEach(function(l) {
+                var o = document.createElement('option');
+                o.value = l._id || l.name;
+                o.textContent = l.name || 'Unnamed';
+                labSel.appendChild(o);
+            });
+        }
+    } catch(e) { console.error('Error loading doctors/labs for franchisee:', e); }
+}
+
+// ---- MAIN: LOAD LEDGER (sends ALL filters to backend) ----
+async function fetchLedger() {
+    var franchiseeSel = document.getElementById('franchisee-select');
+    var fid = (franchiseeSel.value === 'self') ? userId : franchiseeSel.value;
+    var sDate = document.getElementById('start-date').value;
+    var eDate = document.getElementById('end-date').value;
+    var docId = document.getElementById('doctor-select').value;
+    var labId = document.getElementById('lab-select').value;
+
+    selectedFranchiseeName = franchiseeSel.options[franchiseeSel.selectedIndex] ? franchiseeSel.options[franchiseeSel.selectedIndex].textContent : '';
+    currentFranchiseeId = fid;
+    currentStartDate = sDate;
+    currentEndDate = eDate;
+
+    if (!sDate || !eDate) { alert('Please select both start and end dates'); return; }
+    if (!fid) { alert('Please select a franchisee'); return; }
+
+    showLoading();
+
+    try {
+        // Build URLs — both summary and ledger now support doctorId/labId
+        var summaryUrl = BASE_URL + '/api/v1/user/account-summary?userId=' + fid + '&startDate=' + sDate + '&endDate=' + eDate;
+        var ledgerUrl = BASE_URL + '/api/v1/user/ledgerEntries?userId=' + fid + '&startDate=' + sDate + '&endDate=' + eDate;
+
+        if (docId && docId !== 'all') {
+            summaryUrl += '&doctorId=' + encodeURIComponent(docId);
+            ledgerUrl += '&doctorId=' + encodeURIComponent(docId);
+        }
+        if (labId && labId !== 'all') {
+            summaryUrl += '&labId=' + encodeURIComponent(labId);
+            ledgerUrl += '&labId=' + encodeURIComponent(labId);
+        }
+
+        var results = await Promise.all([fetch(summaryUrl), fetch(ledgerUrl)]);
+        var sRes = results[0], lRes = results[1];
+
+        // Summary
+        if (sRes.ok) {
+            var summary = await sRes.json();
+            document.querySelector('.opening-balance').textContent = 'Rs. ' + ((summary.openingBalance || 0).toLocaleString());
+            document.querySelector('.closing-balance').textContent = 'Rs. ' + ((summary.closingBalance || 0).toLocaleString());
+            document.querySelector('.commission-amount').textContent = 'Rs. ' + ((summary.commission || 0).toLocaleString());
+            document.querySelector('.booking-amount').textContent = 'Rs. ' + ((summary.bookingAmount || 0).toLocaleString());
+        }
+
+        // Ledger entries
+        var txns = [];
+        if (lRes.ok) {
+            var ld = await lRes.json();
+            openingBalance = ld.openingBalance || 0;
+            closingBalance = ld.closingBalance || 0;
+            txns = Array.isArray(ld.transactions) ? ld.transactions : [];
+        }
+
+        ALL = txns;
+        updateDebitCreditStats(txns);
+        currentPage = 1;
+        applyFilters();
+        document.getElementById('pagination-controls').style.display = 'flex';
+    } catch(e) {
+        console.error(e);
+        alert('Error loading data');
+    } finally {
+        hideLoading();
     }
 }
 
-// Render ledger entries (unfiltered)
-function renderLedgerEntries(data) {
-    const tableBody = document.querySelector('#tbody');
-    tableBody.innerHTML = '';
+function updateDebitCreditStats(txns) {
+    var td = 0, tc = 0;
+    txns.forEach(function(t) {
+        if (t.debit) td += parseFloat(t.debit) || 0;
+        if (t.credit) tc += parseFloat(t.credit) || 0;
+    });
+    document.querySelector('.total-debit').textContent = 'Rs. ' + td.toLocaleString();
+    document.querySelector('.total-credit').textContent = 'Rs. ' + tc.toLocaleString();
+}
 
-    const transactions = Array.isArray(data.transactions) ? data.transactions : [];
+// ---- APPLY CLIENT-SIDE FILTERS (search only, doctor/lab already filtered by backend) ----
+function applyFilters() {
+    var searchTerm = document.getElementById('search').value.trim().toLowerCase();
 
-    if (!transactions.length) {
-        tableBody.innerHTML = '<tr><td colspan="17" style="text-align: center;">No transactions found for the selected period</td></tr>';
+    var filtered = ALL.filter(function(txn) {
+        if (searchTerm) {
+            var testNames = Array.isArray(txn.testName) ? txn.testName.join(' ') : (txn.testName || '');
+            var str = [
+                txn.franchiseeId || '', txn.remarks || '', txn.reference || '', txn.patient || '',
+                testNames, txn.barcodeId || '',
+                (txn.booking && txn.booking.doctorName) || txn.doctorName || '',
+                (txn.booking && txn.booking.labName) || txn.labName || ''
+            ].join(' ').toLowerCase();
+            if (str.indexOf(searchTerm) < 0) return false;
+        }
+        return true;
+    });
+
+    var totalRows = filtered.length;
+    var totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    var start = (currentPage - 1) * rowsPerPage;
+    var page = filtered.slice(start, start + rowsPerPage);
+
+    renderTable(page, start);
+    document.getElementById('page-info').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+    document.getElementById('total-rows-info').textContent = '(' + totalRows + ' rows)';
+    document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+    document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+}
+
+function changePage(delta) { currentPage += delta; applyFilters(); }
+
+// ---- RENDER TABLE ----
+function renderTable(txns, startIdx) {
+    var tbody = document.querySelector('#tbody');
+    tbody.innerHTML = '';
+    if (!txns.length) {
+        tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:24px;color:#999;">No transactions found</td></tr>';
         return;
     }
+    txns.forEach(function(txn, i) {
+        var rn = startIdx + i + 1;
+        var d = txn.debit ? parseFloat(txn.debit).toFixed(2) : '';
+        var c = txn.credit ? parseFloat(txn.credit).toFixed(2) : '';
+        var tn = Array.isArray(txn.testName) ? txn.testName.join(', ') : (txn.testName || '');
+        var dn = (txn.booking && txn.booking.doctorName) || txn.doctorName || '';
+        var ln = (txn.booking && txn.booking.labName) || txn.labName || '';
+        var pt = txn.patient || (txn.booking && txn.booking.patientName) || '';
+        var ba = (txn.booking && txn.booking.total) ? txn.booking.total : '';
+        var cb = txn.closingBalance ? parseFloat(txn.closingBalance).toFixed(2) : '';
+        var ob = (i > 0 && txns[i-1].closingBalance) ? parseFloat(txns[i-1].closingBalance).toFixed(2) : openingBalance.toFixed(2);
 
-    let openingBalance = data.openingBalance || 0;
-
-    transactions.forEach((txn, idx) => {
-        if (idx > 0) openingBalance = transactions[idx - 1].closingBalance || openingBalance;
-
-        const debit = txn.debit ? parseFloat(txn.debit).toFixed(2) : '';
-        const credit = txn.credit ? parseFloat(txn.credit).toFixed(2) : '';
-        const closingBalance = txn.closingBalance ? parseFloat(txn.closingBalance).toFixed(2) : '';
-
-        if (user.tenantId.modelType === '1layer') {
-            const testNames = (txn.booking?.tableData || []).map(t => t.testName).join(', ') || '';
-            const doctorName = txn?.booking?.doctorName || txn.doctorName || '';
-            const row = `
-              <tr data-doctor="${escapeHtml(doctorName)}" data-lab="${escapeHtml('')}">
-                <td>${idx + 1}</td>
-                <td>${txn.franchiseeId || ''}</td>
-                <td>${new Date(txn.dateOfTransaction).toLocaleString()}</td>
-                <td>${debit}</td>
-                <td>${txn.remarks || ''}</td>
-                <td>${txn.reference || ''}</td>
-                <td>${txn.patient || ''}</td>
-                <td>${doctorName}</td>
-                <td>${testNames}</td>
-                <td>${txn.barcodeId || ''}</td>
-                <td>${txn.discountamount || ''}</td>
-                <td>${txn.discountunit || ''}</td>
-                <td>${txn.booking?.total || ''}</td>
-              </tr>`;
-            tableBody.insertAdjacentHTML('beforeend', row);
+        if (is1Layer) {
+            tbody.insertAdjacentHTML('beforeend',
+                '<tr><td>'+rn+'</td><td>'+(txn.franchiseeId||'')+'</td><td>'+fmtDate(txn.dateOfTransaction)+'</td>'+
+                '<td class="debit">'+d+'</td><td>'+(txn.remarks||'')+'</td><td>'+(txn.reference||'')+'</td>'+
+                '<td>'+pt+'</td><td>'+dn+'</td><td>'+tn+'</td><td>'+(txn.barcodeId||'')+'</td>'+
+                '<td>'+(txn.discountamount||'0')+'</td><td>'+(txn.discountunit||'0')+'</td><td>'+ba+'</td></tr>');
         } else {
-            const testNames = (txn.booking?.tableData || []).map(t => t.testName).join(', ') || '';
-            const doctorName = txn?.booking?.doctorName || txn.doctorName || '';
-            const labName = txn?.booking?.labName || txn.labName || '';
-            const row = `
-              <tr data-doctor="${escapeHtml(doctorName)}" data-lab="${escapeHtml(labName)}">
-                <td>${idx + 1}</td>
-                <td>${txn.franchiseeId || ''}</td>
-                <td>${new Date(txn.dateOfTransaction).toLocaleString()}</td>
-                <td>${debit}</td>
-                <td class="${txn.credit ? 'credit' : ''}">${credit}</td>
-                <td>${txn.remarks || ''}</td>
-                <td>${txn.reference || ''}</td>
-                <td>${txn.patient || ''}</td>
-                <td>${doctorName}</td>
-                <td>${testNames}</td>
-                <td>${txn.barcodeId || ''}</td>
-                <td>${labName}</td>
-                <td>${txn.booking?.total || ''}</td>
-                <td>${closingBalance}</td>
-                <td>${openingBalance.toFixed(2)}</td>
-              </tr>`;
-            tableBody.insertAdjacentHTML('beforeend', row);
+            tbody.insertAdjacentHTML('beforeend',
+                '<tr><td>'+rn+'</td><td>'+(txn.franchiseeId||'')+'</td><td>'+fmtDate(txn.dateOfTransaction)+'</td>'+
+                '<td class="debit">'+d+'</td><td class="credit">'+c+'</td><td>'+(txn.remarks||'')+'</td>'+
+                '<td>'+(txn.reference||'')+'</td><td>'+pt+'</td><td>'+dn+'</td><td>'+tn+'</td>'+
+                '<td>'+(txn.barcodeId||'')+'</td><td>'+ln+'</td><td>'+ba+'</td><td>'+cb+'</td><td>'+ob+'</td></tr>');
         }
     });
 }
 
-// Populate doctor & lab selects from transactions
-function populateDoctorLabFromTransactions(transactions) {
-    const doctorSelect = document.getElementById('doctor-select');
-    const labSelect = document.getElementById('lab-select');
-
-    const doctors = new Set();
-    const labs = new Set();
-
-    transactions.forEach(txn => {
-        const d = (txn?.booking?.doctorName || txn.doctorName || '').toString().trim();
-        const l = (txn?.booking?.labName || txn.labName || '').toString().trim();
-        if (d) doctors.add(d);
-        if (l) labs.add(l);
-    });
-
-    // clear existing (keep "all")
-    while (doctorSelect.options.length > 1) doctorSelect.remove(1);
-    while (labSelect.options.length > 1) labSelect.remove(1);
-
-    doctors.forEach(name => {
-        const o = document.createElement('option');
-        o.value = name;
-        o.textContent = name;
-        doctorSelect.appendChild(o);
-    });
-
-    labs.forEach(name => {
-        const o = document.createElement('option');
-        o.value = name;
-        o.textContent = name;
-        labSelect.appendChild(o);
-    });
+function fmtDate(v) {
+    if (!v) return '';
+    try { var d = new Date(v); if (!isNaN(d.getTime())) return d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(e){}
+    return v;
 }
 
-// Apply filters (doctor, lab, search) and show/hide rows accordingly
-function applyFiltersAndRender() {
-    const doctor = document.getElementById('doctor-select').value;
-    const lab = document.getElementById('lab-select').value;
-    const searchTerm = document.getElementById('search').value.trim().toLowerCase();
-
-    const rows = document.querySelectorAll('#tbody tr');
-
-    rows.forEach(row => {
-        // if this is the 'no data' row, keep its display logic
-        if (row.querySelectorAll('td').length === 1) return;
-
-        const rowDoctor = (row.dataset.doctor || '').toString().toLowerCase();
-        const rowLab = (row.dataset.lab || '').toString().toLowerCase();
-        const text = row.textContent.toLowerCase();
-
-        const doctorMatch = (doctor === 'all') || (!!rowDoctor && rowDoctor === doctor.toLowerCase());
-        const labMatch = (lab === 'all') || (!!rowLab && rowLab === lab.toLowerCase());
-        const searchMatch = searchTerm === '' || text.includes(searchTerm);
-
-        row.style.display = (doctorMatch && labMatch && searchMatch) ? '' : 'none';
-    });
-}
-
-// Download Excel — skip hidden rows
-function downloadExcel() {
-    const table = document.querySelector('#tbody');
-    if (!table || table.rows.length === 0 || (table.rows[0].cells[0].textContent && table.rows[0].cells[0].textContent.includes('No transactions'))) {
-        alert('No data available for Excel generation');
-        return;
-    }
-
-    const data = [];
-    const headers = [
-        'S.No', 'Franchisee ID', 'Date & Time', 'Debit',
-        'Remarks', 'Reference', 'Patient', 'Test Name', 'Barcode ID'
-    ];
-
-    if (user.tenantId.modelType === '1layer') {
-        headers.splice(7, 0, 'Doctor');
-        headers.splice(10, 0, 'Discount', 'Discount (%)');
-        headers.splice(12, 0, 'Booking-Amount');
-    } else {
-        headers.splice(4, 0, 'Credit');
-        headers.splice(8, 0, 'Doctor');
-        headers.splice(11, 0, 'Lab Name','Booking-Amount', 'Closing Balance', 'Opening Balance');
-    }
-
+// ---- EXPORT EXCEL (from ALL data, not DOM) ----
+function exportExcel() {
+    if (!ALL.length) { alert('No data to export'); return; }
+    var data = [];
+    var headers = is1Layer
+        ? ['S.No','Franchisee','Date & Time','Debit','Remarks','Reference','Patient','Doctor','Test Name','Barcode ID','Discount','Discount (%)','Booking Amt.']
+        : ['S.No','Franchisee','Date & Time','Debit','Credit','Remarks','Reference','Patient','Doctor','Test Name','Barcode ID','Lab Name','Booking Amt.','Closing Bal.','Opening Bal.'];
     data.push(headers);
 
-    for (let i = 0; i < table.rows.length; i++) {
-        const tr = table.rows[i];
-        if (tr.style.display === 'none') continue; // skip filtered out rows
+    ALL.forEach(function(txn, i) {
+        var d = txn.debit ? parseFloat(txn.debit).toFixed(2) : '';
+        var c = txn.credit ? parseFloat(txn.credit).toFixed(2) : '';
+        var tn = Array.isArray(txn.testName) ? txn.testName.join(', ') : (txn.testName||'');
+        var dn = (txn.booking&&txn.booking.doctorName)||txn.doctorName||'';
+        var ln = (txn.booking&&txn.booking.labName)||txn.labName||'';
+        var pt = txn.patient||(txn.booking&&txn.booking.patientName)||'';
+        var ba = (txn.booking&&txn.booking.total)||'';
+        var cb = txn.closingBalance?parseFloat(txn.closingBalance).toFixed(2):'';
+        var ob = i>0&&ALL[i-1].closingBalance?parseFloat(ALL[i-1].closingBalance).toFixed(2):openingBalance.toFixed(2);
 
-        const row = [];
-        const cells = tr.cells;
-        for (let j = 0; j < cells.length; j++) {
-            row.push(cells[j].innerText);
+        if (is1Layer) {
+            data.push([i+1, txn.franchiseeId||'', fmtDate(txn.dateOfTransaction), d, txn.remarks||'', txn.reference||'', pt, dn, tn, txn.barcodeId||'', txn.discountamount||'0', txn.discountunit||'0', ba]);
+        } else {
+            data.push([i+1, txn.franchiseeId||'', fmtDate(txn.dateOfTransaction), d, c, txn.remarks||'', txn.reference||'', pt, dn, tn, txn.barcodeId||'', ln, ba, cb, ob]);
         }
-        data.push(row);
-    }
-
-    if (data.length === 1) {
-        alert('No visible rows to export');
-        return;
-    }
-
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-
-    // Bold header styling
-    headers.forEach((_, colIndex) => {
-        const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIndex });
-        if (!worksheet[cellRef]) return;
-        worksheet[cellRef].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "4F81BD" } },
-        };
     });
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Franchisee Account');
-    XLSX.writeFile(workbook, 'franchiseeAccount.xlsx');
+    var ws = XLSX.utils.aoa_to_sheet(data);
+    headers.forEach(function(_, ci) {
+        var ref = XLSX.utils.encode_cell({r:0,c:ci});
+        if (ws[ref]) ws[ref].s = { font:{bold:true, color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"DC3545"}} };
+    });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
+    XLSX.writeFile(wb, 'Ledger_'+(selectedFranchiseeName||'Export')+'.xlsx');
 }
 
-// Download PDF — already skipping hidden rows; keep same logic but ensure skip
-function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const table = document.querySelector('#tbody');
+// ---- EXPORT PDF (from ALL data) ----
+function exportPDF() {
+    if (!ALL.length) { alert('No data to export'); return; }
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF('l','mm','a4');
+    var headers = is1Layer
+        ? ['S.No','Franchisee','Date & Time','Debit','Remarks','Reference','Patient','Doctor','Test Name','Barcode ID','Discount','Discount %','Booking Amt.']
+        : ['S.No','Franchisee','Date & Time','Debit','Credit','Remarks','Reference','Patient','Doctor','Test Name','Barcode ID','Lab Name','Booking Amt.','Closing Bal.','Opening Bal.'];
+    var data = [];
 
-    if (!table || table.rows.length === 0 || (table.rows[0].cells[0].textContent && table.rows[0].cells[0].textContent.includes('No transactions'))) {
-        alert('No data available for PDF generation');
-        return;
-    }
+    ALL.forEach(function(txn, i) {
+        var d = txn.debit ? parseFloat(txn.debit).toFixed(2) : '';
+        var c = txn.credit ? parseFloat(txn.credit).toFixed(2) : '';
+        var tn = Array.isArray(txn.testName) ? txn.testName.join(', ') : (txn.testName||'');
+        var dn = (txn.booking&&txn.booking.doctorName)||txn.doctorName||'';
+        var ln = (txn.booking&&txn.booking.labName)||txn.labName||'';
+        var pt = txn.patient||(txn.booking&&txn.booking.patientName)||'';
+        var ba = (txn.booking&&txn.booking.total)||'';
+        var cb = txn.closingBalance?parseFloat(txn.closingBalance).toFixed(2):'';
+        var ob = i>0&&ALL[i-1].closingBalance?parseFloat(ALL[i-1].closingBalance).toFixed(2):openingBalance.toFixed(2);
 
-    const doc = new jsPDF('l', 'mm', 'a4');
-
-    const headers = [
-        'S.No', 'Franchisee ID', 'Date & Time', 'Debit',
-        'Remarks', 'Reference', 'Patient', 'Test Name', 'Barcode ID'
-    ];
-
-    if (user.tenantId.modelType === '1layer') {
-        headers.splice(7, 0, 'Doctor');
-        headers.splice(10, 0, 'Discount', 'Discount (%)');
-        headers.splice(12, 0, 'Booking-Amount');
-    } else {
-        headers.splice(4, 0, 'Credit');
-        headers.splice(8, 0, 'Doctor');
-        headers.splice(11, 0, 'Lab Name','Booking-Amount', 'Closing Balance', 'Opening Balance');
-    }
-
-    const data = [];
-    for (let i = 0; i < table.rows.length; i++) {
-        const tr = table.rows[i];
-        if (tr.style.display === 'none') continue; // skip filtered rows
-        const row = [];
-        const cells = tr.cells;
-        for (let j = 0; j < cells.length; j++) {
-            row.push(cells[j].innerText);
+        if (is1Layer) {
+            data.push([i+1, txn.franchiseeId||'', fmtDate(txn.dateOfTransaction), d, txn.remarks||'', txn.reference||'', pt, dn, tn, txn.barcodeId||'', txn.discountamount||'0', txn.discountunit||'0', ba]);
+        } else {
+            data.push([i+1, txn.franchiseeId||'', fmtDate(txn.dateOfTransaction), d, c, txn.remarks||'', txn.reference||'', pt, dn, tn, txn.barcodeId||'', ln, ba, cb, ob]);
         }
-        data.push(row);
-    }
+    });
 
-    if (data.length === 0) {
-        alert('No visible rows to export as PDF');
-        return;
-    }
-
-    doc.setFontSize(16);
-    doc.text('Franchisee Account', 14, 15);
-
+    doc.setFontSize(16); doc.text('Ledger - '+(selectedFranchiseeName||'Franchisee'), 14, 15);
+    doc.setFontSize(10); doc.text('Period: '+currentStartDate+' to '+currentEndDate, 14, 22);
     doc.autoTable({
-        head: [headers],
-        body: data,
-        startY: 20,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [79, 129, 189], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { top: 20 }
+        head:[headers], body:data, startY:28,
+        styles:{fontSize:7, cellPadding:2},
+        headStyles:{fillColor:[220,53,69], textColor:255, fontStyle:'bold'},
+        alternateRowStyles:{fillColor:[248,249,250]},
+        margin:{top:28}
     });
-
-    doc.save('franchiseeAccount.pdf');
+    doc.save('Ledger_'+(selectedFranchiseeName||'Export')+'.pdf');
 }
 
-// small helper to avoid broken html attributes (optional)
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
-              .replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+// ---- UTILITY ----
+function showLoading() { document.getElementById('loading-overlay').classList.add('show'); document.getElementById('view-ledger-btn').disabled = true; }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); document.getElementById('view-ledger-btn').disabled = false; }
+
+})();

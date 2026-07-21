@@ -22,17 +22,30 @@ const addLabController = asyncHandler(async (req, res) => {
 })
 
 const allLabController = asyncHandler(async (req, res) => {
+     // If allInTenant=true, return ALL labs in the tenant (for full-ledger dropdowns etc.)
+     if (req.query.allInTenant === 'true') {
+       const tenantId = req.query.tenantId || req.user.tenantId;
+       const allLab = await bookingAddLab.find({ tenantId: tenantId }).sort({ createdAt: -1 });
+       return res.json(allLab);
+     }
+
      let userId;
-    if(req.user.role === 'staff'){
-        userId = req.user.parentUser
-    }else{
-        userId = req.user._id
-    }
-    const allLab = await bookingAddLab.find({ createdBy: userId });
-    if (!allLab) {
-        throw new ApiError(400, "something went wrong while fetching labs")
-    }
-    return res.json(allLab)
+     // Allow query param override for franchisee-specific lab lookup
+     if (req.query.forUserId) {
+       userId = req.query.forUserId;
+     } else if(req.user.role === 'staff'){
+       userId = req.user.parentUser
+     } else {
+       userId = req.user._id
+     }
+     // Also filter by tenantId if provided, otherwise use req.user.tenantId
+     const tenantId = req.query.tenantId || req.user.tenantId;
+     const query = { createdBy: userId, tenantId: tenantId };
+     const allLab = await bookingAddLab.find(query);
+     if (!allLab) {
+         throw new ApiError(400, "something went wrong while fetching labs")
+     }
+     return res.json(allLab)
 })
 
 const getLabById = asyncHandler(async (req, res) => {

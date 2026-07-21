@@ -4,6 +4,9 @@ import { addPannel } from "../models/AddPannel.model.js";
 import { Package } from "../models/addPackage.model.js";
 import { Ledger } from "../models/ledger.model.js";
 import { User } from "../models/user.model.js";
+import { newBooking } from "../models/NewBooking.model.js";
+import { doctors } from "../models/doctor.model.js";
+import { bookingAddLab } from "../models/bookingLabName.model.js";
 import { Types } from "mongoose";
 // Bulk price assignment API
 const assignTestPrice = asyncHandler(async (req, res) => {
@@ -966,15 +969,82 @@ const getLedgerSummary = asyncHandler(async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-async function getAccountSummary(userId, startDate, endDate) {
+async function getAccountSummary(userId, startDate, endDate, doctorId, labId) {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  // Fetch ledger transactions within the range
-  const transactions = await Ledger.find({
+  const baseQuery = {
     userId,
     createdAt: { $gte: start, $lte: end },
-  }).sort({ createdAt: 1 });
+  };
+
+  // ---- Apply doctor/lab filter same as getLedgerEntries ----
+  if (doctorId && doctorId !== 'all' && doctorId !== '') {
+    let docObjId = null;
+    try { docObjId = new Types.ObjectId(doctorId); } catch(e) {}
+    let doctorName = '';
+    if (docObjId) {
+      try {
+        const doctorDoc = await doctors.findById(doctorId).select('firstName lastName').lean();
+        if (doctorDoc) {
+          doctorName = ((doctorDoc.firstName || '') + ' ' + (doctorDoc.lastName || '')).trim();
+        }
+      } catch(e) {}
+    }
+    let bookingQuery = {};
+    if (docObjId) {
+      bookingQuery.$or = [{ savedDoctorId: docObjId }];
+      if (doctorName) bookingQuery.$or.push({ doctorName: doctorName });
+    } else {
+      bookingQuery = { doctorName: { $regex: doctorId, $options: 'i' } };
+    }
+    const matchingBookings = await newBooking.find(bookingQuery).select('_id').lean();
+    const bookingIds = matchingBookings.map(b => b._id);
+    if (bookingIds.length > 0) {
+      baseQuery.caseId = { $in: bookingIds };
+    } else {
+      throw new Error("No transactions found in the given date range");
+    }
+  }
+
+  if (labId && labId !== 'all' && labId !== '') {
+    let labObjId = null;
+    try { labObjId = new Types.ObjectId(labId); } catch(e) {}
+    let labName = '';
+    if (labObjId) {
+      try {
+        const labDoc = await bookingAddLab.findById(labId).select('LabName').lean();
+        if (labDoc) { labName = labDoc.LabName || ''; }
+      } catch(e) {}
+    }
+    let labBookingQuery = {};
+    if (labObjId) {
+      labBookingQuery.$or = [{ savedLabId: labObjId }];
+      if (labName) labBookingQuery.$or.push({ labName: labName });
+    } else {
+      labBookingQuery = { labName: { $regex: labId, $options: 'i' } };
+    }
+    const matchingBookings = await newBooking.find(labBookingQuery).select('_id').lean();
+    const labBookingIds = matchingBookings.map(b => b._id);
+    if (labBookingIds.length > 0) {
+      if (baseQuery.caseId && baseQuery.caseId.$in) {
+        const existingIds = baseQuery.caseId.$in.map(id => id.toString());
+        const intersected = labBookingIds.filter(id => existingIds.includes(id.toString()));
+        if (intersected.length > 0) {
+          baseQuery.caseId = { $in: intersected };
+        } else {
+          throw new Error("No transactions found in the given date range");
+        }
+      } else {
+        baseQuery.caseId = { $in: labBookingIds };
+      }
+    } else {
+      throw new Error("No transactions found in the given date range");
+    }
+  }
+
+  // Fetch ledger transactions within the range
+  const transactions = await Ledger.find(baseQuery).sort({ createdAt: 1 });
 
   if (!transactions.length) {
     throw new Error("No transactions found in the given date range");
@@ -1031,13 +1101,13 @@ async function getAccountSummary(userId, startDate, endDate) {
 
 const accountSummary = asyncHandler(async (req, res) => {
   try {
-    const { userId, startDate, endDate } = req.query; // Extract query parameters
+    const { userId, startDate, endDate, doctorId, labId } = req.query; // Extract query parameters
     if (!startDate || !endDate) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
     // Call the function to calculate summary
-    const summary = await getAccountSummary(userId, startDate, endDate);
+    const summary = await getAccountSummary(userId, startDate, endDate, doctorId, labId);
 
     // Send the result as response
     res.status(200).json(summary);
@@ -1049,20 +1119,104 @@ const accountSummary = asyncHandler(async (req, res) => {
 
 const getLedgerEntries = async (req, res) => {
   try {
-    const { userId, startDate, endDate } = req.query;
+    const { userId, startDate, endDate, doctorId, labId } = req.query;
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Fetch transactions within date range
-    const transactions = await Ledger.find({
+    // Build base query
+    const query = {
       userId: userId,
       createdAt: { $gte: start, $lte: end },
-    }).sort({ createdAt: 1 }).populate('caseId');
+    };
+
+    // If doctorId provided, find matching booking IDs
+    if (doctorId && doctorId !== 'all' && doctorId !== '') {
+      let docObjId = null;
+      try { docObjId = new Types.ObjectId(doctorId); } catch(e) {}
+      
+      // Look up doctor name for name-based matching
+      let doctorName = '';
+      if (docObjId) {
+        try {
+          const doctorDoc = await doctors.findById(doctorId).select('firstName lastName').lean();
+          if (doctorDoc) {
+            doctorName = ((doctorDoc.firstName || '') + ' ' + (doctorDoc.lastName || '')).trim();
+          }
+        } catch(e) {}
+      }
+
+      let bookingQuery = {};
+      if (docObjId) {
+        bookingQuery.$or = [
+          { savedDoctorId: docObjId }
+        ];
+        if (doctorName) {
+          bookingQuery.$or.push({ doctorName: doctorName });
+        }
+      } else {
+        bookingQuery = { doctorName: { $regex: doctorId, $options: 'i' } };
+      }
+
+      const matchingBookings = await newBooking.find(bookingQuery).select('_id').lean();
+      const bookingIds = matchingBookings.map(b => b._id);
+      if (bookingIds.length > 0) {
+        query.caseId = { $in: bookingIds };
+      } else {
+        return res.json({ openingBalance: 0, transactions: [] });
+      }
+    }
+
+    // If labId provided, find matching booking IDs
+    if (labId && labId !== 'all' && labId !== '') {
+      let labObjId = null;
+      try { labObjId = new Types.ObjectId(labId); } catch(e) {}
+      
+      // Look up lab name for name-based matching
+      let labName = '';
+      if (labObjId) {
+        try {
+          const labDoc = await bookingAddLab.findById(labId).select('LabName').lean();
+          if (labDoc) { labName = labDoc.LabName || ''; }
+        } catch(e) {}
+      }
+
+      let labBookingQuery = {};
+      if (labObjId) {
+        labBookingQuery.$or = [
+          { savedLabId: labObjId }
+        ];
+        if (labName) {
+          labBookingQuery.$or.push({ labName: labName });
+        }
+      } else {
+        labBookingQuery = { labName: { $regex: labId, $options: 'i' } };
+      }
+
+      const matchingBookings = await newBooking.find(labBookingQuery).select('_id').lean();
+      const labBookingIds = matchingBookings.map(b => b._id);
+      if (labBookingIds.length > 0) {
+        if (query.caseId && query.caseId.$in) {
+          // Intersect with existing doctor filter
+          const existingIds = query.caseId.$in.map(id => id.toString());
+          const intersected = labBookingIds.filter(id => existingIds.includes(id.toString()));
+          if (intersected.length > 0) {
+            query.caseId = { $in: intersected };
+          } else {
+            return res.json({ openingBalance: 0, transactions: [] });
+          }
+        } else {
+          query.caseId = { $in: labBookingIds };
+        }
+      } else {
+        return res.json({ openingBalance: 0, transactions: [] });
+      }
+    }
+
+    // Fetch transactions within date range
+    const transactions = await Ledger.find(query).sort({ createdAt: 1 }).populate('caseId');
 
     if (!transactions.length) {
-      return res
-        .status(404)
-        .json({ message: "No transactions found in the given range." });
+      return res.json({ openingBalance: 0, transactions: [] });
     }
 
     // Prepare response with additional details
@@ -1079,8 +1233,6 @@ const getLedgerEntries = async (req, res) => {
         return obj.testName;
       }) || null,
       barcodeId: txn.sampleBarcodeId || null,
-      // testName: txn.testDetails?.[0]?.testName || null,
-      // barcodeId: txn.sampleBarcodeId?.[0] || null,
       closingBalance: txn.balanceAfterTransaction || null,
       discountamount: txn.discountamount || 0,
       discountunit: txn.discountunit || 0,
@@ -1099,6 +1251,71 @@ const getLedgerEntries = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ---- Get doctors & labs specific to a franchisee's bookings ----
+const getFranchiseeDoctorsLabs = asyncHandler(async (req, res) => {
+  try {
+    const { franchiseeId } = req.query;
+    if (!franchiseeId) {
+      return res.status(400).json({ error: "franchiseeId is required" });
+    }
+
+    // Find all bookings for this franchisee — match on createdBy, subFranchiseeId, or franchisee string
+    let franchiseeObjId = null;
+    try { franchiseeObjId = new Types.ObjectId(franchiseeId); } catch(e) {}
+
+    const orConditions = [{ franchisee: franchiseeId }];
+    if (franchiseeObjId) {
+      orConditions.push({ createdBy: franchiseeObjId });
+      orConditions.push({ subFranchiseeId: franchiseeObjId });
+    }
+
+    const bookings = await newBooking.find({ 
+      $or: orConditions
+    }).select('savedDoctorId doctorName savedLabId labName').lean();
+
+    // Extract unique doctors
+    const doctorMap = new Map();
+    bookings.forEach(b => {
+      if (b.savedDoctorId) {
+        const idStr = b.savedDoctorId.toString();
+        if (!doctorMap.has(idStr)) {
+          doctorMap.set(idStr, { _id: b.savedDoctorId, name: b.doctorName || '' });
+        }
+      } else if (b.doctorName) {
+        // Doctor stored as name string only (not an ObjectId reference)
+        const key = 'name:' + b.doctorName;
+        if (!doctorMap.has(key)) {
+          doctorMap.set(key, { _id: b.doctorName, name: b.doctorName });
+        }
+      }
+    });
+
+    // Extract unique labs
+    const labMap = new Map();
+    bookings.forEach(b => {
+      if (b.savedLabId) {
+        const idStr = b.savedLabId.toString();
+        if (!labMap.has(idStr)) {
+          labMap.set(idStr, { _id: b.savedLabId, name: b.labName || '' });
+        }
+      } else if (b.labName) {
+        const key = 'name:' + b.labName;
+        if (!labMap.has(key)) {
+          labMap.set(key, { _id: b.labName, name: b.labName });
+        }
+      }
+    });
+
+    const doctorsList = Array.from(doctorMap.values());
+    const labsList = Array.from(labMap.values());
+
+    res.status(200).json({ doctors: doctorsList, labs: labsList });
+  } catch (error) {
+    console.error("Error fetching franchisee doctors/labs:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 // Fetch business analytics for the current user and their sub-franchisees
 const getBusinessAnalytics = asyncHandler(async (req, res) => {
@@ -1197,4 +1414,5 @@ export {
   getLedgerEntries,
   assignSingleTestPrice,
   getBusinessAnalytics,
+  getFranchiseeDoctorsLabs,
 };

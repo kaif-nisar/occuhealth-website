@@ -1,310 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <title>Accounts Summary</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial, sans-serif;
-      background: #f8f9fa;
-      margin: 0;
-      padding: 0;
+      background: #f1f3f5;
       color: #333;
+      font-size: 13px;
     }
-
-    .container,
-    .container5 {
-      width: 90%;
-      max-width: 1200px;
-      margin: 20px auto;
+    .container {
+      width: 97%;
+      max-width: 1400px;
+      margin: 14px auto;
       background: #fff;
-      padding: 20px;
+      padding: 16px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      overflow-x: auto;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
-
     .breadcrumb {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-      color: #6c757d;
-      margin-bottom: 10px;
+      display: flex; align-items: center; font-size: 13px; color: #6c757d; margin-bottom: 8px; gap:4px;
     }
+    .breadcrumb a { color: #6c757d; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .header { font-size: 22px; font-weight: 600; margin-bottom: 14px; }
 
-    .breadcrumb i {
-      margin-right: 5px;
-    }
-
-    .breadcrumb a {
-      color: #6c757d;
-      text-decoration: none;
-      margin-right: 5px;
-    }
-
-    .breadcrumb a:hover {
-      text-decoration: underline;
-    }
-
-    .breadcrumb span {
-      margin: 0 5px;
-    }
-
-    .header {
-      font-size: 24px;
-      font-weight: 500;
-      margin-bottom: 20px;
-    }
-
+    /* Filter bar */
     .search-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+      background: #f8f9fa; padding: 14px; border-radius: 6px;
     }
-
-    .search-bar select,
-    .search-bar input[type="date"] {
-      padding: 10px;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      flex: 1;
-      min-width: 150px;
+    .filter-group { display: flex; flex-direction: column; gap: 3px; flex:1; min-width: 130px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; }
+    .search-bar select, .search-bar input[type="date"] {
+      padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; width: 100%; font-size: 13px;
     }
-
     .search-bar button {
-      padding: 10px 20px;
-      background: #dc3545;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
+      padding: 9px 18px; background: #dc3545; color: #fff; border: none; border-radius: 4px;
+      cursor: pointer; height: 36px; font-weight: 600; white-space: nowrap; font-size: 13px;
     }
+    .search-bar button:hover { background: #c82333; }
+    .search-bar button:disabled { background: #aaa; cursor: not-allowed; }
 
-    .search-bar button:hover {
-      background: #c82333;
+    /* Quick stats */
+    .quick-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat-card {
+      flex:1; min-width: 140px; padding: 12px 14px; border-radius: 6px; color: #fff;
+      display: flex; flex-direction: column; gap: 2px;
     }
+    .stat-card .stat-label { font-size: 11px; opacity: 0.85; }
+    .stat-card .stat-value { font-size: 18px; font-weight: 700; }
+    .stat-card.credit { background: linear-gradient(135deg,#28a745,#20c997); }
+    .stat-card.debit { background: linear-gradient(135deg,#dc3545,#fd7e14); }
+    .stat-card.neutral { background: linear-gradient(135deg,#6c757d,#495057); }
+    .stat-card.info { background: linear-gradient(135deg,#007bff,#6610f2); }
 
-    h1 {
-      font-size: 22px;
-      margin: 20px 0;
+    h1 { font-size: 18px; margin: 0; }
+
+    /* TABLE WRAPPER — fixed height + scroll */
+    .table-wrapper {
+      width: 100%; max-height: 55vh; overflow: auto;
+      border: 1px solid #dee2e6; border-radius: 4px; margin-top: 10px;
     }
-
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
+      width: 100%; min-width: 1100px; border-collapse: collapse; table-layout: auto;
     }
-
-    th,
-    td {
-      padding: 10px;
-      text-align: left;
-      border: 1px solid #ddd;
+    th, td {
+      padding: 7px 8px; text-align: left; border: 1px solid #dee2e6; font-size: 12px;
+      white-space: nowrap;
     }
+    th { background: #212529; color: #fff; font-weight: 500; position: sticky; top:0; z-index:2; }
+    td.credit { color: #198754; font-weight: 600; }
+    td.debit { color: #dc3545; font-weight: 600; }
 
-    th {
-      background: #000;
-      color: #fff;
-      font-weight: 500;
-    }
-
-    .header-row {
-      background: #e0e0e0;
-      font-weight: bold;
-    }
-
-    .bold {
-      font-weight: bold;
-    }
-
-    td.credit {
-      color: green;
-    }
-
-    td.debit {
-      color: red;
-    }
-
-    .buttons {
-      margin-bottom: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
     .buttons button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      color: #fff;
-      cursor: pointer;
+      padding: 8px 16px; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-weight: 600; font-size:12px;
     }
+    .download-excel { background: #0d6efd; }
+    .download-pdf { background: #dc3545; }
 
-    .download-excel {
-      background: #007bff;
-    }
-
-    .download-pdf {
-      background: #ff4d4d;
-    }
-
-    .search-container {
-      margin-bottom: 15px;
-    }
-
+    .search-container { margin: 10px 0; }
     .search-container input {
-      padding: 10px;
-      width: 100%;
-      max-width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      padding: 8px 12px; width: 260px; max-width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size:13px;
     }
+
+    /* Pagination */
+    .pagination {
+      display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap;
+    }
+    .pagination button {
+      padding: 6px 14px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-size:12px;
+    }
+    .pagination button:disabled { opacity: 0.5; cursor: default; }
+    .pagination .page-info { font-size: 13px; color: #555; }
+    .pagination select { padding: 6px; border-radius: 4px; border:1px solid #ccc; }
+
+    /* Loading */
+    #loading-overlay {
+      display: none; position: fixed; inset:0; background: rgba(0,0,0,0.3); z-index:9999;
+      justify-content: center; align-items: center; flex-direction: column; gap: 10px;
+    }
+    #loading-overlay.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #ccc; border-top-color: #dc3545; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    #loading-overlay span { color: #fff; font-weight: 600; }
 
     @media (max-width: 768px) {
-      .search-bar {
-        flex-direction: column;
-      }
-
-      .search-bar select,
-      .search-bar input,
-      .search-bar button {
-        width: 100%;
-      }
-
-      .buttons {
-        flex-direction: column;
-      }
-
-      .buttons button {
-        width: 100%;
-      }
+      .search-bar { flex-direction: column; }
+      .quick-stats { flex-direction: column; }
+      .buttons { flex-direction: column; }
+      .buttons button { width: 100%; }
     }
   </style>
-  <!-- Include Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <!-- Include SheetJS for Excel export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Include jsPDF and jsPDF-AutoTable for PDF export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
-
 <body>
-  <section class="container">
-    <div class="breadcrumb">
-      <i class="fas fa-home"></i>
-      <a href="#">Dashboard</a>
-      <span>&gt;</span>
-      <a href="#">Credit</a>
-    </div>
-    <div class="header">Ledger List</div>
-    <div class="search-bar">
-      <select id="franchisee-select">
-        <option value="self">Self</option>
-        <!-- Franchisee options will be populated dynamically -->
-      </select>
+<div id="loading-overlay"><div class="spinner"></div><span>Loading ledger...</span></div>
 
+<section class="container">
+  <div class="breadcrumb">
+    <i class="fas fa-home"></i> <a href="#">Dashboard</a> <span>></span> <a href="#">Credit</a>
+  </div>
+  <div class="header">Ledger List</div>
+  <div class="search-bar">
+    <div class="filter-group">
+      <label><i class="fas fa-user"></i> Franchisee</label>
+      <select id="franchisee-select"><option value="self">Self</option></select>
+    </div>
+    <div class="filter-group">
+      <label><i class="fas fa-calendar-alt"></i> Start Date</label>
       <input type="date" id="start-date">
-      <input type="date" id="end-date">
-      <button id="view-ledger-btn"><i class="fas fa-search"></i> View</button>
-      <select id="doctor-select">
-        <option value="all">All Doctors</option>
-      </select>
-
-      <select id="lab-select">
-        <option value="all">All Labs</option>
-      </select>
-
-      <button id="apply-filter-btn">Apply Filter</button>
     </div>
-  </section>
+    <div class="filter-group">
+      <label><i class="fas fa-calendar-alt"></i> End Date</label>
+      <input type="date" id="end-date">
+    </div>
+    <div class="filter-group">
+      <label><i class="fas fa-user-md"></i> Doctor</label>
+      <select id="doctor-select"><option value="all">All Doctors</option></select>
+    </div>
+    <div class="filter-group">
+      <label><i class="fas fa-flask"></i> Lab</label>
+      <select id="lab-select"><option value="all">All Labs</option></select>
+    </div>
+    <button id="view-ledger-btn"><i class="fas fa-search"></i> View</button>
+  </div>
+</section>
 
-  <section class="container">
-    <h1 id="accounts-summary-title">Accounts Summary</h1>
-    <table>
-      <tr class="header-row">
-        <td colspan="2"></td>
-      </tr>
-      <tr>
-        <th>#</th>
-        <th>Amount</th>
-      </tr>
-      <tr>
-        <td class="bold">Opening Balance</td>
-        <td class="opening-balance">Rs. 00</td>
-      </tr>
-      <tr>
-        <td class="bold">Closing Balance</td>
-        <td class="closing-balance">Rs. 00</td>
-      </tr>
-      <tr>
-        <td>Booking Amount</td>
-        <td class="booking-amount">Rs. 00</td>
-      </tr>
-      <tr>
-        <td>Cancellation/Refund</td>
-        <td class="cancellation-refund">Rs. 00</td>
-      </tr>
-      <tr>
-        <td>Commission Amount</td>
-        <td class="commission-amount">Rs. 00</td>
-      </tr>
-      <tr>
-        <td>Deposit Amount</td>
-        <td class="deposit-amount">Rs. 0</td>
-      </tr>
-      <tr>
-        <td>Inventory Debit</td>
-        <td class="inventory-debit">Rs. 0</td>
-      </tr>
-      <tr>
-        <td>Debited/Adjusted Amount</td>
-        <td class="debited-adjusted-amount">Rs. 00</td>
-      </tr>
-    </table>
-  </section>
+<section class="container" style="margin-top:0;">
+  <div class="quick-stats">
+    <div class="stat-card neutral"><span class="stat-label">Opening Balance</span><span class="stat-value opening-balance">Rs. 0</span></div>
+    <div class="stat-card info"><span class="stat-label">Closing Balance</span><span class="stat-value closing-balance">Rs. 0</span></div>
+    <div class="stat-card debit"><span class="stat-label">Total Debit</span><span class="stat-value total-debit">Rs. 0</span></div>
+    <div class="stat-card credit"><span class="stat-label">Total Credit</span><span class="stat-value total-credit">Rs. 0</span></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#17a2b8,#0dcaf0);"><span class="stat-label">Commission</span><span class="stat-value commission-amount">Rs. 0</span></div>
+    <div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#ffc107);"><span class="stat-label">Booking Amount</span><span class="stat-value booking-amount">Rs. 0</span></div>
+  </div>
+</section>
 
-  <section class="container container5">
+<section class="container container5">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
     <h1>Franchisee Account</h1>
     <div class="buttons">
       <button class="download-excel"><i class="fas fa-file-excel"></i> Download Excel</button>
       <button class="download-pdf"><i class="fas fa-file-pdf"></i> Download PDF</button>
     </div>
-    <div class="search-container">
-      <label for="search">Search:</label>
-      <input type="text" id="search" placeholder="Search entries...">
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Franchisee ID</th>
-          <th>Date of Transaction</th>
-          <th>Debit</th>
-          <th class="formany">Credit</th>
-          <th>Remarks</th>
-          <th>Reference</th>
-          <th>Patient</th>
-          <th>Doctor</th>
-          <th>Test Name</th>
-          <th>Barcode ID</th>
-          <th class="forone">Discount</th>
-          <th class="forone">Discount (%)</th>
-          <th class="formany">Lab Name</th>
-          <th>Booking-Amount</th>
-          <th class="formany">Closing Balance</th>
-          <th class="formany">Opening Balance</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </section>
+  </div>
+  <div class="search-container">
+    <label for="search"><i class="fas fa-search"></i> Search:</label>
+    <input type="text" id="search" placeholder="Search entries...">
+  </div>
+  <div class="table-wrapper">
+  <table>
+    <thead><tr>
+      <th>#</th><th>Franchisee</th><th>Date & Time</th><th>Debit</th>
+      <th class="formany">Credit</th><th>Remarks</th><th>Reference</th><th>Patient</th>
+      <th>Doctor</th><th>Test Name</th><th>Barcode ID</th>
+      <th class="forone">Disc.</th><th class="forone">Disc.%</th>
+      <th class="formany">Lab Name</th><th>Booking Amt.</th>
+      <th class="formany">Closing Bal.</th><th class="formany">Opening Bal.</th>
+    </tr></thead>
+    <tbody id="tbody"><tr><td colspan="17" style="text-align:center;padding:30px;color:#999;">Select a franchisee and click <strong>View</strong> to load the ledger</td></tr></tbody>
+  </table>
+  </div>
+  <div class="pagination" id="pagination-controls" style="display:none;">
+    <button id="prev-page-btn"><i class="fas fa-chevron-left"></i> Prev</button>
+    <span class="page-info" id="page-info">Page 1</span>
+    <button id="next-page-btn">Next <i class="fas fa-chevron-right"></i></button>
+    <span style="margin-left:8px;">Rows:</span>
+    <select id="rows-per-page">
+      <option value="25">25</option><option value="50" selected>50</option><option value="100">100</option><option value="all">All</option>
+    </select>
+    <span class="page-info" id="total-rows-info"></span>
+  </div>
+</section>
 </body>
-
 </html>

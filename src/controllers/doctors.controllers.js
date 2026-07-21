@@ -59,17 +59,30 @@ const addDoctorsController = asyncHandler(async (req, res) => {
 });
 
 const allDoctorsController = asyncHandler(async (req, res) => {
-   let userId;
-    if(req.user.role === 'staff'){
-        userId = req.user.parentUser
-    }else{
-        userId = req.user._id
-    }
+  // If allInTenant=true, return ALL doctors in the tenant (for full-ledger dropdowns etc.)
+  if (req.query.allInTenant === 'true') {
+    const tenantId = req.query.tenantId || req.user.tenantId;
+    const allDoctors = await doctors.find({ tenantId: tenantId }).sort({ createdAt: -1 });
+    return res.json(allDoctors);
+  }
+
+  let userId;
+  // Allow query param override for franchisee-specific doctor lookup
+  if (req.query.forUserId) {
+    userId = req.query.forUserId;
+  } else if(req.user.role === 'staff'){
+    userId = req.user.parentUser
+  } else {
+    userId = req.user._id
+  }
   if (!userId) {
     throw new ApiError(400, "userId is required");
   }
+  // Also filter by tenantId if provided, otherwise use req.user.tenantId
+  const tenantId = req.query.tenantId || req.user.tenantId;
+  const query = { createdBy: userId, tenantId: tenantId };
   const allDoctors = await doctors
-    .find({ createdBy: userId })
+    .find(query)
     .sort({ createdAt: -1 });
   if (!allDoctors) {
     throw new ApiError(400, "something went wrong while fetching doctors");

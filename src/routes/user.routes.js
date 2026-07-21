@@ -158,6 +158,7 @@ import {
   getLedgerEntries,
   assignSingleTestPrice,
   getBusinessAnalytics,
+  getFranchiseeDoctorsLabs,
 } from "../controllers/commission.controller.js";
 import { barcodegeneratecontroller } from "../controllers/barcode.controller.js";
 import {
@@ -525,6 +526,7 @@ router.route("/ledger-summary").get(verifyJWT, getLedgerSummary)
 router.route("/total-commission").get(verifyJWT, totalCommission)
 router.route("/account-summary").get(verifyJWT, checkStaffPermission('canManagePayments'), accountSummary)
 router.route("/ledgerEntries").get(verifyJWT, checkStaffPermission('canManagePayments'), getLedgerEntries);
+router.route("/franchisee-doctors-labs").get(verifyJWT, checkStaffPermission('canManagePayments'), getFranchiseeDoctorsLabs);
 router.route("/bookings-search").get(verifyJWT, searchit)
 router.route("/assign-single-test-price").post(verifyJWT, checkStaffPermission('canManageTest'), assignSingleTestPrice)
 router.route("/verify-pin").post(verifyJWT, checkStaffPermission('canManagePayments'), verifyPin)
