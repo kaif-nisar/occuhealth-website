@@ -1,4 +1,7 @@
 (async function () {
+    const downloadPdfDiv = document.querySelector('.download-pdf-div');
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'none';
+
     const urlParams = await new URLSearchParams(window.location.search);
     let value1 = await urlParams.get('value1');
     let report = await fetchreport(value1);
@@ -15,7 +18,7 @@
             const response = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
 
             if (!response.ok) {
-                console.log("doctor sign is not available");
+                // console.log("doctor sign is not available");
                 return;
             }
 
@@ -45,7 +48,7 @@
             signoffdiv.appendChild(div);
             await qrcodegenerator();
         } catch (error) {
-            console.log(error.message);
+            // console.log(error.message);
         }
     }
 
@@ -75,7 +78,7 @@
             }
         }
 
-        console.log(`${images.length} image(s) processed for PDF export.`);
+        // console.log(`${images.length} image(s) processed for PDF export.`);
     }
 
     // Image URL ko Base64 string me convert karne wala helper function
@@ -121,7 +124,7 @@
             const data = await response.json();
 
             const qrCodeImage = document.getElementById('qrimg');
-            console.log(qrCodeImage, "this is qr code image");
+            // console.log(qrCodeImage, "this is qr code image");
 
             qrCodeImage.src = data.qrCode;
             qrCodeImage.style.display = 'block';
@@ -157,6 +160,7 @@
         return {
             labinchargesign: report.showLabIncharge,
             reportId: value1,
+            bookingId: report.bookingId,
             backgroundImageUrl,
             ...snapshot,
             ...extraFields
@@ -164,7 +168,7 @@
     }
 
     async function savePdfData(payload) {
-        console.log("Saving PDF data:", payload);
+        // console.log("Saving PDF data:", payload);
         const response = await fetch(`${BASE_URL}/api/v1/user/adding-pdf-data`, {
             method: 'POST',
             headers: {
@@ -195,7 +199,7 @@
             // Sending data to the backend
             await savePdfDataFromPage(pdfSnapshot);
 
-            console.log('Data added successfully');
+            // console.log('Data added successfully');
             // If the response is OK, allow navigation
             window.location.href = document.getElementById('PDFsettinganchr').href;
 
@@ -233,7 +237,7 @@
                 e.target.disable = true;
                 await savePdfDataFromPage(pdfSnapshot);
 
-                console.log("data added successfully");
+                // console.log("data added successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -263,7 +267,7 @@
                 // Create a URL for the Blob
                 const pdfUrl = URL.createObjectURL(pdfBlob);
 
-                console.log(pdfUrl);
+                // console.log(pdfUrl);
                 // Set the URL in the iframe
                 const iframe = document.getElementById('pdfFrame');
                 if (iframe) {
@@ -316,7 +320,7 @@
         const response = await fetch(pdfUrl);
         const blob = await response.blob(); // Convert blob URL into actual Blob data
         const pdfFile = new File([blob], "report2.pdf", { type: "application/pdf" }); // Create a File object
-        console.log('Phone:', phoneNumber); // Check file details
+        // console.log('Phone:', phoneNumber); // Check file details
 
         const formData = new FormData();
         formData.append('pdf', pdfFile); // `selectedFile` is the file object
@@ -405,7 +409,7 @@
             return await response.json();
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
     function formatDateTime(timestamp) {
@@ -471,7 +475,7 @@
 
         document.querySelector(".report-details").appendChild(patientdetails);
     }
-    console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
+    // console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
 
     await populateHeader();
 
@@ -950,11 +954,11 @@
                 body: JSON.stringify({ bookingid }),
             });
             if (!response.ok) {
-                console.log("status not updated");
+                // console.log("status not updated");
             }
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
 
@@ -965,7 +969,7 @@
 
             // Check if the response is okay
             if (!response.ok) {
-                console.log('Failed to fetch data from API');
+                // console.log('Failed to fetch data from API');
             }
 
             // Parse the response JSON
@@ -1008,7 +1012,7 @@
             try {
                 await savePdfDataFromPage(pdfSnapshot);
 
-                console.log("labinchargesign edited successfully");
+                // console.log("labinchargesign edited successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -1084,6 +1088,8 @@
 
 
     await sendReport();
+    
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'flex';
 
     function hidecontent() {
         if (user.showprintsetting === false) {

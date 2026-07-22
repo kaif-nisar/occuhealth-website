@@ -1,5 +1,8 @@
 
 (async function () {
+    const downloadPdfDiv = document.querySelector('.download-pdf-div');
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'none';
+
     const urlParams = await new URLSearchParams(window.location.search);
     let value1 = await urlParams.get('value1');
     let report = await fetchreport();
@@ -21,7 +24,7 @@
 
 
             if (!response.ok) {
-                console.log("doctor sign is not available");
+                // console.log("doctor sign is not available");
                 return;
             }
 
@@ -51,7 +54,7 @@
             signoffdiv.appendChild(div);
 
         } catch (error) {
-            console.log(error.message);
+            // console.log(error.message);
         }
     }
 
@@ -94,7 +97,7 @@
             for (let img of images) {
                 img.src = await imageToBase64(img.src);
             }
-            console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
+            // console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
         } catch (error) {
             console.error("Error converting images:", error);
         }
@@ -127,7 +130,7 @@
         const header = document.querySelector('.report-details').outerHTML;
         const footer = document.querySelector('.signed-off-div').outerHTML;
         const investigationmargin = countLines();
-        console.log("investigationmargin:", investigationmargin);
+        // console.log("investigationmargin:", investigationmargin);
 
         try {
             // Sending data to the backend
@@ -144,7 +147,7 @@
                     cssContent,
                     header,
                     footer,
-                    reportId: value1,
+                    reportId: value1, bookingId: report.bookingId,
                     backgroundImageUrl,
                     investigationmargin
                 }),
@@ -189,7 +192,7 @@
             const header = document.querySelector('.report-details').outerHTML;
             const footer = document.querySelector('.signed-off-div').outerHTML;
             const investigationmargin = countLines();
-            console.log("investigationmargin:", investigationmargin);
+            // console.log("investigationmargin:", investigationmargin);
 
             try {
                 loader.style.display = 'flex';
@@ -203,13 +206,13 @@
                         showlab: reportformatlabsign,
                         showdoctorfirst: reportformatfirstdoctorsign,
                         showdoctorsecond: reportformatseconddoctorsign, htmlContent, cssContent, header,
-                        footer, reportId: value1, backgroundImageUrl, investigationmargin
+                        footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin
                     }),
                 });
 
                 if (!response.ok) throw new Error('data not saved');
 
-                console.log("data added successfully");
+                // console.log("data added successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -377,7 +380,7 @@
             return await response.json();
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
 
@@ -462,7 +465,7 @@
 
         document.querySelector(".report-details").appendChild(patientdetails);
     }
-    console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
+    // console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
 
     await populateHeader();
     await qrcodegenerator();
@@ -881,7 +884,7 @@
                 showdoctorfirst: reportformatfirstdoctorsign,
                 showdoctorsecond: reportformatseconddoctorsign,
                 htmlContent, cssContent,
-                header, footer, reportId: value1, backgroundImageUrl, investigationmargin,
+                header, footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin,
                 bookingId: report.bookingId,
                 isdocumented: report.isdocumented
             }
@@ -896,10 +899,10 @@
 
                 // Parse the response JSON
                 const data = await response.json();
-                console.log(data);
+                // console.log(data);
 
                 if (!report.signOff) {
-                    console.log("report sign off false");
+                    // console.log("report sign off false");
 
                     updateData.showlab = data.showfirstdoctorsign;
                     updateData.showdoctorfirst = data.showfirstdoctorsign;
@@ -912,7 +915,7 @@
                     updateData.fileInputDoctorrighttext = data.seconddoctorsigninfo;
                 }
             } catch (error) {
-                console.log(error.message);
+                // console.log(error.message);
 
             }
 
@@ -940,7 +943,7 @@
             } catch (error) {
                 console.error('Error generating PDF:', error);
             }
-            console.log("updateData is:", updateData);
+            // console.log("updateData is:", updateData);
 
             try {
                 const response = await fetch(`/api/v1/user/adding-pdf-data`, {
@@ -952,7 +955,7 @@
                 });
 
                 if (!response.ok) throw new Error('data not saved');
-                console.log("pdf data saved successfully");
+                // console.log("pdf data saved successfully");
 
                 await updatebookingisreportreadyfield(report.bookingId);
 
@@ -1010,11 +1013,11 @@
                 body: JSON.stringify({ bookingid }),
             });
             if (!response.ok) {
-                console.log("status not updated");
+                // console.log("status not updated");
             }
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
 
@@ -1025,7 +1028,7 @@
 
     //         // Check if the response is okay
     //         if (!response.ok) {
-    //             console.log('Failed to fetch data from API');
+    //             // console.log('Failed to fetch data from API');
     //         }
 
     //         // Parse the response JSON
@@ -1082,13 +1085,13 @@
                         showlab: reportformatlabsign,
                         showdoctorfirst: reportformatfirstdoctorsign,
                         showdoctorsecond: reportformatseconddoctorsign, htmlContent,
-                        cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin
+                        cssContent, header, footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin
                     }),
                 });
 
                 if (!response.ok) throw new Error('data not saved');
 
-                console.log("labinchargesign edited successfully");
+                // console.log("labinchargesign edited successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -1161,6 +1164,8 @@
 
 
     await sendReport();
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'flex';
+
     function hidecontent() {
         if (user.showprintsetting === false) {
             document.getElementById('printsettingbutton').style.display = "none";

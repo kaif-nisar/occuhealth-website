@@ -402,7 +402,7 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
                 }
             }
         } else {
-            console.log('No background image URL provided, proceeding with blank background');
+            // console.log('No background image URL provided, proceeding with blank background');
         }
 
         const pages = inputPdfDoc.getPages();
@@ -757,7 +757,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
         // Save the path to the database
         const getcustomization = await customization.findOneAndUpdate(
-            { reportId: reportId }, // Or use some identifier
+            { tenantId, bookingId }, // Query by tenantId and bookingId
             updateData,
             {
                 new: true,  // Return the updated document
@@ -1008,7 +1008,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
         // Save the path to the database
         const getcustomization = await customization.findOneAndUpdate(
-            { reportId: reportId }, // Or use some identifier
+            { tenantId, bookingId }, // Query by tenantId and bookingId
             updateData,
             {
                 new: true,  // Return the updated document
@@ -1055,8 +1055,8 @@ const getpdfcontroller = async (req, res) => {
     try {
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId: tid });
-        const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
-        console.log("Fetched customization from DB:", gettingcustomization);
+        const gettingcustomization = await customization.findOne({ tenantId: tid, bookingId: pdfContext.resolvedBookingId });
+        // console.log("Fetched customization from DB:", gettingcustomization);
         const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
             tenantId: tid,
             backgroundImageUrl,
@@ -1557,7 +1557,7 @@ const getpdfcontrolleruser = async (req, res) => {
     try {
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId });
-        const gettingcustomization = await customization.findOne({ reportId: pdfContext.resolvedReportId });
+        const gettingcustomization = await customization.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id, bookingId: pdfContext.resolvedBookingId });
         const userPdfFormat = req.user?.role === "admin"
             ? req.user?.pdfFormat
             : req.user?.createdBy?.pdfFormat;
@@ -1677,7 +1677,9 @@ const savingPdfDatacontroller = async (req, res) => {
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId } = req.body;
 
-    // console.log("Received data for saving PDF customization:", header);
+    // console.log("header", header, "footer", footer, "htmlcontent:", htmlContent );
+
+    // // console.log("Received data for saving PDF customization:", header);
 
     // Best balance of safety + simplicity
     const vars = {
@@ -1701,7 +1703,6 @@ const savingPdfDatacontroller = async (req, res) => {
 
     const getcustomization = await customization.findOneAndUpdate(
         {
-            reportId: reportId,
             tenantId: tenantId,
             bookingId: bookingId
         }, // Or use some identifier
@@ -1729,7 +1730,7 @@ const getCustomizationByReportId = async (req, res) => {
         const { reportId } = req.body;
 
         if (!reportId) {
-            return console.log('pdf data not found in database')
+            return // console.log('pdf data not found in database')
         }
 
         // Find the document by reportId
@@ -1809,7 +1810,7 @@ const invoicepdfgenerator = async (req, res) => {
         res.end(pdfBuffer);
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
     }
 
 }
@@ -1923,7 +1924,7 @@ const certificatepdfgenerator = async (req, res) => {
         res.end(pdfBuffer);
 
     } catch (error) {
-        console.log(error)
+        // console.log(error)
     }
 
 }

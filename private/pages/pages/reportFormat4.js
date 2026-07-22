@@ -1,4 +1,7 @@
 (async function () {
+    const downloadPdfDiv = document.querySelector('.download-pdf-div');
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'none';
+
     const urlParams = await new URLSearchParams(window.location.search);
     let value1 = await urlParams.get('value1');
     let report = await fetchreport(value1);
@@ -15,7 +18,7 @@
             const response = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
 
             if (!response.ok) {
-                console.log("doctor sign is not available");
+                // console.log("doctor sign is not available");
                 return;
             }
 
@@ -45,7 +48,7 @@
             signoffdiv.appendChild(div);
             await qrcodegenerator();
         } catch (error) {
-            console.log(error.message);
+            // console.log(error.message);
         }
     }
 
@@ -64,7 +67,7 @@
             for (let img of images) {
                 img.src = await imageToBase64(img.src);
             }
-            console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
+            // console.log(`${images.length} image(s) Base64 me convert ho gaye!`);
         } catch (error) {
             console.error("Error converting images:", error);
         }
@@ -102,7 +105,7 @@
             const data = await response.json();
 
             const qrCodeImage = document.getElementById('qrimg');
-            console.log(qrCodeImage, "this is qr code image");
+            // console.log(qrCodeImage, "this is qr code image");
 
             qrCodeImage.src = data.qrCode;
             qrCodeImage.style.display = 'block';
@@ -142,7 +145,7 @@
                     cssContent,
                     header,
                     footer,
-                    reportId: value1,
+                    reportId: value1, bookingId: report.bookingId,
                     backgroundImageUrl,
                     investigationmargin,
                     format: user.pdfFormat
@@ -151,7 +154,7 @@
 
             if (!response.ok) throw new Error('Data not saved');
 
-            console.log('Data added successfully');
+            // console.log('Data added successfully');
             // If the response is OK, allow navigation
             window.location.href = document.getElementById('PDFsettinganchr').href;
 
@@ -197,12 +200,12 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin }),
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin }),
                 });
 
                 if (!response.ok) throw new Error('data not saved');
 
-                console.log("data added successfully");
+                // console.log("data added successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -230,7 +233,7 @@
                 // Create a URL for the Blob
                 const pdfUrl = URL.createObjectURL(pdfBlob);
 
-                console.log(pdfUrl);
+                // console.log(pdfUrl);
                 // Set the URL in the iframe
                 const iframe = document.getElementById('pdfFrame');
                 if (iframe) {
@@ -283,7 +286,7 @@
         const response = await fetch(pdfUrl);
         const blob = await response.blob(); // Convert blob URL into actual Blob data
         const pdfFile = new File([blob], "report2.pdf", { type: "application/pdf" }); // Create a File object
-        console.log('Phone:', phoneNumber); // Check file details
+        // console.log('Phone:', phoneNumber); // Check file details
 
         const formData = new FormData();
         formData.append('pdf', pdfFile); // `selectedFile` is the file object
@@ -372,7 +375,7 @@
             return await response.json();
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
 
@@ -702,7 +705,7 @@
 
         document.querySelector(".report-details").appendChild(patientdetails);
     }
-    console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
+    // console.log(`this is report.time ${new Date(report.date).toISOString().split('T')[0]}T${report.time}`, "this is receivedOn:", report.receivedOn);
 
     await populateHeader();
 
@@ -1358,7 +1361,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin, bookingId: report.bookingId, isdocumented: report.isDocumented, format: user.pdfFormat }),
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin, bookingId: report.bookingId, isdocumented: report.isDocumented, format: user.pdfFormat }),
                 });
 
                 if (!response.ok) throw new Error('data not saved');
@@ -1416,11 +1419,11 @@
                 body: JSON.stringify({ bookingid }),
             });
             if (!response.ok) {
-                console.log("status not updated");
+                // console.log("status not updated");
             }
 
         } catch (error) {
-            console.log(error)
+            // console.log(error)
         }
     }
 
@@ -1431,7 +1434,7 @@
 
             // Check if the response is okay
             if (!response.ok) {
-                console.log('Failed to fetch data from API');
+                // console.log('Failed to fetch data from API');
             }
 
             // Parse the response JSON
@@ -1482,12 +1485,12 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, backgroundImageUrl, investigationmargin, format: user.pdfFormat }),
+                    body: JSON.stringify({ labinchargesign: report.showLabIncharge, htmlContent, cssContent, header, footer, reportId: value1, bookingId: report.bookingId, backgroundImageUrl, investigationmargin, format: user.pdfFormat }),
                 });
 
                 if (!response.ok) throw new Error('data not saved');
 
-                console.log("labinchargesign edited successfully");
+                // console.log("labinchargesign edited successfully");
 
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -1562,6 +1565,7 @@
 
 
     await sendReport();
+    if (downloadPdfDiv) downloadPdfDiv.style.display = 'flex';
 
     function hidecontent() {
         if (user.showprintsetting === false) {
