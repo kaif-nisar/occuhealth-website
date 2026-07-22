@@ -394,10 +394,10 @@ async function allcases() {
                     </div>
                     <i class="fas fa-ellipsis-h more-options"></i>
                     <div class="allcases-dropdown-menu" style="display: none;">
-                        <a data-page="labreport" class="download-report" target="_blank"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
-                        <a data-page="ModifyCase" class="action-btn modify-case" target="_blank"><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
-                        <a class="action-btn hold-btn" target="_blank"><i class="fa-solid fa-hands-holding"></i> Hold</a> 
-                        <a class="action-btn clinical-btn" target="_blank"><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>                               
+                        <a data-page="labreport" class="download-report"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
+                        <a data-page="ModifyCase" class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                        <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a> 
+                        <a class="action-btn clinical-btn"><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>                               
                     </div>
                 </td>`;
             } else {
@@ -415,10 +415,10 @@ async function allcases() {
                     </div>
                     <i class="fas fa-ellipsis-h more-options"></i>
                     <div class="allcases-dropdown-menu" style="display: none;">
-                        <a class="action-btn modify-case" target="_blank"><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
-                        <a class="action-btn hold-btn" target="_blank"><i class="fa-solid fa-hands-holding"></i> Hold</a>
-                        <a class="action-btn clinical-btn" target="_blank"><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>
-                        <a class="action-btn cancel-btn" target="_blank"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
+                        <a class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                        <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a>
+                        <a class="action-btn clinical-btn" ><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>
+                        <a class="action-btn cancel-btn"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
                     </div>
                 </td>`;
             }

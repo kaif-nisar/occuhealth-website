@@ -5,168 +5,456 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - OccuHealth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F8FAFC;
+      color: #1E293B;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.5;
     }
 
+    /* ============================================================
+       DASHBOARD CONTAINER — 8px spatial grid
+       ============================================================ */
     .dashboard-container {
-      max-width: 1200px;
-      margin: auto;
-      padding: 10px;
+      max-width: 1248px;
+      margin: 0 auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .breadcrumb {
-      color: #555;
-      margin-bottom: 10px;
+    /* ============================================================
+       SLIDER — refined container with subtle elevation
+       ============================================================ */
+    .slider-container {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
     }
 
-    .alert-box,
-    .helpdesk,
-    .booking-table,
-    .info-box {
-      background: white;
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 15px;
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
-      overflow: auto;
-
+    .slider {
+      display: flex;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      height: 200px;
     }
-    .helpdesk h2 {
-      margin-top: 0;
+
+    .slide {
+      min-width: 100%;
+      position: relative;
+      background: #F1F5F9;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .slide-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.45) 50%, transparent 100%);
+      color: #FFFFFF;
+      padding: 20px 16px 16px;
+      text-align: left;
+    }
+
+    .slide-content h2 {
       font-size: 1.25rem;
-      color: #333;
-      font-family: cursive;
-      font-weight: bold;
+      font-weight: 700;
+      margin: 0 0 2px;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
     }
 
-    .order-now {
-      color: red;
-      font-weight: bold;
-      text-decoration: none;
+    .slide-content p {
+      font-size: 0.8125rem;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.85);
+      letter-spacing: -0.01em;
     }
 
+    /* Slider navigation buttons */
+    .btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #475569;
+      border: 1px solid #E2E8F0;
+      border-radius: 50%;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(4px);
+    }
+
+    .btn:hover {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-color: #CBD5E1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .btn-prev {
+      left: 16px;
+    }
+
+    .btn-next {
+      right: 16px;
+    }
+
+    .dots-container {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .dot.active {
+      background: #FFFFFF;
+      width: 24px;
+      border-radius: 999px;
+    }
+
+    /* ============================================================
+       INFO BOX — subtle gradient welcome banner
+       ============================================================ */
     .info-box {
-      background: #2c5a91;
-      color: white;
-      font-family: cursive;
+      background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+      color: #F1F5F9;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.06),
+        0 1px 2px -1px rgba(0, 0, 0, 0.04);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     .info-box h1 {
-      margin: 0 0 10px 0;
-      font-weight: bold;
-      font-size: large;
+      margin: 0 0 2px 0;
+      font-weight: 700;
+      font-size: 0.9375rem;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .info-box p {
+      margin: 0;
+      font-size: 0.75rem;
+      color: #CBD5E1;
+      letter-spacing: -0.01em;
     }
 
     .highlight {
-      color: yellow;
-      font-weight: bold;
+      color: #A5B4FC;
+      font-weight: 600;
     }
 
-    .stats-container {
+    /* ============================================================
+       TARGET PROGRESS CARD
+       ============================================================ */
+    .target-progress {
+      background: #FFFFFF;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
+      transition: box-shadow 0.2s ease-in-out;
+    }
+
+    .target-progress:hover {
+      box-shadow:
+        0 4px 12px 0 rgba(0, 0, 0, 0.06),
+        0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    .target-header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
       justify-content: space-between;
-      margin-bottom: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .target-header h3 {
+      margin: 0;
+      color: #1E293B;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .target-header i {
+      color: #6366F1;
+      font-size: 0.75rem;
+    }
+
+    #target-month {
+      color: #94A3B8;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .target-bar {
+      background: #F1F5F9;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, #818CF8, #6366F1);
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      border-radius: 999px;
+    }
+
+    .progress-text {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #FFFFFF;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .target-details {
+      display: flex;
+      justify-content: space-between;
+      color: #64748B;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .target-details span span {
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* ============================================================
+       STATS CONTAINER — metric cards grid
+       ============================================================ */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
 
     .stat {
-      flex: 1 1 calc(25% - 10px);
-      min-width: 140px;
-      min-height: 230px;
-      padding: 25px;
-      text-align: center;
-      border-radius: 5px;
+      position: relative;
+      min-height: 110px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      position: relative;
       overflow: hidden;
-      color: whitesmoke;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
+      transition: all 0.25s ease-in-out;
+      color: #FFFFFF;
     }
 
+    .stat:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 8px 24px 0 rgba(0, 0, 0, 0.08),
+        0 2px 4px 0 rgba(0, 0, 0, 0.04);
+    }
 
+    /* === Stat Card: Balance (muted indigo/violet) === */
+    .balance {
+      background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%);
+      border-color: rgba(129, 140, 248, 0.3);
+    }
 
+    /* === Stat Card: Pending (muted steel blue) === */
+    .Pending {
+      background: linear-gradient(135deg, #475569 0%, #64748B 100%);
+      border-color: rgba(100, 116, 139, 0.3);
+    }
+
+    /* === Stat Card: Complete (muted emerald/sage) === */
+    .Complete {
+      background: linear-gradient(135deg, #059669 0%, #34D399 100%);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    /* Stat card inner content areas */
     .upper-div,
     .pending-upper,
     .complete-upper {
-      text-align: start;
-      font-size: large;
-      font-weight: bold;
-      font-family: sans-serif;
+      text-align: left;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      position: relative;
+      z-index: 2;
     }
 
     .upper-div i,
     .pending-upper i,
     .complete-upper i {
-      font-size: 2rem;
-      margin-bottom: 10px;
-      color: white
-    }
-
-    .entity-div {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
-    }
-
-    .big-circle {
-      width: 175px;
-      height: 175px;
-      border-radius: 50%;
-      background: rgb(255 255 255 / 30%);
-      position: absolute;
-      right: -23px;
-      top: 76px;
-    }
-
-    .small-circle {
-      width: 175px;
-      height: 175px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.315);
-      position: absolute;
-      top: -34px;
-      right: -83px;
-    }
-
-    .balance {
-      background-image: linear-gradient(to right, #c693f8, #a85ff4);
-    }
-
-    .Pending {
-      background-image: linear-gradient(to right, #6aa4e3, #6564e7);
-    }
-
-    .Complete {
-      background-image: linear-gradient(to right, #fdb786, #fe8a93);
-    }
-
-    .dis {
-      position: relative;
-      width: 100%;
-      font-size: 24px;
-      color: #333;
-      margin-bottom: 10px;
-    }
-
-    .Balance {
-      font-size: 2rem;
-      font-weight: bold;
-    }
-    .pending, .complete {
-      font-size: 2rem;
-      font-weight: bold;
+      font-size: 1.125rem;
+      margin-bottom: 6px;
+      color: rgba(255, 255, 255, 0.9);
+      display: block;
+      opacity: 0.85;
     }
 
     .label {
-      font-size: 1.25rem;
-      font-family: revert;
+      font-size: 0.625rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.75);
+      margin-bottom: 2px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .Balance,
+    .pending,
+    .complete {
+      font-size: 1.375rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    /* Decorative circles behind stat cards */
+    .entity-div {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 36px;
+      height: 36px;
+      z-index: 1;
+    }
+
+    .big-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      position: absolute;
+      right: -15px;
+      top: 30px;
+    }
+
+    .small-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      position: absolute;
+      top: -20px;
+      right: -35px;
+    }
+
+    /* ============================================================
+       HELPDESK CARD
+       ============================================================ */
+    .helpdesk {
+      background: #FFFFFF;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
+      transition: box-shadow 0.2s ease-in-out;
+    }
+
+    .helpdesk:hover {
+      box-shadow:
+        0 4px 12px 0 rgba(0, 0, 0, 0.06),
+        0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    .h2-div {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .h2-div i {
+      color: #6366F1;
+      font-size: 0.8125rem;
+    }
+
+    .helpdesk h2 {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #1E293B;
+      letter-spacing: -0.01em;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     .helpdesk ul {
@@ -179,232 +467,281 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin: 5px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #F8FAFC;
+      border: 1px solid #F1F5F9;
+      transition: all 0.2s ease-in-out;
     }
-    .h2-div {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+
+    .helpdesk li:hover {
+      background: #F1F5F9;
+      border-color: #E2E8F0;
+    }
+
+    .helpdesk li span {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #475569;
+      letter-spacing: -0.01em;
     }
 
     .support-number {
-      background: #28a745;
-      color: white;
+      background: #6366F1;
+      color: #FFFFFF;
       border: none;
-      padding: 5px 10px;
-      border-radius: 3px;
+      padding: 5px 12px;
+      border-radius: 5px;
       cursor: pointer;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      transition: all 0.2s ease-in-out;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .support-number:hover {
+      background: #4F46E5;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .support-number:active {
+      transform: translateY(0);
+    }
+
+    /* ============================================================
+       BOOKING TABLE CARD
+       ============================================================ */
+    .booking-table {
+      background: #FFFFFF;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .booking-table h3 {
+      margin: 0 0 8px 0;
+      color: #1E293B;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .booking-table h3 i {
+      color: #6366F1;
+      font-size: 0.75rem;
     }
 
     .booking-table table {
       width: 100%;
-      border-collapse: collapse;
-    }
-
-    .booking-table th,
-    .booking-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-      font-size: 0.95rem;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-variant-numeric: tabular-nums;
     }
 
     .booking-table th {
-      background-color: #f2f2f2;
+      background: #F8FAFC;
+      color: #64748B;
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid #E2E8F0;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
-    .target-progress {
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      margin-bottom: 15px;
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    .booking-table th:first-child {
+      border-radius: 5px 0 0 0;
     }
 
-    .target-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
+    .booking-table th:last-child {
+      border-radius: 0 5px 0 0;
     }
 
-    .target-header h3 {
-      margin: 0;
-      color: #333;
-      font-size: 1.1rem;
+    .booking-table td {
+      padding: 7px 8px;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #334155;
+      border-bottom: 1px solid #F1F5F9;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
     }
 
-    .target-header i {
-      color: #2c5a91;
-      margin-right: 8px;
+    .booking-table tbody tr {
+      transition: background 0.15s ease-in-out;
     }
 
-    #target-month {
-      color: #666;
-      font-size: 0.9rem;
+    .booking-table tbody tr:hover {
+      background: #F8FAFC;
     }
 
-    .target-bar {
-      background: #f0f0f0;
-      border-radius: 10px;
-      height: 25px;
-      overflow: hidden;
-      margin-bottom: 10px;
+    .booking-table tbody tr:last-child td {
+      border-bottom: none;
     }
 
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(to right, #2c5a91, #4c8ed7);
-      width: 0%;
-      transition: width 0.5s ease-in-out;
-      position: relative;
+    .booking-table tbody tr:last-child td:first-child {
+      border-radius: 0 0 0 5px;
     }
 
-    .progress-text {
-      position: absolute;
-      right: 10px;
-      color: white;
-      font-size: 0.9rem;
-      line-height: 25px;
+    .booking-table tbody tr:last-child td:last-child {
+      border-radius: 0 0 5px 0;
     }
 
-    .target-details {
-      display: flex;
-      justify-content: space-between;
-      color: #666;
-      font-size: 0.9rem;
+    /* Status badge styles (used by JS-injected content) */
+    .booking-table td .status-badge,
+    .booking-table td [class*="status"] {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.4;
     }
 
-    .slider-container {
+    /* ============================================================
+       GENERIC RECONCILIATION — keep original class hooks intact
+       ============================================================ */
+    .breadcrumb {
+      color: #64748B;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .alert-box {
+      background: #FFFFFF;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow:
+        0 1px 3px 0 rgba(0, 0, 0, 0.04),
+        0 1px 2px -1px rgba(0, 0, 0, 0.03);
+      overflow: auto;
+    }
+
+    .order-now {
+      color: #6366F1;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .order-now:hover {
+      color: #4F46E5;
+    }
+
+    .dis {
       position: relative;
       width: 100%;
-      overflow: hidden;
-      border-radius: 5px;
-      margin: 10px 0;
+      font-size: 1.5rem;
+      color: #1E293B;
+      font-weight: 600;
     }
 
-    .slider {
-      display: flex;
-      transition: transform 0.5s ease-in-out;
-      height: 400px;
-    }
-
-    .slide {
-      min-width: 100%;
-      position: relative;
-    }
-
-    .slide img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .slide-content {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .slide-content h2 {
-      font-size: 1.8rem;
-      margin: 0 0 5px;
-    }
-
-    .slide-content p {
-      font-size: 1rem;
-    }
-
-    .btn {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 40px;
-      height: 40px;
-      background: rgba(255, 255, 255, 0.3);
-      color: #555;
-      border: none;
-      border-radius: 50%;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-
-    .btn:hover {
-      background: rgba(255, 255, 255, 0.6);
-    }
-
-    .btn-prev {
-      left: 10px;
-    }
-
-    .btn-next {
-      right: 10px;
-    }
-
-    .dots-container {
-      position: absolute;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
-      cursor: pointer;
-    }
-
-    .dot.active {
-      background: white;
-    }
-
-    /* Responsive adjustments */
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
     @media (max-width: 1024px) {
-      .stat {
-        flex: 1 1 calc(50% - 10px);
+      .dashboard-container {
+        padding: 10px;
+        gap: 8px;
+      }
+
+      .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .slider {
+        height: 180px;
+      }
+
+      .booking-table {
+        max-height: 360px;
       }
     }
 
     @media (max-width: 600px) {
+      .dashboard-container {
+        padding: 6px;
+        gap: 6px;
+      }
+
+      .stats-container {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
       .stat {
-        flex: 1 1 100%;
+        min-height: 90px;
+        padding: 12px 14px;
+      }
+
+      .Balance,
+      .pending,
+      .complete {
+        font-size: 1.125rem;
       }
 
       .slider {
-        height: 300px;
+        height: 140px;
       }
 
       .slide-content h2 {
-        font-size: 1.3rem;
+        font-size: 0.9375rem;
       }
 
       .slide-content p {
-        font-size: 0.85rem;
+        font-size: 0.6875rem;
       }
 
       .btn {
-        width: 35px;
-        height: 35px;
-        font-size: 1rem;
+        width: 26px;
+        height: 26px;
+        font-size: 0.625rem;
       }
 
-      .booking-table table,
+      .btn-prev {
+        left: 4px;
+      }
+
+      .btn-next {
+        right: 4px;
+      }
+
       .booking-table th,
       .booking-table td {
-        font-size: 0.85rem;
+        padding: 5px 6px;
+        font-size: 0.625rem;
+      }
+
+      .booking-table {
+        max-height: 320px;
+      }
+
+      .info-box,
+      .target-progress,
+      .helpdesk,
+      .booking-table {
+        padding: 10px;
       }
     }
   </style>
