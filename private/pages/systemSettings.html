@@ -1,0 +1,57 @@
+<div class="settings-page-wrapper" style="padding: 30px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <div class="settings-header" style="margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px;">
+        <h2 style="margin: 0; color: #1e293b; font-size: 28px; font-weight: 700;">System Configurations</h2>
+        <p style="margin: 8px 0 0; color: #64748b; font-size: 15px;">Manage global platform settings and feature toggles.</p>
+    </div>
+
+    <div class="setting-card" style="background: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; max-width: 800px;">
+        <div class="card-body" style="padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                <div class="setting-info">
+                    <h3 style="margin: 0 0 10px; color: #0f172a; font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-credit-card" style="color: #4361ee;"></i> Global Payment Gateway
+                    </h3>
+                    <p style="margin: 0; color: #475569; font-size: 15px; line-height: 1.5;">
+                        Enable or disable online payments (Razorpay) across the entire platform. 
+                        If disabled, the Razorpay integration will be hidden, and users must use manual payment options (like UPI screenshot uploads or wallet balance).
+                    </p>
+                </div>
+                
+                <div class="toggle-wrapper" style="padding-top: 5px;">
+                    <label class="switch" style="position: relative; display: inline-block; width: 66px; height: 36px;">
+                        <input type="checkbox" id="paymentGatewayToggle" style="opacity: 0; width: 0; height: 0;">
+                        <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 36px;">
+                            <span class="slider-knob" style="position: absolute; content: ''; height: 28px; width: 28px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="status-indicator" id="statusIndicator" style="margin-top: 20px; padding: 12px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; background-color: #f1f5f9; color: #64748b;">
+                <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Loading status...
+            </div>
+        </div>
+        
+        <div class="card-footer" style="background: #f8fafc; padding: 15px 25px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+            <div class="history-info" style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-history" style="color: #94a3b8;"></i>
+                <span>Last updated by <strong id="updatedByLabel" style="color: #334155;">--</strong> on <span id="updatedTimeLabel">--</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay Loader -->
+    <div id="settingsLoadingOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div class="spinner" style="width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #4361ee; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;"></div>
+        <h3 style="color: #1e293b; margin: 0; font-size: 18px;">Saving Changes...</h3>
+    </div>
+
+    <style>
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .switch input:checked + .slider { background-color: #10b981; }
+        .switch input:focus + .slider { box-shadow: 0 0 1px #10b981; }
+        .switch input:checked + .slider .slider-knob { transform: translateX(30px); }
+        .status-indicator.active { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status-indicator.inactive { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    </style>
+</div>

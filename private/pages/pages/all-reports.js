@@ -1,6 +1,8 @@
 (function hort() {
     let bookings = [];
     let allRows = [];
+    let isDownloading = false;
+    let cancelDownload = false;
     const REPORT_STATUS_FILTER = ["completed", "Partially Completed", "partial completed", "partial"];
 
     // ============= FIXED: Fetch Bookings =============
@@ -9,13 +11,17 @@
             franchiseeId = userId;
         }
         const tableBody = document.querySelector('#tab');
+        const loader = document.querySelector('#loader1'); // ✅ LOADER
 
-        let query = `?status=${encodeURIComponent(REPORT_STATUS_FILTER.join(","))}&startDate=${startDate}&endDate=${endDate}`;
+        let query = `?status=completed&startDate=${startDate}&endDate=${endDate}`;
         if (franchiseeId) {
             query += `&franchiseeId=${franchiseeId}`;
         }
 
         try {
+            // ✅ Show loader while fetching
+            loader.style.display = 'flex';
+            
             const response = await fetch(`${BASE_URL}/api/v1/user/bookings${query}`);
             if (!response.ok) throw new Error('Failed to fetch bookings');
 
@@ -40,8 +46,8 @@
             if (bookings.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="p-4 text-center text-gray-500">
-                            <i class="fas fa-inbox text-4xl mb-2"></i><br>
+                        <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
                             No completed bookings found
                         </td>
                     </tr>
@@ -62,14 +68,14 @@
                     : 'N/A';
 
                 const row = document.createElement('tr');
-                row.className = 'bg-green-50';
+                row.className = 'data-row';
                 row.innerHTML = `
-                    <td class="p-2 border"><input type="checkbox" class="report-checkbox"></td>
-                    <td class="p-2 border"><a href="#" class="text-blue-500 hover:underline" title="click to download report">${booking.bookingId}</a></td>
-                    <td class="p-2 border">${booking.patientName}</td>
-                    <td class="p-2 border">${sampleId || 'N/A'}</td>
-                    <td class="p-2 border">${booking.doctorName || 'N/A'}</td>
-                    <td class="p-2 border">${tests}</td>   
+                    <td><input type="checkbox" class="report-checkbox"></td>
+                    <td><a href="#" class="download-link" title="Click to download report">${booking.bookingId}</a></td>
+                    <td>${booking.patientName}</td>
+                    <td>${sampleId || 'N/A'}</td>
+                    <td>${booking.doctorName || 'N/A'}</td>
+                    <td>${tests}</td>   
                 `;
                 fragment.appendChild(row);
             });
@@ -82,13 +88,16 @@
             console.error('Error fetching bookings:', error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="p-4 text-center text-red-500">
-                        <i class="fas fa-exclamation-triangle text-4xl mb-2"></i><br>
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
                         Failed to load bookings. Please check your connection.
                     </td>
                 </tr>
             `;
             allRows = [];
+        } finally {
+            // ✅ Hide loader after fetching
+            loader.style.display = 'none';
         }
     }
 
@@ -189,71 +198,48 @@
     });
 
     // ============= Download PDF =============
-    async function downloadPdf() {
-        document.querySelector(".table-container").addEventListener("click", async function (event) {
-            const letterPadOption = document.getElementById('myselect').value;
-            const target = event.target;
-            const anchor = target.closest("a");
-            const row = target.closest('tr');
+    document.querySelector(".table-container").addEventListener("click", async function (event) {
+        const target = event.target;
+        const anchor = target.closest("a.download-link");
 
-            if (anchor && row) {
-                const patientname = row.cells[2].textContent;
-                const bookingId = row.cells[1].textContent;
+        if (anchor) {
+            event.preventDefault();
+            const row = anchor.closest('tr');
+            const bookingId = anchor.textContent.trim();
+            const patientName = row.cells[2].textContent.trim();
 
-                patientDetails = await fetchreport(bookingId);
-                if (patientDetails) {
-                    const printSettings = patientDetails.printSettings || {};
-                    autogeneratingpdf({
-                        value1: patientDetails._id,
-                        bookingId: patientDetails.bookingId,
-                        startDate: letterPadOption,
-                        patientname,
-                        backgroundImageUrl: printSettings.backgroundImageUrl || null,
-                        headermargin: printSettings.headermargin || null,
-                        footermargin: printSettings.footermargin || null,
-                        marginRight: printSettings.marginRight || null,
-                        marginLeft: printSettings.marginLeft || null,
-                        selectedFontSize: printSettings.selectedFontSize || null,
-                        RowSpacing: printSettings.RowSpacing || null,
-                        HighLow: printSettings.HighLow ?? null,
-                        HLinred: printSettings.HLinred ?? null,
-                        BoldRow: printSettings.BoldRow ?? null,
-                        showInvest: printSettings.showInvest ?? null,
-                        fileInputLab: printSettings.fileInputLab || "",
-                        fileInputDoctorleft: printSettings.fileInputDoctorleft || "",
-                        fileInputDoctorright: printSettings.fileInputDoctorright || "",
-                        fileInputLabtext: printSettings.fileInputLabtext || "",
-                        fileInputDoctorlefttext: printSettings.fileInputDoctorlefttext || "",
-                        fileInputDoctorrighttext: printSettings.fileInputDoctorrighttext || "",
-                        pdfFormat: printSettings.format || "",
-                        layerOne: printSettings.layerOne || ""
-                    });
-                }
+            const patientDetails = await fetchreport(bookingId);
+            if (patientDetails) {
+                const letterPadOption = document.getElementById('myselect').value;
+                await autogeneratingpdf({
+                    value1: patientDetails._id,
+                    startDate: letterPadOption,
+                    patientname: patientName
+                });
             }
-        });
-    }
+        }
+    });
 
-    async function autogeneratingpdf({ value1 = "", bookingId = "", startDate = "", patientname, labinchargesign = null,
+    async function autogeneratingpdf({ value1 = "", startDate = "", patientname, hideLoader = false, labinchargesign = null,
         checkBox = false, labinchargeinfo = "", backgroundImageUrl = null, headermargin, footermargin,
         marginRight, marginLeft, labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow,
-        HLinred, BoldRow, showInvest, pdfFormat = "", layerOne = "", fileInputLab = "", fileInputDoctorleft = "",
-        fileInputDoctorright = "", fileInputLabtext = "", fileInputDoctorlefttext = "", fileInputDoctorrighttext = "" } = {}) {
+        HLinred, BoldRow, showInvest } = {}) {
 
         const loader = document.querySelector('#loader1');
 
         try {
-            loader.style.display = 'flex';
+            // ✅ Show loader while generating PDF
+            if (!hideLoader) loader.style.display = 'flex';
+            
             const response = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ // Add bookingId here
-                    value1, bookingId, labinchargesign, checkBox: startDate === "with" ? false : true, labinchargeinfo,
+                body: JSON.stringify({
+                    value1, labinchargesign, checkBox: startDate === "with" ? false : true, labinchargeinfo,
                     backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
-                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
-                    pdfFormat, layerOne, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-                    fileInputDoctorlefttext, fileInputDoctorrighttext
+                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest
                 })
             });
 
@@ -273,7 +259,8 @@
             console.error('Error generating PDF:', error);
             alert('Failed to generate PDF. Please try again.');
         } finally {
-            loader.style.display = 'none';
+            // ✅ Hide loader after PDF generation
+            if (!hideLoader) loader.style.display = 'none';
         }
     }
 
@@ -298,18 +285,22 @@
         }
     }
 
-    downloadPdf();
-
     // ============= Search Functionality =============
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', function (e) {
         const searchTerm = e.target.value.toLowerCase().trim();
+        let visibleCount = 0;
 
         if (!searchTerm) {
             allRows.forEach(row => {
                 row.style.display = '';
             });
             updateMergeButtonVisibility();
+            
+            // Remove any "no results" row if exists
+            const noResultsRow = document.getElementById('no-results-row');
+            if (noResultsRow) noResultsRow.remove();
+            
             return;
         }
 
@@ -321,12 +312,79 @@
 
             if (rowText.includes(searchTerm)) {
                 row.style.display = '';
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
 
+        // Handle "No results found" message
+        const tableBody = document.querySelector('#tab');
+        let noResultsRow = document.getElementById('no-results-row');
+        
+        if (visibleCount === 0 && allRows.length > 0) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                        <i class="fas fa-search" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                        No results found for "${searchTerm}"
+                    </td>
+                `;
+                tableBody.appendChild(noResultsRow);
+            } else {
+                noResultsRow.innerHTML = `
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                        <i class="fas fa-search" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                        No results found for "${searchTerm}"
+                    </td>
+                `;
+            }
+        } else if (noResultsRow) {
+            noResultsRow.remove();
+        }
+
         updateMergeButtonVisibility();
+    });
+
+    // ============= Quick Date Range and Select All via Event Delegation =============
+    document.addEventListener('change', function (event) {
+        // Quick Date Range
+        if (event.target.id === 'quick-date-range') {
+            const months = parseInt(event.target.value, 10);
+            if (!isNaN(months)) {
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - months);
+                
+                // Adjust for local timezone
+                endDate.setMinutes(endDate.getMinutes() - endDate.getTimezoneOffset());
+                startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
+                
+                const endDateInput = document.getElementById('end-date');
+                const startDateInput = document.getElementById('start-date');
+                
+                if (endDateInput) endDateInput.value = endDate.toISOString().split('T')[0];
+                if (startDateInput) startDateInput.value = startDate.toISOString().split('T')[0];
+                
+                const searchBtn = document.getElementById('search-button');
+                if (searchBtn) searchBtn.click();
+            }
+        }
+        
+        // Select All Checkbox
+        if (event.target.id === 'selectAllCheckbox') {
+            const isChecked = event.target.checked;
+            const checkboxes = document.querySelectorAll('.report-checkbox');
+            checkboxes.forEach(cb => {
+                const row = cb.closest('tr');
+                if (row && row.style.display !== 'none') {
+                    cb.checked = isChecked;
+                }
+            });
+            updateMergeButtonVisibility();
+        }
     });
 
     // ============= Merge Button Visibility =============
@@ -351,8 +409,22 @@
         }
     });
 
+
+
     // ============= Download Selected Reports =============
-    document.getElementById('download-selected-reports').addEventListener('click', async function () {
+    document.addEventListener('click', async function (event) {
+        const btn = event.target.closest('#download-selected-reports');
+        if (!btn) return;
+
+        // If already downloading, trigger cancellation
+        if (isDownloading) {
+            cancelDownload = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+            btn.classList.replace('bg-red-500', 'bg-gray-500');
+            btn.classList.replace('hover:bg-red-600', 'hover:bg-gray-600');
+            return;
+        }
+
         const checkboxes = document.querySelectorAll('#tab input[type="checkbox"]:checked');
 
         if (checkboxes.length === 0) {
@@ -362,11 +434,49 @@
 
         const bookingIds = Array.from(checkboxes).map(checkbox => {
             const row = checkbox.closest('tr');
-            return row.querySelector('td:nth-child(2) a').textContent.trim();
+            return {
+                bookingId: row.querySelector('td:nth-child(2) a').textContent.trim(),
+                patientName: row.querySelector('td:nth-child(3)').textContent.trim()
+            };
         });
 
-        for (let bookingId of bookingIds) {
-            await downloadReportForBooking(bookingId);
+        // Initialize downloading state
+        isDownloading = true;
+        cancelDownload = false;
+        
+        // Change UI to Stop button
+        btn.innerHTML = '<i class="fas fa-stop"></i> Stop Download';
+        btn.classList.replace('bg-blue-500', 'bg-red-500');
+        btn.classList.replace('hover:bg-blue-600', 'hover:bg-red-600');
+
+        try {
+            // ✅ Download reports one by one without showing the global loader overlay
+            for (let i = 0; i < bookingIds.length; i++) {
+                if (cancelDownload) {
+                    console.log("Download stopped by user.");
+                    break;
+                }
+                
+                // Update button text to show progress
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Downloading (${i + 1}/${bookingIds.length})... Click to Stop`;
+                
+                // Pass true to hide the global loader overlay
+                await downloadReportForBooking(bookingIds[i].bookingId, bookingIds[i].patientName, true);
+            }
+        } finally {
+            // Restore UI
+            isDownloading = false;
+            cancelDownload = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> Download Selected Reports';
+            
+            // Revert background color back to blue
+            if (btn.classList.contains('bg-red-500')) {
+                btn.classList.replace('bg-red-500', 'bg-blue-500');
+                btn.classList.replace('hover:bg-red-600', 'hover:bg-blue-600');
+            } else if (btn.classList.contains('bg-gray-500')) {
+                btn.classList.replace('bg-gray-500', 'bg-blue-500');
+                btn.classList.replace('hover:bg-gray-600', 'hover:bg-blue-600');
+            }
         }
     });
 
@@ -380,9 +490,11 @@
         }
 
         const loader = document.querySelector('#loader1');
-        loader.style.display = 'flex';
-
+        
         try {
+            // ✅ Show loader while merging PDFs
+            loader.style.display = 'flex';
+            
             const selectedReports = Array.from(checkboxes).map(checkbox => {
                 const row = checkbox.closest('tr');
                 const bookingId = row.querySelector('td:nth-child(2) a').textContent.trim();
@@ -432,54 +544,45 @@
             console.error('Error merging PDFs:', error);
             alert('Failed to merge PDFs. Please try again.');
         } finally {
+            // ✅ Hide loader after merging
             loader.style.display = 'none';
         }
     });
 
-    async function downloadReportForBooking(bookingId) {
+    async function downloadReportForBooking(bookingId, patientName, hideLoader = false) {
         try {
             const patientDetails = await fetchreport(bookingId);
-            const patientbooking = bookings.find(booking => booking.bookingId === bookingId);
             const letterPadOption = document.getElementById('myselect').value;
 
-            if (!patientDetails || !patientbooking) {
+            if (!patientDetails) {
                 console.error('Could not find booking details');
                 return;
             }
 
             await autogeneratingpdf({
                 value1: patientDetails._id,
-                bookingId: patientDetails.bookingId,
                 startDate: letterPadOption,
-                patientname: patientbooking.patientName,
-                backgroundImageUrl: patientDetails.printSettings?.backgroundImageUrl || null,
-                headermargin: patientDetails.printSettings?.headermargin || null,
-                footermargin: patientDetails.printSettings?.footermargin || null,
-                marginRight: patientDetails.printSettings?.marginRight || null,
-                marginLeft: patientDetails.printSettings?.marginLeft || null,
-                selectedFontSize: patientDetails.printSettings?.selectedFontSize || null,
-                RowSpacing: patientDetails.printSettings?.RowSpacing || null,
-                HighLow: patientDetails.printSettings?.HighLow ?? null,
-                HLinred: patientDetails.printSettings?.HLinred ?? null,
-                BoldRow: patientDetails.printSettings?.BoldRow ?? null,
-                showInvest: patientDetails.printSettings?.showInvest ?? null,
-                fileInputLab: patientDetails.printSettings?.fileInputLab || "",
-                fileInputDoctorleft: patientDetails.printSettings?.fileInputDoctorleft || "",
-                fileInputDoctorright: patientDetails.printSettings?.fileInputDoctorright || "",
-                fileInputLabtext: patientDetails.printSettings?.fileInputLabtext || "",
-                fileInputDoctorlefttext: patientDetails.printSettings?.fileInputDoctorlefttext || "",
-                fileInputDoctorrighttext: patientDetails.printSettings?.fileInputDoctorrighttext || "",
-                pdfFormat: patientDetails.pdfFormat || patientDetails.printSettings?.format || "",
-                layerOne: patientDetails.layerOne || "",
+                patientname: patientName,
+                hideLoader: hideLoader,
                 labinchargesign: null,
                 checkBox: false,
                 labinchargeinfo: "",
+                backgroundImageUrl: null,
+                headermargin: null,
+                footermargin: null,
+                marginRight: null,
+                marginLeft: null,
                 labinchargesignurl: null,
-                // Remaining values are already passed above when available from printSettings.
+                selectedFontSize: null,
+                RowSpacing: null,
+                HighLow: null,
+                HLinred: null,
+                BoldRow: null,
+                showInvest: null
             });
 
         } catch (error) {
             console.error(`Error downloading report for Booking ID ${bookingId}:`, error);
         }
     }
-})()
+})();

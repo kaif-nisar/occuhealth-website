@@ -9,6 +9,7 @@ import { Tenant } from "../models/tenant.model.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { SystemSetting } from "../models/systemSetting.model.js";
 // generate accessToken and refreshToken for user to close session
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -2009,6 +2010,15 @@ const payToAdmin = asyncHandler(async (req, res) => {
       success: false,
       message: "Valid admin ID and amount are required"
     });
+  }
+
+  // Check global payment gateway setting
+  let settings = await SystemSetting.findOne();
+  if (settings && !settings.isPaymentGatewayEnabled && paymentMethod !== "wallet") {
+      return res.status(400).json({
+          success: false,
+          message: "Online payments are currently disabled. Please use manual payment methods."
+      });
   }
 
   const franchisee = await User.findById(franchiseeId);

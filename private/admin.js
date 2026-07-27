@@ -864,17 +864,25 @@ function showSubscriptionModal(subscriptionState) {
     durationSelect.onchange = updateSubscriptionPlanSummary;
   }
   updateSubscriptionPlanSummary();
-  if (payBtn) {
-    payBtn.onclick = () => {
-      initiateRazorpayPayment(2000, 30); // ₹2000 for 30 days
-    };
-  }
-
+  
   if (payBtn) {
     payBtn.onclick = () => {
       const plan = updateSubscriptionPlanSummary();
       initiateRazorpayPayment(plan.totalAmount, plan.months * 30, plan.months, plan.monthlyAmount);
     };
+    
+    // Check if Razorpay is globally enabled
+    fetch('/api/v1/settings', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('accessToken') }
+    }).then(res => res.json()).then(result => {
+      if (result && result.data && result.data.isPaymentGatewayEnabled === false) {
+        payBtn.style.display = 'none';
+        const paymentMessage = document.getElementById('subscriptionPaymentMessage');
+        if (paymentMessage) paymentMessage.textContent = 'Online payments are temporarily disabled. Please contact SuperAdmin for manual activation.';
+      } else {
+        payBtn.style.display = 'block';
+      }
+    }).catch(e => console.error(e));
   }
 
   if (subscriptionState.blocking) {

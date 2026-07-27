@@ -30,11 +30,23 @@
         <!-- Search bar -->
         <div class="search-bar flex flex-col md:flex-row md:items-center md:justify-between w-full my-10 gap-3">
 
+            <!-- Quick Date Range -->
+            <div class="search-start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-10">
+                <select id="quick-date-range" class="border-0 w-full h-full text-sm text-gray-700 focus:outline-none px-2">
+                    <option value="">-- Quick Date Range --</option>
+                    <option value="1">Last 1 Month</option>
+                    <option value="2">Last 2 Months</option>
+                    <option value="3">Last 3 Months</option>
+                    <option value="6">Last 6 Months</option>
+                    <option value="12">Last 1 Year</option>
+                </select>
+            </div>
+
             <!-- Start Date -->
             <div
                 class="search-start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-auto">
                 <p class="sd-text font-semibold text-base bg-gray-600 text-white px-3 py-2 flex items-center">
-                    Date
+                    From
                 </p>
                 <input id="start-date" type="date"
                     class="appearance-auto text-sm text-gray-700 border-0 w-full focus:outline-none p-2">
@@ -45,7 +57,7 @@
             <div
                 class="search-start flex items-center bg-white border border-gray-400 rounded w-full md:w-[23%] h-auto">
                 <p class="sd-text font-semibold text-base bg-gray-600 text-white px-3 py-2 flex items-center">
-                    Date
+                    To
                 </p>
                 <input id="end-date" type="date"
                     class="appearance-auto text-sm text-gray-700 border-0 w-full focus:outline-none p-2">
@@ -87,7 +99,7 @@
             <table class="min-w-full border-collapse mb-5">
                 <thead>
                     <tr>
-                        <th class="bg-black text-white p-2 border">#</th>
+                        <th class="bg-black text-white p-2 border"><input type="checkbox" id="selectAllCheckbox" title="Select All"></th>
                         <th class="bg-black text-white p-2 border">Booking ID</th>
                         <th class="bg-black text-white p-2 border">Patient Name</th>
                         <th class="bg-black text-white p-2 border">Barcodes</th>

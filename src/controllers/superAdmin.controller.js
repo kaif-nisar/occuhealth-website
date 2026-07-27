@@ -578,6 +578,10 @@ const updateAdminById = async (req, res) => {
     await User.findByIdAndUpdate(userId, userUpdate, { new: true });
 
     const findUser = await User.findById(userId);
+    if (req.body.password) {
+      findUser.password = req.body.password;
+      await findUser.save();
+    }
     // 4. Handle manual activation / payment
 
     // Accept either paymentAmount OR manualActivate flag OR paymentStatus === 'paid'
@@ -618,7 +622,17 @@ const updateAdminById = async (req, res) => {
       }
 
       // Update Tenant subscriptionPlan (set startDate to existing start if present and active)
-      const tenantStartToSet = (tenant.subscriptionPlan?.isActive && tenant.subscriptionPlan?.startDate) ? tenant.subscriptionPlan.startDate : now;
+      let tenantStartToSet = (tenant.subscriptionPlan?.isActive && tenant.subscriptionPlan?.startDate) ? tenant.subscriptionPlan.startDate : now;
+      let userStartToSet = (adminUser.subscription?.isActive && adminUser.subscription?.startDate) ? adminUser.subscription.startDate : now;
+
+      if (req.body.customStartDate) {
+        tenantStartToSet = new Date(req.body.customStartDate);
+        userStartToSet = new Date(req.body.customStartDate);
+      }
+      if (req.body.customEndDate) {
+        newTenantEnd = new Date(req.body.customEndDate);
+        newUserEnd = new Date(req.body.customEndDate);
+      }
 
       await Tenant.findByIdAndUpdate(tenantId, {
         $set: {
@@ -630,7 +644,6 @@ const updateAdminById = async (req, res) => {
       }, { new: true });
 
       // Update admin user's subscription too (preserve existing startDate if active)
-      const userStartToSet = (adminUser.subscription?.isActive && adminUser.subscription?.startDate) ? adminUser.subscription.startDate : now;
 
       // Create a shared transaction id to use in renewal history and ledger
       const txnId = `TXN-${Date.now()}`;

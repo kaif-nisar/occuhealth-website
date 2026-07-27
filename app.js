@@ -494,10 +494,12 @@ app.use((error, req, res, next) => {
 // ========================
 
 import targetRouter from "./src/routes/target.routes.js";
+import systemSettingRouter from "./src/routes/systemSetting.routes.js";
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/bulk-bookings", bulkBookingRouter);
 app.use("/api/v1/target", targetRouter);
+app.use("/api/v1/settings", systemSettingRouter);
 
 // Health Check Route
 app.get('/health', (req, res) => {

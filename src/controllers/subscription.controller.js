@@ -6,6 +6,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import { Tenant } from "../models/tenant.model.js";
 import { Ledger } from "../models/ledger.model.js";
+import { SystemSetting } from "../models/systemSetting.model.js";
 
 // Initialize Razorpay
 // const razorpay = new Razorpay({
@@ -86,6 +87,15 @@ export const createSubscriptionOrder = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check global payment gateway setting
+    let settings = await SystemSetting.findOne();
+    if (settings && !settings.isPaymentGatewayEnabled) {
+        return res.status(400).json({
+            success: false,
+            message: "Online payments are currently disabled. Please use manual payment methods."
+        });
     }
 
     // Create Razorpay order

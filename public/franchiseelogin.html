@@ -172,6 +172,28 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        .password-container { position: relative; }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #777;
+        }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .remember-me input {
+            width: auto;
+            margin: 0;
+        }
     </style>
     <title>OccuHealth Login</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.7.6/lottie.min.js"></script>
@@ -187,12 +209,17 @@
                     <label for="username">Username</label>
                     <input type="username" id="username" name="username" required>
                 </div>
-                <div class="input-group">
+                <div class="input-group password-container">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required>
+                    <span class="password-toggle" id="togglePassword">👁️</span>
                 </div>
-                <button type="submit">Login</button>
-                <div class="error" id="errorMessage"></div>
+                <div class="remember-me">
+                    <input type="checkbox" id="rememberMe" name="rememberMe">
+                    <label for="rememberMe" style="margin:0; top:0; position:relative; font-size:14px; color:#555;">Remember Me</label>
+                </div>
+                <button type="submit" id="loginBtn">Login</button>
+                <div class="error" id="errorMessage" style="transition: all 0.3s ease;"></div>
             </form>
             <p><a href="#" id="forgotPasswordLink">Forgot Password?</a></p>
         </div>
@@ -217,6 +244,23 @@
             loop: true,
             autoplay: true,
             path: 'Animation - 1731414043375.json'
+        });
+
+        // Initialize Remember Me
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedUser = localStorage.getItem('rememberedUsername');
+            if (savedUser) {
+                document.getElementById('username').value = savedUser;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
+        // Password Toggle
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const passwordInput = document.getElementById('password');
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
         });
 
         // Function to verify access token
@@ -246,12 +290,21 @@
 
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
+            const rememberMe = document.getElementById('rememberMe').checked;
             let email = username;
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const loginBtn = document.getElementById('loginBtn');
+            errorDiv.innerText = '';
+            
             // Check if email and password are entered
             if (!username || !password) {
-                alert("Please enter both email and password.");
+                errorDiv.innerText = "Please enter both email and password.";
                 return;
             }
+
+            loginBtn.disabled = true;
+            loginBtn.innerText = "Logging in...";
 
             try {
                 const response = await fetch(`${BASE_URL}/api/v1/user/login-admin`, {
@@ -266,31 +319,38 @@
                 const data = await response.json();
 
                 if (response.status === 403) {
-                    alert("Your account is inactive. Please contact support.");
+                    errorDiv.innerText = "Your account is inactive. Please contact support.";
                     return;
                 }
 
                 if (response.status === 401) {
-                    alert("Incorrect password. Please try again.");
+                    errorDiv.innerText = "Incorrect password. Please try again.";
                     return;
                 }
 
                 if (response.status === 404) {
-                    alert("User  not found. Please check your email.");
+                    errorDiv.innerText = "User not found. Please check your email.";
                     return;
                 }
 
                 if (!response.ok) {
-                    alert(data.message || "Login failed. Please try again.");
+                    errorDiv.innerText = data.message || "Login failed. Please try again.";
                     return;
                 }
 
                 if (data.success) {
                     console.log('Login successful');
+                    
+                    if (rememberMe) {
+                        localStorage.setItem('rememberedUsername', username);
+                    } else {
+                        localStorage.removeItem('rememberedUsername');
+                    }
+
                     const isAuthorized = await verifyAccessToken();
 
                     if (!isAuthorized) {
-                        alert('You are not authorized to access this page.');
+                        errorDiv.innerText = 'You are not authorized to access this page.';
                         return;
                     }
                     
@@ -313,7 +373,10 @@
                 }
             } catch (error) {
                 console.error('Error during login:', error);
-                alert("Something went wrong. Please try again later.");
+                errorDiv.innerText = "Something went wrong. Please try again later.";
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerText = "Login";
             }
         });
 

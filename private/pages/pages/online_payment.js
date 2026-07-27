@@ -92,10 +92,35 @@ async function initializeOnlinePaymentPage() {
     await fetchWalletBalance();
 
     const payBtn = document.getElementById('payRazorpayBtn');
-    if (payBtn && !payBtn.dataset.paymentHandlerAttached) {
-        payBtn.addEventListener('click', handleWalletTopup);
-        payBtn.dataset.paymentHandlerAttached = "true";
-        console.log("Payment button ready");
+    
+    try {
+        const res = await fetch('/api/v1/settings', {
+            headers: { 'Authorization': 'Bearer ' + getStoredToken() }
+        });
+        const result = await res.json();
+        if (result && result.data && result.data.isPaymentGatewayEnabled === false) {
+            if (payBtn) {
+                payBtn.style.display = 'none';
+                const parent = payBtn.parentElement;
+                const msg = document.createElement('p');
+                msg.style.color = '#e74c3c';
+                msg.style.fontWeight = 'bold';
+                msg.textContent = 'Online wallet top-up is temporarily disabled. Please contact SuperAdmin.';
+                parent.appendChild(msg);
+            }
+        } else {
+            if (payBtn && !payBtn.dataset.paymentHandlerAttached) {
+                payBtn.addEventListener('click', handleWalletTopup);
+                payBtn.dataset.paymentHandlerAttached = "true";
+                console.log("Payment button ready");
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching settings:", e);
+        if (payBtn && !payBtn.dataset.paymentHandlerAttached) {
+            payBtn.addEventListener('click', handleWalletTopup);
+            payBtn.dataset.paymentHandlerAttached = "true";
+        }
     }
 }
 

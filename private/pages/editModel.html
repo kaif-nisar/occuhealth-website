@@ -168,10 +168,32 @@
     .format4 {
       background-image: url("/images/format4.svg");
     }
+
+    /* Additional UI improvements */
+    .password-container {
+      position: relative;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #777;
+    }
+    .sub-status {
+      display: inline-block;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status-active { background-color: #d4edda; color: #155724; }
+    .status-expired { background-color: #f8d7da; color: #721c24; }
   </style>
 </head>
-
-<body>
+<body>
 
   <form class="edit-form" id="adminEditForm">
     <h2>Edit Admin User Details</h2>
@@ -184,6 +206,13 @@
     <div class="form-group">
       <label for="username">Username</label>
       <input type="text" id="username" name="username" value="" />
+    </div>
+
+    <div class="form-group password-container">
+      <label for="password">Password (Leave blank to keep unchanged)</label>
+      <input type="password" id="password" name="password" placeholder="Enter new password" />
+      <span class="password-toggle" id="togglePassword">👁️</span>
+      <button type="button" id="generatePasswordBtn" style="margin-top: 5px; padding: 5px 10px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Generate Secure Password</button>
     </div>
 
     <div class="form-group">
@@ -278,7 +307,36 @@
       </label>
     </div>
 
-    <h2 style="margin-top: 2rem;">Subscription Info</h2>
+    <h2 style="margin-top: 2rem;">
+      Subscription Info 
+      <span id="subStatusBadge" class="sub-status"></span>
+    </h2>
+
+    <div class="form-group">
+      <label for="quickDuration">Quick Subscription Renewal</label>
+      <select id="quickDuration">
+        <option value="">-- Select quick duration (Starts from today) --</option>
+        <option value="30">1 Month (30 Days)</option>
+        <option value="180">6 Months (180 Days)</option>
+        <option value="365">1 Year (365 Days)</option>
+        <option value="1460">4 Years (1460 Days)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="customStartDate">Subscription Start Date</label>
+      <input type="date" id="customStartDate" name="customStartDate" />
+    </div>
+
+    <div class="form-group">
+      <label for="customDays">Subscription Duration (Days)</label>
+      <input type="number" id="customDays" name="customDays" placeholder="e.g. 30" />
+    </div>
+
+    <div class="form-group">
+      <label for="customEndDate">Subscription Expiry Date</label>
+      <input type="date" id="customEndDate" name="customEndDate" />
+    </div>
 
     <div class="form-group">
       <label for="planType">Plan Type</label>
