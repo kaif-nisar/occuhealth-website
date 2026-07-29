@@ -231,7 +231,7 @@
                 return;
             }
 
-            const pdfSnapshot = getPdfDataSnapshot({ footerOverride: "footer" });
+            const pdfSnapshot = getPdfDataSnapshot({ footerOverride: document.querySelector('.signed-off-div').outerHTML, investigationOffset: 20 });
             try {
                 loader.style.display = 'flex';
                 e.target.disable = true;

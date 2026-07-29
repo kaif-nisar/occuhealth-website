@@ -13,7 +13,7 @@
         const tableBody = document.querySelector('#tab');
         const loader = document.querySelector('#loader1'); // ✅ LOADER
 
-        let query = `?status=completed&startDate=${startDate}&endDate=${endDate}`;
+        let query = `?status=completed,pending,hold,partial,clinical&startDate=${startDate}&endDate=${endDate}`;
         if (franchiseeId) {
             query += `&franchiseeId=${franchiseeId}`;
         }
@@ -46,9 +46,9 @@
             if (bookings.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                        <td colspan="7" style="padding: 20px; text-align: center; color: #666;">
                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
-                            No completed bookings found
+                            No bookings found
                         </td>
                     </tr>
                 `;
@@ -67,15 +67,19 @@
                     ? booking.tableData[0].barcodeId
                     : 'N/A';
 
+                const statusInfo = getStatusColor(booking.status);
                 const row = document.createElement('tr');
                 row.className = 'data-row';
+                row.style.backgroundColor = statusInfo.bg;
+                row.style.transition = 'background-color 0.2s ease';
                 row.innerHTML = `
                     <td><input type="checkbox" class="report-checkbox"></td>
                     <td><a href="#" class="download-link" title="Click to download report">${booking.bookingId}</a></td>
                     <td>${booking.patientName}</td>
                     <td>${sampleId || 'N/A'}</td>
                     <td>${booking.doctorName || 'N/A'}</td>
-                    <td>${tests}</td>   
+                    <td>${tests}</td>
+                    <td><span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:0.78rem;font-weight:600;background:${statusInfo.bg};color:${statusInfo.text};border:1px solid ${statusInfo.text}33;">${statusInfo.label}</span></td>
                 `;
                 fragment.appendChild(row);
             });
@@ -88,7 +92,7 @@
             console.error('Error fetching bookings:', error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="padding: 20px; text-align: center; color: #dc3545;">
+                    <td colspan="7" style="padding: 20px; text-align: center; color: #dc3545;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
                         Failed to load bookings. Please check your connection.
                     </td>
@@ -146,6 +150,25 @@
         } catch (error) {
             console.log('Sub-franchisees could not be loaded, continuing...');
         }
+    }
+
+    // ============= Status Color Mapping =============
+    function getStatusColor(status) {
+        const s = (status || '').toLowerCase().trim();
+        const colorMap = {
+            'completed':           { bg: '#dcfce7', text: '#166534', label: 'Completed' },
+            'partially completed': { bg: '#fef3c7', text: '#92400e', label: 'Partially Completed' },
+            'partial completed':   { bg: '#fef3c7', text: '#92400e', label: 'Partially Completed' },
+            'partial':             { bg: '#fef3c7', text: '#92400e', label: 'Partially Completed' },
+            'pending':             { bg: '#e0e7ff', text: '#3730a3', label: 'Pending' },
+            'hold':                { bg: '#fce7f3', text: '#9d174d', label: 'On Hold' },
+            'on hold':             { bg: '#fce7f3', text: '#9d174d', label: 'On Hold' },
+            'clinical':            { bg: '#dbeafe', text: '#1e40af', label: 'Clinical' },
+            'clinical stated':     { bg: '#dbeafe', text: '#1e40af', label: 'Clinical' },
+            'cancelled':           { bg: '#fee2e2', text: '#991b1b', label: 'Cancelled' },
+            'canceled':            { bg: '#fee2e2', text: '#991b1b', label: 'Cancelled' },
+        };
+        return colorMap[s] || { bg: '#f3f4f6', text: '#374151', label: status || 'N/A' };
     }
 
     // ============= Utility Functions =============
@@ -327,7 +350,7 @@
                 noResultsRow = document.createElement('tr');
                 noResultsRow.id = 'no-results-row';
                 noResultsRow.innerHTML = `
-                    <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                    <td colspan="7" style="padding: 20px; text-align: center; color: #666;">
                         <i class="fas fa-search" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
                         No results found for "${searchTerm}"
                     </td>
@@ -335,7 +358,7 @@
                 tableBody.appendChild(noResultsRow);
             } else {
                 noResultsRow.innerHTML = `
-                    <td colspan="6" style="padding: 20px; text-align: center; color: #666;">
+                    <td colspan="7" style="padding: 20px; text-align: center; color: #666;">
                         <i class="fas fa-search" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
                         No results found for "${searchTerm}"
                     </td>
