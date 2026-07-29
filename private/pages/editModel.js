@@ -93,9 +93,12 @@
   
   if (togglePassword && passwordInput) {
     togglePassword.addEventListener('click', function () {
+      const eyeIcon = this.querySelector('i');
       const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
       passwordInput.setAttribute('type', type);
-      this.textContent = type === 'password' ? '👁️' : '🙈';
+      if (eyeIcon) {
+        eyeIcon.className = type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+      }
     });
   }
 
@@ -106,7 +109,12 @@
       for (let i = 0; i < 12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
       passwordInput.value = pass;
       passwordInput.setAttribute('type', 'text');
-      if (togglePassword) togglePassword.textContent = '🙈';
+      if (togglePassword) {
+        const eyeIcon = togglePassword.querySelector('i');
+        if (eyeIcon) {
+          eyeIcon.className = 'fa-solid fa-eye-slash';
+        }
+      }
     });
   }
 

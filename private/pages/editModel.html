@@ -5,7 +5,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Edit Admin Details</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     .edit-form {
       background: #ffffff;
       max-width: 800px;
@@ -40,6 +47,8 @@
       border-radius: 8px;
       border: 1px solid #ccc;
       background: #fafafa;
+      font-family: inherit;
+      font-size: 14px;
     }
 
     .form-group input:focus,
@@ -169,18 +178,35 @@
       background-image: url("/images/format4.svg");
     }
 
-    /* Additional UI improvements */
-    .password-container {
+    /* Password wrapper */
+    .password-wrapper {
       position: relative;
     }
+
+    .password-wrapper input {
+      padding-right: 44px;
+    }
+
     .password-toggle {
       position: absolute;
       right: 10px;
       top: 50%;
       transform: translateY(-50%);
+      background: none;
+      border: none;
       cursor: pointer;
-      color: #777;
+      color: #6b7280;
+      font-size: 1.1rem;
+      padding: 6px;
+      line-height: 1;
+      transition: color 0.2s ease;
+      z-index: 2;
     }
+
+    .password-toggle:hover {
+      color: #007bff;
+    }
+
     .sub-status {
       display: inline-block;
       padding: 0.3rem 0.6rem;
@@ -191,9 +217,50 @@
     }
     .status-active { background-color: #d4edda; color: #155724; }
     .status-expired { background-color: #f8d7da; color: #721c24; }
+
+    #generatePasswordBtn {
+      margin-top: 8px;
+      padding: 7px 16px;
+      font-size: 13px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #generatePasswordBtn:hover {
+      background: #5a6268;
+    }
+
+    .other-choice {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .other-choice label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #444;
+      cursor: pointer;
+    }
+
+    .other-choice input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
   </style>
 </head>
-<body>
+
+<body>
 
   <form class="edit-form" id="adminEditForm">
     <h2>Edit Admin User Details</h2>
@@ -208,11 +275,17 @@
       <input type="text" id="username" name="username" value="" />
     </div>
 
-    <div class="form-group password-container">
+    <div class="form-group">
       <label for="password">Password (Leave blank to keep unchanged)</label>
-      <input type="password" id="password" name="password" placeholder="Enter new password" />
-      <span class="password-toggle" id="togglePassword">👁️</span>
-      <button type="button" id="generatePasswordBtn" style="margin-top: 5px; padding: 5px 10px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Generate Secure Password</button>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Enter new password" />
+        <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+      </div>
+      <button type="button" id="generatePasswordBtn">
+        <i class="fa-solid fa-key"></i> Generate Secure Password
+      </button>
     </div>
 
     <div class="form-group">
@@ -384,7 +457,7 @@
     </div>
 
     <div class="form-actions">
-      <button type="submit">Save Changes</button>
+      <button type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
     </div>
   </form>
 
