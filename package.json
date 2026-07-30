@@ -17,6 +17,7 @@
   "scripts": {
     "start": "node --max-old-space-size=2028 --expose-gc app.js",
     "dev": "nodemon -r dotenv/config --experimental-json-modules app.js",
+    "postinstall": "node scripts/patch-node26-compat.js",
     "sync": "browser-sync start --proxy localhost:3000 --files 'public/index.html, app.js, src/routes/user.routes.js' --port 3001 --reload-delay 1000",
     "prod": "node --max-old-space-size=2048 app.js",
     "db:indexes": "node scripts/create-db-indexes.js"

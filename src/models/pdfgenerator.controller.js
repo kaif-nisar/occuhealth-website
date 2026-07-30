@@ -249,8 +249,12 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                                 padding: 0px;
                                 box-sizing: border-box;
                             }
-                        html, body, table, tr, th, td, div, span, input, button, textarea, select, p {
-                            font-family: "Tahoma", "Arial", sans-serif !important;
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
                             letter-spacing: 0.1px;
                         }
                         ${cssContent}
@@ -316,6 +320,13 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                 <html>
                     <head>
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
+                            }
                             *{
                                 margin: 0px;
                                 padding: 0px;
@@ -356,8 +367,12 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                                 padding: 0px;
                                 box-sizing: border-box;
                             }
-                            html, body, table, tr, th, td, div, span, input, button, textarea, select, p {
-                                font-family: "Tahoma", "Arial", sans-serif !important;
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
                                 letter-spacing: 0.1px;
                             }
                             ${cssContent}
@@ -643,6 +658,13 @@ const invoicepdfgenerator = async (req, res) => {
         <html>
         <head>
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         ${invoicecss}
         </style>
         </head>
@@ -705,6 +727,13 @@ const certificatepdfgenerator = async (req, res) => {
         <html>
         <head>
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         ${pdfcss}
         </style>
         </head>

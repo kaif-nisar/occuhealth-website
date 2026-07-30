@@ -49,6 +49,9 @@ const getPuppeteerLaunchOptions = () => {
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined;
 
     return {
+        // The regular Chromium headless mode supports Page.printToPDF reliably.
+        // chrome-headless-shell can render pages but has intermittent print failures
+        // with header/footer templates on some Chromium builds.
         headless: "new",
         executablePath,
         timeout: pdfBrowserLaunchTimeout,
@@ -119,6 +122,10 @@ const updatePdfMetrics = (partialMetrics = {}) => {
 
 const normalizePdfMarkup = (value) => String(value ?? "").trim();
 const hasPdfMarkup = (value) => normalizePdfMarkup(value).length > 0;
+const finitePdfNumber = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+};
 
 const closeBrowserSafely = async (browser) => {
     if (!browser) {
@@ -235,6 +242,45 @@ const waitForPdfDocumentReady = async (page) => {
         }
         await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     });
+};
+
+// Chromium's PDF header/footer API accepts an HTML fragment, not a complete
+// document. Complete html/head/body wrappers and remote @import rules can make
+// Page.printToPDF fail even when the report itself is valid.
+const normalizePdfTemplate = (template) => String(template ?? '')
+    .replace(/<!doctype[^>]*>/gi, '')
+    .replace(/<\/?(?:html|head|body)(?:\s[^>]*)?>/gi, '')
+    .replace(/@import\s+url\([^;]+;\s*/gi, '')
+    .trim();
+
+const renderPdfWithFallback = async (page, options, label = 'PDF') => {
+    const safeOptions = {
+        ...options,
+        headerTemplate: normalizePdfTemplate(options.headerTemplate),
+        footerTemplate: normalizePdfTemplate(options.footerTemplate),
+    };
+
+    try {
+        return await page.pdf(safeOptions);
+    } catch (error) {
+        const message = String(error?.message || error);
+        if (!/Page\.printToPDF|Printing failed/i.test(message)) {
+            throw error;
+        }
+
+        // Chromium may reject a header/footer template even though the document
+        // itself is printable. Retry once with a conservative page configuration
+        // so report download still works instead of returning a 500 response.
+        console.warn(`${label}: printToPDF failed; retrying without header/footer`, message);
+        await page.emulateMediaType('screen');
+        return await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            preferCSSPageSize: false,
+            displayHeaderFooter: false,
+            margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
+        });
+    }
 };
 
 const inlinePdfHtmlSegments = async ({ htmlContent = "", header = "", footer = "" }) => {
@@ -531,7 +577,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
-    investigationmargin = parseFloat(investigationmargin) + 20;
+    investigationmargin = finitePdfNumber(investigationmargin, 40, { max: 500 }) + 20;
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
 
@@ -544,12 +590,12 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
     // Conversion from cm to px
     if (marginRight || marginLeft) {
-        marginRightPx = cmToPx(parseFloat(marginRight));
-        marginLeftPx = cmToPx(parseFloat(marginLeft));
+        marginRightPx = cmToPx(finitePdfNumber(marginRight, 0, { max: 10 }));
+        marginLeftPx = cmToPx(finitePdfNumber(marginLeft, 0, { max: 10 }));
     }
 
-    headermarginPx = cmToPx(parseFloat(headermargin));
-    footermarginPx = cmToPx(parseFloat(footermargin));
+    headermarginPx = cmToPx(finitePdfNumber(headermargin, 2.8, { max: 10 }));
+    footermarginPx = cmToPx(finitePdfNumber(footermargin, 1, { max: 10 }));
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
@@ -562,6 +608,13 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             <html>
                 <head>
                     <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
+                        }
                      *{
                                 margin: 0px;
                                 padding: 0px;
@@ -622,7 +675,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             await waitForPdfDocumentReady(page);
 
             const renderStart = Date.now();
-            const renderedPdf = await page.pdf({
+            const renderedPdf = await renderPdfWithFallback(page, {
                 format: 'A4',
                 printBackground: true,
                 displayHeaderFooter: true,
@@ -630,6 +683,13 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
+                            }
                             *{
                                 margin: 0px;
                                 padding: 0px;
@@ -665,6 +725,13 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
+                            }
                          *{
                                 margin: 0px;
                                 padding: 0px;
@@ -814,6 +881,13 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             <html>
                 <head>
                     <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
+                        }
                      *{
                                 margin: 0px;
                                 padding: 0px;
@@ -878,7 +952,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             await waitForPdfDocumentReady(page);
 
             const renderStart = Date.now();
-            const renderedPdf = await page.pdf({
+            const renderedPdf = await renderPdfWithFallback(page, {
                 format: 'A4',
                 printBackground: true,
                 displayHeaderFooter: true,
@@ -886,6 +960,13 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
+                            }
                             *{
                                 margin: 0px;
                                 padding: 0px;
@@ -915,6 +996,13 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                                -webkit-font-smoothing: antialiased;
+                                -moz-osx-font-smoothing: grayscale;
+                                text-rendering: optimizeLegibility;
+                            }
                          *{
                                 margin: 0px;
                                 padding: 0px;
@@ -1372,10 +1460,10 @@ async function generateSinglePdfBuffer(mergedValues, user) {
 
     const cmToPx = (cm) => cm * 37.795;
 
-    const headermarginPx = cmToPx(parseFloat(mergedValues.headermargin));
-    const footermarginPx = cmToPx(parseFloat(mergedValues.footermargin));
-    const marginRightPx = mergedValues.marginRight ? cmToPx(parseFloat(mergedValues.marginRight)) : 0;
-    const marginLeftPx = mergedValues.marginLeft ? cmToPx(parseFloat(mergedValues.marginLeft)) : 0;
+    const headermarginPx = cmToPx(finitePdfNumber(mergedValues.headermargin, 2.8, { max: 10 }));
+    const footermarginPx = cmToPx(finitePdfNumber(mergedValues.footermargin, 1, { max: 10 }));
+    const marginRightPx = cmToPx(finitePdfNumber(mergedValues.marginRight, 0, { max: 10 }));
+    const marginLeftPx = cmToPx(finitePdfNumber(mergedValues.marginLeft, 0, { max: 10 }));
 
     const inlinedSegments = await inlinePdfHtmlSegments({
         htmlContent: mergedValues.htmlContent,
@@ -1388,6 +1476,13 @@ async function generateSinglePdfBuffer(mergedValues, user) {
         <html>
             <head>
                 <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                    *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                        -webkit-font-smoothing: antialiased;
+                        -moz-osx-font-smoothing: grayscale;
+                        text-rendering: optimizeLegibility;
+                    }
                     *{
                         margin: 0px;
                         padding: 0px;
@@ -1448,7 +1543,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
         await waitForPdfDocumentReady(page);
 
         const renderStart = Date.now();
-        const renderedPdf = await page.pdf({
+        const renderedPdf = await renderPdfWithFallback(page, {
             format: 'A4',
             printBackground: true,
             displayHeaderFooter: true,
@@ -1456,6 +1551,13 @@ async function generateSinglePdfBuffer(mergedValues, user) {
             <html>
                 <head>
                     <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
+                        }
                         *{
                             margin: 0px;
                             padding: 0px;
@@ -1491,6 +1593,13 @@ async function generateSinglePdfBuffer(mergedValues, user) {
             <html>
                 <head>
                     <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                            text-rendering: optimizeLegibility;
+                        }
                         *{
                             margin: 0px;
                             padding: 0px;
@@ -1757,6 +1866,13 @@ const invoicepdfgenerator = async (req, res) => {
         <html>
         <head>
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         ${invoicecss}
         </style>
         </head>
@@ -1769,7 +1885,7 @@ const invoicepdfgenerator = async (req, res) => {
             await waitForPdfDocumentReady(page);
 
             const renderStart = Date.now();
-            const renderedPdf = await page.pdf({
+            const renderedPdf = await renderPdfWithFallback(page, {
                 format: 'A4',
                 printBackground: true,
                 margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
@@ -1885,6 +2001,13 @@ const certificatepdfgenerator = async (req, res) => {
         <html>
         <head>
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         ${pdfcss}
         .certificatedImgdiv {
         display: flex;
@@ -1900,7 +2023,7 @@ const certificatepdfgenerator = async (req, res) => {
             await waitForPdfDocumentReady(page);
 
             const renderStart = Date.now();
-            const renderedPdf = await page.pdf({
+            const renderedPdf = await renderPdfWithFallback(page, {
                 format: 'A4',
                 printBackground: true,
                 landscape: true,
