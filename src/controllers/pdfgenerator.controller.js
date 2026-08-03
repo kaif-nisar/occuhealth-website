@@ -47,21 +47,35 @@ let sharedBrowserPromise = null;
 let browserShutdownHooksRegistered = false;
 
 const getPuppeteerLaunchOptions = async () => {
-    // @sparticuz/chromium provides the Linux binary used by Lambda/Graviton.
-    // It is not a native Windows executable, so use the local Chrome install
-    // when running the application on a Windows development machine.
+    // Prefer a configured/system browser on VPS hosts. The @sparticuz/chromium
+    // package currently resolves an x86-64 binary in this deployment, while
+    // AWS Graviton VPS instances use ARM64 (aarch64).
     const configuredExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN;
     const windowsChromePaths = [
         configuredExecutablePath,
         process.env.PROGRAMFILES && path.join(process.env.PROGRAMFILES, 'Google/Chrome/Application/chrome.exe'),
         process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Google/Chrome/Application/chrome.exe'),
     ].filter(Boolean);
+    const linuxChromePaths = [
+        configuredExecutablePath,
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/google-chrome',
+    ].filter(Boolean);
     const localWindowsExecutablePath = windowsChromePaths.find((candidate) => fs.existsSync(candidate));
+    const systemLinuxExecutablePath = linuxChromePaths.find((candidate) => fs.existsSync(candidate));
     const isLocalWindows = process.platform === 'win32' && Boolean(localWindowsExecutablePath);
+    const isSystemLinux = process.platform === 'linux' && Boolean(systemLinuxExecutablePath);
+    const executablePath = isLocalWindows
+        ? localWindowsExecutablePath
+        : isSystemLinux
+            ? systemLinuxExecutablePath
+            : await chromium.executablePath();
 
     return {
         args: [
-            ...(isLocalWindows ? [] : chromium.args),
+            ...(isLocalWindows || isSystemLinux ? [] : chromium.args),
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
@@ -84,8 +98,8 @@ const getPuppeteerLaunchOptions = async () => {
             "--font-render-hinting=none"
         ],
         defaultViewport: chromium.defaultViewport,
-        executablePath: isLocalWindows ? localWindowsExecutablePath : await chromium.executablePath(),
-        headless: isLocalWindows ? 'new' : (chromium.headless || 'shell'),
+        executablePath,
+        headless: isLocalWindows || isSystemLinux ? 'new' : (chromium.headless || 'shell'),
         timeout: pdfBrowserLaunchTimeout,
         protocolTimeout: Number.parseInt(process.env.PDF_PROTOCOL_TIMEOUT_MS || '120000', 10),
     };
