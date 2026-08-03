@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import PQueue from 'p-queue';
 import fetch from 'node-fetch'; // Import node-fetch to handle fetching images
 import { fileURLToPath } from 'url'; // Import fileURLToPath for ES Modules
@@ -45,18 +46,22 @@ let sharedBrowser = null;
 let sharedBrowserPromise = null;
 let browserShutdownHooksRegistered = false;
 
-const getPuppeteerLaunchOptions = () => {
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined;
+const getPuppeteerLaunchOptions = async () => {
+    // @sparticuz/chromium provides the Linux binary used by Lambda/Graviton.
+    // It is not a native Windows executable, so use the local Chrome install
+    // when running the application on a Windows development machine.
+    const configuredExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN;
+    const windowsChromePaths = [
+        configuredExecutablePath,
+        process.env.PROGRAMFILES && path.join(process.env.PROGRAMFILES, 'Google/Chrome/Application/chrome.exe'),
+        process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Google/Chrome/Application/chrome.exe'),
+    ].filter(Boolean);
+    const localWindowsExecutablePath = windowsChromePaths.find((candidate) => fs.existsSync(candidate));
+    const isLocalWindows = process.platform === 'win32' && Boolean(localWindowsExecutablePath);
 
     return {
-        // The regular Chromium headless mode supports Page.printToPDF reliably.
-        // chrome-headless-shell can render pages but has intermittent print failures
-        // with header/footer templates on some Chromium builds.
-        headless: "new",
-        executablePath,
-        timeout: pdfBrowserLaunchTimeout,
-        protocolTimeout: Number.parseInt(process.env.PDF_PROTOCOL_TIMEOUT_MS || '120000', 10),
         args: [
+            ...(isLocalWindows ? [] : chromium.args),
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
@@ -77,7 +82,12 @@ const getPuppeteerLaunchOptions = () => {
             "--password-store=basic",
             "--use-mock-keychain",
             "--font-render-hinting=none"
-        ]
+        ],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: isLocalWindows ? localWindowsExecutablePath : await chromium.executablePath(),
+        headless: isLocalWindows ? 'new' : (chromium.headless || 'shell'),
+        timeout: pdfBrowserLaunchTimeout,
+        protocolTimeout: Number.parseInt(process.env.PDF_PROTOCOL_TIMEOUT_MS || '120000', 10),
     };
 };
 
@@ -177,7 +187,8 @@ const getSharedBrowser = async () => {
     }
 
     if (!sharedBrowserPromise) {
-        sharedBrowserPromise = puppeteer.launch(getPuppeteerLaunchOptions())
+        sharedBrowserPromise = getPuppeteerLaunchOptions()
+            .then((launchOptions) => puppeteer.launch(launchOptions))
             .then((browser) => {
                 sharedBrowser = browser;
                 registerBrowserShutdownHooks();
