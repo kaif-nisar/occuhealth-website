@@ -23,6 +23,48 @@ const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sample
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
+function getBookingActorId(user) {
+    return user?.role === "staff" ? user.parentUser : user?._id;
+}
+
+function isAdminActor(user) {
+    return user?.role === "admin" || (user?.role === "staff" && user?.parentRole === "admin");
+}
+
+function sameObjectId(left, right) {
+    return Boolean(left && right && String(left) === String(right));
+}
+
+function normalizeSampleType(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function canEditBookingCompletely(user, booking) {
+    return sameObjectId(booking?.createdBy, getBookingActorId(user));
+}
+
+async function findAssignedBookingItem(model, itemId, tenantId, actorId, allowAdminBasePrice = false) {
+    if (!mongoose.isValidObjectId(itemId)) return null;
+
+    // Some legacy/base catalogue documents have no tenantId. They are still
+    // valid for a portal when that portal has an explicit assignedPrices entry.
+    // Do not make tenantId the only source of truth for assigned catalogue data.
+    const item = await model.findOne({ _id: itemId }).lean();
+    if (!item) return null;
+
+    const assignment = Array.isArray(item.assignedPrices)
+        ? item.assignedPrices.find((price) => sameObjectId(price?.userId, actorId))
+        : null;
+    const belongsToTenant = sameObjectId(item.tenantId, tenantId);
+
+    if (!assignment && !belongsToTenant) return null;
+    if (!assignment && !allowAdminBasePrice) return null;
+
+    return {
+        item,
+        price: assignment?.price ?? Number(item.Price ?? item.price ?? item.packageFee ?? 0),
+    };
+}
 const BOOKING_STATUS_ALIAS_MAP = {
     pending: ["pending"],
     completed: ["completed"],
@@ -1338,15 +1380,20 @@ const editbookingbookedtests = async (req, res) => {
         const existingBooking = await newBooking.findOne({
             tenantId: tenantId._id,
             bookingId: barcodeId,
-            createdBy: userId
         }).session(session);
+
+        if (!existingBooking) {
+            throw new ApiError(404, "Booking not found");
+        }
+
+        // Test/panel/package changes are allowed only for the booking's own
+        // portal. This is the critical admin isolation rule as well.
+        if (!canEditBookingCompletely(req.user, existingBooking)) {
+            throw new ApiError(403, "You cannot change tests in another portal's booking");
+        }
 
         if (existingBooking.status === "cancelled") {
             return res.status(404).json({ message: 'Booking has been Cancelled' });
-        }
-
-        if (!existingBooking) {
-            return res.status(404).json({ message: 'Booking not found' });
         }
 
         // Handle file upload
@@ -1359,13 +1406,32 @@ const editbookingbookedtests = async (req, res) => {
         // Parse data
         let parsedTableData, parsedSelectedTestIds;
         try {
-            parsedTableData = JSON.parse(tableData);
-            parsedSelectedTestIds = JSON.parse(testIds);
+            parsedTableData = typeof tableData === "string" ? JSON.parse(tableData) : tableData;
+            parsedSelectedTestIds = typeof testIds === "string" ? JSON.parse(testIds) : testIds;
         } catch (error) {
             throw new ApiError(400, "Invalid JSON format for tableData or testIds");
         }
 
+        if (!Array.isArray(parsedTableData) || !Array.isArray(parsedSelectedTestIds) || parsedSelectedTestIds.length === 0) {
+            throw new ApiError(400, "At least one valid test, panel or package is required");
+        }
+
         const sampleBarcodeId = parsedTableData.map(entry => entry.confirmBarcodeId).filter(id => id != null);
+
+        // Validate every submitted test/panel/package against the current
+        // portal before doing any wallet or document update. Admin may use
+        // tenant-owned base items only when editing the admin's own booking.
+        const validatedItems = new Map();
+        for (const itemId of parsedSelectedTestIds) {
+            const assignedItem = await findAssignedBookingItem(testSchema, itemId, tenantId._id, userId, isAdminActor(req.user))
+                || await findAssignedBookingItem(addPannel, itemId, tenantId._id, userId, isAdminActor(req.user))
+                || await findAssignedBookingItem(Package, itemId, tenantId._id, userId, isAdminActor(req.user));
+
+            if (!assignedItem) {
+                throw new ApiError(403, `Test/Panel/Package is not available to this portal: ${itemId}`);
+            }
+            validatedItems.set(String(itemId), assignedItem);
+        }
 
         // === STRICT CHECK: Duplicate Tests in SAME Barcode + TypeOfSample ===
         const existingTableData = existingBooking.tableData || [];
@@ -1398,7 +1464,7 @@ const editbookingbookedtests = async (req, res) => {
 
             existingTableData.forEach(existing => {
                 // If same barcode but different typeOfSample
-                if (existing.barcodeId === newBarcodeId && existing.typeOfSample !== newTypeOfSample) {
+                if (existing.barcodeId === newBarcodeId && normalizeSampleType(existing.typeOfSample) !== normalizeSampleType(newTypeOfSample)) {
                     duplicateBarcodes.push(`${newBarcodeId} (Type conflict: ${existing.typeOfSample} vs ${newTypeOfSample})`);
                 }
             });
@@ -1420,7 +1486,7 @@ const editbookingbookedtests = async (req, res) => {
             const matchingExisting = existingTableData.find(
                 existing =>
                     existing.barcodeId === newBarcodeId &&
-                    existing.typeOfSample === newTypeOfSample
+                    normalizeSampleType(existing.typeOfSample) === normalizeSampleType(newTypeOfSample)
             );
 
             if (matchingExisting) {
@@ -1470,7 +1536,7 @@ const editbookingbookedtests = async (req, res) => {
             const matchingIndex = mergedTableData.findIndex(
                 existing =>
                     existing.barcodeId === newBarcodeId &&
-                    existing.typeOfSample === newTypeOfSample
+                    normalizeSampleType(existing.typeOfSample) === normalizeSampleType(newTypeOfSample)
             );
 
             if (matchingIndex !== -1) {
@@ -1529,13 +1595,8 @@ const editbookingbookedtests = async (req, res) => {
             const parentUserCache = new Map();
 
             for (const item of parsedSelectedTestIds) {
-                const testOrPackage = await testSchema.findById(item) ||
-                    await addPannel.findById(item) ||
-                    await Package.findById(item);
-
-                if (!testOrPackage) {
-                    throw new ApiError(404, `Test/Package with ID ${item} not found`);
-                }
+                const assignedItem = validatedItems.get(String(item));
+                const testOrPackage = assignedItem.item;
 
                 const assignedPrices = testOrPackage.assignedPrices;
                 const getAssignedPriceForUser = (userId) => {
@@ -1549,7 +1610,7 @@ const editbookingbookedtests = async (req, res) => {
                     )?.price;
                 };
 
-                let currentPrice = getAssignedPriceForUser(bookingUser._id);
+                let currentPrice = assignedItem.price;
 
                 if (!currentPrice) {
                     throw new ApiError(403, "No assigned price found for the current user");
@@ -1649,6 +1710,8 @@ const editbookingbookedtests = async (req, res) => {
             file: fileLink?.url || existingBooking.file,
             tableData: mergedTableData, // Use merged data
             total: existingBooking.total + parsedTotal, // Add to existing total
+            status: "pending",
+            isreportready: false,
             subFranchisee: subFranchisee || "",
             subFranchiseeId: parsedSubFranchiseeId,
             savedDoctor: savedDoctor || "",
@@ -1821,30 +1884,36 @@ const editBookingBarcodes = async (req, res) => {
             return res.status(400).json({ message: "Invalid input" });
         }
 
-        for (const element of tableData) {
-            const barcodepresent = await newBooking.findOne({
-                tenantId: req.user.tenantId._id,
-                "tableData.barcodeId": element.barcodeId,
-                _id: { $ne: id }
-            })
-
-            if (barcodepresent) {
-                return res.status(402).json({ message: `${element.barcodeId} already present` });
-            }
-        }
         // Fetch the document
         const booking = await newBooking.findOne({
             _id: id,
             tenantId: req.user.tenantId._id,
-            createdBy: userId
         });
 
         if (!booking) {
             return res.status(404).json({ message: "Booking not found" });
         }
 
+        if (!canEditBookingCompletely(req.user, booking)) {
+            return res.status(403).json({ message: "You cannot change barcodes in another portal's booking" });
+        }
+
+        for (const element of tableData) {
+            const barcodepresent = await newBooking.findOne({
+                tenantId: req.user.tenantId._id,
+                "tableData.barcodeId": element.barcodeId,
+                _id: { $ne: id }
+            });
+
+            if (barcodepresent) {
+                return res.status(402).json({ message: `${element.barcodeId} already present` });
+            }
+        }
+
         // Update barcodeIds in tableData
         booking.tableData = tableData;
+        booking.status = "pending";
+        booking.isreportready = false;
 
         // Save the document
         await booking.save();
@@ -3753,6 +3822,12 @@ const getBookingcontroller = async (req, res) => {
         return res.status(404).json({ message: "booking not found or cancelled" })
     }
 
+    // Admins may inspect any booking in their tenant. Other portals may only
+    // open bookings created by the current portal (staff acts as its parent).
+    if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, booking)) {
+        return res.status(403).json({ message: "You are not allowed to access this booking" });
+    }
+
     const acceptedBarcodeDoc = await acceptedBarcode.findOne(
         { tenantId: tid, bookingId: value1 },
         { barcodes: 1 }
@@ -3761,6 +3836,9 @@ const getBookingcontroller = async (req, res) => {
     booking.acceptedbarcode = (acceptedBarcodeDoc?.barcodes || [])
         .map((item) => item?.barcode)
         .filter(Boolean);
+
+    booking.canEditTests = canEditBookingCompletely(req.user, booking);
+    booking.canEditBarcodes = canEditBookingCompletely(req.user, booking);
 
     return res.status(200).json(booking);
 }
@@ -3786,9 +3864,16 @@ const editBookingController = async (req, res) => {
         savedLabId = isValidObjectId(savedLabId) ? savedLabId : null;
 
         // 🔍 Pehle purani booking lao
-        const booking = await newBooking.findOne({ bookingId });
+        const booking = await newBooking.findOne({
+            bookingId,
+            tenantId: req.user.tenantId._id,
+        });
         if (!booking) {
             return res.status(404).json({ message: "Booking not found" });
+        }
+
+        if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, booking)) {
+            return res.status(403).json({ message: "You are not allowed to edit this booking" });
         }
 
         let filelink;

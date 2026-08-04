@@ -389,8 +389,9 @@ async function allcases() {
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
                 ${attachmentHtml}
                 <td class="actions">
-                    <div class="enter-result">
-                        <a data-page="reportFormat" class="edit-report"><i class="fa-solid fa-pen-to-square"></i> View report</a>
+                    <div class="actions-wrapper">
+                        <a data-page="reportFormat" class="btn-action btn-primary edit-report"><i class="fa-solid fa-file-lines"></i> View report</a>
+                        <a data-page="ModifyCase" class="btn-action btn-outline modify-case-direct"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
                     </div>
                     <i class="fas fa-ellipsis-h more-options"></i>
                     <div class="allcases-dropdown-menu" style="display: none;">
@@ -410,15 +411,16 @@ async function allcases() {
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
                 ${attachmentHtml}
                 <td class="actions">
-                    <div class="enter-result">
-                        <a data-page="labreport" class="view-bill"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
+                    <div class="actions-wrapper">
+                        <a data-page="labreport" class="btn-action btn-primary view-bill"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
+                        <a data-page="ModifyCase" class="btn-action btn-outline modify-case-direct"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
                     </div>
                     <i class="fas fa-ellipsis-h more-options"></i>
                     <div class="allcases-dropdown-menu" style="display: none;">
                         <a class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
                         <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a>
                         <a class="action-btn clinical-btn" ><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>
-                        <a class="action-btn cancel-btn"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
+                        <a class="action-btn cancel-btn danger-item"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
                     </div>
                 </td>`;
             }
@@ -473,6 +475,12 @@ async function allcases() {
                 window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
             }
             else if (target.classList.contains("modify-case")) {
+                const booking = await getBookingDetails(bookingId);
+                if (!booking) return;
+                saveBookingToLocalStorage(booking, row);
+                window.location.href = `${BASE_URL}/admin/admin.html?page=ModifyCase&value1=${booking.bookingId}`;
+            }
+            else if (target.classList.contains("modify-case-direct")) {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
                 saveBookingToLocalStorage(booking, row);
@@ -1048,10 +1056,33 @@ async function allcases() {
         }
 
         if (saveAttachmentsBtn) saveAttachmentsBtn.addEventListener('click', saveAttachments);
+
+        // --- Enter key triggers Search on all filter inputs & selects ---
+        const filterInputs = document.querySelectorAll(
+            '#reg-no, #patient-name, #franchisee, #gender, #patient-phone, #barcode, #lab-name, #status'
+        );
+        filterInputs.forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const searchBtn = document.getElementById('search-btn');
+                    if (searchBtn) searchBtn.click();
+                }
+            });
+        });
     }
 
     setupEventListeners();
     await fetchBookings(1);
+
+    // Close all dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.more-options') && !e.target.closest('.allcases-dropdown-menu')) {
+            document.querySelectorAll('.allcases-dropdown-menu').forEach(dd => {
+                dd.style.display = 'none';
+            });
+        }
+    });
 }
 
 async function initialization() {

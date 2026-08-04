@@ -408,9 +408,13 @@ const assignSingleTestPrice = asyncHandler(async (req, res) => {
 
 const getAssignedTests = async (req, res) => {
   try {
-    const { userId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
     const role = req.user.role;
     const parentRole = req.user.parentRole
+    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
+    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
+      ? requestedUserId
+      : String(actorId);
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
@@ -515,9 +519,13 @@ const getAssignedTests = async (req, res) => {
 
 const getAssignedPanels = async (req, res) => {
   try {
-    const { userId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
     const role = req.user.role;
     const parentRole = req.user.parentRole
+    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
+    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
+      ? requestedUserId
+      : String(actorId);
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
@@ -625,9 +633,13 @@ const getAssignedPanels = async (req, res) => {
 };
 const getAssignedPackages = async (req, res) => {
   try {
-    const { userId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
     const role = req.user.role;
     const parentRole = req.user.parentRole
+    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
+    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
+      ? requestedUserId
+      : String(actorId);
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }

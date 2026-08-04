@@ -1,11 +1,20 @@
-<html>
-
-</html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <title>All Cases</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            /* --color: #007bff; */
+            --base: #ffffff;
+            --border-color: #dee2e6;
+            --text-muted: #6b7280;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --radius: 6px;
+        }
+
         h1 {
             font-size: 29px;
             font-weight: bold;
@@ -14,9 +23,29 @@
         }
 
         .container-allcases {
-            min-width: 100%;
-            overflow: scroll;
-            scrollbar-width: none;
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: #fff;
+        }
+        .container-allcases::-webkit-scrollbar {
+            height: 8px;
+        }
+        .container-allcases::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .container-allcases::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        .container-allcases::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
         }
 
         .filter-section {
@@ -24,162 +53,294 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+            align-items: flex-end;
         }
-
-        .filter-section div {
+        .filter-section>div {
             display: flex;
             flex-direction: column;
         }
-
         .filter-section label {
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: 600;
             margin-bottom: 5px;
+            color: #444;
         }
-
         .filter-section input,
         .filter-section select {
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            min-width: 140px;
+            transition: border-color 0.2s;
         }
-
-        .filter-section .checkbox-label {
-            display: flex;
-            align-items: center;
+        .filter-section input:focus,
+        .filter-section select:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
         }
-
-        .filter-section .checkbox-label input {
-            margin-right: 5px;
-        }
-
         .filter-section .buttons {
             display: flex;
             flex-direction: row;
-            align-items: self-end;
+            align-items: flex-end;
             gap: 10px;
         }
-
         .filter-section .buttons button {
-            padding: 8px 16px;
-            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 22px;
+            font-size: 13px;
+            font-weight: 600;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            background-color: var(--color);
-            color: var(--base);
+            transition: all 0.2s ease;
+            letter-spacing: 0.2px;
+            line-height: 1;
+        }
+        .filter-section .buttons button i {
+            font-size: 13px;
         }
 
-        .filter-section .buttons button:nth-of-type(2) {
-            background-color: #b7b7b7;
-        }
-
+        /* --- Search button --- */
         .filter-section .buttons .search-btn {
-            background-color: var(--color);
-            color: white;
+            background: #0d6efd;
+            color: #fff;
+            box-shadow: 0 1px 3px rgba(13, 110, 253, 0.2), 0 1px 2px rgba(13, 110, 253, 0.1);
+        }
+        .filter-section .buttons .search-btn:hover {
+            background: #0b5ed7;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+            transform: translateY(-1px);
+        }
+        .filter-section .buttons .search-btn:active {
+            background: #0a58ca;
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(13, 110, 253, 0.2);
         }
 
+        /* --- Clear button --- */
         .filter-section .buttons .clear-btn {
-            background-color: #f8f9fa;
-            color: black;
-            border: 1px solid #ced4da;
+            background: #fff;
+            color: #374151;
+            border: 1.5px solid #d1d5db;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .filter-section .buttons .clear-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #111827;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .filter-section .buttons .clear-btn:active {
+            background: #f3f4f6;
+            transform: scale(0.97);
         }
 
+        /* ============ TABLE ============ */
         table {
             width: 100%;
+            min-width: 950px;
             border-collapse: collapse;
-            background-color: white;
+            background-color: #ffffff;
+            white-space: nowrap;
         }
 
-        table th,
-        table td {
-            padding: 10px;
-            text-align: left;
-            border: 1px solid #dee2e6;
-        }
-
+        /* --- Header cells --- */
         table th {
-            background-color: #f1f3f5;
-            font-weight: bold;
+            padding: 12px 16px;
+            text-align: left;
+            background-color: #f8f9fb;
+            font-weight: 700;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 2px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 2;
         }
 
+        /* --- Body cells --- */
+        table td {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            color: #1f2937;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Row hover --- */
+        table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        /* ---- Status badge ---- */
         table td .status-btn {
-            padding: 5px 10px;
-            /* background-color: #007bff; */
+            padding: 5px 12px;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 20px;
             cursor: pointer;
-            background-color: #7f7f7f;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.15s, box-shadow 0.15s;
+            white-space: nowrap;
+        }
+        table td .status-btn:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-sm);
         }
 
-        table td .view-bill {
-            color: #007bff;
-            text-decoration: none;
-            margin-right: 10px;
-            cursor: pointer;
+        /* ============ ACTION BUTTONS ============ */
+        /* --- Action column cell --- */
+        table td.actions {
+            position: relative;
+            white-space: nowrap;
+            min-width: 200px;
         }
 
-        table td .edit-report {
-            color: #007bff;
-            text-decoration: none;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-
-        table td .actions {
-            display: flex;
+        /* --- Actions flex wrapper --- */
+        .actions-wrapper {
+            display: inline-flex;
             align-items: center;
+            gap: 8px;
+            justify-content: flex-start;
+            vertical-align: middle;
         }
 
-        table td .actions .more-options {
+        /* --- Shared button base --- */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+            border-radius: 6px;
             cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.18s ease;
+            border: 1.5px solid transparent;
+        }
+        .btn-action i {
+            font-size: 11px;
         }
 
-        /* Dropdown Menu Styling */
+        /* --- Primary: Enter Result / View Report --- */
+        .btn-action.btn-primary {
+            background-color: #0d6efd;
+            color: #ffffff;
+            border-color: #0d6efd;
+        }
+        .btn-action.btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0b5ed7;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+        }
+
+        /* --- Secondary / Outline: Edit --- */
+        .btn-action.btn-outline {
+            background-color: #ffffff;
+            color: #0d6efd;
+            border-color: #d1d5db;
+        }
+        .btn-action.btn-outline:hover {
+            background-color: #f0f5ff;
+            border-color: #0d6efd;
+            color: #0b5ed7;
+        }
+
+        /* ---- Three-dots ---- */
+        .more-options {
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: #6b7280;
+            font-size: 15px;
+            transition: background 0.2s, color 0.2s;
+            margin-left: 10px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .more-options:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        /* ---- Dropdown Menu ---- */
         .allcases-dropdown-menu {
             position: absolute;
-            right: 6rem;
+            top: calc(100% + 4px);
+            right: 4px;
             background-color: #ffffff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 6px 0;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
             z-index: 1000;
+            min-width: 170px;
+            animation: dropdownFadeIn 0.15s ease-out;
         }
-
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
         .allcases-dropdown-menu a {
-            display: block;
-            padding: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
             text-decoration: none;
             color: #333;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
         }
-
+        .allcases-dropdown-menu a i {
+            width: 16px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+        }
         .allcases-dropdown-menu a:hover {
-            background-color: #f1f1f1;
+            background-color: #f3f4f6;
+            color: #111;
         }
-
-        .enter-result {
-            width: max-content;
-            border: 1px solid rgb(54, 54, 54);
-            border-radius: 5px;
-            display: inline-block;
-            margin-left: 1.5rem;
+        .allcases-dropdown-menu a:hover i {
+            color: #0d6efd;
         }
-
-        .enter-result i {
-            padding: 0.5rem 0.5rem;
+        .allcases-dropdown-menu a.danger-item {
+            color: #d9534f;
         }
-
-        .more-options {
-            margin-left: 2rem;
+        .allcases-dropdown-menu a.danger-item i {
+            color: #d9534f;
+        }
+        .allcases-dropdown-menu a.danger-item:hover {
+            background-color: #fef2f2;
         }
 
         .ModifyCase i {
             width: 1.15rem;
         }
 
-        /* Popup styles */
+        /* ---- Popup / Message Popup ---- */
         #messagePopup {
             display: none;
             position: fixed;
@@ -187,44 +348,71 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 20px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             z-index: 1000;
+            border-radius: 12px;
+            width: min(420px, calc(100vw - 32px));
         }
-
         #messagePopup h3 {
-            margin: 0;
+            margin: 0 0 10px;
+            font-size: 17px;
+            font-weight: 700;
+            color: #222;
         }
-
         #messages {
-            height: 100px;
+            height: 120px;
             overflow-y: auto;
-            background: #f9f9f9;
-            padding: 10px;
+            background: #f9fafb;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
-
         #messageInput {
             width: 100%;
             height: 60px;
-            margin: 10px 0px;
-            padding: 5px;
-            border: 1px solid black;
+            margin: 12px 0;
+            padding: 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: var(--radius);
+            font-size: 13px;
+            resize: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
         }
-
+        #messageInput:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
+        }
         #sendMessage {
-            padding: 10px 20px;
-            background-color: #007BFF;
+            padding: 9px 22px;
+            background-color: #0d6efd;
             color: white;
             border: none;
+            border-radius: var(--radius);
             cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
         }
-
+        #sendMessage:hover {
+            background-color: #0056b3;
+        }
         #closePopup {
-            padding: 10px 20px;
-            background-color: #ccc;
+            padding: 9px 22px;
+            background-color: #e5e7eb;
+            color: #333;
             border: none;
+            border-radius: var(--radius);
             cursor: pointer;
-            margin-left: 10px;
+            margin-left: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        #closePopup:hover {
+            background-color: #d1d5db;
         }
 
         /* Overlay styles */
@@ -237,66 +425,89 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
+            backdrop-filter: blur(2px);
         }
 
         .senderdivs p {
-            padding: 0.25rem 0.5rem;
-            border-radius: 5px;
-            background-color: rgb(54, 54, 54);
+            padding: 0.35rem 0.7rem;
+            border-radius: 8px 8px 2px 8px;
+            background-color: #4b5563;
             width: fit-content;
             color: white;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 80%;
         }
-
         .receiverdivs,
         .senderdivs {
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
-
         .receiverdivs {
             display: flex;
             justify-content: right;
         }
-
         .receiverdivs p {
-            padding: 0.25rem 0.5rem;
-            border-radius: 5px;
-            background-color: rgb(17, 145, 0);
+            padding: 0.35rem 0.7rem;
+            border-radius: 8px 8px 8px 2px;
+            background-color: #059669;
             width: fit-content;
             color: white;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 80%;
         }
 
         .preNext {
-            margin: 2rem 0rem;
+            margin: 1.5rem 0;
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 10px;
         }
-
         .preNext button {
-            padding: 2px 10px;
-            font-size: 1rem;
+            padding: 7px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1.5px solid #d1d5db;
+            border-radius: var(--radius);
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-
+        .preNext button:hover:not(:disabled) {
+            background: #f0f7ff;
+            border-color: #0d6efd;
+            color: #0d6efd;
+        }
+        .preNext button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
         .preNext span {
-            padding: 0px 5px;
-            font-size: 1rem;
+            padding: 0 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
         }
 
         .totalbarbook {
-            font-family: sans-serif;
-            padding: 5px 0px;
-            font-weight: 500;
-            letter-spacing: 1px;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 6px 0;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            color: #444;
         }
-
         .totalbarbook span {
             color: #165524;
+            margin-right: 12px;
         }
 
         /* Attachment UI Styles */
         .attachment-btn {
             cursor: pointer;
-            color: var(--color);
+            color: #0d6efd;
             position: relative;
             display: inline-block;
             font-size: 18px;
@@ -321,21 +532,6 @@
             font-weight: bold;
             border: 2px solid white;
         }
-        #attachmentModal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 25px;
-            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-            width: min(480px, calc(100vw - 24px));
-            max-height: calc(100vh - 24px);
-            overflow-y: auto;
-            border-radius: 12px;
-        }
         .attach-list {
             max-height: 200px;
             overflow-y: auto;
@@ -359,14 +555,27 @@
             font-size: 12px;
             color: #6b7280;
             margin-top: 6px;
-            line-height: 1.4;
+            line-height: 1.5;
+        }
+        #attachmentModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+            z-index: 1001;
+            width: min(440px, calc(100vw - 24px));
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+            border-radius: 12px;
         }
     </style>
 </head>
 
 <body>
-
-    <body>
         <h1>All Cases</h1>
         <div class="filter-section">
             <div>
@@ -414,8 +623,8 @@
                 </select>
             </div>
             <div class="buttons">
-                <button id="search-btn">Search</button>
-                <button id="clearfield">Clear</button>
+                <button id="search-btn" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+                <button id="clearfield" class="clear-btn"><i class="fa-solid fa-rotate"></i> Clear</button>
             </div>
         </div>
         <div class="totalbarbook">
@@ -486,3 +695,4 @@
         </div>
         <script src="allcases.js"></script>
     </body>
+</html>

@@ -2,6 +2,9 @@
 const params = new URLSearchParams(window.location.search);
 const value1 = params.get('value1');
 console.log("Extracted value1 from URL:", value1);
+let loadedBooking = null;
+let pendingSelections = new Map();
+let modifyPendingRows = [];
 
 async function sendValue1ToApi() {
     try {
@@ -24,14 +27,223 @@ async function sendValue1ToApi() {
         }
 
         const data = await response.json();
+        loadedBooking = data;
         populateFormData(data);
         displayEditHistory(data.editHistory || []);
         await databaseDoctors(data.createdBy);
         await databaseLab(data.createdBy);
         await databasesubfranchisee(data.createdBy);
+        await setupModifyTestControls(data);
     } catch (error) {
         console.error("Error sending value1 to API:", error);
     }
+}
+
+function getCurrentPortalUserId() {
+    return typeof userId !== 'undefined' ? userId : (window.userId || '');
+}
+
+function getItemId(item) {
+    return item?.testId || item?.panelId || item?.packageId || item?._id;
+}
+
+function getItemName(item) {
+    return item?.testName || item?.panelName || item?.packageName || 'Unnamed item';
+}
+
+function getItemSamples(item) {
+    const rawSamples = [
+        ...(Array.isArray(item?.sampleType) ? item.sampleType : String(item?.sampleType || '').split(',')),
+        ...(Array.isArray(item?.sample_types) ? item.sample_types : String(item?.sample_types || '').split(','))
+    ];
+    return [...new Set(rawSamples.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function normalizeSample(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function selectionKey(item) {
+    const collection = item?.testId ? 'testSchema' : item?.panelId ? 'addPannel' : 'Package';
+    return `${collection}:${getItemId(item)}`;
+}
+
+function getItemPrice(item) {
+    return Number(item?.myPrice ?? item?.franchiseePrice ?? item?.basePrice ?? 0) || 0;
+}
+
+// Keep the same data model as editbooking.js: one row per sample type, with
+// multiple selected test/panel/package IDs merged into that row.
+function rebuildModifyPendingRows() {
+    const rows = [];
+    pendingSelections.forEach((item, key) => {
+        const id = String(getItemId(item));
+        const collectionName = item?.testId ? 'testSchema' : item?.panelId ? 'addPannel' : 'Package';
+        getItemSamples(item).forEach((sample) => {
+            let row = rows.find((candidate) => normalizeSample(candidate.typeOfSample) === normalizeSample(sample));
+            const existingBookingRow = (loadedBooking?.tableData || []).find((entry) => normalizeSample(entry.typeOfSample) === normalizeSample(sample));
+            if (!row) {
+                row = {
+                    key: normalizeSample(sample),
+                    typeOfSample: sample,
+                    barcodeId: existingBookingRow?.barcodeId || '',
+                    confirmBarcodeId: existingBookingRow?.barcodeId || '',
+                    lockedBarcode: Boolean(existingBookingRow),
+                    ids: [],
+                    selections: []
+                };
+                rows.push(row);
+            }
+            if (!row.ids.some((entry) => String(entry.id) === id && entry.collectionName === collectionName)) {
+                row.ids.push({ id, collectionName });
+                row.selections.push({ key, name: getItemName(item) });
+            }
+        });
+    });
+    modifyPendingRows = rows;
+}
+
+function renderModifyPendingRows() {
+    const booked = document.getElementById('modify-booked-tests');
+    if (!booked) return;
+    booked.querySelectorAll('.pending-row').forEach((row) => row.remove());
+    rebuildModifyPendingRows();
+
+    modifyPendingRows.forEach((row) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pending-row';
+        const chips = row.selections.map((selection) =>
+            `<span class="selection-chip">${selection.name}<button type="button" data-remove-selection="${selection.key}" title="Remove selection">×</button></span>`
+        ).join('');
+        wrapper.innerHTML = `<span class="test-name">${chips}<span class="test-meta">${row.typeOfSample} · Same-sample tests are grouped together</span></span>
+            <input type="text" placeholder="Barcode" value="${row.barcodeId}" data-pending-barcode="${row.key}" ${row.lockedBarcode ? 'readonly' : ''} required>
+            <input type="text" placeholder="Confirm" value="${row.confirmBarcodeId}" data-pending-confirm="${row.key}" ${row.lockedBarcode ? 'readonly' : ''} required>`;
+        wrapper.querySelectorAll('[data-remove-selection]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const removedKey = button.dataset.removeSelection;
+                pendingSelections.delete(removedKey);
+                const option = document.querySelector(`[data-selection-key="${removedKey}"]`);
+                if (option) option.style.display = '';
+                renderModifyPendingRows();
+                updateBookedTestCount();
+            });
+        });
+        booked.appendChild(wrapper);
+    });
+}
+
+async function setupModifyTestControls(data) {
+    const section = document.getElementById('modify-tests-section');
+    const options = document.getElementById('modify-test-options');
+    const booked = document.getElementById('modify-booked-tests');
+    const barcodeEditor = document.getElementById('modify-barcode-editor');
+    const saveBarcodes = document.getElementById('save-modify-barcodes');
+    const note = document.getElementById('modify-tests-note');
+    if (!section || !options || !booked) return;
+
+    section.style.display = 'block';
+    const canEdit = data.canEditTests === true;
+    note.textContent = canEdit
+        ? 'Only tests assigned to this portal are available. Additions require a barcode.'
+        : 'This booking belongs to another portal. Tests and packages are read-only.';
+    options.innerHTML = '';
+    booked.innerHTML = '';
+    if (barcodeEditor) barcodeEditor.innerHTML = '';
+
+    const bookedEntries = data.tableData || [];
+    const count = document.getElementById('booked-test-count');
+    if (count) count.textContent = bookedEntries.length;
+
+    if (bookedEntries.length === 0) {
+        booked.innerHTML = '<div class="booked-empty"><i class="fas fa-vial" style="font-size:24px;display:block;margin-bottom:8px;"></i>No tests booked yet.</div>';
+    }
+
+    bookedEntries.forEach((entry) => {
+        const row = document.createElement('div');
+        row.className = 'booked-row';
+        row.innerHTML = `<span class="test-name">${entry.testName || 'Booked test'}<span class="test-meta">${entry.typeOfSample || 'Sample'} · ${entry.barcodeId || 'Barcode unavailable'}</span></span><i class="fas fa-check-circle" style="color:#16a34a;"></i>`;
+        booked.appendChild(row);
+        if (barcodeEditor) {
+            const barcodeRow = document.createElement('div');
+            barcodeRow.className = 'barcode-row';
+            barcodeRow.innerHTML = `<span class="sample-name">${entry.typeOfSample || 'Sample'}</span><input type="text" data-booking-barcode="${entry._id || ''}" value="${entry.barcodeId || ''}" ${data.canEditBarcodes ? '' : 'readonly'}>`;
+            barcodeEditor.appendChild(barcodeRow);
+        }
+    });
+    renderModifyPendingRows();
+
+    if (saveBarcodes) {
+        saveBarcodes.style.display = data.canEditBarcodes ? 'inline-block' : 'none';
+        saveBarcodes.onclick = async () => {
+            const updatedTableData = (data.tableData || []).map((entry, index) => ({
+                ...entry,
+                barcodeId: barcodeEditor.querySelectorAll('[data-booking-barcode]')[index]?.value?.trim()
+            }));
+            if (updatedTableData.some((entry) => !entry.barcodeId)) return alert('Barcode is required for every sample');
+            const response = await fetch(`${BASE_URL}/api/v1/user/editBookingBarcodes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: data._id, tableData: updatedTableData })
+            });
+            const result = await response.json();
+            if (!response.ok) return alert(result.message || 'Barcodes could not be updated');
+            alert(result.message || 'Barcodes updated successfully');
+            loadedBooking.tableData = updatedTableData;
+        };
+    }
+
+    if (!canEdit) return;
+
+    const actorId = getCurrentPortalUserId();
+    if (!actorId) {
+        note.textContent = 'Current portal identity is unavailable; test editing is disabled.';
+        return;
+    }
+
+    try {
+        const query = encodeURIComponent(actorId);
+        const responses = await Promise.all([
+            fetch(`${BASE_URL}/api/v1/user/get-test?userId=${query}`, { method: 'POST' }),
+            fetch(`${BASE_URL}/api/v1/user/get-all-pannels?userId=${query}`, { method: 'POST' }),
+            fetch(`${BASE_URL}/api/v1/user/get-all-packages?userId=${query}`, { method: 'POST' })
+        ]);
+        if (responses.some((response) => !response.ok)) throw new Error('Assigned test list unavailable');
+        const [tests, panels, packages] = await Promise.all(responses.map((response) => response.json()));
+        [...tests, ...panels, ...packages].forEach((item) => {
+            const itemId = getItemId(item);
+            if (!itemId) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${getItemName(item)} (${item.myPrice ?? item.franchiseePrice ?? item.basePrice ?? 0})`;
+            button.className = 'test-option';
+            button.innerHTML = `<span><i class="fas fa-plus-circle" style="color:#2563eb;margin-right:8px;"></i>${getItemName(item)}</span><small>${item.myPrice ?? item.franchiseePrice ?? item.basePrice ?? 0}</small>`;
+            button.dataset.selectionKey = selectionKey(item);
+            if ((data.tableData || []).some((entry) => String(entry.testName || '').toLowerCase().includes(getItemName(item).toLowerCase()))) {
+                button.style.display = 'none';
+            }
+            button.addEventListener('click', () => addModifyTestRow(item));
+            options.appendChild(button);
+        });
+    } catch (error) {
+        console.error('Unable to load assigned tests:', error);
+        note.textContent = 'Assigned tests could not be loaded.';
+    }
+}
+
+function addModifyTestRow(item) {
+    const key = selectionKey(item);
+    if (pendingSelections.has(key)) return;
+    pendingSelections.set(key, item);
+    const option = document.querySelector(`[data-selection-key="${key}"]`);
+    if (option) option.style.display = 'none';
+    renderModifyPendingRows();
+    updateBookedTestCount();
+}
+
+function updateBookedTestCount() {
+    const count = document.getElementById('booked-test-count');
+    if (!count || !loadedBooking) return;
+    count.textContent = String((loadedBooking.tableData || []).length + modifyPendingRows.length);
 }
 
 function populateFormData(data) {
@@ -457,6 +669,9 @@ async function submitNewBooking() {
             const data = await response.json();
 
             if (response.ok) {
+                if (pendingSelections.size > 0) {
+                    await submitPendingModifyTests();
+                }
                 const existingBooking = localStorage.getItem('booking');
                 if (existingBooking) {
                     const bookingData = JSON.parse(existingBooking);
@@ -505,9 +720,46 @@ async function submitNewBooking() {
             submitButton.style.opacity = '1';
             submitButton.style.cursor = 'pointer';
             
-            alert('Error updating booking. Please check your connection and try again.');
+            alert(error.message || 'Error updating booking. Please check your connection and try again.');
         }
     });
+}
+
+async function submitPendingModifyTests() {
+    rebuildModifyPendingRows();
+    const tableData = modifyPendingRows.map((row) => {
+        const barcode = document.querySelector(`[data-pending-barcode="${row.key}"]`)?.value?.trim();
+        const confirmBarcode = document.querySelector(`[data-pending-confirm="${row.key}"]`)?.value?.trim();
+        if (!barcode || !confirmBarcode) throw new Error('Barcode and confirmation are required for every new sample');
+        if (barcode !== confirmBarcode) throw new Error(`Barcode and confirmation do not match for ${row.typeOfSample}`);
+        return {
+            typeOfSample: row.typeOfSample,
+            barcodeId: barcode,
+            confirmBarcodeId: confirmBarcode,
+            testName: row.selections.map((selection) => selection.name).join(', '),
+            ids: row.ids
+        };
+    });
+    const formData = new FormData();
+    formData.append('barcodeId', loadedBooking.bookingId);
+    formData.append('patientName', loadedBooking.patientName || '');
+    formData.append('date', loadedBooking.date || '');
+    formData.append('time', loadedBooking.time || '');
+    formData.append('year', loadedBooking.year || '');
+    formData.append('gender', loadedBooking.gender || 'Any');
+    formData.append('patientPhone', loadedBooking.patientPhone || '');
+    formData.append('doctorName', loadedBooking.doctorName || '');
+    formData.append('labName', loadedBooking.labName || '');
+    formData.append('clinicalHistory', loadedBooking.clinicalHistory || '');
+    formData.append('createdbyuser', loadedBooking.createdbyuser || '');
+    const total = [...pendingSelections.values()].reduce((sum, item) => sum + getItemPrice(item), 0);
+    formData.append('total', String(total));
+    formData.append('testIds', JSON.stringify([...pendingSelections.values()].map((item) => getItemId(item))));
+    formData.append('tableData', JSON.stringify(tableData));
+
+    const response = await fetch(`${BASE_URL}/api/v1/user/editbookingbookedtests`, { method: 'POST', body: formData });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Tests could not be updated');
 }
 
 // ✅ BONUS: Function to sync localStorage with latest server data (optional use)
