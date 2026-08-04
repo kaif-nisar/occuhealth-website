@@ -451,6 +451,7 @@ const userSchema = new Schema(
 // Indexes for better performance
 userSchema.index({ "subscription.endDate": 1 });
 userSchema.index({ "subscription.isActive": 1 });
+userSchema.index({ tenantId: 1, role: 1, isActive: 1, fullName: 1 });
 
 // Pre-save middleware for password hashing
 userSchema.pre("save", async function (next) {

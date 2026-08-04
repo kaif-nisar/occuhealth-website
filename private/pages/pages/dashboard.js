@@ -1,323 +1,328 @@
-async function dashboard() {
-    // Check permissions at the start
-    const permissions = user.permissions || {};
-    const isStaff = user.role === 'staff';
+﻿    (function () {
+      let charts = {};
+      let franchisePage = 1;
+      let franchiseRequestId = 0;
 
-    await fetchDashboardData();
+      function byId(id) { return document.getElementById(id); }
 
-    // Apply permission-based visibility
-    applyPermissions(permissions, isStaff);
+      function asCurrency(value) {
+        const num = Number(value || 0);
+        return `INR ${num.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+      }
 
-    function showFranchiseeSections(userdetails) {
-        console.log("user details in modal:", userdetails);
-        const usernoti = document.getElementById('userModal');
-        
-        // Check if element exists before setting innerHTML
-        if (!usernoti) {
-            console.warn("userModal element not found in DOM");
-            return;
+      function asDate(value) {
+        if (!value) return "--";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return "--";
+        return d.toLocaleString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit"
+        });
+      }
+
+      function daysRemaining(endDateLike) {
+        if (!endDateLike) return "--";
+        const end = new Date(endDateLike);
+        if (Number.isNaN(end.getTime())) return "--";
+        return Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+      }
+
+      function normalizeText(value, fallback = "--") {
+        if (value === null || value === undefined || value === "") return fallback;
+        return String(value);
+      }
+
+      function hasPermission(permission, perms, isStaff) {
+        if (!isStaff) return true;
+        return Boolean(perms && perms[permission]);
+      }
+
+      function hasAnyPermission(rule, perms, isStaff) {
+        if (!isStaff) return true;
+        const tokens = String(rule || "").split(/\s+/).filter(Boolean);
+        if (!tokens.length) return true;
+        return tokens.some((token) => hasPermission(token, perms, isStaff));
+      }
+
+      function applyPermissionVisibility(perms, isStaff) {
+        document.querySelectorAll("[data-permission]").forEach((node) => {
+          const rule = node.getAttribute("data-permission");
+          node.style.display = hasAnyPermission(rule, perms, isStaff) ? "" : "none";
+        });
+      }
+
+      async function requestJson(path, options) {
+        const res = await fetch(path, {
+          credentials: "include",
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options && options.headers ? options.headers : {})
+          }
+        });
+        let body = null;
+        try { body = await res.json(); } catch (_) { body = null; }
+        return { ok: res.ok, status: res.status, data: body };
+      }
+
+      function destroyChart(key) {
+        if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+      }
+
+      function drawChart(key, canvasId, type, labels, data, label, color, customOptions) {
+        const canvas = byId(canvasId);
+        if (!canvas || typeof Chart === "undefined") return;
+        destroyChart(key);
+
+        const defaultDataset = {
+          label, data,
+          borderColor: color,
+          backgroundColor: type === "line" ? "rgba(15,98,254,0.14)" : color,
+          fill: type === "line",
+          borderWidth: 2,
+          tension: 0.34,
+          pointRadius: type === "line" ? 2 : 0
+        };
+
+        if (type === "doughnut") {
+          defaultDataset.backgroundColor = Array.isArray(color) ? color : ["#0f62fe","#14a57b","#c87c1a","#bf3d47"];
+          defaultDataset.borderWidth = 1;
+          defaultDataset.borderColor = "#ffffff";
+          defaultDataset.hoverOffset = 4;
         }
-        
-        usernoti.innerHTML = `
-            <div class="modal-content_one">
-                <h3>User Details</h3>
-                <p class="Name"><strong>Name: ${userdetails.fullName}</strong></p>
-                <p class="email"><strong>Email: ${userdetails.email}</strong></p>
-                <p class="role"><strong>Role: ${userdetails.role}</strong></p>
-            </div>
-        `;
-    }
 
-    // Call only if user data is available
-    if (user && user.fullName) {
-        showFranchiseeSections(user);
-    }
+        charts[key] = new Chart(canvas.getContext("2d"), {
+          type,
+          data: { labels, datasets: [defaultDataset] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+              legend: { display: true, position: type === "doughnut" ? "bottom" : "top" }
+            },
+            scales: type === "doughnut" ? {} : {
+              x: { grid: { display: false } },
+              y: { grid: { color: "rgba(0,0,0,0.06)" }, beginAtZero: true }
+            },
+            ...(customOptions || {})
+          }
+        });
+      }
 
-    // Single API call for all dashboard data
-    async function fetchDashboardData() {
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/get-booking-for-dashboard`);
-            const data = await response.json();
-            
-            if (!response.ok) {
-                console.log(data.message || "Failed to fetch dashboard data");
-                return;
+      function setMetric(id, value) { const el = byId(id); if (el) el.textContent = value; }
+      function setTrend(id, text)   { const el = byId(id); if (el) el.textContent = text; }
+
+      function setPill(id, text, statusClass) {
+        const el = byId(id);
+        if (!el) return;
+        el.textContent = text;
+        el.className = "state-pill " + (statusClass || "na");
+      }
+
+      function statusClass(value) {
+        const v = String(value || "").toLowerCase();
+        if (["active","paid","captured"].includes(v)) return "active";
+        if (["grace","pending","created","authorized"].includes(v)) return "grace";
+        if (["expired","failed","inactive","unpaid"].includes(v)) return "expired";
+        return "na";
+      }
+
+      function renderFranchiseRows(list, pagination = {}) {
+        const tbody = byId("tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        if (!Array.isArray(list) || !list.length) {
+          tbody.innerHTML = '<tr><td colspan="4">No franchise data available.</td></tr>';
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        list.forEach((item) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${normalizeText(item.fullName)}</td>
+            <td>${normalizeText(item.address)}</td>
+            <td>${normalizeText(item.phoneNo)}<br>${normalizeText(item.email)}</td>
+            <td>${item.isActive ? "Active" : "Inactive"}</td>`;
+          frag.appendChild(tr);
+        });
+        tbody.appendChild(frag);
+
+        const paginationEl = byId("franchisePagination");
+        const pageInfo = byId("franchisePageInfo");
+        const previous = byId("franchisePrev");
+        const next = byId("franchiseNext");
+        const totalPages = Math.max(1, Number(pagination.totalPages || 1));
+        franchisePage = Math.min(Math.max(1, Number(pagination.page || 1)), totalPages);
+        if (paginationEl) paginationEl.hidden = totalPages <= 1;
+        if (pageInfo) pageInfo.textContent = `Page ${franchisePage} of ${totalPages}`;
+        if (previous) previous.disabled = franchisePage <= 1;
+        if (next) next.disabled = franchisePage >= totalPages;
+      }
+
+      function renderSubscription(subscriptionPayload) {
+        const sub = subscriptionPayload && subscriptionPayload.subscription ? subscriptionPayload.subscription : {};
+        const status  = normalizeText(subscriptionPayload && subscriptionPayload.status, "na").toLowerCase();
+        const payment = normalizeText(sub.paymentStatus, "na").toLowerCase();
+
+        setPill("subStatusPill",  `STATUS: ${status.toUpperCase()}`,   statusClass(status));
+        setPill("payStatusPill",  `PAYMENT: ${payment.toUpperCase()}`, statusClass(payment));
+
+        setMetric("subPlanType",  normalizeText(sub.planType || sub.planDuration));
+        setMetric("subPlanLayer", normalizeText(sub.planLayer));
+        setMetric("subDuration",  normalizeText(sub.durationDays));
+        setMetric("subPrice",     asCurrency(sub.price));
+        setMetric("subStart",     asDate(sub.startDate));
+
+        const effectiveEnd = sub.effectiveEndDate || sub.endDate;
+        const remDays = daysRemaining(effectiveEnd);
+
+        setMetric("subEnd",            asDate(sub.endDate));
+        setMetric("subEffectiveEnd",   asDate(sub.effectiveEndDate));
+        setMetric("subDays",           String(remDays));
+        setMetric("remainingDaysTop",  remDays === "--" ? "--" : `${remDays} days`);
+        setMetric("subscriptionEndTop",asDate(effectiveEnd));
+        setMetric("planTypeTop",       normalizeText(sub.planType || sub.planDuration || sub.planLayer, "NA").toUpperCase());
+
+        setTrend("trend-remainingDays", remDays === "--" ? "--" : `${remDays}d`);
+        setTrend("trend-endDate",  normalizeText(subscriptionPayload && subscriptionPayload.status, "NA").toUpperCase());
+        setTrend("trend-planType", normalizeText(sub.paymentStatus, "NA").toUpperCase());
+
+        const grace = sub.gracePeriod;
+        setMetric("subGrace", grace
+          ? `Enabled: ${grace.isEnabled ? "Yes" : "No"}, Until: ${asDate(grace.graceUntil)}`
+          : "Not configured");
+
+        setMetric("tenantStatus", normalizeText(subscriptionPayload && subscriptionPayload.tenantStatus));
+        setMetric("tenantName",   normalizeText(subscriptionPayload && subscriptionPayload.tenantName));
+        setMetric("tenantCode",   normalizeText(subscriptionPayload && subscriptionPayload.tenantCode));
+
+        const msg = byId("subMessage");
+        if (msg) msg.textContent = normalizeText(subscriptionPayload && subscriptionPayload.message, "--");
+      }
+
+      function mapToSparklinePoints(values) {
+        const safe = Array.isArray(values) && values.length ? values : [4,6,5,7,6,8,7];
+        const min = Math.min(...safe);
+        const max = Math.max(...safe);
+        const range = Math.max(max - min, 1);
+        const n = safe.length;
+        return safe.map((v, i) => {
+          const x = n === 1 ? 0 : (i * 120) / (n - 1);
+          const y = 24 - ((v - min) / range) * 18;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(" ");
+      }
+
+      function setSparkline(svgId, values) {
+        const svg = byId(svgId);
+        if (!svg) return;
+        const poly = svg.querySelector("polyline");
+        if (!poly) return;
+        poly.setAttribute("points", mapToSparklinePoints(values));
+      }
+
+      function renderOperationalData(dashboardPayload, contextUser) {
+        const stats  = (dashboardPayload && dashboardPayload.stats)  || {};
+        const chartsData = (dashboardPayload && dashboardPayload.charts) || {};
+
+        setMetric("totalBookings",    normalizeText(stats.totalBookings, "0"));
+        setMetric("totalRevenue",     asCurrency(stats.totalRevenue || 0));
+        setMetric("pendingTests",     normalizeText(stats.pendingTests, "0"));
+        setMetric("activeFranchises", normalizeText(stats.activeFranchises, "0"));
+
+        const monthly  = chartsData.monthlyRevenue || { labels: [], data: [] };
+        const daily    = chartsData.dailyRevenue   || { labels: [], data: [] };
+        const tests    = chartsData.topTests       || { labels: [], data: [] };
+        const monthlyData = Array.isArray(monthly.data) ? monthly.data : [];
+        const dailyData   = Array.isArray(daily.data)   ? daily.data   : [];
+
+        const lastMonthly     = monthlyData.length ? monthlyData[monthlyData.length - 1] : 0;
+        const previousMonthly = monthlyData.length > 1 ? monthlyData[monthlyData.length - 2] : lastMonthly;
+        const delta = previousMonthly ? Math.round(((lastMonthly - previousMonthly) / previousMonthly) * 100) : 0;
+
+        setTrend("trend-totalBookings", `${normalizeText(stats.pendingTests, 0)} pending`);
+        setTrend("trend-totalRevenue",  `${delta >= 0 ? "+" : ""}${delta}%`);
+        setTrend("trend-pendingTests",  `${normalizeText(stats.pendingTests, 0)} open`);
+
+        setSparkline("spark-totalBookings", dailyData.slice(-8));
+        setSparkline("spark-totalRevenue",  monthlyData.slice(-8));
+        setSparkline("spark-remainingDays", tests.data || []);
+        setSparkline("spark-pendingTests",  dailyData.slice(-8).map((v) => Math.max(1, Math.round(v / 1000))));
+        setSparkline("spark-endDate",       monthlyData.slice(-8).map((v) => Math.max(1, Math.round(v / 1000))));
+        setSparkline("spark-planType",      monthlyData.slice(-8).map((v, i) => Math.max(1, Math.round((v / 2000) + i))));
+
+        drawChart("monthlyRevenue", "revenueChart", "line",
+          Array.isArray(monthly.labels) ? monthly.labels : [], monthlyData, "Monthly Revenue", "#0f62fe");
+
+        drawChart("dailyRevenue", "samplesChart", "line",
+          Array.isArray(daily.labels) ? daily.labels : [], dailyData, "Daily Revenue", "#14a57b");
+
+        drawChart("topTests", "testCategoriesChart", "doughnut",
+          Array.isArray(tests.labels) ? tests.labels : [],
+          Array.isArray(tests.data)   ? tests.data   : [],
+          "Top Tests",
+          ["#5a66f3","#13ad7f","#f0a43d","#e65b74"],
+          {
+            cutout: "52%",
+            layout: { padding: 6 },
+            plugins: {
+              legend: { display: true, position: "bottom",
+                labels: { boxWidth: 10, usePointStyle: true } }
             }
+          }
+        );
 
-            // Batch DOM updates using requestAnimationFrame for smooth rendering
-            requestAnimationFrame(() => {
-                updateDashboard(data.stats, permissions);
-                updateCharts(data.charts, permissions);
-                updateFranchisee(data.franchisees, permissions);
-            });
-            
-        } catch (error) {
-            console.error("Error fetching dashboard data:", error.message);
-        }
-    }
+        renderFranchiseRows(
+          dashboardPayload && dashboardPayload.franchisees,
+          dashboardPayload && dashboardPayload.franchisePagination
+        );
+      }
 
-    function updateDashboard(stats, permissions) {
-        if (!stats) return;
+      async function loadFranchisePage(page) {
+        const requestId = ++franchiseRequestId;
+        const result = await requestJson(`${BASE_URL}/api/v1/user/get-booking-for-dashboard?franchisePage=${page}`);
+        if (requestId !== franchiseRequestId || !result.ok || !result.data) return;
+        renderFranchiseRows(result.data.franchisees, result.data.franchisePagination);
+      }
 
-        // Total Bookings
-        if (permissions.canManageBookings) {
-            const elem = document.getElementById("totalBookings");
-            if (elem) elem.innerText = stats.totalBookings;
-        }
+      async function initDashboard() {
+        const contextUser = window.user || {};
+        const permissions = contextUser.permissions || {};
+        const isStaff     = contextUser.role === "staff";
 
-        // Total Revenue
-        if (permissions.canManagePayments || permissions.canViewReports) {
-            const elem = document.getElementById("totalRevenue");
-            if (elem) elem.innerText = stats.totalRevenue;
-        }
+        applyPermissionVisibility(permissions, isStaff);
 
-        // Pending Tests
-        if (permissions.canManageBookings) {
-            const elem = document.getElementById("pendingTests");
-            if (elem) elem.innerText = stats.pendingTests;
+        const subtitle = byId("dashSubtitle");
+        if (subtitle) {
+          subtitle.textContent = `Welcome ${normalizeText(contextUser.fullName, "User")}. Tenant operations and subscription health in one view.`;
         }
 
-        // Balance
-        if (permissions.canManagePayments || permissions.canViewReports) {
-            const elem = document.getElementById("myBalance");
-            if (elem) elem.innerText = `${user.commissionWallet}/-`;
-        }
+        const [opsResult, subResult] = await Promise.allSettled([
+          requestJson(`${BASE_URL}/api/v1/user/get-booking-for-dashboard`),
+          requestJson(`${BASE_URL}/api/v1/user/check-subscription`, { method: "POST" })
+        ]);
 
-        // Active Franchises
-        if (permissions.canManageUsers) {
-            const elem = document.getElementById("activeFranchises");
-            if (elem) elem.innerText = stats.activeFranchises;
-        }
-    }
+        const ops     = opsResult.status     === "fulfilled" ? opsResult.value     : { ok: false, data: null };
+        const sub     = subResult.status     === "fulfilled" ? subResult.value     : { ok: false, data: null };
+        requestAnimationFrame(() => {
+          if (ops.ok     && ops.data)     renderOperationalData(ops.data, contextUser);
+          if (sub.ok     && sub.data)     renderSubscription(sub.data);
 
-    function updateCharts(charts, permissions) {
-        if (!charts) return;
-
-        // Only show charts if user has permission
-        if (!permissions.canViewReports && !permissions.canManagePayments) {
-            return;
-        }
-
-        // Monthly Revenue Chart
-        if ((permissions.canViewReports || permissions.canManagePayments) && charts.monthlyRevenue?.labels?.length > 0) {
-            createChart(
-                "revenueChart",
-                "line",
-                "Monthly Balance",
-                charts.monthlyRevenue.labels,
-                charts.monthlyRevenue.data,
-                'rgba(0, 123, 255, 0.2)',
-                'rgba(0, 123, 255, 1)'
-            );
-        }
-
-        // Daily Revenue Chart
-        if ((permissions.canViewReports || permissions.canManagePayments) && charts.dailyRevenue?.labels?.length > 0) {
-            createChart(
-                "samplesChart",
-                "bar",
-                "Daily Balance",
-                charts.dailyRevenue.labels,
-                charts.dailyRevenue.data,
-                'rgba(40, 167, 69, 0.2)',
-                'rgba(40, 167, 69, 1)'
-            );
-        }
-
-        // Top Test Categories Chart
-        if ((permissions.canManageBookings || permissions.canViewReports) && charts.topTests?.labels?.length > 0) {
-            const canvas = document.getElementById("testCategoriesChart");
-            if (!canvas) return;
-
-            const colors = [
-                'rgba(54, 215, 232, 1)',
-                'rgba(254, 112, 150, 1)',
-                'rgba(6, 185, 157, 1)',
-                '#da8cff'
-            ];
-
-            createChart(
-                "testCategoriesChart",
-                "doughnut",
-                "Top 4 Test Categories",
-                charts.topTests.labels,
-                charts.topTests.data,
-                colors
-            );
-        }
-    }
-
-    function updateFranchisee(franchisees, permissions) {
-        // Only update if user has permission
-        if (!permissions.canManageUsers && isStaff) {
-            return;
-        }
-
-        if (!franchisees || franchisees.length === 0) {
-            return;
-        }
-
-        const tableBody = document.querySelector('#tbody');
-        if (!tableBody) return;
-
-        // Use DocumentFragment for better performance
-        const fragment = document.createDocumentFragment();
-        
-        franchisees.forEach((franchisee) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${franchisee.fullName || ''}</td>
-                <td>${franchisee.address || ''}</td>
-                <td>${franchisee.phoneNo || ''}<br>${franchisee.email || ''}</td>
-                <td>
-                    <a href="#" onclick="loadPage('editFranchisee', '${franchisee._id}')">Edit</a>
-                    <a href="#" class="status-link" style="color: ${franchisee.isActive ? 'green' : 'red'};">
-                        ${franchisee.isActive ? 'Active' : 'Inactive'}
-                    </a>
-                </td>
-            `;
-            fragment.appendChild(row);
+          const stamp = byId("dashLastUpdated");
+          if (stamp) stamp.textContent = `Last update: ${new Date().toLocaleString("en-IN")}`;
         });
+      }
 
-        // Clear and append in one operation
-        tableBody.innerHTML = '';
-        tableBody.appendChild(fragment);
-    }
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("#franchisePrev, #franchiseNext");
+        if (!button || button.disabled) return;
+        loadFranchisePage(franchisePage + (button.id === "franchiseNext" ? 1 : -1));
+      });
 
-    function createChart(canvasId, type, label, labels, data, bgColor = 'rgba(255, 99, 132, 0.2)') {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) {
-            console.warn(`Canvas ${canvasId} not found`);
-            return;
-        }
-
-        // Destroy existing chart if present
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-            existingChart.destroy();
-        }
-
-        try {
-            new Chart(canvas.getContext("2d"), {
-                type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        backgroundColor: bgColor,
-                        fill: type === "line"
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                }
-            });
-        } catch (error) {
-            console.error(`Error creating chart ${canvasId}:`, error);
-        }
-    }
-
-    function applyPermissions(permissions, isStaff) {
-        // If not staff, show everything (admin/superAdmin)
-        if (!isStaff) {
-            return;
-        }
-
-        // Hide booking-related elements if no permission
-        if (!permissions.canManageBookings) {
-            hideElements([
-                '#totalBookings',
-                '#pendingTests',
-                '.booking-card',
-                '.booking-section',
-                '#testCategoriesChart'
-            ]);
-        }
-
-        // Hide payment-related elements if no permission
-        if (!permissions.canManagePayments) {
-            hideElements([
-                '#totalRevenue',
-                '#myBalance',
-                '.payment-card',
-                '.payment-section',
-                '.revenue-section'
-            ]);
-        }
-
-        // Hide reports/charts if no permission
-        if (!permissions.canViewReports && !permissions.canManagePayments) {
-            hideElements([
-                '#revenueChart',
-                '#samplesChart',
-                '.chart-container',
-                '.reports-section'
-            ]);
-        }
-
-        // Hide user management elements if no permission
-        if (!permissions.canManageUsers) {
-            hideElements([
-                '#activeFranchises',
-                '#tbody',
-                '.franchisee-table',
-                '.user-management-section',
-                '.forhide'
-            ]);
-        }
-
-        // Hide test management elements if no permission
-        if (!permissions.canManageTest) {
-            hideElements([
-                '.test-management-section',
-                '.test-database-section'
-            ]);
-        }
-    }
-
-    function hideElements(selectors) {
-        selectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(elem => {
-                if (elem) {
-                    elem.style.display = 'none';
-                    // Also hide parent card if needed
-                    const parentCard = elem.closest('.card');
-                    if (parentCard) {
-                        parentCard.style.display = 'none';
-                    }
-                }
-            });
-        });
-    }
-
-    function trackmodel() {
-        if (!user?.tenantId?.modelType) return;
-        
-        const islayerone = user.tenantId.modelType === "1layer";
-        if (islayerone) {
-            document.querySelectorAll('.forhide').forEach(elem => {
-                elem.style.display = 'none';
-            });
-        }
-    }
-
-    trackmodel();
-}
-
-async function initialization() {
-    const loader = document.querySelector(".loader");
-    if (loader) loader.style.display = "block";
-    
-    try {
-        await dashboard();
-    } catch (error) {
-        console.error("Dashboard initialization error:", error);
-    } finally {
-        if (loader) loader.style.display = "none";
-    }
-}
-
-initialization();
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initDashboard, { once: true });
+      } else {
+        initDashboard();
+      }
+    })();

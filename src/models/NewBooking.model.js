@@ -141,6 +141,7 @@ TestBookingSchema.index({ tenantId: 1, savedDoctorId: 1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, savedLabId: 1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, "tableData.barcodeId": 1 });
 TestBookingSchema.index({ tenantId: 1, date: -1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, date: 1 });
 TestBookingSchema.index({ tenantId: 1, patientName: 1, createdAt: -1 });
 TestBookingSchema.index({ createdAt: -1 });
 

@@ -2309,96 +2309,94 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
     const tenantId = req.user.tenantId._id;
     const userRole = req.user.role;
     const permissions = req.user.permissions || {};
+    const franchisePage = Math.max(1, Number.parseInt(req.query.franchisePage, 10) || 1);
+    const franchiseLimit = 5;
+    const franchiseSkip = (franchisePage - 1) * franchiseLimit;
 
     const bookingMatch = { tenantId };
-    const franchiseeQuery = (permissions.canManageUsers || userRole !== 'staff')
+    const franchiseeFilter = {
+        tenantId,
+        role: { $ne: 'staff' },
+        isActive: true
+    };
+    const canViewFranchisees = permissions.canManageUsers || userRole !== 'staff';
+    const franchiseeQuery = canViewFranchisees
         ? User.find({
-            tenantId,
-            role: { $ne: 'staff' },
-            isActive: true
+            ...franchiseeFilter
         })
             .select('fullName address phoneNo email isActive')
+            .sort({ fullName: 1, _id: 1 })
+            .skip(franchiseSkip)
+            .limit(franchiseLimit)
             .lean()
         : Promise.resolve([]);
+    const franchiseeCountQuery = canViewFranchisees
+        ? User.countDocuments(franchiseeFilter)
+        : Promise.resolve(0);
 
-    const statsQuery = newBooking.aggregate([
+    const dashboardAggregation = newBooking.aggregate([
         { $match: bookingMatch },
         {
-            $group: {
-                _id: null,
-                totalBookings: { $sum: 1 },
-                totalRevenue: { $sum: { $ifNull: ["$total", 0] } },
-                pendingTests: {
-                    $sum: {
-                        $cond: [{ $eq: ["$status", "pending"] }, 1, 0]
+            $facet: {
+                stats: [
+                    {
+                        $group: {
+                            _id: null,
+                            totalBookings: { $sum: 1 },
+                            totalRevenue: { $sum: { $ifNull: ["$total", 0] } },
+                            pendingTests: {
+                                $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+                            }
+                        }
                     }
-                }
+                ],
+                monthly: [
+                    { $match: { date: { $type: "date" } } },
+                    {
+                        $group: {
+                            _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+                            total: { $sum: { $ifNull: ["$total", 0] } }
+                        }
+                    },
+                    { $sort: { "_id.year": 1, "_id.month": 1 } }
+                ],
+                daily: [
+                    { $match: { date: { $type: "date" } } },
+                    {
+                        $group: {
+                            _id: {
+                                year: { $year: "$date" },
+                                month: { $month: "$date" },
+                                day: { $dayOfMonth: "$date" }
+                            },
+                            total: { $sum: { $ifNull: ["$total", 0] } }
+                        }
+                    },
+                    { $sort: { "_id.year": -1, "_id.month": -1, "_id.day": -1 } },
+                    { $limit: 30 },
+                    { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+                ],
+                topTests: [
+                    { $project: { firstTestName: { $arrayElemAt: ["$tableData.testName", 0] } } },
+                    { $match: { firstTestName: { $exists: true, $ne: null, $ne: "" } } },
+                    { $group: { _id: "$firstTestName", count: { $sum: 1 } } },
+                    { $sort: { count: -1, _id: 1 } },
+                    { $limit: 4 }
+                ]
             }
         }
     ]);
 
-    const monthlyRevenueQuery = newBooking.aggregate([
-        { $match: bookingMatch },
-        { $match: { date: { $type: "date" } } },
-        {
-            $group: {
-                _id: {
-                    year: { $year: "$date" },
-                    month: { $month: "$date" }
-                },
-                total: { $sum: { $ifNull: ["$total", 0] } }
-            }
-        },
-        { $sort: { "_id.year": 1, "_id.month": 1 } }
+    const [dashboardRows, franchisees, franchiseeCount] = await Promise.all([
+        dashboardAggregation,
+        franchiseeQuery,
+        franchiseeCountQuery
     ]);
-
-    const dailyRevenueQuery = newBooking.aggregate([
-        { $match: bookingMatch },
-        { $match: { date: { $type: "date" } } },
-        {
-            $group: {
-                _id: {
-                    year: { $year: "$date" },
-                    month: { $month: "$date" },
-                    day: { $dayOfMonth: "$date" }
-                },
-                total: { $sum: { $ifNull: ["$total", 0] } }
-            }
-        },
-        { $sort: { "_id.year": -1, "_id.month": -1, "_id.day": -1 } },
-        { $limit: 30 },
-        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
-    ]);
-
-    const topTestsQuery = newBooking.aggregate([
-        { $match: bookingMatch },
-        {
-            $project: {
-                firstTestName: { $arrayElemAt: ["$tableData.testName", 0] }
-            }
-        },
-        {
-            $match: {
-                firstTestName: { $exists: true, $ne: null, $ne: "" }
-            }
-        },
-        {
-            $group: {
-                _id: "$firstTestName",
-                count: { $sum: 1 }
-            }
-        },
-        { $sort: { count: -1, _id: 1 } },
-        { $limit: 4 }
-    ]);
-
-    const [statsRows, monthlyRows, dailyRows, topTestRows, franchisees] = await Promise.all([
-        statsQuery,
-        monthlyRevenueQuery,
-        dailyRevenueQuery,
-        topTestsQuery,
-        franchiseeQuery
-    ]);
+    const dashboardRow = dashboardRows[0] || {};
+    const statsRows = dashboardRow.stats || [];
+    const monthlyRows = dashboardRow.monthly || [];
+    const dailyRows = dashboardRow.daily || [];
+    const topTestRows = dashboardRow.topTests || [];
 
     // Initialize response structure
     const response = {
@@ -2426,7 +2424,7 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
         totalBookings: stats.totalBookings,
         totalRevenue: Math.round(stats.totalRevenue || 0),
         pendingTests: stats.pendingTests,
-        activeFranchises: franchisees.length
+        activeFranchises: franchiseeCount
     };
 
     response.charts.monthlyRevenue = {
@@ -2446,6 +2444,12 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
 
     // Add franchisees data
     response.franchisees = franchisees;
+    response.franchisePagination = {
+        page: Math.min(franchisePage, Math.max(1, Math.ceil(franchiseeCount / franchiseLimit))),
+        limit: franchiseLimit,
+        total: franchiseeCount,
+        totalPages: Math.max(1, Math.ceil(franchiseeCount / franchiseLimit))
+    };
 
     return res.status(200).json(response);
 });

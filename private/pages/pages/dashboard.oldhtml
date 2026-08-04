@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #f1f3f7;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+    }
+
+    .main-content {
+      width: 100%;
+      margin: auto;
+    }
+
+    .main-content h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .main-content .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .main-content .card {
+      flex: 1 1 200px;
+      min-width: 230px;
+      /* background: linear-gradient(135deg, #a34dfe, #3f86ff); */
+      color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .firstcard {
+      background: linear-gradient(to right, #ffbf96, #fe7096) !important;
+
+    }
+
+    .secondcard {
+      background: linear-gradient(to right, #90caf9, #047edf 99%) !important;
+    }
+
+    .thirdcard {
+      background: linear-gradient(to right, #84d9d2, #07cdae) !important;
+    }
+
+    .fourthcard {
+      background: linear-gradient(to right, #ffbf96, #fe7096) !important;
+
+    }
+
+    .fifthcard {
+      background: linear-gradient(to right, #7ed8d1, #0775cd) !important;
+    }
+
+    .main-content .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .main-content .card::after {
+      content: "";
+      position: absolute;
+      top: -30%;
+      right: -30%;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      transform: rotate(45deg);
+    }
+
+    .main-content .card h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .main-content .card p {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .main-content .chart-container,
+    .main-content .table-container {
+      width: 100%;
+      background: #fff;
+      margin-top: 15px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+      scrollbar-width: none;
+
+    }
+
+    .main-content .chart-container h3,
+    .main-content .table-container h3 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .main-content .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .main-content .table-container table th,
+    .main-content .table-container table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .main-content .table-container table th {
+      /* background: rgb(59 130 246 / 0.5) !important; */
+      background: linear-gradient(to right, #7ed8d0, #1495ff) !important;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .main-content .table-container table td {
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    .main-content .table-container table .actions a {
+      margin-right: 10px;
+      color: #7ed8d1;
+      font-weight: 500;
+    }
+
+    .main-content .table-container table .actions a:hover {
+      text-decoration: underline;
+    }
+
+    .first-chart-container,
+    .second-chart-container {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .testcategories {
+      display: flex;
+      justify-content: center;
+    }
+
+    .charts-container {
+      display: flex;
+      gap: 1.3%;
+    }
+
+    /* ====== RESPONSIVE STYLES ====== */
+
+    /* On medium screens (tablet) */
+    @media (max-width: 1024px) {
+      .main-content .cards {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .main-content .card {
+        flex: 1 1 300px;
+        max-width: 90%;
+      }
+
+      .charts-container {
+        flex-direction: column;
+      }
+
+      .first-chart-container,
+      .second-chart-container {
+        width: 100%;
+      }
+
+      .main-content .chart-container,
+      .main-content .table-container {
+        height: auto;
+        padding: 20px;
+      }
+    }
+
+    /* On small screens (mobile) */
+    @media (max-width: 768px) {
+      .main-content {
+        padding: 0 10px;
+      }
+
+      .main-content h1 {
+        font-size: 22px;
+        text-align: center;
+      }
+
+      .main-content .cards {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .main-content .card {
+        flex: none;
+        width: 100%;
+        max-width: 100%;
+        padding: 15px;
+      }
+
+      .main-content .card h3 {
+        font-size: 16px;
+        word-break: break-word;
+      }
+
+      .main-content .card p {
+        font-size: 20px;
+      }
+
+      .charts-container {
+        flex-direction: column;
+      }
+
+      .first-chart-container,
+      .second-chart-container {
+        width: 100%;
+      }
+
+      .main-content .chart-container {
+        padding: 15px;
+      }
+
+      .main-content .chart-container h3 {
+        font-size: 18px;
+        text-align: center;
+        word-break: break-word;
+      }
+
+      .main-content .table-container {
+        padding: 10px;
+      }
+
+      .main-content .table-container h3 {
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .main-content .table-container table {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .main-content .table-container table th,
+      .main-content .table-container table td {
+        padding: 10px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+
+      .main-content .table-container table td.actions a {
+        font-size: 13px;
+      }
+
+    }
+
+    /* On extra small screens */
+    @media (max-width: 480px) {
+      .main-content h1 {
+        font-size: 20px;
+      }
+
+      .main-content .card {
+        padding: 12px;
+      }
+
+      .main-content .card h3 {
+        font-size: 15px;
+      }
+
+      .main-content .card p {
+        font-size: 18px;
+      }
+
+      .main-content .chart-container h3,
+      .main-content .table-container h3 {
+        font-size: 16px;
+      }
+
+      .main-content .table-container table th,
+      .main-content .table-container table td {
+        padding: 8px;
+        font-size: 13px;
+      }
+
+      .main-content .table-container table td.actions a {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-content">
+    <div class="conta" id="conta">
+      <h1>Welcome, Admin</h1>
+      <div class="cards">
+        <div class="card firstcard">
+          <h3><i class="fas fa-vials"></i> Total bookings</h3>
+          <p id="totalBookings">1200</p>
+        </div>
+        <div class="card secondcard">
+          <h3><i class="fas fa-rupee-sign"></i> Total Revenue</h3>
+          <p id="totalRevenue">$50,000</p>
+        </div>
+        <div class="card thirdcard forhide">
+          <h3><i class="fas fa-store"></i> Active Franchises</h3>
+          <p id="activeFranchises">15</p>
+        </div>
+        <div class="card fourthcard">
+          <h3><i class="fas fa-flask"></i> Pending Tests</h3>
+          <p id="pendingTests">34</p>
+        </div>
+        <div class="card fifthcard">
+          <h3><i class="fas fa-wallet"></i> My Balance</h3>
+          <p id="myBalance">$2,500</p>
+        </div>
+      </div>
+
+      <div class="charts-container">
+        <div class="first-chart-container">
+          <div class="chart-container">
+            <h3>Revenue Over Time</h3>
+            <canvas id="revenueChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <h3>Samples Received Over Time</h3>
+
+            <canvas id="samplesChart"></canvas>
+
+          </div>
+        </div>
+        <div class="second-chart-container">
+          <!-- <div class="chart-container">
+            <h3>Samples Received Over Time</h3>
+
+            <canvas id="samplesChart"></canvas>
+
+          </div> -->
+          <div class="chart-container testcategories">
+            <canvas id="testCategoriesChart"></canvas>
+          </div>
+          <div class="table-container forhide">
+            <h3>Franchise Details</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>FRANCHISE NAME</th>
+                  <th>LOCATION</th>
+                  <th>CONTACT</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr>
+                  <td>Franchise 1</td>
+                  <td>New York</td>
+                  <td>+1 555-1234</td>
+                  <td class="actions">
+                    <a href="#">Edit</a>
+                    <a href="#">View</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Franchise 2</td>
+                  <td>Los Angeles</td>
+                  <td>+1 555-5678</td>
+                  <td class="actions">
+                    <a href="#">Edit</a>
+                    <a href="#">View</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Franchise 3</td>
+                  <td>Chicago</td>
+                  <td>+1 555-9012</td>
+                  <td class="actions">
+                    <a href="#">Edit</a>
+                    <a href="#">View</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Franchise 4</td>
+                  <td>Houston</td>
+                  <td>+1 555-3456</td>
+                  <td class="actions">
+                    <a href="#">Edit</a>
+                    <a href="#">View</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

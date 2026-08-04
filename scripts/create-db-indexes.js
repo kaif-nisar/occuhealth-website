@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Connect_DB from "../src/db/index.js";
 
 import "../src/models/NewBooking.model.js";
+import "../src/models/user.model.js";
 import "../src/models/printsetting.model.js";
 import "../src/models/reportData.model.js";
 import "../src/models/Testvalues.model.js";
@@ -19,6 +20,7 @@ async function createIndexes() {
 
   const models = [
     "testBooking",
+    "User",
     "Customization",
     "report",
     "BookedTestsValues",
