@@ -323,7 +323,7 @@ const userSchema = new Schema(
 
     pdfFormat: {
       type: String,
-      default: "reportFormat1",
+      default: "reportFormat",
     },
     showtestdatabase: {
       type: Boolean,

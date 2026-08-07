@@ -357,7 +357,7 @@
                 <label for="leaseTerms">Pdf Format</label>
                 <div class="form-group format-choice">
                     <label class="format-option" for="format1">
-                        <input type="radio" id="format1" name="format" value="reportFormat1" checked>
+                        <input type="radio" id="format1" name="format" value="reportFormat1">
                         <span class="format format1"></span>
                         <strong>Format 1</strong>
                         <small>Default report layout</small>
@@ -369,7 +369,7 @@
                         <small>Alternate report layout</small>
                     </label>
                     <label class="format-option" for="format3">
-                        <input type="radio" name="format" id="format3" value="reportFormat">
+                        <input type="radio" name="format" id="format3" value="reportFormat" checked>
                         <span class="format format3"></span>
                         <strong>Format 3</strong>
                         <small>Classic report layout</small>
@@ -380,6 +380,9 @@
                         <strong>Format 4</strong>
                         <small>New report layout</small>
                     </label>
+                </div>
+                <div id="format1Warning" class="format-warning" style="display:none; margin-top: 10px; padding: 10px 14px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404; font-size: 0.85rem; font-weight: 500;">
+                    <i class="fas fa-exclamation-triangle"></i> Format 1 is only available for OccuHealth users. Please select a different format for franchise users.
                 </div>
                 <div class="form-group other-choice">
                     <label for="printsetting">

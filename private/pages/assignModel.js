@@ -19,6 +19,16 @@
         }
     });
 
+    // Format 1 warning - only for OccuHealth users
+    const format1Warning = document.getElementById('format1Warning');
+    const formatRadios = document.querySelectorAll('input[name="format"]');
+    formatRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (format1Warning) {
+                format1Warning.style.display = radio.value === 'reportFormat1' ? 'block' : 'none';
+            }
+        });
+    });
 
     modelCards.forEach(card => {
         card.addEventListener('click', () => {

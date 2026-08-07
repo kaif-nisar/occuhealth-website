@@ -44,11 +44,27 @@
       reportFormat: 'format3',
       reportFormat4: 'format4',
     };
-    const selectedFormatId = formatIdMap[data.adminDetails.userId.pdfFormat] || 'format1';
+    const selectedFormatId = formatIdMap[data.adminDetails.userId.pdfFormat] || 'format3';
     const selectedFormatInput = document.getElementById(selectedFormatId);
     if (selectedFormatInput) {
       selectedFormatInput.checked = true;
     }
+
+    // Show Format 1 warning if Format 1 is selected
+    const format1Warning = document.getElementById('format1Warning');
+    if (format1Warning) {
+      format1Warning.style.display = selectedFormatId === 'format1' ? 'block' : 'none';
+    }
+
+    // Format 1 warning - show/hide on radio change
+    const formatRadios = document.querySelectorAll('input[name="format"]');
+    formatRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (format1Warning) {
+          format1Warning.style.display = radio.value === 'reportFormat1' ? 'block' : 'none';
+        }
+      });
+    });
 
     // Subscription Info
     document.getElementById('planType').value = data.subscriptionPlan?.planType || 'monthly';

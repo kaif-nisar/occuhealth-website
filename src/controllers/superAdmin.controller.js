@@ -284,7 +284,7 @@ export const createTenant = asyncHandler(async (req, res) => {
           canManageUsers: true,
         },
         createdUsers: [],
-        pdfFormat: addressDetails.pdfFormat || "reportFormat1",
+        pdfFormat: addressDetails.pdfFormat || "reportFormat",
         activities: [],
         showtestdatabase: addressDetails.showtestdatabase,
         showprintsetting: addressDetails.showprintsetting,
