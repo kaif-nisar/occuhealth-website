@@ -1460,38 +1460,53 @@ const getDashboardData = async (req, res) => {
 
 // Helper function to get user hierarchy statistics
 async function getUserHierarchyStats(userId, role, modelType) {
-  const stats = {};
+  const stats = {
+    superFranchisees: 0,
+    franchisees: 0,
+    subFranchisees: 0,
+    directUsers: 0,
+    indirectUsers: 0,
+    totalUsers: 0
+  };
 
-  // Count direct users created by this user
-  const userCounts = await User.aggregate([
+  const results = await User.aggregate([
     { $match: { createdBy: userId } },
-    { $group: { _id: "$role", count: { $sum: 1 } } },
+    {
+      $facet: {
+        roleCounts: [
+          { $group: { _id: "$role", count: { $sum: 1 } } }
+        ],
+        indirectCounts: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "_id",
+              foreignField: "createdBy",
+              as: "indirectUsers"
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              directCount: { $sum: 1 },
+              indirectCount: { $sum: { $size: "$indirectUsers" } }
+            }
+          }
+        ]
+      }
+    }
   ]);
 
-  // Initialize counts for all possible roles
-  stats.superFranchisees = 0;
-  stats.franchisees = 0;
-  stats.subFranchisees = 0;
-
-  // Update with actual counts
-  userCounts.forEach((item) => {
+  const facet = results[0] || {};
+  (facet.roleCounts || []).forEach((item) => {
     if (item._id === "superFranchisee") stats.superFranchisees = item.count;
     if (item._id === "franchisee") stats.franchisees = item.count;
     if (item._id === "subFranchisee") stats.subFranchisees = item.count;
   });
 
-  // Get total users in hierarchy (direct and indirect)
-  const createdUsers = await User.find({ createdBy: userId });
-  let totalIndirectUsers = 0;
-
-  // Count indirect users (users created by direct users)
-  for (const user of createdUsers) {
-    const indirectCount = await User.countDocuments({ createdBy: user._id });
-    totalIndirectUsers += indirectCount;
-  }
-
-  stats.directUsers = createdUsers.length;
-  stats.indirectUsers = totalIndirectUsers;
+  const indirectInfo = facet.indirectCounts?.[0] || { directCount: 0, indirectCount: 0 };
+  stats.directUsers = indirectInfo.directCount;
+  stats.indirectUsers = indirectInfo.indirectCount;
   stats.totalUsers = stats.directUsers + stats.indirectUsers;
 
   return stats;

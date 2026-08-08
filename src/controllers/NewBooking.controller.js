@@ -2032,16 +2032,48 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
         }
     }
 
-    // Fetch bookings with pagination
-    const bookings = await newBooking
-        .find(query)
-        .select(BOOKING_LIST_PROJECTION)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNumber)
-        .lean();
+    // Fetch bookings with pagination using aggregation pipeline facet
+    const facetResults = await newBooking.aggregate([
+        { $match: query },
+        {
+            $facet: {
+                totalCount: [{ $count: "total" }],
+                bookings: [
+                    { $sort: { createdAt: -1 } },
+                    { $skip: skip },
+                    { $limit: limitNumber },
+                    {
+                        $project: {
+                            bookingId: 1,
+                            date: 1,
+                            time: 1,
+                            patientName: 1,
+                            patientPhone: 1,
+                            gender: 1,
+                            doctorName: 1,
+                            labName: 1,
+                            franchisee: 1,
+                            status: 1,
+                            total: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                            createdBy: 1,
+                            createdbyuser: 1,
+                            "tableData.testName": 1,
+                            "tableData.barcodeId": 1,
+                            savedDoctor: 1,
+                            savedLab: 1,
+                            isreportready: 1
+                        }
+                    }
+                ]
+            }
+        }
+    ]);
 
-    const total = await newBooking.countDocuments(query);
+    const resultFacet = facetResults[0] || {};
+    const total = resultFacet.totalCount?.[0]?.total || 0;
+    let bookings = resultFacet.bookings || [];
 
     // Process barcodes and LIS data for current page bookings
     if (bookings.length > 0) {
@@ -2321,30 +2353,83 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
         createdAt: -1
     };
 
-    const bookingsQuery = newBooking.find(query)
-        .select(BOOKING_LIST_PROJECTION)
-        .populate("createdBy", "fullName username role")
-        .sort(sortConfig)
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-    const totalQuery = newBooking.countDocuments(query);
-    const summaryQuery = newBooking.aggregate([
+    const facetResults = await newBooking.aggregate([
         { $match: query },
         {
-            $group: {
-                _id: "$status",
-                count: { $sum: 1 }
+            $facet: {
+                totalCount: [
+                    { $count: "total" }
+                ],
+                summaryRows: [
+                    {
+                        $group: {
+                            _id: "$status",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ],
+                bookings: [
+                    { $sort: sortConfig },
+                    { $skip: skip },
+                    { $limit: limit },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "createdBy",
+                            foreignField: "_id",
+                            as: "createdBy"
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path: "$createdBy",
+                            preserveNullAndEmptyArrays: true
+                        }
+                    },
+                    {
+                        $project: {
+                            bookingId: 1,
+                            date: 1,
+                            time: 1,
+                            patientName: 1,
+                            patientPhone: 1,
+                            gender: 1,
+                            doctorName: 1,
+                            labName: 1,
+                            franchisee: 1,
+                            status: 1,
+                            total: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                            createdbyuser: 1,
+                            "tableData.testName": 1,
+                            "tableData.barcodeId": 1,
+                            savedDoctor: 1,
+                            savedLab: 1,
+                            isreportready: 1,
+                            createdBy: {
+                                $cond: [
+                                    { $ifNull: ["$createdBy._id", false] },
+                                    {
+                                        _id: "$createdBy._id",
+                                        fullName: "$createdBy.fullName",
+                                        username: "$createdBy.username",
+                                        role: "$createdBy.role"
+                                    },
+                                    "$createdBy"
+                                ]
+                            }
+                        }
+                    }
+                ]
             }
         }
     ]);
 
-    let [bookings, total, summaryRows] = await Promise.all([
-        bookingsQuery,
-        totalQuery,
-        summaryQuery
-    ]);
+    const resultFacet = facetResults[0] || {};
+    const total = resultFacet.totalCount?.[0]?.total || 0;
+    const summaryRows = resultFacet.summaryRows || [];
+    let bookings = resultFacet.bookings || [];
 
     bookings = await attachBookingBarcodeDetails(bookings, tenantId);
     bookings = await attachBookingAttachments(bookings, tenantId);
@@ -2446,8 +2531,8 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
                     { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
                 ],
                 topTests: [
+                    { $match: { "tableData.0.testName": { $exists: true, $ne: null, $ne: "" } } },
                     { $project: { firstTestName: { $arrayElemAt: ["$tableData.testName", 0] } } },
-                    { $match: { firstTestName: { $exists: true, $ne: null, $ne: "" } } },
                     { $group: { _id: "$firstTestName", count: { $sum: 1 } } },
                     { $sort: { count: -1, _id: 1 } },
                     { $limit: 4 }

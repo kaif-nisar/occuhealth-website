@@ -136,6 +136,7 @@ const TestBookingSchema = new Schema({
 TestBookingSchema.index({ tenantId: 1, bookingId: 1 }, { unique: true });
 TestBookingSchema.index({ tenantId: 1, createdBy: 1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, status: 1, date: -1 });
 TestBookingSchema.index({ tenantId: 1, patientPhone: 1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, savedDoctorId: 1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, savedLabId: 1, createdAt: -1 });
