@@ -38,17 +38,17 @@
     document.getElementById('status').value = data.adminDetails.userId.isActive ? 'true' : 'false';
     document.getElementById('printsetting').checked = data.adminDetails.userId.showprintsetting;
     document.getElementById('testdatabase').checked = data.adminDetails.userId.showtestdatabase;
-    const formatIdMap = {
-      reportFormat1: 'format1',
-      reportFormat3: 'format2',
-      reportFormat: 'format3',
-      reportFormat4: 'format4',
-    };
-    const selectedFormatId = formatIdMap[data.adminDetails.userId.pdfFormat] || 'format1';
-    const selectedFormatInput = document.getElementById(selectedFormatId);
-    if (selectedFormatInput) {
-      selectedFormatInput.checked = true;
-    }
+    // ✅ Directly match radio input value with user's assigned pdfFormat from DB
+    const userPdfFormat = data.adminDetails?.userId?.pdfFormat;
+    const formatRadios = document.querySelectorAll('input[name="format"]');
+    
+    formatRadios.forEach(radio => {
+      if (userPdfFormat && radio.value === userPdfFormat) {
+        radio.checked = true;
+      } else {
+        radio.checked = false;
+      }
+    });
 
     // Subscription Info
     document.getElementById('planType').value = data.subscriptionPlan?.planType || 'monthly';

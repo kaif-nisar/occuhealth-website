@@ -61,7 +61,7 @@
         const rentAmount = document.getElementById('rentAmount').value;
         const leaseTerms = document.getElementById('leaseTerms').value;
         const referralCodeProvided = document.getElementById('referral').value;
-        const pdfFormat = document.querySelector('input[name="format"]:checked').value;
+        const pdfFormat = document.querySelector('input[name="format"]:checked')?.value || '';
         const showprintsetting = document.getElementById('printsetting').checked;
         const showtestdatabase = document.getElementById('testdatabase').checked;
         const showRandomBtn = document.getElementById('randomResult').checked;

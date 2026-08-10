@@ -38,26 +38,26 @@
     document.getElementById('testdatabase').checked = data.adminDetails.userId.showtestdatabase;
     document.getElementById('randomResult').checked = data.adminDetails.userId.showRandomBtn;
 
-    const formatIdMap = {
-      reportFormat1: 'format1',
-      reportFormat3: 'format2',
-      reportFormat: 'format3',
-      reportFormat4: 'format4',
-    };
-    const selectedFormatId = formatIdMap[data.adminDetails.userId.pdfFormat] || 'format3';
-    const selectedFormatInput = document.getElementById(selectedFormatId);
-    if (selectedFormatInput) {
-      selectedFormatInput.checked = true;
-    }
+    // ✅ Directly match radio input value with user's assigned pdfFormat from DB
+    const userPdfFormat = data.adminDetails?.userId?.pdfFormat;
+    const formatRadios = document.querySelectorAll('input[name="format"]');
+    
+    formatRadios.forEach(radio => {
+      if (userPdfFormat && radio.value === userPdfFormat) {
+        radio.checked = true;
+      } else {
+        radio.checked = false;
+      }
+    });
 
-    // Show Format 1 warning if Format 1 is selected
+    // Show Format 1 warning if reportFormat1 is selected
     const format1Warning = document.getElementById('format1Warning');
     if (format1Warning) {
-      format1Warning.style.display = selectedFormatId === 'format1' ? 'block' : 'none';
+      const selectedRadio = document.querySelector('input[name="format"]:checked');
+      format1Warning.style.display = (selectedRadio && selectedRadio.value === 'reportFormat1') ? 'block' : 'none';
     }
 
     // Format 1 warning - show/hide on radio change
-    const formatRadios = document.querySelectorAll('input[name="format"]');
     formatRadios.forEach(radio => {
       radio.addEventListener('change', () => {
         if (format1Warning) {
@@ -196,37 +196,60 @@
   document.getElementById("adminEditForm").addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
+    // ✅ FIX: FormData use nahi kar rahe kyunki:
+    // 1. Radio button "name=format" se capture hota hai, "pdfFormat" se nahi → backend ko undefined milta tha
+    // 2. Unchecked checkboxes FormData mein hote hi nahi → boolean fields galat jaati thi
+    // Isliye seedha DOM se har field padhte hain taaki koi value miss na ho.
 
     const formatChecked = document.querySelector('input[name="format"]:checked');
-    if (formatChecked) {
-      data.pdfFormat = formatChecked.value;
-    }
-    
-    data.showprintsetting = document.getElementById('printsetting')?.checked || false;
-    data.showtestdatabase = document.getElementById('testdatabase')?.checked || false;
-    data.showRandomBtn = document.getElementById('randomResult')?.checked || false;
+    const pdfFormat = formatChecked ? formatChecked.value : null;
 
-    // Optional: Attach `tenantId`, `_id`, or `refreshToken` if needed
+    if (!pdfFormat) {
+      alert('Please select a PDF Format before saving.');
+      return;
+    }
+
+    const payload = {
+      fullName:         document.getElementById('fullName')?.value || '',
+      username:         document.getElementById('username')?.value || '',
+      email:            document.getElementById('email')?.value || '',
+      role:             document.getElementById('role')?.value || 'admin',
+      phoneNo:          document.getElementById('phoneNo')?.value || '',
+      state:            document.getElementById('state')?.value || '',
+      district:         document.getElementById('district')?.value || '',
+      pinCode:          document.getElementById('pinCode')?.value || '',
+      address:          document.getElementById('address')?.value || '',
+      wallet:           Number(document.getElementById('wallet')?.value || 0),
+      status:           document.getElementById('status')?.value || 'active',
+      isActive:         document.getElementById('status')?.value === 'active',
+
+      // ✅ pdfFormat seedha checked radio se — ab koi bhi ambiguity nahi
+      pdfFormat:        pdfFormat,
+
+      // ✅ Boolean checkboxes ko .checked se padhna zaroori hai
+      showprintsetting: document.getElementById('printsetting')?.checked || false,
+      showtestdatabase: document.getElementById('testdatabase')?.checked || false,
+      showRandomBtn:    document.getElementById('randomResult')?.checked || false,
+
+      // Subscription fields
+      planType:         document.getElementById('planType')?.value || 'monthly',
+      price:            Number(document.getElementById('price')?.value || 0),
+      paymentStatus:    document.getElementById('paymentStatus')?.value || 'paid',
+      paymentAmount:    Number(document.getElementById('paymentAmount')?.value || 0),
+      paymentMethod:    document.getElementById('paymentMethod')?.value || 'manual',
+      manualActivate:   document.getElementById('manualActivate')?.checked || false,
+      customStartDate:  document.getElementById('customStartDate')?.value || undefined,
+      customEndDate:    document.getElementById('customEndDate')?.value || undefined,
+
+      // Password (only send if filled)
+      password:         document.getElementById('password')?.value || undefined,
+    };
 
     try {
       const response = await fetch(`/api/v1/user/update-model/${tenantId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          isActive: document.getElementById('status')?.value === 'active',
-          paymentAmount: Number(document.getElementById('paymentAmount')?.value || 0),
-          paymentMethod: document.getElementById('paymentMethod')?.value || 'manual',
-          manualActivate: document.getElementById('manualActivate')?.checked || false,
-          planType: document.getElementById('planType')?.value || 'monthly',
-          price: Number(document.getElementById('price')?.value || 0),
-          paymentStatus: document.getElementById('paymentStatus')?.value || 'paid',
-          password: document.getElementById('password')?.value || undefined,
-          customStartDate: document.getElementById('customStartDate')?.value || undefined,
-          customEndDate: document.getElementById('customEndDate')?.value || undefined
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
