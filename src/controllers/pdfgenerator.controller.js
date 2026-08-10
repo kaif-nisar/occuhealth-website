@@ -553,7 +553,7 @@ const convertImagesInHtmlToBase64 = async (htmlContent) => {
 };
 
 const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
-    const reportSelect = 'tenantId bookingId';
+    const reportSelect = 'tenantId bookingId patientName';
     let reportContext = null;
 
     if (bookingId) {
@@ -573,7 +573,19 @@ const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
         resolvedReportId: reportContext?._id || value1 || "",
         resolvedTenantId: tenantId || reportContext?.tenantId || "",
         resolvedBookingId: bookingId || reportContext?.bookingId || value1 || "",
+        resolvedPatientName: reportContext?.patientName || "",
     };
+};
+
+// Patient name se safe PDF filename banane wala helper
+const buildPdfFilename = (patientName) => {
+    const name = String(patientName || 'Patient_Report').trim();
+    const safe = name.replace(/[\/\\?%*:|"<>]/g, '').replace(/\s+/g, '_') || 'Patient_Report';
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    return `${safe}_${dd}-${mm}-${yyyy}.pdf`;
 };
 
 const resolveLetterheadBackgroundImage = async ({ tenantId, backgroundImageUrl, customizationBackgroundImageUrl }) => {
@@ -797,6 +809,14 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
 
+        // Patient ka naam DB se fetch karo taaki PDF filename set ho sake
+        const reportForName = await reports.findOne(
+            reportId && mongoose.Types.ObjectId.isValid(reportId)
+                ? { _id: reportId }
+                : { bookingId: bookingId || requestBookingId }
+        ).select('patientName').lean();
+        const patientName = reportForName?.patientName || '';
+
         // ✅ FIX: Attach uploaded files from "All Cases" to the end of the PDF
         const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
             pdfBuffer: finalpdfbufferwithmargin,
@@ -859,7 +879,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="final_report.pdf"');
+        const pdfFilename2 = buildPdfFilename(patientName);
+        res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename2}"; filename*=UTF-8''${encodeURIComponent(pdfFilename2)}`);
         res.setHeader('Content-Length', responsePdfBuffer.length);
         res.end(responsePdfBuffer);
 
@@ -1131,7 +1152,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="final_report.pdf"');
+        const pdfFilename3 = buildPdfFilename(pdfContext?.resolvedPatientName);
+        res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename3}"; filename*=UTF-8''${encodeURIComponent(pdfFilename3)}`);
         res.setHeader('Content-Length', responsePdfBuffer.length);
         res.end(responsePdfBuffer);
 
@@ -1946,7 +1968,8 @@ const invoicepdfgenerator = async (req, res) => {
         }
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="final_report.pdf"');
+        const pdfFilenameUser = buildPdfFilename(pdfContext?.resolvedPatientName);
+        res.setHeader('Content-Disposition', `attachment; filename="${pdfFilenameUser}"; filename*=UTF-8''${encodeURIComponent(pdfFilenameUser)}`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.end(pdfBuffer);
 

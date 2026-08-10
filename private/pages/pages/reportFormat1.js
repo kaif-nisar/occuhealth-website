@@ -8,6 +8,25 @@
     let report = await fetchreport();
     const backgroundImageUrl = await fetchTemplateImages();
     value1 = report._id;
+    function getFormattedPdfFileName(reportData) {
+        const pName = (reportData?.patientName || 'Patient_Report').trim();
+        const safeName = pName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, '_');
+        
+        let dateStr = '';
+        const dateVal = reportData?.date || reportData?.reportedOn || reportData?.createdAt;
+        if (dateVal) {
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                dateStr = `_${day}-${month}-${year}`;
+            }
+        }
+        
+        return `${safeName}${dateStr}.pdf`;
+    }
+
     const baseUrl = `${BASE_URL}/pages/pages/download_reports.html`;
 
     localStorage.setItem('myKey', value1);
@@ -280,7 +299,35 @@
         emailButton.addEventListener('click', () => setupInputField('Enter Email Address', sendEmail));
 
         openPdfButton.addEventListener('click', () => {
-            window.open(iframe.src, '_blank');
+            if (!iframe || !iframe.src) return;
+            const pdfFileName = getFormattedPdfFileName(report);
+
+            // Patient name + date se PDF download trigger karo
+            const downloadLink = document.createElement('a');
+            downloadLink.href = iframe.src;
+            downloadLink.download = pdfFileName;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            // New tab mein patient name title ke saath PDF kholo
+            const pdfWindow = window.open('', '_blank');
+            if (pdfWindow) {
+                const displayTitle = (report?.patientName || 'Patient Report').trim();
+                pdfWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>${displayTitle} - Test Report</title>
+                        <style>html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #525659; }</style>
+                    </head>
+                    <body>
+                        <iframe src="${iframe.src}" width="100%" height="100%" style="border:none;"></iframe>
+                    </body>
+                    </html>
+                `);
+                pdfWindow.document.close();
+            }
         });
     }
 
@@ -1115,13 +1162,15 @@
 
                 // Creating blob from response
                 const pdfBlob = await response.blob();
+                const pdfFileName = getFormattedPdfFileName(report);
 
-                // Creating a download link for the PDF
+                // Patient name + date se named PDF download karo
                 const link = document.createElement('a');
                 link.href = window.URL.createObjectURL(pdfBlob);
-                link.download = 'lab_report.pdf';
+                link.download = pdfFileName;
+                document.body.appendChild(link);
                 link.click();
-                window.open(link);
+                document.body.removeChild(link);
 
                 await updatebookingisreportreadyfield(report.bookingId);
 
