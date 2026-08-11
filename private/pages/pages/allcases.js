@@ -1073,6 +1073,66 @@ async function allcases() {
     }
 
     setupEventListeners();
+
+    // --- Top Horizontal Scrollbar Sync ---
+    function initTopScrollbarSync() {
+        const container = document.querySelector(".container-allcases");
+        const topScrollbar = document.getElementById("tableScrollbarTop");
+        if (!container || !topScrollbar) return;
+
+        const spacer = topScrollbar.querySelector(".scrollbar-spacer");
+        let syncLock = false;
+
+        function syncTopScrollbar() {
+            if (!container || !topScrollbar) return;
+            if (syncLock) return;
+
+            syncLock = true;
+
+            // Match spacer width to the real scrollable width
+            if (spacer) {
+                spacer.style.minWidth = container.scrollWidth + "px";
+            }
+
+            // Mirror the container scroll offset
+            topScrollbar.scrollLeft = container.scrollLeft;
+
+            // Hide the top scrollbar when there is nothing to scroll
+            const hasOverflow = container.scrollWidth > container.clientWidth;
+            topScrollbar.classList.toggle("has-no-overflow", !hasOverflow);
+
+            syncLock = false;
+        }
+
+        function syncContainer() {
+            if (syncLock) return;
+            if (!container || !topScrollbar) return;
+
+            container.scrollLeft = topScrollbar.scrollLeft;
+        }
+
+        // Sync when the table container scrolls
+        container.addEventListener("scroll", syncTopScrollbar);
+
+        // Sync the table container from the top scrollbar
+        topScrollbar.addEventListener("scroll", syncContainer);
+
+        // Re-sync on window resize
+        window.addEventListener("resize", syncTopScrollbar);
+
+        // Re-sync whenever rows are added/removed (booking data changes)
+        const tbody = document.getElementById("tbody");
+        if (tbody) {
+            const observer = new MutationObserver(syncTopScrollbar);
+            observer.observe(tbody, { childList: true, subtree: true });
+        }
+
+        // Initial sync
+        syncTopScrollbar();
+    }
+
+    initTopScrollbarSync();
+
     await fetchBookings(1);
 
     // Close all dropdowns when clicking outside
