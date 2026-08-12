@@ -180,6 +180,16 @@ async function setupModifyTestControls(data) {
                 barcodeId: barcodeEditor.querySelectorAll('[data-booking-barcode]')[index]?.value?.trim()
             }));
             if (updatedTableData.some((entry) => !entry.barcodeId)) return alert('Barcode is required for every sample');
+
+            // ⚠️ If this booking is completed, warn the admin before continuing.
+            const bookingStatus = String(data.status || loadedBooking?.status || '').trim().toLowerCase();
+            if (bookingStatus === 'completed' || bookingStatus === 'complete') {
+                const proceed = confirm(
+                    '⚠️ This booking is already COMPLETED.\n\nChanging the barcode will update the accepted barcode sample as well.\n\nDo you want to continue?'
+                );
+                if (!proceed) return;
+            }
+
             const response = await fetch(`${BASE_URL}/api/v1/user/editBookingBarcodes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -740,17 +750,29 @@ async function submitPendingModifyTests() {
             ids: row.ids
         };
     });
+
+    // Read the CURRENT form values so the booking details are not overwritten
+    // with stale data when new tests are added. This keeps the booking and
+    // acceptedBarcode collections in sync with what the user actually sees.
+    const ageValue = document.getElementById('ageValue')?.value || '';
+    const ageUnit = document.getElementById('ageUnit')?.value || 'years';
+    const currentDate = document.querySelector('input[type="date"]')?.value || loadedBooking.date || '';
+    const currentTime = document.querySelector('input[type="time"]')?.value || loadedBooking.time || '';
+
     const formData = new FormData();
     formData.append('barcodeId', loadedBooking.bookingId);
-    formData.append('patientName', loadedBooking.patientName || '');
-    formData.append('date', loadedBooking.date || '');
-    formData.append('time', loadedBooking.time || '');
-    formData.append('year', loadedBooking.year || '');
-    formData.append('gender', loadedBooking.gender || 'Any');
-    formData.append('patientPhone', loadedBooking.patientPhone || '');
-    formData.append('doctorName', loadedBooking.doctorName || '');
-    formData.append('labName', loadedBooking.labName || '');
-    formData.append('clinicalHistory', loadedBooking.clinicalHistory || '');
+    formData.append('patientName', document.getElementById('patient-name')?.value || loadedBooking.patientName || '');
+    formData.append('date', currentDate);
+    formData.append('time', currentTime);
+    formData.append('year', `${ageValue} ${ageUnit}`.trim() || loadedBooking.year || '');
+    formData.append('gender', document.getElementById('patient-gender')?.value || loadedBooking.gender || 'Any');
+    formData.append('patientPhone', document.getElementById('patient-phone')?.value || loadedBooking.patientPhone || '');
+    formData.append('doctorName', document.getElementById('doctor-name')?.value || loadedBooking.doctorName || '');
+    formData.append('labName', document.getElementById('lab-name')?.value || loadedBooking.labName || '');
+    formData.append('clinicalHistory', document.getElementById('clinical-history')?.value || loadedBooking.clinicalHistory || '');
+    formData.append('courierName', document.getElementById('courier-name')?.value || loadedBooking.courierName || '');
+    formData.append('courierId', document.getElementById('courier-id')?.value || loadedBooking.courierId || '');
+    formData.append('franchisee', document.getElementById('franchisee-select')?.value || loadedBooking.franchisee || '');
     formData.append('createdbyuser', loadedBooking.createdbyuser || '');
     const total = [...pendingSelections.values()].reduce((sum, item) => sum + getItemPrice(item), 0);
     formData.append('total', String(total));

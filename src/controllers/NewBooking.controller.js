@@ -1332,7 +1332,8 @@ const editbookingbookedtests = async (req, res) => {
         }
         const tenantId = req.user.tenantId;
         let issinglelayeradmin = false;
-        issinglelayeradmin = tenantId.modelType === "1layer" && req.user.role === "admin";
+        issinglelayeradmin = tenantId.modelType === "1layer" &&
+            (req.user.role === "admin" || (req.user.role === "staff" && req.user.parentRole === "admin"));
 
         const parsedSubFranchiseeId = subFranchiseeId === "null" ? null : subFranchiseeId;
         const parsedSavedDoctorId = savedDoctorId === "null" ? null : savedDoctorId;
@@ -1387,8 +1388,8 @@ const editbookingbookedtests = async (req, res) => {
         }
 
         // Test/panel/package changes are allowed only for the booking's own
-        // portal. This is the critical admin isolation rule as well.
-        if (!canEditBookingCompletely(req.user, existingBooking)) {
+        // portal. Admins may upgrade tests on any booking in their tenant.
+        if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, existingBooking)) {
             throw new ApiError(403, "You cannot change tests in another portal's booking");
         }
 
@@ -1725,8 +1726,7 @@ const editbookingbookedtests = async (req, res) => {
         const updatedDoc = await newBooking.findOneAndUpdate(
             {
                 tenantId: tenantId._id,
-                bookingId: barcodeId,
-                createdBy: userId
+                bookingId: barcodeId
             },
             { $set: updateObject },
             { new: true, session }
@@ -1736,27 +1736,36 @@ const editbookingbookedtests = async (req, res) => {
             throw new ApiError(404, "Failed to update booking");
         }
 
-        // === Admin-specific: Update acceptedBarcode ===
-        if (req.user.role === "admin") {
+        // === Update acceptedBarcode ===
+        // Rebuild from mergedTableData (existing + newly added tests) so the
+        // acceptedBarcode collection stays in sync with the booking and no
+        // previously accepted barcode is lost when tests are upgraded.
+        // All operations use the transaction session so a rollback also
+        // restores the acceptedBarcode collection.
+        if (isAdminActor(req.user) || canEditBookingCompletely(req.user, existingBooking)) {
             await acceptedBarcode.findOneAndDelete({
                 bookingId: barcodeId,
-            });
+            }, { session });
 
-            for (const element of parsedTableData) {
+            for (const element of mergedTableData) {
+                const barcodeValue = element.barcodeId || element.confirmBarcodeId;
+                if (!barcodeValue) continue;
+
                 const testResults = await Promise.all(
                     element.ids.map(async obj => {
                         if (obj.collectionName === "testSchema") {
-                            const doc = await testSchema.findById(obj.id).select('Name');
+                            const doc = await testSchema.findById(obj.id).select('Name').session(session);
                             return doc ? { names: [doc.Name], objects: [obj] } : { names: [], objects: [] };
                         }
                         if (obj.collectionName === "addPannel") {
-                            const doc = await addPannel.findById(obj.id).select('name');
+                            const doc = await addPannel.findById(obj.id).select('name').session(session);
                             return doc ? { names: [doc.name], objects: [obj] } : { names: [], objects: [] };
                         }
                         if (obj.collectionName === "Package") {
                             const doc = await Package.findById(obj.id)
                                 .select('testIds pannelIds')
-                                .populate('testIds pannelIds');
+                                .populate('testIds pannelIds')
+                                .session(session);
 
                             if (!doc) return { names: [], objects: [] };
 
@@ -1792,14 +1801,15 @@ const editbookingbookedtests = async (req, res) => {
                 const testObjects = testResults.flatMap(r => r.objects);
 
                 const existingBarcode = await acceptedBarcode.findOne({
-                    "barcodes.barcode": element.confirmBarcodeId,
-                });
+                    bookingId: { $ne: barcodeId },
+                    "barcodes.barcode": barcodeValue,
+                }).session(session);
 
                 if (existingBarcode) {
                     return res.status(400).json({ message: "This barcode is already accepted." });
                 }
 
-                const savedbarcode = await acceptedBarcode.findOne({ bookingId: barcodeId });
+                const savedbarcode = await acceptedBarcode.findOne({ bookingId: barcodeId }).session(session);
 
                 if (savedbarcode) {
                     await acceptedBarcode.updateOne(
@@ -1807,20 +1817,21 @@ const editbookingbookedtests = async (req, res) => {
                         {
                             $addToSet: {
                                 barcodes: {
-                                    barcode: element.confirmBarcodeId,
+                                    barcode: barcodeValue,
                                     testandpannelArray: testnames,
                                     sampleType: element.typeOfSample,
                                     testIds: testObjects
                                 }
                             }
-                        }
+                        },
+                        { session }
                     );
                 } else {
                     const newBarcodeDocument = new acceptedBarcode({
                         tenantId: tenantId._id,
                         bookingId: barcodeId,
                         barcodes: [{
-                            barcode: element.confirmBarcodeId,
+                            barcode: barcodeValue,
                             testandpannelArray: testnames,
                             sampleType: element.typeOfSample,
                             testIds: testObjects
@@ -1894,7 +1905,7 @@ const editBookingBarcodes = async (req, res) => {
             return res.status(404).json({ message: "Booking not found" });
         }
 
-        if (!canEditBookingCompletely(req.user, booking)) {
+        if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, booking)) {
             return res.status(403).json({ message: "You cannot change barcodes in another portal's booking" });
         }
 
@@ -1910,6 +1921,18 @@ const editBookingBarcodes = async (req, res) => {
             }
         }
 
+        // Capture old barcodes so the acceptedBarcode collection can be
+        // matched reliably when the barcode value itself is changing.
+        const oldBarcodeBySample = new Map();
+        (booking.tableData || []).forEach((entry) => {
+            if (entry.typeOfSample && entry.barcodeId) {
+                oldBarcodeBySample.set(
+                    String(entry.typeOfSample).trim().toLowerCase(),
+                    entry.barcodeId
+                );
+            }
+        });
+
         // Update barcodeIds in tableData
         booking.tableData = tableData;
         booking.status = "pending";
@@ -1917,6 +1940,33 @@ const editBookingBarcodes = async (req, res) => {
 
         // Save the document
         await booking.save();
+
+        // Sync the acceptedBarcode collection so the changed barcodes are
+        // also reflected where accepted samples are stored.
+        const acceptedBarcodeDoc = await acceptedBarcode.findOne({
+            tenantId: req.user.tenantId._id,
+            bookingId: booking.bookingId
+        });
+
+        if (acceptedBarcodeDoc) {
+            for (const element of tableData) {
+                const sampleType = String(element.typeOfSample || "").trim().toLowerCase();
+                const newBarcode = String(element.barcodeId || "").trim();
+                if (!sampleType || !newBarcode) continue;
+
+                const barcodeEntry = (acceptedBarcodeDoc.barcodes || []).find((entry) => {
+                    const entrySample = String(entry.sampleType || "").trim().toLowerCase();
+                    if (entrySample === sampleType) return true;
+                    // Fallback: match by the old barcode value for this sample
+                    return String(entry.barcode || "") === oldBarcodeBySample.get(sampleType);
+                });
+
+                if (barcodeEntry) {
+                    barcodeEntry.barcode = newBarcode;
+                }
+            }
+            await acceptedBarcodeDoc.save();
+        }
 
         // अगर staff का parentUser है तो उसे भी notify करें
         if (req.user.role === 'staff') {
@@ -3922,8 +3972,11 @@ const getBookingcontroller = async (req, res) => {
         .map((item) => item?.barcode)
         .filter(Boolean);
 
-    booking.canEditTests = canEditBookingCompletely(req.user, booking);
-    booking.canEditBarcodes = canEditBookingCompletely(req.user, booking);
+    // Admins may change tests AND barcodes for any booking in their tenant —
+    // including bookings created by franchisees or other portals. Non-admin
+    // portals may only edit tests/barcodes on bookings they created.
+    booking.canEditTests = isAdminActor(req.user) || canEditBookingCompletely(req.user, booking);
+    booking.canEditBarcodes = isAdminActor(req.user) || canEditBookingCompletely(req.user, booking);
 
     return res.status(200).json(booking);
 }
