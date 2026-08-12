@@ -28,7 +28,7 @@ function toggleLoader(show) {
   if (show) {
     tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="7">
+            <td class="p-4 border text-center" colspan="8">
               <div class="flex items-center justify-center gap-3 py-6">
                 <div class="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full loader-spin"></div>
                 <span class="text-gray-600 font-medium">Loading bookings...</span>
@@ -73,7 +73,7 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
     if (!bookings.data || bookings.data.length === 0) {
       tableBody.innerHTML = `
             <tr>
-              <td class="p-4 border text-center" colspan="7">
+              <td class="p-4 border text-center" colspan="8">
                 <div class="flex flex-col items-center justify-center gap-2 py-6">
                   <i class="fas fa-inbox text-4xl text-gray-400"></i>
                   <span class="text-gray-600 font-medium">No bookings found</span>
@@ -131,6 +131,13 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
             <td class="p-3 border text-sm">${tests}</td>
             <td class="p-3 border font-mono text-sm">${sampleId || 'N/A'}</td>
             <td class="p-3 border font-bold">${booking.status}</td>
+            <td class="p-3 border">
+              <button onclick='editpage("${booking.bookingId}")' 
+                      class="edit-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer border-0">
+                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                Edit
+              </button>
+            </td>
           `;
 
       fragment.appendChild(row);
@@ -142,7 +149,7 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
     console.error('Error fetching bookings:', error);
     tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="7">
+            <td class="p-4 border text-center" colspan="8">
               <div class="flex flex-col items-center justify-center gap-2 py-6">
                 <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
                 <span class="text-red-600 font-medium">Failed to load bookings</span>
@@ -200,6 +207,16 @@ async function subfranchisee() {
     // Error ko console mein log karo but user ko disturb mat karo
     console.log('Sub-franchisees could not be loaded, continuing without them...');
   }
+}
+
+// ============= Edit Booking Function =============
+
+// Open edit booking page in new tab
+function editpage(id) {
+  window.open(
+    `${BASE_URL}/${user.role}/${user.role}.html?page=editbooking&id=${encodeURIComponent(id)}`,
+    "_blank"
+  );
 }
 
 // ============= Event Listeners =============
