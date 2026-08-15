@@ -32,8 +32,8 @@ const pdfRenderTaskTimeout = Number.parseInt(process.env.PDF_RENDER_TASK_TIMEOUT
 const pdfQueueConcurrency = Math.max(1, Number.parseInt(process.env.PDF_QUEUE_CONCURRENCY || '2', 10));
 const pdfMemoryCleanupThresholdMb = Math.max(128, Number.parseInt(process.env.PDF_MEMORY_CLEANUP_THRESHOLD_MB || '512', 10));
 const pdfPageViewport = {
-    width: Number.parseInt(process.env.PDF_PAGE_VIEWPORT_WIDTH || '1280', 10),
-    height: Number.parseInt(process.env.PDF_PAGE_VIEWPORT_HEIGHT || '1810', 10),
+    width: Number.parseInt(process.env.PDF_PAGE_VIEWPORT_WIDTH || '794', 10),
+    height: Number.parseInt(process.env.PDF_PAGE_VIEWPORT_HEIGHT || '1123', 10),
     deviceScaleFactor: Number.parseInt(process.env.PDF_PAGE_DEVICE_SCALE_FACTOR || '1', 10),
 };
 
@@ -669,7 +669,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                         }
-                        tr,th {
+                        tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
                         }
                         td {
@@ -691,11 +691,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         td.wrong {
                         display: none !important;
                         }
-                        .details-row {
-                            font-size: 10px !important;
-                        }
                         .methods {
-                            font-size: 8px !important;
+                            font-size: ${Math.max(8, selectedFontSize - 3)}px !important;
                             color: #565656 !important;
                             margin-top: 2px !important;
                         }
@@ -793,7 +790,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 </div>
                     </body>
                 </html>`,
-                margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `10px`, right: `10px` },
+                margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -807,7 +804,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             return;
         }
 
-        const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
+        const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
         // Patient ka naam DB se fetch karo taaki PDF filename set ho sake
         const reportForName = await reports.findOne(
@@ -951,7 +948,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                         }
-                        tr,th {
+                        tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
                         }
                         td {
@@ -973,11 +970,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         td.wrong {
                         display: none !important;
                         }
-                        .details-row {
-                            font-size: 10px !important;
-                        }
                         .methods {
-                            font-size: 8px !important;
+                            font-size: ${Math.max(8, selectedFontSize - 3)}px !important;
                             color: #565656 !important;
                             margin-top: 2px !important;
                         }
@@ -1073,8 +1067,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 </div>
                     </body>
                 </html>`,
-                margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `10px`, right: `10px` },
-                margin: { top: `${headermarginPx + investigationmargin - 40}px`, bottom: '175px', left: `10px`, right: `10px` },
+                margin: { top: `${headermarginPx + investigationmargin - 40}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -1088,7 +1081,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             return;
         }
 
-        const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
+        const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
         // ✅ FIX: Attach uploaded files from "All Cases" to the end of the PDF
         const attachmentAwareBuffer = await mergePdfWithBookingAttachments({
@@ -1547,7 +1540,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                     }
-                    tr,th {
+                    tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                         font-size: ${mergedValues.selectedFontSize}px !important;
                     }
                     td {
@@ -1569,11 +1562,8 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                     td.wrong {
                         display: none !important;
                     }
-                    .details-row {
-                        font-size: 10px !important;
-                    }
                     .methods {
-                        font-size: 8px !important;
+                        font-size: ${Math.max(8, mergedValues.selectedFontSize - 3)}px !important;
                         color: #565656 !important;
                         margin-top: 2px !important;
                     }
@@ -1674,8 +1664,8 @@ async function generateSinglePdfBuffer(mergedValues, user) {
             margin: {
                 top: `${headermarginPx + (format3 ? ((mergedValues.investigationmargin * 1.10) + (layerone ? (mergedValues.investigationmargin < 110 ? 75 : 15) : (mergedValues.investigationmargin < 160 ? 55 : 0))) : ((mergedValues.investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`,
                 bottom: '175px',
-                left: `10px`,
-                right: `10px`
+                left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`,
+                right: `${marginRightPx > 0 ? marginRightPx : 10}px`
             },
         });
         updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
@@ -1686,7 +1676,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     const finalPdfBuffer = await addBackgroundToPdf(pdfBuffer, mergedValues.backgroundImageUrl);
 
     // Adjust margins
-    const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, marginRightPx, marginLeftPx);
+    const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
     const attachmentAwarePdfBuffer = await mergePdfWithBookingAttachments({
         pdfBuffer: finalpdfbufferwithmargin,
         tenantId: mergedValues.tenantId,
@@ -1723,6 +1713,7 @@ const getpdfcontrolleruser = async (req, res) => {
             backgroundImageUrl,
             customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
         });
+        const defaultsetting = await defaultpdfsetting.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id }).lean();
         let mergedValues;
 
         if (checkBox || DownloadPdf) {
@@ -1732,12 +1723,12 @@ const getpdfcontrolleruser = async (req, res) => {
                 layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
-                BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
-                HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 7,
-                selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                showInvest: showInvest ?? defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
+                BoldRow: BoldRow ?? defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
+                HLinred: HLinred ?? defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
+                HighLow: HighLow ?? defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
+                RowSpacing: RowSpacing || defaultsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
+                selectedFontSize: selectedFontSize || defaultsetting?.selectedFontSize || gettingcustomization?.selectedFontSize || 12,
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
@@ -1768,12 +1759,12 @@ const getpdfcontrolleruser = async (req, res) => {
                 layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
-                BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
-                HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 8,
-                selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                showInvest: showInvest ?? defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
+                BoldRow: BoldRow ?? defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
+                HLinred: HLinred ?? defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
+                HighLow: HighLow ?? defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
+                RowSpacing: RowSpacing || defaultsetting?.RowSpacing || gettingcustomization?.RowSpacing || 8,
+                selectedFontSize: selectedFontSize || defaultsetting?.selectedFontSize || gettingcustomization?.selectedFontSize || 12,
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",

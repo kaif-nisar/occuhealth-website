@@ -269,7 +269,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                         }
-                        tr,th {
+                        tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
                         }
                         td {
@@ -294,11 +294,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                         td.wrong {
                         display: none !important;
                         }
-                        .details-row {
-                            font-size: 10px !important;
-                        }
                         .methods {
-                            font-size: 8px !important;
+                            font-size: ${Math.max(8, selectedFontSize - 3)}px !important;
                             color: #565656 !important;
                             margin-top: 2px !important;
                         }

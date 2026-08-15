@@ -296,6 +296,28 @@ async function loadfunction() {
         return compactValue === "" || /^\.+$/.test(compactValue);
     }
 
+    // ✅ Strip inline font-size and font-family from .test-details HTML
+    // Ye sirf test/panel definition ki interpretation ke liye hai (user-entered CKEditor
+    // documented content is path se nahi jaata, wo alag editorContent path use karta hai)
+    function sanitizeDetailsHtml(html) {
+        if (!html) return html;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        tempDiv.querySelectorAll('[style]').forEach(function (el) {
+            let style = el.getAttribute('style') || '';
+            // font-size aur font-family inline styles hata do
+            style = style.replace(/font-size\s*:\s*[^;]+;?/gi, '');
+            style = style.replace(/font-family\s*:\s*[^;]+;?/gi, '');
+            style = style.trim().replace(/;+$/, '');
+            if (style) {
+                el.setAttribute('style', style);
+            } else {
+                el.removeAttribute('style');
+            }
+        });
+        return tempDiv.innerHTML;
+    }
+
     // Function to apply logic to each abnormal input field 
     const processInput = (input) => {
         const row = input.closest("tr"); // Get the row containing the input
@@ -2490,6 +2512,10 @@ async function loadfunction() {
                         else {
                             const innerContent = colspanCell.querySelector(".test-details")?.innerHTML;
                             if (innerContent) {
+                                // ✅ Inline font-size/font-family strip karo taaki CKEditor se
+                                // save ki gayi interpretation PDF ka font-size override na kare
+                                const sanitizedContent = sanitizeDetailsHtml(innerContent);
+
                                 // ✅ Details ko separate object banao with pagebreak
                                 const detailObject = {
                                     pagebreak: pagebreak,
@@ -2499,7 +2525,7 @@ async function loadfunction() {
                                     reference: null,
                                     isDocumented: false,
                                     isParameter: true, // Details should align left
-                                    details: innerContent  // ✅ Details property add
+                                    details: sanitizedContent  // ✅ Sanitized details
                                 };
 
                                 tableData.push(detailObject);
