@@ -11,6 +11,16 @@
     let activeRequestController = null; // tracks in-flight booking fetch (allows retry/cancel)
     const LETTERHEAD_STORAGE_KEY = 'allReportsLetterheadPreference';
 
+    // Pagination state
+    let currentPage = 1;
+    let pageSize = 20;
+    let totalBookings = 0;
+    let totalPages = 1;
+    let lastFetchParams = { startDate: '', endDate: '', franchiseeId: '' };
+
+    // Download-eligible statuses (only these can be downloaded)
+    const DOWNLOAD_ELIGIBLE_STATUSES = ['completed', 'partially completed', 'partial completed', 'partial'];
+
     // ============================================================
     // HELPERS: Safe globals (SPA parent sets these on window)
     // ============================================================
@@ -38,6 +48,10 @@
     const selectAllCheckbox = document.querySelector('#selectAllCheckbox');
     const letterheadSeg = document.querySelector('#letterhead-seg');
     const legacyLetterheadSelect = document.querySelector('#myselect');
+    const paginationContainer = document.querySelector('#pagination-container');
+    const paginationInfo = document.querySelector('#pagination-info');
+    const paginationControls = document.querySelector('#pagination-controls');
+    const pageSizeSelect = document.querySelector('#page-size-select');
 
     // ============================================================
     // TOAST SYSTEM
@@ -128,6 +142,14 @@
     }
 
     // ============================================================
+    // DOWNLOAD ELIGIBILITY
+    // ============================================================
+    function isDownloadEligible(status) {
+        const s = (status || '').toLowerCase().trim();
+        return DOWNLOAD_ELIGIBLE_STATUSES.includes(s);
+    }
+
+    // ============================================================
     // STATUS COLOR MAPPING (soft pastel SaaS tokens)
     // ============================================================
     function getStatusColor(status) {
@@ -175,6 +197,7 @@
     }
 
     function renderEmptyState() {
+        if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
                 <td colspan="7">
@@ -196,6 +219,7 @@
     }
 
     function renderErrorState(message = 'Failed to load reports. Please check your connection and try again.') {
+        if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
                 <td colspan="7">
@@ -263,10 +287,111 @@
             visibleCount = allRows.length;
         }
         if (visibleCount > 0) {
-            resultsCount.innerHTML = `Showing <strong>${visibleCount}</strong> report${visibleCount === 1 ? '' : 's'}`;
+            if (totalBookings > 0 && !searchTerm) {
+                resultsCount.innerHTML = `Showing <strong>${visibleCount}</strong> of <strong>${totalBookings}</strong> report${totalBookings === 1 ? '' : 's'}`;
+            } else {
+                resultsCount.innerHTML = `Showing <strong>${visibleCount}</strong> report${visibleCount === 1 ? '' : 's'}`;
+            }
         } else if (!searchTerm && allRows.length === 0) {
             resultsCount.textContent = '';
         }
+    }
+
+    // ============================================================
+    // PAGINATION RENDERING
+    // ============================================================
+    function renderPagination() {
+        if (!paginationContainer || !paginationInfo || !paginationControls) return;
+
+        if (totalPages <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
+
+        paginationContainer.style.display = 'flex';
+
+        // Info text
+        const start = totalBookings === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const end = Math.min(currentPage * pageSize, totalBookings);
+        paginationInfo.innerHTML = `Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong> · Showing <strong>${start}–${end}</strong> of <strong>${totalBookings}</strong>`;
+
+        // Build page buttons
+        const controls = document.createDocumentFragment();
+
+        // Prev button
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn';
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevBtn.setAttribute('aria-label', 'Previous page');
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchBookings(lastFetchParams.startDate, lastFetchParams.endDate, lastFetchParams.franchiseeId);
+            }
+        });
+        controls.appendChild(prevBtn);
+
+        // Page numbers with ellipsis
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        startPage = Math.max(1, endPage - maxVisible + 1);
+
+        if (startPage > 1) {
+            pages.push(1);
+            if (startPage > 2) pages.push('...');
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            pages.push(p);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) pages.push('...');
+            pages.push(totalPages);
+        }
+
+        pages.forEach(page => {
+            if (page === '...') {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-ellipsis';
+                ellipsis.textContent = '…';
+                controls.appendChild(ellipsis);
+                return;
+            }
+
+            const btn = document.createElement('button');
+            btn.className = `pagination-btn${page === currentPage ? ' active' : ''}`;
+            btn.textContent = page;
+            btn.setAttribute('aria-label', `Go to page ${page}`);
+            if (page === currentPage) btn.setAttribute('aria-current', 'page');
+            btn.addEventListener('click', () => {
+                if (page !== currentPage) {
+                    currentPage = page;
+                    fetchBookings(lastFetchParams.startDate, lastFetchParams.endDate, lastFetchParams.franchiseeId);
+                }
+            });
+            controls.appendChild(btn);
+        });
+
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn';
+        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextBtn.setAttribute('aria-label', 'Next page');
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                fetchBookings(lastFetchParams.startDate, lastFetchParams.endDate, lastFetchParams.franchiseeId);
+            }
+        });
+        controls.appendChild(nextBtn);
+
+        paginationControls.innerHTML = '';
+        paginationControls.appendChild(controls);
     }
 
     // ============================================================
@@ -278,7 +403,10 @@
             franchiseeId = currentUserId;
         }
 
-        let query = `?status=completed,pending,hold,partial,clinical&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        // Store params for pagination re-fetch
+        lastFetchParams = { startDate, endDate, franchiseeId };
+
+        let query = `?status=completed,pending,hold,partial,clinical&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&page=${currentPage}&limit=${pageSize}`;
         if (franchiseeId) {
             query += `&franchiseeId=${encodeURIComponent(franchiseeId)}`;
         }
@@ -312,8 +440,14 @@
                 bookings = [];
             }
 
+            // Extract pagination metadata
+            totalBookings = result.total || bookings.length;
+            totalPages = result.totalPages || Math.ceil(totalBookings / pageSize) || 1;
+            if (result.page) currentPage = parseInt(result.page, 10) || 1;
+
             if (bookings.length === 0) {
                 renderEmptyState();
+                renderPagination();
                 return;
             }
 
@@ -329,18 +463,21 @@
                     : 'N/A';
 
                 const statusInfo = getStatusColor(booking.status);
+                const eligible = isDownloadEligible(booking.status);
                 const row = document.createElement('tr');
                 row.className = 'data-row';
                 row.setAttribute('data-booking-id', booking.bookingId || '');
+                row.setAttribute('data-status', (booking.status || '').toLowerCase().trim());
                 row.innerHTML = `
-                    <td><input type="checkbox" class="report-checkbox" aria-label="Select booking ${booking.bookingId || ''}"></td>
+                    <td><input type="checkbox" class="report-checkbox" aria-label="Select booking ${booking.bookingId || ''}" ${eligible ? '' : 'disabled'}></td>
                     <td>
-                        <span class="booking-id-badge" role="button" tabindex="0"
-                              title="Click to Download Report"
-                              aria-label="Download report for booking ${booking.bookingId || ''}"
+                        <span class="booking-id-badge${eligible ? '' : ' is-not-ready'}" role="button" tabindex="${eligible ? '0' : '-1'}"
+                              title="${eligible ? 'Click to Download Report' : 'Report not ready for download'}"
+                              aria-label="${eligible ? 'Download report for booking ' + (booking.bookingId || '') : 'Report not ready for booking ' + (booking.bookingId || '')}"
                               data-booking-id="${booking.bookingId || ''}">
-                            <i class="fas fa-download booking-id-icon" aria-hidden="true"></i>
+                            <i class="fas ${eligible ? 'fa-download' : 'fa-lock'} booking-id-icon" aria-hidden="true"></i>
                             ${booking.bookingId || 'N/A'}
+                            ${eligible ? '' : '<span class="not-ready-tooltip" title="Only Completed and Partially Completed reports can be downloaded"><i class="fas fa-circle-info"></i></span>'}
                         </span>
                     </td>
                     <td class="font-medium text-gray-800">${booking.patientName || 'N/A'}</td>
@@ -348,7 +485,7 @@
                     <td>${booking.doctorName || 'N/A'}</td>
                     <td class="td-tests">${tests}</td>
                     <td>
-                        <span class="status-badge" style="background:${statusInfo.bg};color:${statusInfo.text};border-color:${statusInfo.border}">
+                        <span class="status-badge${eligible ? '' : ' is-not-ready'}" style="background:${statusInfo.bg};color:${statusInfo.text};border-color:${statusInfo.border}">
                             ${statusInfo.label}
                         </span>
                     </td>
@@ -363,6 +500,7 @@
             if (searchInput) searchInput.value = '';
             updateResultsCount();
             updateMergeButtonVisibility();
+            renderPagination();
 
         } catch (error) {
             if (error && error.name === 'AbortError') {
@@ -504,6 +642,13 @@
         const bookingId = badgeElement.getAttribute('data-booking-id') || badgeElement.textContent.trim();
         const patientName = row ? (row.querySelector('td:nth-child(3)') || {}).textContent?.trim() : '';
 
+        // Defense-in-depth: verify status is download-eligible
+        const rowStatus = row ? row.getAttribute('data-status') : '';
+        if (!isDownloadEligible(rowStatus)) {
+            showToast('error', 'Download not available', 'Only Completed and Partially Completed reports can be downloaded.');
+            return;
+        }
+
         // Enter loading state (disables the badge / prevents double-clicks)
         const originalHTML = badgeElement.innerHTML;
         badgeElement.classList.add('is-loading');
@@ -589,9 +734,10 @@
             const badge = row ? row.querySelector('.booking-id-badge') : null;
             return {
                 bookingId: badge ? (badge.getAttribute('data-booking-id') || badge.textContent.trim()) : '',
-                patientName: row ? (row.querySelector('td:nth-child(3)') || {}).textContent?.trim() : ''
+                patientName: row ? (row.querySelector('td:nth-child(3)') || {}).textContent?.trim() : '',
+                status: row ? row.getAttribute('data-status') : ''
             };
-        }).filter(item => item.bookingId);
+        }).filter(item => item.bookingId && isDownloadEligible(item.status));
 
         // Enter downloading state
         isDownloading = true;
@@ -837,6 +983,7 @@
             const endDate = endDateInput ? endDateInput.value : '';
             const selectedOption = franchiseeSelect ? franchiseeSelect.options[franchiseeSelect.selectedIndex] : null;
             const franchiseeId = selectedOption ? selectedOption.getAttribute('data-id') : null;
+            currentPage = 1; // Reset to first page on new search
             fetchBookings(startDate, endDate, franchiseeId);
         });
     }
@@ -885,7 +1032,7 @@
             const isChecked = selectAllCheckbox.checked;
             document.querySelectorAll('.report-checkbox').forEach(cb => {
                 const row = cb.closest('tr');
-                if (row && row.style.display !== 'none') {
+                if (row && row.style.display !== 'none' && !cb.disabled) {
                     cb.checked = isChecked;
                 }
             });
@@ -904,6 +1051,18 @@
     if (quickDateRange) {
         quickDateRange.addEventListener('change', function () {
             handleQuickDateRange(quickDateRange.value);
+        });
+    }
+
+    // Page size change
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', function () {
+            const newSize = parseInt(pageSizeSelect.value, 10);
+            if (!isNaN(newSize) && newSize > 0) {
+                pageSize = newSize;
+                currentPage = 1; // Reset to first page when page size changes
+                fetchBookings(lastFetchParams.startDate, lastFetchParams.endDate, lastFetchParams.franchiseeId);
+            }
         });
     }
 

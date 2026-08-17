@@ -3795,9 +3795,12 @@ const getallbarcodesController = async (req, res) => {
 // GET: Fetch bookings
 const loadBooking = asyncHandler(async (req, res) => {
     try {
-        const { status, startDate, endDate, franchiseeId } = req.query;
+        const { status, startDate, endDate, franchiseeId, page = 1, limit = 20 } = req.query;
         const userId = req.user._id;
-        console.log('Query params:', { userId, status, startDate, endDate, franchiseeId });
+        const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+        const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+        const skip = (pageNumber - 1) * limitNumber;
+        console.log('Query params:', { userId, status, startDate, endDate, franchiseeId, page: pageNumber, limit: limitNumber });
 
         const query = {};
 
@@ -3858,17 +3861,26 @@ const loadBooking = asyncHandler(async (req, res) => {
 
         console.log('Final query:', JSON.stringify(query, null, 2));
 
-        // Fetch bookings from database
-        const bookings = await newBooking.find(query)
-            .select(BOOKING_LIST_PROJECTION)
-            .populate('createdBy', 'fullName')
-            .sort({ createdAt: -1 }) // ✅ Most recent first
-            .lean();
+        // Fetch bookings from database with pagination
+        const [bookings, total] = await Promise.all([
+            newBooking.find(query)
+                .select(BOOKING_LIST_PROJECTION)
+                .populate('createdBy', 'fullName')
+                .sort({ createdAt: -1 }) // ✅ Most recent first
+                .skip(skip)
+                .limit(limitNumber)
+                .lean(),
+            newBooking.countDocuments(query)
+        ]);
 
-        // ✅ Return consistent response format
+        // ✅ Return consistent response format with pagination metadata
         res.status(200).json({
             success: true,
             count: bookings.length,
+            total,
+            page: pageNumber,
+            limit: limitNumber,
+            totalPages: Math.ceil(total / limitNumber),
             data: bookings
         });
 

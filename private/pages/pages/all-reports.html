@@ -618,6 +618,131 @@
             to   { transform: scaleX(0); }
         }
 
+        /* ---------- Pagination ---------- */
+        .pagination-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 14px 16px;
+            border-top: 1px solid var(--border-color);
+            background: #f8f9fb;
+        }
+        .pagination-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .pagination-info strong {
+            color: #1f2937;
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .pagination-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: #fff;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            line-height: 1;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background: #eef1f6;
+            border-color: var(--color);
+            color: var(--color);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .pagination-btn.active {
+            background: var(--color);
+            border-color: var(--color);
+            color: #fff;
+        }
+        .pagination-btn i {
+            font-size: 11px;
+        }
+        .pagination-ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 32px;
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .pagination-page-size {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .pagination-page-size select {
+            padding: 5px 8px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: #fff;
+            outline: none;
+            cursor: pointer;
+            color: #1f2937;
+        }
+        .pagination-page-size select:focus {
+            border-color: var(--color);
+            box-shadow: 0 0 0 2px rgba(63, 77, 103, 0.15);
+        }
+
+        /* ---------- Non-downloadable status styling ---------- */
+        .booking-id-badge.is-not-ready {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .booking-id-badge.is-not-ready .booking-id-icon {
+            opacity: 0.4;
+        }
+        .report-checkbox:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .status-badge.is-not-ready {
+            opacity: 0.75;
+        }
+        .not-ready-tooltip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #9ca3af;
+            cursor: help;
+        }
+        .not-ready-tooltip i {
+            font-size: 10px;
+        }
+
         /* ---------- Legacy global loader (kept for compatibility) ---------- */
         #loader1 {
             position: fixed;
@@ -773,21 +898,21 @@
                     </tbody>
                 </table>
             </div>
+            <!-- Pagination controls -->
+            <div class="pagination-container" id="pagination-container" style="display:none;">
+                <div class="pagination-info" id="pagination-info"></div>
+                <div class="pagination-controls" id="pagination-controls"></div>
+                <div class="pagination-page-size">
+                    <label for="page-size-select">Per page</label>
+                    <select id="page-size-select">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
         </div>
-
-        <!-- ============ LEGACY GLOBAL LOADER (kept for compatibility) ============
-             NOTE: No `hidden` class here — CSS defaults to display:none, and the JS
-             toggles inline style.display ('flex'/'none') so it must not be blocked
-             by an !important utility class. -->
-        <div id="loader1">
-            <div class="spinner1"></div>
-            <p>Generating PDF...</p>
-        </div>
-
-        <!-- ============ TOAST CONTAINER ============ -->
-        <div id="toast-container" class="toast-container" aria-live="polite"></div>
-
-    </div>
 </body>
 
 </html>
