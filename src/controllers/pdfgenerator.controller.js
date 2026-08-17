@@ -669,8 +669,11 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                         }
-                        tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                        tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
+                        }
+                        .test-name, .test-name * {
+                            font-size: ${(parseFloat(selectedFontSize) || 12) + 4}px !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -948,8 +951,11 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                         }
-                        tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                        tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
+                        }
+                        .test-name, .test-name * {
+                            font-size: ${(parseFloat(selectedFontSize) || 12) + 4}px !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -1540,8 +1546,11 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                         margin-top: 0 !important;
                         margin-bottom: 0px !important;
                     }
-                    tr, th, td, table td, table th, .test-name, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                    tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                         font-size: ${mergedValues.selectedFontSize}px !important;
+                    }
+                    .test-name, .test-name * {
+                        font-size: ${(parseFloat(mergedValues.selectedFontSize) || 12) + 4}px !important;
                     }
                     td {
                         padding-top: ${parseFloat(mergedValues.RowSpacing) / 2}px !important;
