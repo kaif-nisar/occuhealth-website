@@ -1921,6 +1921,7 @@ const getCustomizationByReportId = async (req, res) => {
 
 const invoicepdfgenerator = async (req, res) => {
     let { invoiceHtml, invoicecss, billnumber, bookingId, generatedBy, billingPrice } = req.body;
+    const invoiceCreatorId = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
 
     try {
         const pdfBuffer = await withQueuedPdfPage(`invoice-pdf:${bookingId || 'unknown'}`, async (page) => {
@@ -1959,12 +1960,12 @@ const invoicepdfgenerator = async (req, res) => {
         const document = await invoices.findOneAndUpdate(
             {
                 tenantId: req.user.tenantId._id,
-                createdBy: req.user._id,
+                createdBy: invoiceCreatorId,
                 bookingId: bookingId
             },
             {
                 tenantId: req.user.tenantId._id,
-                createdBy: req.user._id,
+                createdBy: invoiceCreatorId,
                 invoiceCss: invoicecss,
                 invoiceHtml: invoiceHtml,
                 billNumber: billnumber,
@@ -1999,20 +2000,18 @@ const invoicepdfgenerator = async (req, res) => {
 
 const getAllInvoices = async (req, res) => {
     try {
-        let userId;
-        if (req.user.role === 'staff') {
-            userId = req.user.parentUser
-        } else {
-            userId = req.user._id
-        }
-
         let query = {
-            tenantId: req.user.tenantId._id,
-            createdBy: userId
+            tenantId: req.user.tenantId._id
         };
 
         // Optional start and end date filtering
-        const { start, end } = req.query;
+        const { start, end, bookingIds } = req.query;
+
+        if (bookingIds !== undefined) {
+            const ids = bookingIds.split(',').map((id) => id.trim()).filter(Boolean);
+            if (ids.length > 0) query.bookingId = { $in: ids };
+            else query.bookingId = { $in: [] };
+        }
 
         if (start || end) {
             query.createdAt = {};
@@ -2025,17 +2024,15 @@ const getAllInvoices = async (req, res) => {
                 endDate.setHours(23, 59, 59, 999);
                 query.createdAt.$lte = endDate;
             }
+        } else if (bookingIds === undefined) {
+            query.createdAt = {
+                $gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+                $lte: new Date()
+            };
         }
 
         const invoicesList = await invoices.find(query).sort({ createdAt: -1 });
 
-        if (invoicesList) {
-            for (const invoice of invoicesList) {
-                const finalinvoicelist = await invoices.findOne({
-                    bookingId: invoice.bookingId
-                }).sort({ createdAt: -1 });
-            }
-        }
         res.status(200).json({
             success: true,
             total: invoicesList.length,

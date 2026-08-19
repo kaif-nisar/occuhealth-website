@@ -40,7 +40,8 @@
         filteredBookings: [],
         currentBooking: null,
         isFetching: false,
-        fetchedOnce: false
+        fetchedOnce: false,
+        serverPaginated: true
     };
 
     // ================================================================
@@ -67,10 +68,10 @@
     /** Escape user data before injecting into HTML. */
     function escapeHtml(value) {
         return String(value == null ? "" : value)
-            .replace(/&/g, "&")
-            .replace(/</g, "<")
-            .replace(/>/g, ">")
-            .replace(/\x22/g, "\x26quot;")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\x22/g, "&quot;")
             .replace(/'/g, "&#39;");
     }
 
@@ -190,9 +191,16 @@
 
         var searchInput = $id("search-input");
         var searchValue = (searchInput ? searchInput.value : "").trim();
+        var fromDate = $id("from-date");
+        var toDate = $id("to-date");
+        var bookingSearchUrl = BASE_URL + "/api/v1/user/bookings-search?search=" + encodeURIComponent(searchValue) +
+            "&fromDate=" + encodeURIComponent(fromDate ? fromDate.value : "") +
+            "&toDate=" + encodeURIComponent(toDate ? toDate.value : "") +
+            "&page=" + encodeURIComponent(state.page) +
+            "&limit=" + encodeURIComponent(state.pageSize);
 
         try {
-            var response = await fetch(BASE_URL + "/api/v1/user/bookings-search?search=" + encodeURIComponent(searchValue), {
+            var response = await fetch(bookingSearchUrl, {
                 credentials: "include"
             });
             if (!response.ok) throw new Error("HTTP " + response.status);
@@ -200,7 +208,11 @@
             var bookings = Array.isArray(data.bookings) ? data.bookings : [];
             var invoiceData = null;
             try {
-                var invoiceResponse = await fetch(BASE_URL + "/api/v1/user/getAllInvoices", {
+                var pageBookingIds = bookings.map(function (booking) {
+                    return booking && booking.bookingId ? String(booking.bookingId) : "";
+                }).filter(Boolean).join(",");
+                var invoiceUrl = BASE_URL + "/api/v1/user/getAllInvoices?bookingIds=" + encodeURIComponent(pageBookingIds);
+                var invoiceResponse = await fetch(invoiceUrl, {
                     credentials: "include"
                 });
                 invoiceData = invoiceResponse.ok ? await invoiceResponse.json() : null;
@@ -219,8 +231,9 @@
                     ? Object.assign({}, booking, { _billingPrice: savedPrice })
                     : booking;
             });
+            state.total = Number.isFinite(Number(data.total)) ? Number(data.total) : bookings.length;
             state.fetchedOnce = true;
-            applyFilters({ resetPage: true });
+            applyFilters({ resetPage: false });
         } catch (error) {
             console.error("Error fetching bookings:", error);
             showToast("Failed to load bookings. Please try again.", "error");
@@ -286,21 +299,9 @@
         var term = getSearchTerm();
         var range = getDateRange();
 
-        var filtered = (state.allBookings || []).filter(function (booking) {
-            return bookingMatchesSearch(booking, term) && bookingInDateRange(booking, range);
-        });
-
-        // Sort newest first by createdAt (fallback: date)
-        filtered.sort(function (a, b) {
-            var aTime = new Date((a && a.createdAt) || (a && a.date) || 0).getTime();
-            var bTime = new Date((b && b.createdAt) || (b && b.date) || 0).getTime();
-            if (isNaN(aTime)) return 1;
-            if (isNaN(bTime)) return -1;
-            return bTime - aTime;
-        });
-
-        state.filteredBookings = filtered;
-        state.total = filtered.length;
+        // Filtering and sorting happen on the server so large date ranges never
+        // download the complete result set into the browser.
+        state.filteredBookings = state.allBookings || [];
 
         var totalPages = Math.max(1, Math.ceil(state.total / state.pageSize));
         if (opts.resetPage || state.page > totalPages) state.page = 1;
@@ -338,7 +339,9 @@
         }
 
         var startIndex = (state.page - 1) * state.pageSize;
-        var pageBookings = state.filteredBookings.slice(startIndex, startIndex + state.pageSize);
+        var pageBookings = state.serverPaginated
+            ? state.filteredBookings
+            : state.filteredBookings.slice(startIndex, startIndex + state.pageSize);
 
         var rowsHtml = pageBookings.map(function (booking) {
             var id = escapeHtml(booking && booking.bookingId ? booking.bookingId : "");
@@ -690,6 +693,7 @@
         var searchBtn = $id("search-button");
         if (searchBtn) {
             searchBtn.addEventListener("click", function () {
+                state.page = 1;
                 fetchBookings(false);
             });
         }
@@ -701,6 +705,7 @@
                 var searchInput = $id("search-input");
                 if (searchInput) searchInput.value = "";
                 initDefaults();
+                state.page = 1;
                 fetchBookings(false);
             });
         }
@@ -709,7 +714,8 @@
         var searchInput = $id("search-input");
         if (searchInput) {
             searchInput.addEventListener("input", debounce(function () {
-                applyFilters({ resetPage: true });
+                state.page = 1;
+                fetchBookings(false);
             }, SEARCH_DEBOUNCE_MS));
         }
 
@@ -724,7 +730,10 @@
         // --- Date inputs: live filtering ---
         ["from-date", "to-date"].forEach(function (id) {
             var el = $id(id);
-            if (el) el.addEventListener("change", function () { applyFilters({ resetPage: true }); });
+            if (el) el.addEventListener("change", function () {
+                state.page = 1;
+                fetchBookings(false);
+            });
         });
 
         // --- Page size selector ---
@@ -732,7 +741,8 @@
         if (pageSizeSelect) {
             pageSizeSelect.addEventListener("change", function () {
                 state.pageSize = parseInt(pageSizeSelect.value, 10) || DEFAULT_PAGE_SIZE;
-                applyFilters({ resetPage: true });
+                state.page = 1;
+                fetchBookings(false);
             });
         }
 
@@ -745,7 +755,7 @@
                 var targetPage = parseInt(btn.dataset.page, 10);
                 if (!isNaN(targetPage)) {
                     state.page = targetPage;
-                    applyFilters({});
+                    fetchBookings(false);
                 }
             });
         }

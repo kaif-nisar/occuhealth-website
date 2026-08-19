@@ -19,6 +19,8 @@ async function allcases() {
     const limit = 30;
     let intervalId;
     const bookingCache = new Map();
+    let billModalBooking = null;
+    let billModalSubmitting = false;
 
     // Global variables for popup with null checks
     const popup = document.getElementById("messagePopup");
@@ -256,12 +258,27 @@ async function allcases() {
         return status;
     }
 
+    function showAppToast(message, type = "success") {
+        const toast = document.createElement("div");
+        toast.className = `app-toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3600);
+    }
+
+    function formatDateInputValue(value) {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return "";
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
     async function fetchBookings(page = 1) {
         currentPage = page;
 
         // Gather search filters
         const filters = {
             regNo: document.getElementById("reg-no").value.trim(),
+            search: document.getElementById("global-search").value.trim(),
             patientName: document.getElementById("patient-name").value.trim(),
             gender: document.getElementById("gender").value.trim(),
             patientPhone: document.getElementById("patient-phone").value.trim(),
@@ -269,6 +286,8 @@ async function allcases() {
             status: getStatusFilterQueryValue(document.getElementById("status").value.trim()),
             franchisee: document.getElementById("franchisee").value.trim(),
             barcode: document.getElementById("barcode").value.trim(),
+            fromDate: document.getElementById("from-date").value,
+            toDate: document.getElementById("to-date").value,
         };
 
         try {
@@ -278,9 +297,11 @@ async function allcases() {
             const response = await fetch(`${BASE_URL}/api/v1/user/get-bookings?page=${page}&limit=${limit}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(filters)
             });
 
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const result = await response.json();
             const bookings = result.bookings || [];
             totalPages = Math.ceil(result.total / limit);
@@ -436,10 +457,10 @@ async function allcases() {
     // ================================================================
     function escapeHtml(value) {
         return String(value == null ? "" : value)
-            .replace(/&/g, "&")
-            .replace(/</g, "<")
-            .replace(/>/g, ">")
-            .replace(/\x22/g, "\x26quot;")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\x22/g, "&quot;")
             .replace(/'/g, "&#39;");
     }
 
@@ -490,18 +511,34 @@ async function allcases() {
         }
     }
 
+    async function getTenantLogoDataUrl() {
+        const logoUrl = getTenantLogo();
+        if (!logoUrl || logoUrl.startsWith("data:")) return logoUrl;
+        try {
+            const response = await fetch(logoUrl, { mode: "cors", cache: "no-store" });
+            if (!response.ok) throw new Error(`Logo HTTP ${response.status}`);
+            const blob = await response.blob();
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn("Could not inline tenant logo:", error);
+            return logoUrl;
+        }
+    }
+
     /**
      * Build a complete invoice HTML string from a booking object.
      * This mirrors the hidden .pdf-div template used on the official
      * generatebill page, so the backend can render a proper PDF.
      */
-    function buildInvoiceHtml(booking) {
+    function buildInvoiceHtml(booking, billingPrice, logoUrl) {
         if (!booking) return "";
 
-        const logoUrl = getTenantLogo();
-        const logoHtml = logoUrl
-            ? `<div class="image-div"><img id="bill-logo" src="${escapeHtml(logoUrl)}" style="width:250px;height:125px;"></div>`
-            : "";
+        const logoHtml = `<div class="image-div"${logoUrl ? "" : " style=\"display:none;\""}><img id="bill-logo" src="${escapeHtml(logoUrl || "")}"></div>`;
 
         const uniqueTestNames = getUniqueTestNames(booking);
         const testRows = uniqueTestNames.map((name, index) =>
@@ -513,7 +550,7 @@ async function allcases() {
         const patientName = escapeHtml(booking.patientName || "");
         const bookingId = escapeHtml(booking.bookingId || "");
         const gender = escapeHtml([booking.year, booking.gender].filter(Boolean).join(" | ") || "");
-        const total = booking.total != null ? booking.total : "";
+        const total = Number(billingPrice).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const invoiceDate = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
         return `
@@ -569,29 +606,35 @@ async function allcases() {
      * Generate and download an invoice for a booking using the existing
      * /invoicepdfgenerator API with the full HTML/CSS payload.
      */
-    async function generateInvoiceForBooking(booking) {
+    async function generateInvoiceForBooking(booking, billingPrice) {
         if (!booking || !booking.bookingId) {
-            alert("Booking data is missing.");
+            showAppToast("Booking data is missing.", "error");
             return false;
         }
 
-        const invoiceHtml = buildInvoiceHtml(booking);
+        const normalizedPrice = Number(billingPrice);
+        if (!Number.isFinite(normalizedPrice) || normalizedPrice < 0) {
+            showAppToast("Please enter a valid billing price.", "error");
+            return false;
+        }
+        const invoiceHtml = buildInvoiceHtml(booking, normalizedPrice, await getTenantLogoDataUrl());
         const invoicecss = `
             * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
             .container23 { max-width: 800px; margin: 0 auto; border: 1px solid #ccc; padding: 20px; }
             .header, .patient-details, .table-container { width: 100%; margin-bottom: 20px; }
             .header { position: relative; display: flex; justify-content: space-between; align-items: center; }
             .upper-header * { color: whitesmoke; }
-            .upper-header { background-color: #3f4d67; padding: 16px; }
-            .header h1 { font-size: 24px; font-weight: bold; margin: 0; }
+            .upper-header { background-color: #3f4d67; }
+            .header h1 { font-size: 24px; font-weight: bold; }
             .header p { margin: 5px 0; }
-            .header img { width: 250px; height: 125px; }
-            .image-div { position: absolute; right: 0%; top: 50%; transform: translateY(-50%); }
+            .header img { width: 250px; height: 125px; object-fit: contain; object-position: center; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
+            .image-div { position: absolute; right: 0%; top: 50%; transform: translateY(-50%); padding: 0 20px; }
             .patient-details { border-top: 1px solid #ccc; padding-top: 20px; }
             .patient-details p { margin: 5px 0; }
             .patient-details .blue { color: #1a73e8; }
-            .table-container { overflow: auto; }
             .table-container table { width: 100%; border-collapse: collapse; }
+            .table-container { overflow: auto; }
             .table-container th, .table-container td { border: 1px solid #ccc; padding: 10px; text-align: center; }
             .table-container th { background-color: #f9f9f9; }
             .container8989 { width: 100%; background-color: white; border-radius: 8px; max-width: 100%; }
@@ -610,7 +653,7 @@ async function allcases() {
             invoicecss: invoicecss,
             billnumber: billnumber,
             bookingId: booking.bookingId,
-            billingPrice: Number(booking.total || 0),
+            billingPrice: normalizedPrice,
             generatedBy: generatedBy
         };
 
@@ -643,11 +686,69 @@ async function allcases() {
                 });
             } catch (_) { /* non-blocking */ }
 
+            showAppToast("Invoice Generated Successfully", "success");
             return true;
         } catch (error) {
             console.error("Invoice generation failed:", error);
-            alert("Failed to generate invoice. Please try again.");
+            showAppToast("Failed to generate PDF, try again", "error");
             return false;
+        }
+    }
+
+    function closeBillModal() {
+        const modal = document.getElementById("billGenerationModal");
+        if (modal) modal.classList.remove("is-open");
+        billModalBooking = null;
+    }
+
+    function openBillModal(booking) {
+        if (!booking || billModalSubmitting) return;
+        billModalBooking = booking;
+        document.getElementById("billModalBookingId").textContent = booking.bookingId || "-";
+        document.getElementById("billModalPatient").textContent = booking.patientName || "-";
+        document.getElementById("billModalOriginalPrice").textContent = `Rs ${Number(booking.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById("billModalPrice").value = booking.total != null ? booking.total : "";
+        document.getElementById("billModalDiscount").value = "0";
+        document.getElementById("billModalTax").value = "0";
+        updateBillModalTotal();
+        document.getElementById("billGenerationModal").classList.add("is-open");
+        document.getElementById("billModalPrice").focus();
+    }
+
+    function updateBillModalTotal() {
+        const price = Number(document.getElementById("billModalPrice").value || 0);
+        const discount = Number(document.getElementById("billModalDiscount").value || 0);
+        const taxRate = Number(document.getElementById("billModalTax").value || 0);
+        const total = price - discount + ((price - discount) * taxRate / 100);
+        const totalElement = document.getElementById("billModalFinalTotal");
+        if (totalElement) totalElement.textContent = `Rs ${Math.max(0, total).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    async function submitBillModal() {
+        if (!billModalBooking || billModalSubmitting) return;
+        const price = Number(document.getElementById("billModalPrice").value);
+        const discount = Number(document.getElementById("billModalDiscount").value || 0);
+        const taxRate = Number(document.getElementById("billModalTax").value || 0);
+        const finalPrice = price - discount + ((price - discount) * taxRate / 100);
+        if (!Number.isFinite(price) || price < 0 || !Number.isFinite(discount) || discount < 0 || !Number.isFinite(taxRate) || taxRate < 0 || finalPrice < 0) {
+            showAppToast("Enter valid price and discount values.", "error");
+            return;
+        }
+
+        billModalSubmitting = true;
+        const submitButton = document.getElementById("billModalSubmit");
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        try {
+            const ok = await generateInvoiceForBooking(billModalBooking, finalPrice);
+            if (ok) {
+                closeBillModal();
+                await fetchBookings(currentPage);
+            }
+        } finally {
+            billModalSubmitting = false;
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fa-solid fa-file-invoice"></i> Generate Invoice';
         }
     }
 
@@ -749,25 +850,7 @@ async function allcases() {
 
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
-
-                // Show inline buffering / spinner
-                const originalHtml = target.innerHTML;
-                target.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
-                target.disabled = true;
-                target.style.pointerEvents = "none";
-
-                try {
-                    const ok = await generateInvoiceForBooking(booking);
-                    if (!ok) throw new Error("Invoice generation failed");
-                } catch (error) {
-                    console.error("Invoice generation failed:", error);
-                    alert("Failed to generate invoice. Please try again.");
-                } finally {
-                    target.innerHTML = originalHtml;
-                    target.disabled = false;
-                    target.style.pointerEvents = "";
-                    if (booking && booking.bookingId) await fetchBookings(currentPage);
-                }
+                openBillModal(booking);
             }
             else if (target.classList.contains("hold-btn")) {
                 const confirmation = window.confirm("Are you want to update the status as 'Hold'");
@@ -891,24 +974,7 @@ async function allcases() {
             if (item.classList.contains("generate-bill-btn")) {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
-
-                const originalHtml = item.innerHTML;
-                item.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
-                item.disabled = true;
-                item.style.pointerEvents = "none";
-
-                try {
-                    const ok = await generateInvoiceForBooking(booking);
-                    if (!ok) throw new Error("Invoice generation failed");
-                } catch (error) {
-                    console.error("Invoice generation failed:", error);
-                    alert("Failed to generate invoice. Please try again.");
-                } finally {
-                    item.innerHTML = originalHtml;
-                    item.disabled = false;
-                    item.style.pointerEvents = "";
-                    if (booking && booking.bookingId) await fetchBookings(currentPage);
-                }
+                openBillModal(booking);
                 return;
             }
 
@@ -1270,6 +1336,7 @@ async function allcases() {
         const searchBtn = document.getElementById("search-btn");
         const clearBtn = document.getElementById("clearfield");
         const rejectBtn = document.getElementById('rejectBtn');
+        const billModal = document.getElementById("billGenerationModal");
 
         if (nextBtn) {
             nextBtn.addEventListener("click", () => {
@@ -1292,6 +1359,7 @@ async function allcases() {
         if (clearBtn) {
             clearBtn.addEventListener("click", () => {
                 const regNoEl = document.getElementById("reg-no");
+                const globalSearchEl = document.getElementById("global-search");
                 const patientNameEl = document.getElementById("patient-name");
                 const genderEl = document.getElementById("gender");
                 const patientPhoneEl = document.getElementById("patient-phone");
@@ -1299,8 +1367,11 @@ async function allcases() {
                 const labNameEl = document.getElementById("lab-name");
                 const statusEl = document.getElementById("status");
                 const franchiseeEl = document.getElementById("franchisee");
+                const fromDateEl = document.getElementById("from-date");
+                const toDateEl = document.getElementById("to-date");
 
                 if (regNoEl) regNoEl.value = "";
+                if (globalSearchEl) globalSearchEl.value = "";
                 if (patientNameEl) patientNameEl.value = "";
                 if (genderEl) genderEl.value = "";
                 if (patientPhoneEl) patientPhoneEl.value = "";
@@ -1308,10 +1379,43 @@ async function allcases() {
                 if (labNameEl) labNameEl.value = "";
                 if (statusEl) statusEl.value = "";
                 if (franchiseeEl) franchiseeEl.value = "";
+                if (fromDateEl) fromDateEl.value = formatDateInputValue(Date.now() - 24 * 60 * 60 * 1000);
+                if (toDateEl) toDateEl.value = formatDateInputValue(new Date());
 
                 fetchBookings(1);
             });
         }
+
+        ["from-date", "to-date"].forEach((id) => {
+            const dateInput = document.getElementById(id);
+            if (dateInput) dateInput.addEventListener("change", () => fetchBookings(1));
+        });
+
+        const billModalClose = document.getElementById("billModalClose");
+        const billModalCancel = document.getElementById("billModalCancel");
+        const billModalSubmit = document.getElementById("billModalSubmit");
+        if (billModalClose) billModalClose.addEventListener("click", closeBillModal);
+        if (billModalCancel) billModalCancel.addEventListener("click", closeBillModal);
+        if (billModalSubmit) billModalSubmit.addEventListener("click", submitBillModal);
+        ["billModalPrice", "billModalDiscount", "billModalTax"].forEach((id) => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener("input", updateBillModalTotal);
+                input.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        const submitButton = document.getElementById("billModalSubmit");
+                        if (submitButton && !submitButton.disabled) submitButton.click();
+                    }
+                });
+            }
+        });
+        if (billModal) billModal.addEventListener("click", (event) => {
+            if (event.target === billModal) closeBillModal();
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && billModal && billModal.classList.contains("is-open")) closeBillModal();
+        });
 
         if (sendMessageBtn) {
             sendMessageBtn.addEventListener("click", async function () {
@@ -1395,7 +1499,7 @@ async function allcases() {
 
         // --- Enter key triggers Search on all filter inputs & selects ---
         const filterInputs = document.querySelectorAll(
-            '#reg-no, #patient-name, #franchisee, #gender, #patient-phone, #barcode, #lab-name, #status'
+            '#global-search, #reg-no, #patient-name, #franchisee, #gender, #patient-phone, #barcode, #lab-name, #status, #from-date, #to-date'
         );
         filterInputs.forEach(input => {
             input.addEventListener('keydown', function(e) {
@@ -1468,6 +1572,11 @@ async function allcases() {
     }
 
     initTopScrollbarSync();
+
+    const fromDateInput = document.getElementById("from-date");
+    const toDateInput = document.getElementById("to-date");
+    if (fromDateInput && !fromDateInput.value) fromDateInput.value = formatDateInputValue(Date.now() - 24 * 60 * 60 * 1000);
+    if (toDateInput && !toDateInput.value) toDateInput.value = formatDateInputValue(new Date());
 
     await fetchBookings(1);
 

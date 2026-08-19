@@ -2035,7 +2035,12 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
         labName,
         status,
         franchisee,
-        barcode
+        barcode,
+        doctorName,
+        testName,
+        search,
+        fromDate,
+        toDate
     } = req.body;
 
     const skip = (pageNumber - 1) * limitNumber;
@@ -2051,6 +2056,26 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
     if (gender) query.gender = { $regex: gender, $options: 'i' };
     if (patientPhone) query.patientPhone = { $regex: patientPhone, $options: 'i' };
     if (labName) query.labName = { $regex: labName, $options: 'i' };
+    if (doctorName) {
+        query.$or = [
+            { doctorName: { $regex: doctorName, $options: 'i' } },
+            { "savedDoctor.doctorName": { $regex: doctorName, $options: 'i' } },
+            { "savedDoctor.name": { $regex: doctorName, $options: 'i' } }
+        ];
+    }
+    if (testName) query["tableData.testName"] = { $regex: testName, $options: 'i' };
+    if (search) {
+        query.$or = [
+            { bookingId: { $regex: search, $options: 'i' } },
+            { patientName: { $regex: search, $options: 'i' } },
+            { patientPhone: { $regex: search, $options: 'i' } },
+            { doctorName: { $regex: search, $options: 'i' } },
+            { "savedDoctor.doctorName": { $regex: search, $options: 'i' } },
+            { "savedDoctor.name": { $regex: search, $options: 'i' } },
+            { "tableData.barcodeId": { $regex: search, $options: 'i' } },
+            { "tableData.testName": { $regex: search, $options: 'i' } }
+        ];
+    }
     const statusQuery = buildBookingStatusQuery(status);
     if (statusQuery) {
         query.status = statusQuery;
@@ -2058,6 +2083,14 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
         query.status = { $nin: ["cancelled", "canceled", "Hold", "On Hold", "hold", "on hold"] };
     }
     if (franchisee) query.createdbyuser = { $regex: franchisee, $options: 'i' };
+
+    const defaultFromDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const from = fromDate ? new Date(fromDate) : defaultFromDate;
+    const to = toDate ? new Date(toDate) : new Date();
+    if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+        to.setHours(23, 59, 59, 999);
+        query.createdAt = { $gte: from, $lte: to };
+    }
 
     // Handle barcode filter
     if (barcode) {
@@ -4165,30 +4198,56 @@ const editBookingController = async (req, res) => {
 };
 
 const searchit = asyncHandler(async (req, res) => {
-    let userId;
-    if (req.user.role === 'staff') {
-        userId = req.user.parentUser
-    } else {
-        userId = req.user._id
-    }
-    const search = req.query.search || ''; // Extract 'search' from the query
+    const search = req.query.search || '';
+    const requestedPage = Number.parseInt(req.query.page, 10);
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 100)
+        : 10;
+    const requestedFromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+    const requestedToDate = req.query.toDate ? new Date(req.query.toDate) : null;
+    const fromDate = requestedFromDate && !isNaN(requestedFromDate.getTime())
+        ? requestedFromDate
+        : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const toDate = requestedToDate && !isNaN(requestedToDate.getTime())
+        ? requestedToDate
+        : new Date();
+    toDate.setHours(23, 59, 59, 999);
     try {
-        // Use a regex for flexible search
-        const bookings = await newBooking.find({
+        // Billing search is tenant-wide so staff/admin users can bill bookings
+        // created by any user in the same tenant.
+        const query = {
             $and: [
-                { createdBy: userId },
                 { tenantId: req.user.tenantId._id },
+                { createdAt: { $gte: fromDate, $lte: toDate } },
                 {
                     $or: [
                         { bookingId: { $regex: search, $options: 'i' } },
                         { patientName: { $regex: search, $options: 'i' } },
-                        { "tableData.barcodeId": { $regex: search, $options: 'i' } }
+                        { doctorName: { $regex: search, $options: 'i' } },
+                        { "savedDoctor.doctorName": { $regex: search, $options: 'i' } },
+                        { "savedDoctor.name": { $regex: search, $options: 'i' } },
+                        { "tableData.barcodeId": { $regex: search, $options: 'i' } },
+                        { "tableData.testName": { $regex: search, $options: 'i' } }
                     ]
                 }
             ]
-        });
+        };
+        const total = await newBooking.countDocuments(query);
+        const bookings = await newBooking.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean();
 
-        res.status(200).json({ bookings });
+        res.status(200).json({
+            bookings,
+            total,
+            page,
+            pageSize: limit,
+            totalPages: Math.max(1, Math.ceil(total / limit))
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to fetch bookings.' });
@@ -4200,7 +4259,7 @@ const updategeneratedbillvariable = async (req, res) => {
 
     // console.log(bookingid);
     const updateddoc = await newBooking.findOneAndUpdate(
-        { bookingId: bookingid },
+        { bookingId: bookingid, tenantId: req.user.tenantId._id },
         { billGenerated: true },
         { new: true }
     );

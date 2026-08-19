@@ -153,6 +153,65 @@
             font-size: 13px;
         }
 
+        .date-filter-note {
+            width: 100%;
+            margin: -2px 0 0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        #billGenerationModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, .55);
+            backdrop-filter: blur(3px);
+        }
+        #billGenerationModal.is-open { display: flex; }
+        .bill-modal-card {
+            width: min(620px, 100%);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, .28);
+        }
+        .bill-modal-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 24px 26px 20px;
+            color: #fff;
+            background: #3f4d67;
+        }
+        .bill-modal-kicker { margin: 0 0 5px; color: #fbbf24; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .bill-modal-head h2 { margin: 0; font-size: 22px; }
+        .bill-modal-subtitle { margin: 7px 0 0; color: #dbe3ef; font-size: 13px; }
+        .bill-modal-close { border: 0; background: transparent; color: #dbe3ef; font-size: 24px; cursor: pointer; }
+        .bill-modal-body { padding: 24px 26px 8px; }
+        .bill-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+        .bill-summary-item { min-width: 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc; }
+        .bill-summary-label { display: block; margin-bottom: 5px; color: #6b7280; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+        .bill-summary-value { display: block; overflow: hidden; color: #1f2937; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+        .bill-price-panel { padding: 18px; border: 1px solid #fbd5dc; border-radius: 8px; background: #fff7f8; }
+        .bill-price-panel label { display: block; margin-bottom: 7px; color: #374151; font-size: 13px; font-weight: 700; }
+        .bill-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .bill-price-input { width: 100%; padding: 11px 12px; border: 2px solid #f95b75; border-radius: 8px; outline: 0; background: #fff; color: #111827; font-size: 18px; font-weight: 700; }
+        .bill-price-help { margin: 8px 0 0; color: #6b7280; font-size: 12px; }
+        .bill-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 20px 26px 24px; }
+        .bill-modal-foot button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
+        #billModalCancel { background: #f3f4f6; color: #374151; }
+        #billModalSubmit { background: #f95b75; color: #fff; }
+        #billModalSubmit:disabled { opacity: .65; cursor: not-allowed; }
+        .app-toast { position: fixed; top: 20px; right: 20px; z-index: 2000; max-width: 360px; padding: 13px 18px; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.16); }
+        .app-toast.success { background: #059669; }
+        .app-toast.error { background: #dc2626; }
+        @media (max-width: 620px) { .bill-summary, .bill-price-row { grid-template-columns: 1fr; } .bill-summary-item:first-child { grid-column: 1; } }
+
         /* --- Search button --- */
         .filter-section .buttons .search-btn {
             background: #0d6efd;
@@ -632,6 +691,10 @@
                 <input type="text" id="reg-no">
             </div>
             <div>
+                <label for="global-search">Global Search</label>
+                <input type="text" id="global-search" placeholder="ID, patient, phone, doctor, barcode, test">
+            </div>
+            <div>
                 <label for="patient-name">Patient Name</label>
                 <input type="text" id="patient-name">
             </div>
@@ -671,6 +734,15 @@
                     <option value="partially ready">Partially Ready</option>
                 </select>
             </div>
+            <div>
+                <label for="from-date">From Date</label>
+                <input type="date" id="from-date">
+            </div>
+            <div>
+                <label for="to-date">To Date</label>
+                <input type="date" id="to-date">
+            </div>
+            <p class="date-filter-note">Default: bookings from the last 24 hours. Select dates to override.</p>
             <div class="buttons">
                 <button id="search-btn" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
                 <button id="clearfield" class="clear-btn"><i class="fa-solid fa-rotate"></i> Clear</button>
@@ -745,6 +817,34 @@
                     <button id="cancelAttachModal" class="clear-btn" style="padding: 8px 20px;">Cancel</button>
                     <button id="saveAttachmentsBtn" class="search-btn" style="padding: 8px 20px;">Upload & Save</button>
                 </div>
+            </div>
+        </div>
+        <div id="billGenerationModal" role="dialog" aria-modal="true" aria-labelledby="billModalTitle">
+            <div class="bill-modal-card">
+                <div class="bill-modal-head">
+                    <div>
+                        <p class="bill-modal-kicker">Invoice workspace</p>
+                        <h2 id="billModalTitle">Generate Bill</h2>
+                        <p class="bill-modal-subtitle">Review pricing before creating the invoice PDF.</p>
+                    </div>
+                    <button type="button" class="bill-modal-close" id="billModalClose" aria-label="Close">&times;</button>
+                </div>
+                <div class="bill-modal-body">
+                    <div class="bill-summary">
+                        <div class="bill-summary-item"><span class="bill-summary-label">Booking ID</span><span class="bill-summary-value" id="billModalBookingId">-</span></div>
+                        <div class="bill-summary-item"><span class="bill-summary-label">Patient</span><span class="bill-summary-value" id="billModalPatient">-</span></div>
+                        <div class="bill-summary-item"><span class="bill-summary-label">Booking Price</span><span class="bill-summary-value" id="billModalOriginalPrice">-</span></div>
+                    </div>
+                    <div class="bill-price-panel">
+                        <div class="bill-price-row">
+                            <div><label for="billModalPrice">Billing Price</label><input class="bill-price-input" id="billModalPrice" type="number" min="0" step="0.01" inputmode="decimal"></div>
+                            <div><label for="billModalDiscount">Discount</label><input class="bill-price-input" id="billModalDiscount" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div>
+                            <div><label for="billModalTax">Tax (%)</label><input class="bill-price-input" id="billModalTax" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div>
+                        </div>
+                        <p class="bill-price-help">Final invoice total: <strong id="billModalFinalTotal">Rs 0.00</strong>. This amount will appear as Grand Total on the invoice.</p>
+                    </div>
+                </div>
+                <div class="bill-modal-foot"><button type="button" id="billModalCancel">Cancel</button><button type="button" id="billModalSubmit"><i class="fa-solid fa-file-invoice"></i> Generate Invoice</button></div>
             </div>
         </div>
         <script src="allcases.js"></script>
