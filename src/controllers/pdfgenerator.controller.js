@@ -265,6 +265,21 @@ const waitForPdfDocumentReady = async (page) => {
         if (document.fonts?.ready) {
             await document.fonts.ready;
         }
+        await Promise.all(Array.from(document.images).map(async (image) => {
+            if (!image.complete) {
+                await new Promise((resolve) => {
+                    image.addEventListener('load', resolve, { once: true });
+                    image.addEventListener('error', resolve, { once: true });
+                });
+            }
+            if (image.decode) {
+                try {
+                    await image.decode();
+                } catch (_) {
+                    // A failed image should not block the rest of the invoice.
+                }
+            }
+        }));
         await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     });
 };

@@ -197,7 +197,28 @@
             });
             if (!response.ok) throw new Error("HTTP " + response.status);
             var data = await response.json();
-            state.allBookings = Array.isArray(data.bookings) ? data.bookings : [];
+            var bookings = Array.isArray(data.bookings) ? data.bookings : [];
+            var invoiceData = null;
+            try {
+                var invoiceResponse = await fetch(BASE_URL + "/api/v1/user/getAllInvoices", {
+                    credentials: "include"
+                });
+                invoiceData = invoiceResponse.ok ? await invoiceResponse.json() : null;
+            } catch (invoiceError) {
+                console.warn("Could not load saved invoice prices:", invoiceError);
+            }
+            var billingPrices = {};
+            (invoiceData && Array.isArray(invoiceData.data) ? invoiceData.data : []).forEach(function (invoice) {
+                if (invoice && invoice.bookingId && invoice.billingPrice != null) {
+                    billingPrices[String(invoice.bookingId)] = Number(invoice.billingPrice);
+                }
+            });
+            state.allBookings = bookings.map(function (booking) {
+                var savedPrice = billingPrices[String(booking.bookingId)];
+                return savedPrice != null && isFinite(savedPrice)
+                    ? Object.assign({}, booking, { _billingPrice: savedPrice })
+                    : booking;
+            });
             state.fetchedOnce = true;
             applyFilters({ resetPage: true });
         } catch (error) {
@@ -434,15 +455,40 @@
         }
     }
 
+    async function getTenantLogoDataUrl() {
+        var logoUrl = getTenantLogo();
+        if (!logoUrl || logoUrl.indexOf("data:") === 0) return logoUrl;
+
+        try {
+            var response = await fetch(logoUrl, { mode: "cors", cache: "no-store" });
+            if (!response.ok) throw new Error("Logo HTTP " + response.status);
+            var blob = await response.blob();
+            return await new Promise(function (resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function () { resolve(String(reader.result || "")); };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn("Could not inline tenant logo for invoice:", error);
+            return logoUrl;
+        }
+    }
+
     /**
      * Populate the hidden PDF invoice template with booking data.
      * bill-logo is never removed from the DOM - we simply clear / show it.
      */
-    function populateInvoiceTemplate(booking) {
+    function populateInvoiceTemplate(booking, billingPrice, logoOverride) {
         if (!booking) return;
 
+        var invoiceTotal = billingPrice != null && billingPrice !== ""
+            ? Number(billingPrice)
+            : Number(booking.total != null ? booking.total : 0);
+        if (!isFinite(invoiceTotal)) invoiceTotal = 0;
+
         var billLogo = $id("bill-logo");
-        var logoUrl = getTenantLogo();
+        var logoUrl = logoOverride || getTenantLogo();
         console.log("logourl :", logoUrl);
 
         // ---- Fix for the original TypeError ----
@@ -481,7 +527,9 @@
         var patientNameEl = $q(".booking-patientName");
         if (patientNameEl) patientNameEl.textContent = booking.patientName || "-";
         var bookingTotalEl = $q(".booking-total");
-        if (bookingTotalEl) bookingTotalEl.value = booking.total != null ? booking.total : "";
+        if (bookingTotalEl) bookingTotalEl.textContent = booking.total != null
+            ? "Rs " + Number(booking.total).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : "-";
 
         // Invoice header
         var invoiceIdEl = $id("invoiceid");
@@ -511,7 +559,7 @@
 
         // Grand total
         var grandTotalEl = $q(".container8989 .header span");
-        if (grandTotalEl) grandTotalEl.textContent = "Rs " + (booking.total != null ? booking.total : "");
+        if (grandTotalEl) grandTotalEl.textContent = "Rs " + invoiceTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     // ================================================================
@@ -546,8 +594,9 @@
 
         var billingPrice = Number(options.billingPrice != null ? options.billingPrice : (booking.total != null ? booking.total : 0));
 
-        // Populate the hidden template so the rendered invoice is correct
-        populateInvoiceTemplate(booking);
+        // Inline the logo before rendering so the PDF does not depend on remote image timing.
+        var invoiceLogo = await getTenantLogoDataUrl();
+        populateInvoiceTemplate(booking, billingPrice, invoiceLogo);
 
         var invoiceHtmlEl = $q(".pdf-div");
         var invoicecssEl = $id("billcss");
@@ -735,7 +784,10 @@
 
                 if (action === "download") {
                     setButtonLoading(button, true, "Preparing...");
-                    var ok = await generateAndDownloadInvoice(booking, { markGenerated: false });
+                    var ok = await generateAndDownloadInvoice(booking, {
+                        billingPrice: booking._billingPrice,
+                        markGenerated: false
+                    });
                     setButtonLoading(button, false);
                     if (!ok) showToast("Could not prepare invoice.", "error");
                 }
@@ -754,11 +806,17 @@
 
                 var billingPriceInput = $q(".billingprice");
                 var billingPrice = billingPriceInput ? billingPriceInput.value : booking.total;
+                var parsedBillingPrice = Number(billingPrice);
+                if (billingPrice === "" || !isFinite(parsedBillingPrice) || parsedBillingPrice < 0) {
+                    showToast("Please enter a valid billing price.", "error");
+                    if (billingPriceInput) billingPriceInput.focus();
+                    return;
+                }
 
                 setButtonLoading(submitBtn, true, "Generating...");
 
                 var ok = await generateAndDownloadInvoice(booking, {
-                    billingPrice: billingPrice,
+                    billingPrice: parsedBillingPrice,
                     markGenerated: true
                 });
 

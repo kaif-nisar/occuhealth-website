@@ -509,6 +509,157 @@
             opacity: 1;
         }
 
+        .modal-bill.show .modal-content-bill {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-content-bill {
+            max-width: 640px;
+            padding: 0;
+            overflow: hidden;
+            transform: translateY(18px) scale(0.98);
+        }
+
+        .modal-header {
+            padding: 24px 28px 20px;
+            background: #3f4d67;
+            border-bottom: 0;
+            color: #fff;
+        }
+
+        .modal-kicker {
+            margin: 0 0 6px;
+            color: #fbbf24;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .modal-title {
+            display: block;
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .modal-subtitle {
+            margin: 7px 0 0;
+            color: #dbe3ef;
+            font-size: 13px;
+        }
+
+        .close-btn {
+            color: #dbe3ef;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .modal-body {
+            padding: 24px 28px 8px;
+        }
+
+        .booking-summary {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .summary-item {
+            padding: 12px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f8fafc;
+            min-width: 0;
+        }
+
+        .summary-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .7px;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            display: block;
+            overflow: hidden;
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .price-section {
+            padding: 18px;
+            border: 1px solid #fbd5dc;
+            border-radius: 8px;
+            background: #fff7f8;
+        }
+
+        .price-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .price-input-wrap {
+            display: flex;
+            align-items: center;
+            border: 2px solid #f95b75;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(249, 91, 117, 0.1);
+        }
+
+        .price-input-wrap span {
+            padding-left: 14px;
+            color: #f95b75;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .billingprice {
+            width: 100%;
+            padding: 12px 14px 12px 8px;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #111827;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .price-help {
+            margin: 8px 0 0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .modal-footer {
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 20px 28px 24px;
+            border-top: 0;
+        }
+
+        @media (max-width: 600px) {
+            .modal-body, .modal-header, .modal-footer { padding-left: 20px; padding-right: 20px; }
+            .booking-summary { grid-template-columns: 1fr 1fr; }
+            .summary-item:first-child { grid-column: 1 / -1; }
+        }
+
         .inner-modal-body {
             max-width: 1024px;
             margin: 0 auto;
@@ -865,50 +1016,41 @@
     <div id="customModal" class="modal-bill">
         <div class="modal-content-bill">
             <div class="modal-header">
-                <span class="modal-title">Generate Bill</span>
+                <div>
+                    <p class="modal-kicker">Invoice workspace</p>
+                    <span class="modal-title">Generate bill</span>
+                    <p class="modal-subtitle">Review the booking and confirm the amount to print on the invoice.</p>
+                </div>
                 <button class="close-btn" onclick="window.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="inner-modal-body">
-                    <div class="grid grid-3">
-                        <div class="card">
-                            <i class="fas fa-heartbeat"></i>
-                            <span class="font-bold">Booking ID</span>
-                            <span class="ml-auto"></span>
+                    <div class="booking-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">Booking ID</span>
+                            <span class="summary-value ml-auto">-</span>
                         </div>
-                        <div class="card">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span class="booking-date"></span>
+                        <div class="summary-item">
+                            <span class="summary-label">Date</span>
+                            <span class="summary-value booking-date">-</span>
                         </div>
-                        <div class="card">
-                            <i class="fas fa-clock"></i>
-                            <span class="booking-time"></span>
-                        </div>
-                    </div>
-                    <div class="grid grid-2">
-                        <div>
-                            <label class="label">Patient Name</label>
-                            <div class="card">
-                                <i class="fas fa-user"></i>
-                                <span class="booking-patientName"></span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="label">Booking Price</label>
-                            <div class="card">
-                                <i class="fas fa-rupee-sign"></i>
-                                <input class="booking-total" type="text" disabled>
-                            </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Time</span>
+                            <span class="summary-value booking-time">-</span>
                         </div>
                     </div>
-                    <div class="grid grid-2">
-                        <div>
-                            <label class="label">Billing Price</label>
-                            <div class="card">
-                                <i class="fas fa-rupee-sign"></i>
-                                <input class="billingprice" type="number">
-                            </div>
+                    <div class="summary-item" style="margin-bottom: 16px;">
+                        <span class="summary-label">Patient</span>
+                        <span class="summary-value booking-patientName">-</span>
+                    </div>
+                    <div class="price-section">
+                        <label for="billing-price-input">Billing price</label>
+                        <div class="price-input-wrap">
+                            <span aria-hidden="true">&#8377;</span>
+                            <input id="billing-price-input" class="billingprice" type="number" min="0" step="0.01" inputmode="decimal" aria-describedby="billing-price-help">
                         </div>
+                        <p id="billing-price-help" class="price-help">This amount will be used as the Grand Total on the generated PDF.</p>
+                        <p id="booking-price-reference" class="price-help">Original booking price: <span class="booking-total">-</span></p>
                     </div>
                 </div>
             </div>
