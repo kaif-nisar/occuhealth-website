@@ -81,8 +81,29 @@ async function submitAmount() {
     }
 }
 
+// Get the current logged-in user's tenant ID from the global `user` object
+// (populated by the parent admin page via /api/verify-token)
+function getCurrentTenantId() {
+    if (typeof user !== 'undefined' && user?.tenantId) {
+        // tenantId may be a populated object or a plain ObjectId string
+        return user.tenantId._id || user.tenantId;
+    }
+    // Fallback: try window.userId / window.user if available
+    if (typeof window !== 'undefined' && window.user?.tenantId) {
+        return window.user.tenantId._id || window.user.tenantId;
+    }
+    return null;
+}
+
 function loadCreditData() {
-    fetch(`${BASE_URL}/api/v1/user/fetchFranchisee`, {
+    const tenantId = getCurrentTenantId();
+    // Build query string with tenantId as a strict filter (defense-in-depth)
+    const queryParams = new URLSearchParams();
+    if (tenantId) {
+        queryParams.set('tenantId', tenantId);
+    }
+
+    fetch(`${BASE_URL}/api/v1/user/fetchFranchisee?${queryParams.toString()}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -91,7 +112,16 @@ function loadCreditData() {
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                populateDropdowns(Array.isArray(result.data) ? result.data : []);
+                // Defense-in-depth: filter on the client side to ONLY show users
+                // belonging to the logged-in tenant, even if the API returns extra data.
+                const allUsers = Array.isArray(result.data) ? result.data : [];
+                const tenantScopedUsers = tenantId
+                    ? allUsers.filter(u => {
+                        const uTenant = u.tenantId?._id || u.tenantId;
+                        return uTenant && uTenant.toString() === tenantId.toString();
+                    })
+                    : allUsers;
+                populateDropdowns(tenantScopedUsers);
             } else {
                 console.error('Error fetching data:', result.message);
             }

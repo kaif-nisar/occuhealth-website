@@ -397,6 +397,7 @@ async function allcases() {
                     <div class="allcases-dropdown-menu" style="display: none;">
                         <a data-page="labreport" class="download-report"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
                         <a data-page="ModifyCase" class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                        <a class="action-btn generate-bill-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
                         <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a> 
                         <a class="action-btn clinical-btn"><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>                               
                     </div>
@@ -418,6 +419,7 @@ async function allcases() {
                     <i class="fas fa-ellipsis-h more-options"></i>
                     <div class="allcases-dropdown-menu" style="display: none;">
                         <a class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                        <a class="action-btn generate-bill-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
                         <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a>
                         <a class="action-btn clinical-btn" ><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>
                         <a class="action-btn cancel-btn danger-item"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
@@ -429,6 +431,226 @@ async function allcases() {
         });
     }
 
+    // ================================================================
+    //  Invoice generation helpers (mirrors generatebill.js logic)
+    // ================================================================
+    function escapeHtml(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&")
+            .replace(/</g, "<")
+            .replace(/>/g, ">")
+            .replace(/\x22/g, "\x26quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function getUniqueTestNames(booking) {
+        if (!booking || !Array.isArray(booking.tableData)) return [];
+        const names = [];
+        booking.tableData.forEach((entry) => {
+            const raw = String((entry && entry.testName) || "");
+            raw.split(",").map((t) => t.trim()).filter(Boolean).forEach((t) => {
+                if (names.indexOf(t) === -1) names.push(t);
+            });
+        });
+        return names;
+    }
+
+    function getBarcodes(booking) {
+        if (!booking || !Array.isArray(booking.tableData)) return [];
+        return booking.tableData
+            .map((entry) => String((entry && entry.barcodeId) || "").trim())
+            .filter(Boolean);
+    }
+
+    function formatInvoiceDate(value) {
+        if (!value) return "";
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        }
+        return String(value).split("T")[0] || "";
+    }
+
+    function formatInvoiceTime(value) {
+        if (!value) return "";
+        try {
+            const parsed = new Date("1970-01-01T" + value);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+            }
+        } catch (_) { /* ignore */ }
+        return "";
+    }
+
+    function getTenantLogo() {
+        try {
+            return String((user && user.tenantId && user.tenantId.logo) || "");
+        } catch (_) {
+            return "";
+        }
+    }
+
+    /**
+     * Build a complete invoice HTML string from a booking object.
+     * This mirrors the hidden .pdf-div template used on the official
+     * generatebill page, so the backend can render a proper PDF.
+     */
+    function buildInvoiceHtml(booking) {
+        if (!booking) return "";
+
+        const logoUrl = getTenantLogo();
+        const logoHtml = logoUrl
+            ? `<div class="image-div"><img id="bill-logo" src="${escapeHtml(logoUrl)}" style="width:250px;height:125px;"></div>`
+            : "";
+
+        const uniqueTestNames = getUniqueTestNames(booking);
+        const testRows = uniqueTestNames.map((name, index) =>
+            `<tr><td>${index + 1}</td><td>${escapeHtml(name)}</td></tr>`
+        ).join("") || '<tr><td colspan="2">-</td></tr>';
+
+        const bookingDate = formatInvoiceDate(booking.date || booking.createdAt);
+        const bookingTime = formatInvoiceTime(booking.time || booking.createdAt);
+        const patientName = escapeHtml(booking.patientName || "");
+        const bookingId = escapeHtml(booking.bookingId || "");
+        const gender = escapeHtml([booking.year, booking.gender].filter(Boolean).join(" | ") || "");
+        const total = booking.total != null ? booking.total : "";
+        const invoiceDate = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+        return `
+        <div class="container23">
+            <div class="header upper-header">
+                <div>
+                    <h1>INVOICE</h1>
+                    <p id="invoiceid">#Bill${escapeHtml(booking._id || booking.bookingId || "")}</p>
+                    <p id="invoice-date-time">Invoice Date : ${invoiceDate}</p>
+                </div>
+                ${logoHtml}
+            </div>
+            <div class="patient-details">
+                <div style="display: flex; justify-content: space-between;">
+                    <div>
+                        <p><strong>Patient Details :</strong></p>
+                        <p class="blue">${patientName}</p>
+                        <p class="invoice-gender">${gender}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p><strong id="invoice-bookingid">Booking Id : ${bookingId}</strong></p>
+                        <p id="booking-date-time">Booking Time : ${bookingDate} ${bookingTime}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container" id="invoice-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Test Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>${testRows}</tbody>
+                </table>
+            </div>
+            <div class="container8989">
+                <div class="header">
+                    <h1>Grand Total</h1>
+                    <span>Rs ${total}</span>
+                </div>
+                <p class="note">
+                    ** No refund is available after booking.
+                </p>
+                <div class="stamp">
+                    <span>This Bill is Generated by www.occuhealth.in</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    /**
+     * Generate and download an invoice for a booking using the existing
+     * /invoicepdfgenerator API with the full HTML/CSS payload.
+     */
+    async function generateInvoiceForBooking(booking) {
+        if (!booking || !booking.bookingId) {
+            alert("Booking data is missing.");
+            return false;
+        }
+
+        const invoiceHtml = buildInvoiceHtml(booking);
+        const invoicecss = `
+            * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
+            .container23 { max-width: 800px; margin: 0 auto; border: 1px solid #ccc; padding: 20px; }
+            .header, .patient-details, .table-container { width: 100%; margin-bottom: 20px; }
+            .header { position: relative; display: flex; justify-content: space-between; align-items: center; }
+            .upper-header * { color: whitesmoke; }
+            .upper-header { background-color: #3f4d67; padding: 16px; }
+            .header h1 { font-size: 24px; font-weight: bold; margin: 0; }
+            .header p { margin: 5px 0; }
+            .header img { width: 250px; height: 125px; }
+            .image-div { position: absolute; right: 0%; top: 50%; transform: translateY(-50%); }
+            .patient-details { border-top: 1px solid #ccc; padding-top: 20px; }
+            .patient-details p { margin: 5px 0; }
+            .patient-details .blue { color: #1a73e8; }
+            .table-container { overflow: auto; }
+            .table-container table { width: 100%; border-collapse: collapse; }
+            .table-container th, .table-container td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+            .table-container th { background-color: #f9f9f9; }
+            .container8989 { width: 100%; background-color: white; border-radius: 8px; max-width: 100%; }
+            .container8989 .header { width: calc(100% - 32px); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; border-top: 1px solid #e5e7eb; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
+            .container8989 .header h1 { font-size: 1.25rem; font-weight: bold; margin: 0; }
+            .container8989 .header span { font-size: 1.25rem; font-weight: bold; }
+            .note { width: 100%; text-align: center; font-size: 0.875rem; margin-bottom: 16px; }
+            .stamp { display: flex; justify-content: flex-start; }
+            .stamp span { color: black; opacity: 0.7; font-size: 0.75rem; }
+        `;
+        const billnumber = "#Bill" + (booking._id || booking.bookingId || "");
+        const generatedBy = (typeof userId !== "undefined" ? userId : null) || null;
+
+        const payload = {
+            invoiceHtml: invoiceHtml,
+            invoicecss: invoicecss,
+            billnumber: billnumber,
+            bookingId: booking.bookingId,
+            billingPrice: Number(booking.total || 0),
+            generatedBy: generatedBy
+        };
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/invoicepdfgenerator`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const pdfBlob = await response.blob();
+            if (!pdfBlob || pdfBlob.size === 0) throw new Error("Empty PDF received");
+
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const anchor = document.createElement("a");
+            anchor.href = pdfUrl;
+            anchor.download = `${booking.patientName || "invoice"}-invoice.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 5000);
+
+            // Mark as generated
+            try {
+                await fetch(`${BASE_URL}/api/v1/user/updategeneratedbillvariable/${encodeURIComponent(booking.bookingId)}`, {
+                    credentials: "include"
+                });
+            } catch (_) { /* non-blocking */ }
+
+            return true;
+        } catch (error) {
+            console.error("Invoice generation failed:", error);
+            alert("Failed to generate invoice. Please try again.");
+            return false;
+        }
+    }
+
     // Event delegation for table actions
     const tableBody = document.getElementById("tbody");
     if (tableBody) {
@@ -438,15 +660,49 @@ async function allcases() {
             if (!target) return;
 
             // ✅ NEW: Handle three dots dropdown toggle
+            // The container uses overflow-x: auto which clips absolutely-
+            // positioned children vertically. To render cleanly above the
+            // table we re-host the open dropdown in document.body with a
+            // fixed position derived from the trigger's bounding rect.
             if (target.classList.contains("more-options")) {
+                const row = target.closest("tr");
                 const dropdown = target.nextElementSibling;
                 if (dropdown && dropdown.classList.contains("allcases-dropdown-menu")) {
-                    // Close all other dropdowns first
+                    // Close all other dropdowns first (and remove any body popover)
                     document.querySelectorAll(".allcases-dropdown-menu").forEach(dd => {
-                        if (dd !== dropdown) dd.style.display = "none";
+                        dd.style.display = "none";
                     });
-                    // Toggle current dropdown
-                    dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+                    const existingPopover = document.getElementById("allcases-dropdown-popover");
+                    if (existingPopover) existingPopover.remove();
+
+                    // If the dropdown is currently hidden, open it via body popover
+                    const wasHidden = dropdown.style.display === "none";
+                    if (wasHidden) {
+                        // Show the in-place dropdown just long enough to read its size
+                        dropdown.style.display = "block";
+                        const triggerRect = target.getBoundingClientRect();
+                        const dropdownRect = dropdown.getBoundingClientRect();
+
+                        // Build the body popover clone with fixed positioning
+                        const clone = dropdown.cloneNode(true);
+                        clone.id = "allcases-dropdown-popover";
+                        clone.style.display = "block";
+                        clone.style.position = "fixed";
+                        clone.style.top = Math.round(triggerRect.bottom + 4) + "px";
+                        clone.style.left = Math.round(triggerRect.right - dropdownRect.width) + "px";
+                        clone.style.zIndex = 9999;
+                        clone.style.margin = "0";
+                        // Store the booking id on the popover itself (the clone
+                        // has no parent <tr> once moved to document.body).
+                        const rowBookingId = row ? row.getAttribute("data-booking-id") : "";
+                        if (rowBookingId) clone.dataset.bookingId = rowBookingId;
+                        document.body.appendChild(clone);
+
+                        // Hide the in-table placeholder (it is clipped by the
+                        // container's overflow-x, so we render the real menu
+                        // above everything on the body).
+                        dropdown.style.display = "none";
+                    }
                 }
                 return;
             }
@@ -485,6 +741,33 @@ async function allcases() {
                 if (!booking) return;
                 saveBookingToLocalStorage(booking, row);
                 window.location.href = `${BASE_URL}/admin/admin.html?page=ModifyCase&value1=${booking.bookingId}`;
+            }
+            else if (target.classList.contains("generate-bill-btn")) {
+                // Close the dropdown once the action is picked
+                const dropdown = target.closest(".allcases-dropdown-menu");
+                if (dropdown) dropdown.style.display = "none";
+
+                const booking = await getBookingDetails(bookingId);
+                if (!booking) return;
+
+                // Show inline buffering / spinner
+                const originalHtml = target.innerHTML;
+                target.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+                target.disabled = true;
+                target.style.pointerEvents = "none";
+
+                try {
+                    const ok = await generateInvoiceForBooking(booking);
+                    if (!ok) throw new Error("Invoice generation failed");
+                } catch (error) {
+                    console.error("Invoice generation failed:", error);
+                    alert("Failed to generate invoice. Please try again.");
+                } finally {
+                    target.innerHTML = originalHtml;
+                    target.disabled = false;
+                    target.style.pointerEvents = "";
+                    if (booking && booking.bookingId) await fetchBookings(currentPage);
+                }
             }
             else if (target.classList.contains("hold-btn")) {
                 const confirmation = window.confirm("Are you want to update the status as 'Hold'");
@@ -581,6 +864,59 @@ async function allcases() {
                 document.querySelectorAll(".allcases-dropdown-menu").forEach((dropdown) => {
                     dropdown.style.display = "none";
                 });
+                const existingPopover = document.getElementById("allcases-dropdown-popover");
+                if (existingPopover) existingPopover.remove();
+            }
+        });
+
+        // ✅ NEW: Handle clicks on the body-level dropdown popover (cloned
+        // from the in-table menu to avoid overflow clipping). The popover
+        // lives outside #tbody, so the tableBody delegation above cannot
+        // see it — we delegate on document instead.
+        document.addEventListener("click", async function (e) {
+            const popover = document.getElementById("allcases-dropdown-popover");
+            if (!popover) return;
+            const item = e.target.closest("a");
+            if (!item || !popover.contains(item)) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Remove the popover immediately
+            popover.remove();
+
+            const bookingId = popover.dataset.bookingId || null;
+            if (!bookingId) return;
+
+            if (item.classList.contains("generate-bill-btn")) {
+                const booking = await getBookingDetails(bookingId);
+                if (!booking) return;
+
+                const originalHtml = item.innerHTML;
+                item.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+                item.disabled = true;
+                item.style.pointerEvents = "none";
+
+                try {
+                    const ok = await generateInvoiceForBooking(booking);
+                    if (!ok) throw new Error("Invoice generation failed");
+                } catch (error) {
+                    console.error("Invoice generation failed:", error);
+                    alert("Failed to generate invoice. Please try again.");
+                } finally {
+                    item.innerHTML = originalHtml;
+                    item.disabled = false;
+                    item.style.pointerEvents = "";
+                    if (booking && booking.bookingId) await fetchBookings(currentPage);
+                }
+                return;
+            }
+
+            // Re-dispatch other actions (modify, hold, clinical, cancel, etc.)
+            // by simulating a click on the matching in-table element.
+            const inTableItem = document.querySelector(`#tbody tr[data-booking-id="${CSS.escape(bookingId)}"] .allcases-dropdown-menu a.${item.className.split(" ").join(".")}`);
+            if (inTableItem) {
+                inTableItem.click();
             }
         });
     }

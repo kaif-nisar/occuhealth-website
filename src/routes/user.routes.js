@@ -102,6 +102,7 @@ import {
   amountUpdate,
   getMyFranchisees,
   fetchAllFranchisee,
+  fetchFranchiseeChain,
   setOverdraft,
   moneyDebitFromSuperFranchisee,
   moneyDebitFromFranchisee,
@@ -419,6 +420,9 @@ router.route("/superFranchisee-update").post(
 
 //fetchFranchisee
 router.route("/fetchFranchisee").get(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), fetchAllFranchisee)
+
+//fetchFranchiseeChain - Fetch all franchisees in the current user's chain (recursive)
+router.route("/fetchFranchiseeChain").get(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), fetchFranchiseeChain)
 
 // Set overdraft permission & limit for a franchisee/user
 router.post("/set-overdraft", verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), setOverdraft);

@@ -1151,7 +1151,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
 
         res.setHeader('Content-Type', 'application/pdf');
-        const pdfFilename3 = buildPdfFilename(pdfContext?.resolvedPatientName);
+        const pdfFilename3 = buildPdfFilename(bookingId);
         res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename3}"; filename*=UTF-8''${encodeURIComponent(pdfFilename3)}`);
         res.setHeader('Content-Length', responsePdfBuffer.length);
         res.end(responsePdfBuffer);
@@ -1968,13 +1968,16 @@ const invoicepdfgenerator = async (req, res) => {
         }
 
         res.setHeader('Content-Type', 'application/pdf');
-        const pdfFilenameUser = buildPdfFilename(pdfContext?.resolvedPatientName);
+        const pdfFilenameUser = buildPdfFilename(bookingId);
         res.setHeader('Content-Disposition', `attachment; filename="${pdfFilenameUser}"; filename*=UTF-8''${encodeURIComponent(pdfFilenameUser)}`);
         res.setHeader('Content-Length', pdfBuffer.length);
         res.end(pdfBuffer);
 
     } catch (error) {
-        // console.log(error)
+        console.error('Invoice PDF generation failed:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Failed to generate invoice PDF" });
+        }
     }
 
 }

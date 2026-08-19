@@ -1,6 +1,25 @@
+// Get the current logged-in user's tenant ID from the global `user` object
+function getCurrentTenantId() {
+    if (typeof user !== 'undefined' && user?.tenantId) {
+        return user.tenantId._id || user.tenantId;
+    }
+    if (typeof window !== 'undefined' && window.user?.tenantId) {
+        return window.user.tenantId._id || window.user.tenantId;
+    }
+    return null;
+}
+
 async function loadFranchisees() {
     try {
-        const response = await fetch(`${BASE_URL}/api/v1/user/fetchFranchisee`, {
+        const tenantId = getCurrentTenantId();
+        const queryParams = new URLSearchParams();
+        if (tenantId) {
+            queryParams.set('tenantId', tenantId);
+        }
+
+        // Use the new chain API that fetches ALL franchisees in the current user's chain
+        // (franchisees created by the current user, plus franchisees created by those franchisees, recursively)
+        const response = await fetch(`${BASE_URL}/api/v1/user/fetchFranchiseeChain?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -17,7 +36,15 @@ async function loadFranchisees() {
             const franchiseeDropdown = document.getElementById('franchisee');
             franchiseeDropdown.innerHTML = '<option value="">-- Select Franchisee --</option>';
 
-            const franchisees = Array.isArray(data.data) ? data.data : [];
+            const allFranchisees = Array.isArray(data.data) ? data.data : [];
+            // Defense-in-depth: only show users belonging to the logged-in tenant
+            const franchisees = tenantId
+                ? allFranchisees.filter(f => {
+                    const fTenant = f.tenantId?._id || f.tenantId;
+                    return fTenant && fTenant.toString() === tenantId.toString();
+                })
+                : allFranchisees;
+
             franchisees.forEach(franchisee => {
                 const option = document.createElement('option');
                 option.value = franchisee._id;

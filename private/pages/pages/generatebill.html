@@ -6,9 +6,9 @@
     <title>Generate Bill</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style id="billcss">
-
         * {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
         }
         .container {
             width: 95%;
@@ -34,96 +34,417 @@
             margin-right: 5px;
         }
 
-        .search-box {
+        /* ===== SEARCH PANEL CARD ===== */
+        .card-panel {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .card-panel h3 {
+            margin: 0 0 16px;
+            font-size: 16px;
+            color: #1f2937;
             display: flex;
             align-items: center;
-            background-color: #fff;
-            padding: 10px;
+            gap: 8px;
+        }
+
+        .card-panel h3 i {
+            color: #f95b75;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+               }
+
+        .search-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .search-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .search-field input {
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
         }
 
-        .search-box input {
-            /* flex: 1; */
-            width: 30rem;
-            padding: 10px;
-            border: 1px solid #d1e9ff;
-            border-radius: 4px;
-            margin-right: 10px;
-            font-size: 16px;
+        .search-field input:focus {
+            outline: none;
+            border-color: #f95b75;
+            box-shadow: 0 0 0 3px rgba(249, 91, 117, 0.1);
         }
 
-        .search-box button {
-            background-color: #f95b75;
-            color: #fff;
-            border: none;
+        .search-field input[type="date"] {
+            min-width: 150px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
             padding: 10px 20px;
-            border-radius: 4px;
-            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
         }
 
-        .search-box button i {
-            margin-right: 5px;
+        .btn-primary {
+            background: #f95b75;
+            color: #fff;
         }
 
-        tbody {
-            display: table-row-group;
-            vertical-align: middle;
-            unicode-bidi: isolate;
-            border-color: inherit;
+        .btn-primary:hover {
+            background: #e84a64;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(249, 91, 117, 0.3);
         }
 
-        table th {
-            background-color: #fff3cd;
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
         }
 
-        thead {
-            display: table-header-group;
-            vertical-align: middle;
-            unicode-bidi: isolate;
-            border-color: inherit;
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== TABLE CARD ===== */
+        .table-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-header h3 i {
+            color: #f95b75;
+        }
+
+        .table-count {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            min-height: 200px;
+            position: relative;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            min-width: 900px;
         }
 
-        table th,
-        table td {
-            padding: 10px;
+        thead {
+            background: #f9fafb;
+        }
+
+        table th {
+            padding: 12px 16px;
             text-align: left;
-            border: 1px solid #dee2e6;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap;
         }
 
-        tr button {
-            padding: 0.45rem 0.5rem;
-            display: flex;
-            gap: 10px;
-            background: rgb(219 72 32);
-            border: none;
-            color: white;
+        table td {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            color: #1f2937;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
         }
 
-        /* Button Styling */
-        .open-modal-btn {
-            background-color: #007bff;
-            color: white;
+        tbody tr {
+            transition: background-color 0.15s;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .booking-id {
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: inline-block;
+        }
+
+        .status-generated {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .btn-download {
+            background: #10b981;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 5px;
-            transition: 0.3s;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .open-modal-btn:hover {
-            background-color: #0056b3;
+        .btn-download:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
 
-        /* Modal Background */
+        .btn-download:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-generate {
+            background: #f59e0b;
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-generate:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        /* ===== PAGINATION ===== */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #f3f4f6;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pagination-info {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            min-width: 34px;
+            height: 34px;
+            padding: 0 8px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .page-btn.active {
+            background: #f95b75;
+            color: #fff;
+            border-color: #f95b75;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-ellipsis {
+            padding: 0 4px;
+            color: #9ca3af;
+        }
+
+        .page-size-select {
+            padding: 6px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #374151;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        /* ===== LOADING OVERLAY ===== */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 10px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .loading-spinner i {
+            font-size: 32px;
+            color: #f95b75;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .loading-spinner span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* ===== MODAL ===== */
         .modal-bill {
             display: none;
             position: fixed;
@@ -138,7 +459,6 @@
             overflow-y: auto;
         }
 
-        /* Modal Box */
         .modal-content-bill {
             background-color: white;
             padding: 20px;
@@ -151,7 +471,6 @@
             height: fit-content;
         }
 
-        /* Modal Header */
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -165,7 +484,6 @@
             font-weight: bold;
         }
 
-        /* Close Button */
         .close-btn {
             background: none;
             border: none;
@@ -179,7 +497,6 @@
             color: red;
         }
 
-        /* Modal Footer */
         .modal-footer {
             display: flex;
             justify-content: space-between;
@@ -187,7 +504,6 @@
             border-top: 1px solid #ddd;
         }
 
-        /* Show Modal Animation */
         .modal-bill.show {
             display: flex;
             opacity: 1;
@@ -302,7 +618,6 @@
 
         .upper-header {
             background-color: #3f4d67;
-
         }
 
         .header h1 {
@@ -361,7 +676,6 @@
         }
 
         .header {
-            width: calc(100% - 32px);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -405,28 +719,77 @@
             display: none;
         }
 
-        /* Existing CSS ऊपर रखो, उसके बाद नीचे ये जोड़ दो या उसमें merge कर लो */
+        .image-div {
+            position: absolute;
+            right: 0%;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0px 20px;
+        }
 
-        /* Small screen adjustments */
-        @media (max-width: 767px) {
+        /* ===== TOAST ===== */
+        .toast-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 999999;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .toast-msg.show {
+            transform: translateX(0);
+        }
+
+        .toast-success {
+            background: #10b981;
+        }
+
+        .toast-error {
+            background: #ef4444;
+        }
+
+        .toast-info {
+            background: #3b82f6;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
             .container {
-                width: 95%;
+                width: 98%;
                 margin: 20px auto;
             }
 
-            .search-box {
+            .search-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-row {
                 flex-direction: column;
-                align-items: stretch;
+                width: 100%;
             }
 
-            .search-box input {
+            .btn-row .btn {
                 width: 100%;
-                margin-right: 0;
-                margin-bottom: 10px;
+                justify-content: center;
             }
 
-            .search-box button {
+            .pagination {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .pagination-controls {
                 width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
             }
 
             .modal-content-bill {
@@ -469,11 +832,11 @@
 
             table th,
             table td {
-                font-size: 14px;
+                font-size: 13px;
+                padding: 10px 12px;
             }
         }
 
-        /* Medium screen adjustments */
         @media (min-width: 768px) and (max-width: 991px) {
             .modal-content-bill {
                 width: 90%;
@@ -494,13 +857,6 @@
                 height: auto;
             }
         }
-
-        .image-div {
-            position: absolute;
-            right: 0%;
-            top: 50%;
-            transform: translateY(-50%);
-        }
     </style>
 </head>
 
@@ -509,8 +865,8 @@
     <div id="customModal" class="modal-bill">
         <div class="modal-content-bill">
             <div class="modal-header">
-                <span class="modal-title">Custom Modal</span>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <span class="modal-title">Generate Bill</span>
+                <button class="close-btn" onclick="window.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="inner-modal-body">
@@ -557,39 +913,95 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="open-modal-btn" onclick="closeModal()">OK</button>
-                <button class="open-modal-btn" style="background-color: gray;" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="window.closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="generateBillSubmit"><i class="fas fa-file-invoice"></i> Generate Bill</button>
             </div>
         </div>
     </div>
+
     <div class="container">
         <h1>Generate Bill</h1>
         <div class="breadcrumb">
-            <a href="#"><i class="fas fa-home"></i> Dashboard</a> &gt; <span>New Bill</span>
+            <a href="#"><i class="fas fa-home"></i> Dashboard</a> > <span>New Bill</span>
         </div>
-        <div class="search-box">
-            <i class="fas fa-users" style="font-size: 24px; margin-right: 10px;"></i>
-            <input id="search-input" class="text" type="text" placeholder="Search...">
-            <button id="search-button"><i class="fas fa-search"></i> Search</button>
+
+        <!-- Search Panel -->
+        <div class="card-panel">
+            <h3><i class="fas fa-search"></i> Search & Filter</h3>
+            <div class="search-grid">
+                <div class="search-field">
+                    <label for="search-input">Search</label>
+                    <input id="search-input" type="text" placeholder="Search by Booking ID, Patient Name, Barcode, Doctor, or Test...">
+                </div>
+                <div class="search-field">
+                    <label for="from-date">From Date</label>
+                    <input id="from-date" type="date">
+                </div>
+                <div class="search-field">
+                    <label for="to-date">To Date</label>
+                    <input id="to-date" type="date">
+                </div>
+                <div class="btn-row">
+                    <button id="search-button" class="btn btn-primary"><i class="fas fa-search"></i> Search</button>
+                    <button id="reset-button" class="btn btn-secondary"><i class="fas fa-rotate-left"></i></button>
+                </div>
+            </div>
         </div>
-        <div class="table-container" id="main-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Booking ID</th>
-                        <th>Patient Name</th>
-                        <th>Barcodes</th>
-                        <th>Ref By</th>
-                        <th>Test Name</th>
-                        <th>Download</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Dynamic rows will be added here -->
-                </tbody>
-            </table>
+
+        <!-- Table Card -->
+        <div class="card-panel" style="padding: 0; overflow: hidden;">
+            <div class="table-header">
+                <h3><i class="fas fa-file-invoice"></i> Bills</h3>
+                <span class="table-count" id="table-count">Loading...</span>
+            </div>
+            <div class="table-wrapper" id="main-table">
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading...</span>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Patient Name</th>
+                            <th>Barcodes</th>
+                            <th>Ref By</th>
+                            <th>Test Name</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>Loading bookings...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination" style="display: none;">
+                <div class="pagination-info" id="pagination-info"></div>
+                <div class="pagination-controls" id="pagination-controls"></div>
+                <div>
+                    <select class="page-size-select" id="page-size">
+                        <option value="10">10 / page</option>
+                        <option value="25">25 / page</option>
+                        <option value="50">50 / page</option>
+                        <option value="100">100 / page</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- PDF Template (hidden) -->
     <div class="pdf-div">
         <div class="container23">
             <div class="header upper-header">
@@ -599,8 +1011,7 @@
                     <p id="invoice-date-time"></p>
                 </div>
                 <div class="image-div">
-                    <img id="bill-logo"
-                        src="">
+                    <img id="bill-logo" src="">
                 </div>
             </div>
             <div class="patient-details">
@@ -629,20 +1040,14 @@
             </div>
             <div class="container8989">
                 <div class="header">
-                    <h1>
-                        Grand Total
-                    </h1>
+                    <h1>Grand Total</h1>
                     <span></span>
                 </div>
                 <p class="note">
                     ** No refund is available after booking.
                 </p>
                 <div class="stamp">
-                    <!-- <img alt="A blue circular stamp with the text 'HY PATHO LAB DELHI' and a small star at the bottom"
-                        height="80"
-                        src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1743930201/zehr601utkcn95q6d9dp.png"
-                        width="80" /> -->
-                        <span>This Bill is Generated by www.occuhealth.in</span>
+                    <span>This Bill is Generated by www.occuhealth.in</span>
                 </div>
             </div>
         </div>

@@ -528,6 +528,19 @@ function generateTransactionNumber() {
   return prefix + timestamp;
 }
 
+// Helper to validate that a target user belongs to the same tenant as the authenticated user
+// This is a critical multi-tenant isolation guard for all wallet/credit transfer endpoints.
+const assertSameTenant = (authUser, targetUser) => {
+  const authTenantId = authUser?.tenantId?._id?.toString() || authUser?.tenantId?.toString();
+  const targetTenantId = targetUser?.tenantId?.toString();
+  if (!authTenantId || !targetTenantId || authTenantId !== targetTenantId) {
+    throw new ApiError(
+      403,
+      "Forbidden: Target user does not belong to your tenant"
+    );
+  }
+};
+
 // Send money from Admin to Super Franchisee
 const moneyDebitFromSuperFranchisee = asyncHandler(async (req, res) => {
 
@@ -546,6 +559,9 @@ const moneyDebitFromSuperFranchisee = asyncHandler(async (req, res) => {
       .status(404)
       .json({ message: "Admin or Super Franchisee not found" });
   }
+
+  // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+  assertSameTenant(req.user, superFranchisee);
 
   if (admin.bookingWallet < amount) {
     return res.status(400).json({ message: "Insufficient admin balance" });
@@ -630,6 +646,9 @@ const moneyDebitFromFranchisee = asyncHandler(async (req, res) => {
     if (!admin || !franchisee) {
       throw new Error("Admin or Franchisee not found");
     }
+
+    // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+    assertSameTenant(req.user, franchisee);
 
     // 🛑 Check franchisee balance (IMPORTANT FIX)
     if (franchisee.bookingWallet < amount) {
@@ -736,6 +755,9 @@ const moneyDebitFromSubFranchisee = asyncHandler(async (req, res) => {
       throw new Error("Admin or Sub Franchisee not found");
     }
 
+    // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+    assertSameTenant(req.user, subFranchisee);
+
     // 🛑 Check Sub balance (FIX)
     if (subFranchisee.bookingWallet < amount) {
       throw new Error("Sub Franchisee has insufficient balance");
@@ -835,6 +857,9 @@ const moneySendToSuperFranchisee = asyncHandler(async (req, res) => {
       .status(404)
       .json({ message: "Admin or Super Franchisee not found" });
   }
+
+  // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+  assertSameTenant(req.user, superFranchisee);
 
   superFranchisee.bookingWallet -= amount; // Reduce from Super Franchisee
   admin.bookingWallet += amount; // Add to Admin
@@ -943,6 +968,9 @@ const moneySendToFranchisee = asyncHandler(async (req, res) => {
       });
     }
 
+    // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+    assertSameTenant(req.user, franchisee);
+
     // Check if admin has sufficient balance
     if (admin.bookingWallet < parsedAmount) {
       console.log("Admin balance:", admin.bookingWallet, "Requested amount:", parsedAmount);
@@ -953,14 +981,6 @@ const moneySendToFranchisee = asyncHandler(async (req, res) => {
         requestedAmount: parsedAmount
       });
     }
-
-    // // Check if franchisee belongs to admin (optional security check)
-    // if (franchisee.createdBy && franchisee.createdBy.toString() !== admin._id.toString()) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Unauthorized: This franchisee does not belong to you"
-    //   });
-    // }
 
     // Calculate new balances
     const adminNewBalance = admin.bookingWallet - parsedAmount;
@@ -1197,6 +1217,9 @@ const moneySendToSubFranchisee = asyncHandler(async (req, res) => {
       throw new Error("Admin or Sub Franchisee not found");
     }
 
+    // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+    assertSameTenant(req.user, subFranchisee);
+
     // 🛑 Balance check
     if (admin.bookingWallet < amount) {
       throw new Error("Admin wallet has insufficient balance");
@@ -1285,9 +1308,22 @@ const moneySendToSubFranchisee = asyncHandler(async (req, res) => {
 
 // fetch  all franchisee
 const fetchAllFranchisee = asyncHandler(async (req, res) => {
+  // The authenticated user's tenant is ALWAYS the source of truth.
+  const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+
+  // If a tenantId query param is provided, it MUST match the authenticated user's tenant.
+  // This is defense-in-depth: even if a client passes another tenant's ID, we reject it.
+  const requestedTenantId = req.query.tenantId;
+  if (requestedTenantId && requestedTenantId.toString() !== authTenantId) {
+    throw new ApiError(
+      403,
+      "Forbidden: Tenant ID does not match your tenant"
+    );
+  }
+
   // Fetch all users for the tenant but exclude users with role 'staff'
   const franchisees = await User.find({
-    tenantId: req.user.tenantId._id,
+    tenantId: authTenantId,
     role: { $ne: 'staff' }
   })
     .select('-password -refreshToken'); // hide sensitive fields
@@ -1297,6 +1333,65 @@ const fetchAllFranchisee = asyncHandler(async (req, res) => {
   }
 
   return res.status(200).json(new ApiResponse(200, franchisees, "Franchisee"));
+});
+
+// Fetch franchisee chain for the current user
+// This recursively collects ALL franchisees created by the current user,
+// plus franchisees created by those franchisees, and so on down the entire chain.
+const fetchFranchiseeChain = asyncHandler(async (req, res) => {
+  // The authenticated user's tenant is ALWAYS the source of truth.
+  const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+
+  // If a tenantId query param is provided, it MUST match the authenticated user's tenant.
+  const requestedTenantId = req.query.tenantId;
+  if (requestedTenantId && requestedTenantId.toString() !== authTenantId) {
+    throw new ApiError(
+      403,
+      "Forbidden: Tenant ID does not match your tenant"
+    );
+  }
+
+  // Determine the starting user:
+  // - If the current user is staff, start from their parentUser
+  // - Otherwise start from the current user themselves
+  let startUserId;
+  if (req.user.role === 'staff' && req.user.parentUser) {
+    startUserId = req.user.parentUser;
+  } else {
+    startUserId = req.user._id;
+  }
+
+  // Recursively collect all franchisees in the chain
+  const collectChainFranchisees = async (parentUserId, visited = new Set()) => {
+    const parentIdStr = parentUserId.toString();
+    if (visited.has(parentIdStr)) return [];
+    visited.add(parentIdStr);
+
+    // Find all users directly created by this parent user (excluding staff)
+    const directFranchisees = await User.find({
+      tenantId: authTenantId,
+      createdBy: parentUserId,
+      role: { $ne: 'staff' }
+    }).select('-password -refreshToken');
+
+    let allFranchisees = [...directFranchisees];
+
+    // Recursively find franchisees created by each direct franchisee
+    for (const franchisee of directFranchisees) {
+      const subFranchisees = await collectChainFranchisees(franchisee._id, visited);
+      allFranchisees = [...allFranchisees, ...subFranchisees];
+    }
+
+    return allFranchisees;
+  };
+
+  const franchisees = await collectChainFranchisees(startUserId);
+
+  if (!franchisees || franchisees.length === 0) {
+    return res.status(404).json(new ApiResponse(404, null, "No franchisees found"));
+  }
+
+  return res.status(200).json(new ApiResponse(200, franchisees, "Franchisee chain fetched successfully"));
 });
 
 const amountUpdate = asyncHandler(async (req, res) => {
@@ -1806,6 +1901,7 @@ export {
   amountUpdate,
   getMyFranchisees,
   fetchAllFranchisee,
+  fetchFranchiseeChain,
   moneyDebitFromSuperFranchisee,
   moneyDebitFromFranchisee,
   moneyDebitFromSubFranchisee,
