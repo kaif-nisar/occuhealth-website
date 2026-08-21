@@ -152,6 +152,12 @@
                 return;
             }
 
+            const reason = window.prompt('Enter the cancellation reason:');
+            if (!reason || !reason.trim()) {
+                showError('Cancellation reason is required');
+                return;
+            }
+
             try {
                 hideConfirmModal();
                 showElement(loadingDiv);
@@ -163,8 +169,9 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        bookingId: currentBookingData.bookingId 
+                    body: JSON.stringify({
+                        bookingId: currentBookingData.bookingId,
+                        reason: reason.trim()
                     })
                 });
 

@@ -10,6 +10,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { SystemSetting } from "../models/systemSetting.model.js";
+import { NotificationDelivery } from "../models/notificationDelivery.model.js";
 // generate accessToken and refreshToken for user to close session
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -164,6 +165,13 @@ const loginUser = asyncHandler(async (req, res) => {
     role: user.createdBy?.role || user.role,
     myrole: user.role,
     modelType: user.parentUser?.tenantId?.modelType || user.tenantId?.modelType,
+    verification: {
+      emailVerified: user.emailVerified === true,
+      phoneVerified: user.phoneVerified === true,
+      emailVerifiedAt: user.emailVerifiedAt || null,
+      phoneVerifiedAt: user.phoneVerifiedAt || null,
+      whatsappOptIn: user.notificationPreferences?.whatsapp?.userOptIn === true || user.whatsappOptIn === true,
+    },
     subscription: {
       plan: tenantSub.planType || tenantSub.planDuration || userSub.plan,
       isActive: tenantSub.isActive !== undefined ? tenantSub.isActive : userSub.isActive,
@@ -344,6 +352,14 @@ const superFranchiseeCreate = asyncHandler(async (req, res) => {
     }
     const creator = req.user;
     const tenantId = creator.tenantId;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedPhoneNumber = String(phoneNo || "").trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, message: "A valid email is required" });
+    }
+    if (!/^\+[1-9]\d{9,14}$/.test(normalizedPhoneNumber)) {
+      return res.status(400).json({ success: false, message: "Phone number must include country code, for example +919876543210" });
+    }
     // Check if user has permission to create this role
 
     const canCreate = checkCreationPermission(
@@ -376,10 +392,13 @@ const superFranchiseeCreate = asyncHandler(async (req, res) => {
     const newUser = await User.create({
       username: (req.user.username + username),
       email,
+      normalizedEmail,
       fullName,
       role,
       password,
       phoneNo,
+      phoneNumber: normalizedPhoneNumber,
+      normalizedPhoneNumber,
       address,
       pinCode,
       state,
@@ -390,6 +409,8 @@ const superFranchiseeCreate = asyncHandler(async (req, res) => {
       parentRole: creator.role,
       tenantId: tenantId._id,
       createdBy: userId,
+      emailVerified: false,
+      phoneVerified: false,
     });
 
     if (!newUser) {
@@ -1693,6 +1714,56 @@ const superFranchiseeUpdate = asyncHandler(async (req, res) => {
   }
 });
 
+const getNotificationPreferences = asyncHandler(async (req, res) => {
+  const target = await User.findById(req.params.userId)
+    .select("email phoneNumber phoneNo emailVerified emailVerifiedAt phoneVerified phoneVerifiedAt notificationPreferences whatsappOptIn whatsappOptInAt emailNotificationEnabled smsNotificationEnabled whatsappNotificationEnabled tenantId")
+    .lean();
+  if (!target) return res.status(404).json({ success: false, message: "User not found" });
+  return res.status(200).json({ success: true, data: target });
+});
+
+const updateNotificationPreferences = asyncHandler(async (req, res) => {
+  const { whatsappPolicy, userOptIn, emailEnabled, smsEnabled } = req.body;
+  if (whatsappPolicy && !["inherit", "enabled", "disabled"].includes(whatsappPolicy)) {
+    return res.status(400).json({ success: false, message: "Invalid WhatsApp policy" });
+  }
+  const target = await User.findById(req.params.userId);
+  if (!target) return res.status(404).json({ success: false, message: "User not found" });
+  const now = new Date();
+  const update = {
+    ...(whatsappPolicy ? { "notificationPreferences.whatsapp.adminPolicy": whatsappPolicy } : {}),
+    ...(typeof userOptIn === "boolean" ? {
+      "notificationPreferences.whatsapp.userOptIn": userOptIn,
+      whatsappOptIn: userOptIn,
+      whatsappNotificationEnabled: userOptIn,
+      ...(userOptIn ? { "notificationPreferences.whatsapp.optedInAt": now, whatsappOptInAt: now } : { "notificationPreferences.whatsapp.optedOutAt": now })
+    } : {}),
+    ...(typeof emailEnabled === "boolean" ? { "notificationPreferences.email.enabled": emailEnabled, emailNotificationEnabled: emailEnabled } : {}),
+    ...(typeof smsEnabled === "boolean" ? { "notificationPreferences.sms.enabled": smsEnabled, smsNotificationEnabled: smsEnabled } : {}),
+    "notificationPreferences.whatsapp.updatedBy": req.user._id,
+  };
+  await User.updateOne({ _id: target._id }, { $set: update, $push: { activities: {
+    activityType: "user_management",
+    details: { action: "notification_preferences_updated", changedBy: req.user._id, changes: req.body },
+    timestamp: now
+  } } });
+  return res.status(200).json({ success: true, message: "Notification preferences updated" });
+});
+
+const getNotificationDeliveryHistory = asyncHandler(async (req, res) => {
+  const filter = {};
+  if (req.query.userId) filter.recipientUserId = req.query.userId;
+  if (req.query.bookingId) filter.bookingId = req.query.bookingId;
+  const deliveries = await NotificationDelivery.find(filter).sort({ createdAt: -1 }).limit(100).lean();
+  return res.status(200).json({ success: true, data: deliveries });
+});
+
+const retryNotificationDelivery = asyncHandler(async (req, res) => {
+  const delivery = await NotificationDelivery.findByIdAndUpdate(req.params.deliveryId, { $set: { status: "queued", lastError: null }, $inc: { attempts: -1 } }, { new: true });
+  if (!delivery) return res.status(404).json({ success: false, message: "Notification delivery not found" });
+  return res.status(200).json({ success: true, data: delivery });
+});
+
 // delete admin user & tenant by super admin 
 const deleteAdminAndTenant = asyncHandler(async (req, res) => {
   try {
@@ -1923,6 +1994,10 @@ export {
   verifyWalletTopup,
   getWalletTopupHistory,
   getPlatformFinanceSummary,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  getNotificationDeliveryHistory,
+    retryNotificationDelivery,
   franchisee
 };
 

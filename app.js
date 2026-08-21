@@ -15,6 +15,7 @@ import bulkBookingRouter from "./src/routes/bulkBooking.routes.js";
 import { verifyJWT, verifyProtectedStaticJWT, verifyProtectedSuperAdminStatic, verifySuperAdmin } from "./middlewares/auth.middleware.js";
 import { initializeSchedulers } from "./src/utils/subscriptionScheduler.js";
 import { cleanupCustomizationsOnStartup } from "./src/utils/customizationCleanup.js";
+import { startNotificationDispatcher } from "./src/services/notificationDispatcher.js";
 
 configDotenv();
 
@@ -695,6 +696,7 @@ Connect_DB()
             console.log(`🧹 Memory Auto-Cleanup: ACTIVE (70MB threshold)`);
 
             initializeSchedulers();
+            startNotificationDispatcher();
         });
 
         const gracefulShutdown = () => {

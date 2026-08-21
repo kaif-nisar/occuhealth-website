@@ -1895,24 +1895,85 @@ const savingPdfDatacontroller = async (req, res) => {
     return res.status(200).json(getcustomization)
 }
 
+const savePdfSettingsController = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId._id;
+        const createdBy = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
+        const { selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest } = req.body;
+
+        const fontSize = Number(selectedFontSize);
+        const rowSpacing = Number(RowSpacing);
+        if (!Number.isFinite(fontSize) || fontSize < 7 || fontSize > 22 ||
+            !Number.isFinite(rowSpacing) || rowSpacing < 1 || rowSpacing > 12) {
+            return res.status(400).json({ message: 'Invalid font size or spacing value' });
+        }
+
+        const settings = await saveOrUpdatePdfSetting({
+            tenantId,
+            createdBy,
+            selectedFontSize: fontSize,
+            RowSpacing: rowSpacing,
+            HighLow: Boolean(HighLow),
+            HLinred: Boolean(HLinred),
+            BoldRow: Boolean(BoldRow),
+            showInvest: Boolean(showInvest),
+        });
+
+        return res.status(200).json(settings);
+    } catch (error) {
+        console.error('Error saving PDF settings:', error);
+        return res.status(500).json({ message: 'Failed to save PDF settings' });
+    }
+};
+
 const getCustomizationByReportId = async (req, res) => {
     try {
         // Extract reportId from the request
         const { reportId } = req.body;
 
         if (!reportId) {
-            return // console.log('pdf data not found in database')
+            return res.status(400).json({ message: "Report ID is required" });
         }
+
+        const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
 
         // Find the document by reportId
         const customizationData = await customization.findOne({ reportId: reportId });
 
-        if (!customizationData) {
+        // Also fetch the tenant-level default settings as a fallback.
+        // The general settings (font size, spacing, checkboxes, margins) are saved
+        // to the defaultpdfsettings collection, so for a NEW report (no existing
+        // customization record) we must fall back to those saved defaults instead
+        // of returning 404 and losing all the user's saved settings.
+        const defaultSettings = await defaultpdfsetting.findOne({ tenantId });
+
+        if (!customizationData && !defaultSettings) {
             return res.status(404).json({ message: "No customization found for the given Report ID" });
         }
 
-        // Return the found document
-        return res.status(200).json(customizationData);
+        // Build the result:
+        // 1. Start with tenant-level default settings as the base (so new reports
+        //    get the saved default font size, spacing, checkboxes, margins, etc.)
+        // 2. Overlay report-specific customization values on top (so per-report
+        //    overrides still take priority)
+        const result = {};
+        if (defaultSettings) {
+            Object.assign(result, defaultSettings.toObject());
+        }
+        if (customizationData) {
+            const customizationObj = customizationData.toObject();
+            for (const [key, value] of Object.entries(customizationObj)) {
+                // General settings are tenant defaults; report schema defaults
+                // must not overwrite a value saved from Print Settings.
+                if (key === 'selectedFontSize' || key === 'RowSpacing') continue;
+                if (value !== undefined && value !== null) {
+                    result[key] = value;
+                }
+            }
+        }
+
+        // Return the merged document
+        return res.status(200).json(result);
     } catch (error) {
         console.error("Error fetching customization data:", error);
         return res.status(500).json({ message: "Internal server error" });
@@ -2119,6 +2180,7 @@ export {
     pdfgeneratorcontroller2,
     getpdfcontroller,
     savingPdfDatacontroller,
+    savePdfSettingsController,
     getCustomizationByReportId,
     invoicepdfgenerator,
     certificatepdfgenerator,

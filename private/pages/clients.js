@@ -100,6 +100,13 @@ function renderClients() {
         (client) => `
                     <tr>
                         <td>
+                          <select class="whatsapp-policy" data-user-id="${client.tenantDetails.adminDetails.userId || client.tenantDetails.userId}" title="Super Admin WhatsApp policy">
+                            <option value="inherit">Inherit</option>
+                            <option value="enabled">Enabled</option>
+                            <option value="disabled">Disabled</option>
+                          </select>
+                        </td>
+                        <td>
                             <div class="user-cell">
                                 <div class="table-avatar">${getInitials(
                                   client.tenantDetails.name
@@ -136,6 +143,21 @@ function renderClients() {
   }
 
   document.getElementById("clientTable").style.display = "table";
+  tbody.querySelectorAll(".whatsapp-policy").forEach((select) => {
+    select.addEventListener("change", async () => {
+      try {
+        const response = await fetch(`/api/v1/user/notification-preferences/${select.dataset.userId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ whatsappPolicy: select.value }),
+        });
+        if (!response.ok) throw new Error((await response.json()).message || "Policy update failed");
+      } catch (error) {
+        alert(error.message);
+        select.value = "inherit";
+      }
+    });
+  });
 }
 
 // Get filtered clients based on current filter

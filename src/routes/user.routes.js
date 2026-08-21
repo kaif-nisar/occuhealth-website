@@ -1,3 +1,4 @@
+import { handleWhatsAppWebhook } from "../services/notificationDispatcher.js";
 // superAdminRoutes.js
 import { Router } from "express";
 import { verifyJWT } from "../../middlewares/auth.middleware.js";
@@ -123,8 +124,12 @@ import {
   verifyWalletTopup,
   getWalletTopupHistory,
   getPlatformFinanceSummary,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  getNotificationDeliveryHistory,
+  retryNotificationDelivery,
 } from "../controllers/user.controller.js";
-import { sendOtp, verifyOtp } from "../controllers/otp.controller.js";
+import { sendOtp, verifyOtp, sendVerificationOtp, verifyVerificationOtp, updateVerificationContact } from "../controllers/otp.controller.js";
 import {
   createStaff,
   loginStaff,
@@ -284,7 +289,7 @@ import {
 } from "../controllers/expense.controller.js";
 import {
   savingPdfDatacontroller, getpdfcontroller,
-  getCustomizationByReportId, invoicepdfgenerator,
+  savePdfSettingsController, getCustomizationByReportId, invoicepdfgenerator,
   getAllInvoices, getpdfcontrolleruser, mergePdfsController, certificatepdfgenerator
 } from "../controllers/pdfgenerator.controller.js";
 import {
@@ -320,6 +325,15 @@ router.get("/get-current-user", verifyJWT, getCurrentUser);
 // OTP for public signup/verification
 router.post('/send-otp', sendOtp);
 router.post('/verify-otp', verifyOtp);
+router.post('/verification/send', verifyJWT, sendVerificationOtp);
+router.post('/verification/verify', verifyJWT, verifyVerificationOtp);
+router.patch('/verification/contact', verifyJWT, updateVerificationContact);
+router.get('/notification-preferences/:userId', verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageUsers"), getNotificationPreferences);
+router.patch('/notification-preferences/:userId', verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageUsers"), updateNotificationPreferences);
+router.get('/notification-deliveries', verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageUsers"), getNotificationDeliveryHistory);
+router.post('/notification-deliveries/:deliveryId/retry', verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageUsers"), retryNotificationDelivery);
+router.get('/webhooks/whatsapp', handleWhatsAppWebhook);
+router.post('/webhooks/whatsapp', handleWhatsAppWebhook);
 
 // Tenant management
 router.post("/tenants", verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageUsers"), createTenant);
@@ -1024,6 +1038,9 @@ router.route("/delete-image").post(verifyJWT, checkStaffPermission("canManageTes
 
 // // getting template
 router.route("/adding-pdf-data").post(verifyJWT, savingPdfDatacontroller)
+
+// Save tenant-level PDF defaults
+router.route("/save-pdf-settings").post(verifyJWT, checkStaffPermission("canManageTest"), savePdfSettingsController)
 
 // // getting template
 router.route("/generate-barcode").post(verifyJWT, barcodegeneratecontroller)

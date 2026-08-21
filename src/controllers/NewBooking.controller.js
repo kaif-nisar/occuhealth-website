@@ -10,6 +10,7 @@ import { Package } from "../models/addPackage.model.js";
 import { Ledger } from "../models/ledger.model.js";
 import { acceptedBarcode } from "../models/samples.model.js";
 import mongoose from "mongoose";
+import crypto from "crypto";
 import { Conversation } from "../models/message.model.js";
 import { bookedTestsresult } from "../models/Testvalues.model.js";
 import { reports } from "../models/reportData.model.js";
@@ -17,6 +18,7 @@ import { lisdata } from "../models/lismodel.js";
 import { Target } from "../models/target.model.js";
 import { Counter, categorydb } from "../models/category.model.js";
 import { customization } from "../models/printsetting.model.js";
+import { transitionBookingStatus, enqueueStatusDeliveries } from "../services/bookingStatus.service.js";
 
 const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
@@ -934,7 +936,7 @@ const cancelBookingController = asyncHandler(async (req, res) => {
     session.startTransaction(); // Start the transaction
 
     try {
-        const { bookingId } = req.body; // bookingId to cancel
+        const { bookingId, reason } = req.body; // bookingId to cancel
         const tenantId = req.user.tenantId;
 
         let user;
@@ -950,6 +952,9 @@ const cancelBookingController = asyncHandler(async (req, res) => {
         // Validate required fields
         if (!bookingId) {
             return res.status(400).json("Booking ID is required");
+        }
+        if (!String(reason || "").trim()) {
+            return res.status(400).json({ message: "Cancellation reason is required" });
         }
 
         // Find the booking to cancel
@@ -1145,9 +1150,21 @@ const cancelBookingController = asyncHandler(async (req, res) => {
         }
 
         // Update booking status to cancelled
+        const cancellationDate = new Date();
+        const previousStatus = existingBooking.status;
         existingBooking.status = "cancelled";
-        existingBooking.cancelledAt = new Date();
+        existingBooking.statusHistory.push({
+            previousStatus,
+            newStatus: "Cancelled",
+            reason: String(reason).trim(),
+            changedBy: req.user._id,
+            changedByRole: req.user.role,
+            changedAt: cancellationDate,
+            requestId: req.headers["x-request-id"] || crypto.randomUUID(),
+        });
+        existingBooking.cancelledAt = cancellationDate;
         existingBooking.cancelledBy = req.user._id;
+        existingBooking.cancellationReason = String(reason).trim();
         await existingBooking.save({ session });
 
         // Add activity for staff cancellation
@@ -1173,11 +1190,15 @@ const cancelBookingController = asyncHandler(async (req, res) => {
             }, { session });
         }
 
-        res.status(200).json(new ApiResponse(200, existingBooking, "Booking cancelled successfully and all transactions reversed"));
-
         // Commit the transaction if everything is successful
         await session.commitTransaction();
         session.endSession(); // End the session
+        try {
+            await enqueueStatusDeliveries(existingBooking, existingBooking.statusHistory[existingBooking.statusHistory.length - 1]);
+        } catch (notificationError) {
+            console.error("Cancellation notification enqueue failed:", notificationError.message);
+        }
+        return res.status(200).json(new ApiResponse(200, existingBooking, "Booking cancelled successfully and all transactions reversed"));
 
     } catch (err) {
         // Rollback the transaction if anything goes wrong
@@ -2847,7 +2868,7 @@ const rejectBookingcontroller = async (req, res) => {
 };
 
 const CompleteBookingcontroller = async (req, res) => {
-    const { bookingid } = req.body;
+    const { bookingid, reason = "Report completed" } = req.body;
 
     const reportDoc = await reports.findOne({ bookingId: bookingid })
         .select("completionMeta CategoryAndTest status")
@@ -2857,14 +2878,16 @@ const CompleteBookingcontroller = async (req, res) => {
         ? PARTIALLY_COMPLETED_STATUS
         : "completed";
 
-    const updatedStatus = await newBooking.findOneAndUpdate(
-        { bookingId: bookingid },
-        {
-            status: bookingStatus,
-            isreportready: true
-        },
-        { new: true }
-    )
+    const transition = await transitionBookingStatus({
+        bookingId: bookingid,
+        tenantId: req.user.tenantId._id,
+        actor: req.user,
+        status: bookingStatus,
+        reason,
+    });
+    const updatedStatus = transition.booking;
+    updatedStatus.isreportready = true;
+    await updatedStatus.save();
     // console.log("updated: ", updatedStatus);
 
     if (!updatedStatus) {
@@ -2898,14 +2921,16 @@ const CompleteBookingcontroller = async (req, res) => {
 }
 
 const statusBookingcontroller = async (req, res) => {
-    const { bookingid, status } = req.body;
-    const updatedStatus = await newBooking.findOneAndUpdate(
-        { bookingId: bookingid },
-        {
-            status: status,
-        },
-        { new: true }
-    )
+    const { bookingid, status, reason, requestId } = req.body;
+    const transition = await transitionBookingStatus({
+        bookingId: bookingid,
+        tenantId: req.user.tenantId._id,
+        actor: req.user,
+        status,
+        reason,
+        requestId,
+    });
+    const updatedStatus = transition.booking;
     // console.log("updated: ", updatedStatus);
 
     if (!updatedStatus) {
@@ -2935,7 +2960,7 @@ const statusBookingcontroller = async (req, res) => {
             }
         });
     }
-    return res.status(200).json({ message: "booking status updated successfully" });
+    return res.status(200).json({ message: transition.changed ? "booking status updated successfully" : "booking status unchanged", changed: transition.changed });
 }
 
 const deleteBarcode = asyncHandler(async (req, res) => {

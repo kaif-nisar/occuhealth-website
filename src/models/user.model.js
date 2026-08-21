@@ -209,6 +209,51 @@ const userSchema = new Schema(
 
     createdAt: { type: Date, default: Date.now },
     phoneNo: Number,
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    normalizedEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
+    normalizedPhoneNumber: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerifiedAt: Date,
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    phoneVerifiedAt: Date,
+    notificationPreferences: {
+      whatsapp: {
+        adminPolicy: {
+          type: String,
+          enum: ["inherit", "enabled", "disabled"],
+          default: "inherit",
+        },
+        userOptIn: { type: Boolean, default: false },
+        optedInAt: Date,
+        optedOutAt: Date,
+        updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+      email: { enabled: { type: Boolean, default: true } },
+      sms: { enabled: { type: Boolean, default: false } },
+    },
+    whatsappOptIn: { type: Boolean, default: false },
+    whatsappOptInAt: Date,
+    emailNotificationEnabled: { type: Boolean, default: true },
+    smsNotificationEnabled: { type: Boolean, default: false },
+    whatsappNotificationEnabled: { type: Boolean, default: false },
     state: {
       type: String,
       trim: true,
@@ -319,6 +364,15 @@ const userSchema = new Schema(
         return !["admin", "superAdmin"].includes(this.role);
       },
       index: true,
+    },
+    layerLevel: {
+      type: Number,
+      min: 1,
+      max: 4,
+    },
+    assignedModel: {
+      type: String,
+      enum: ["1layer", "2layer", "3layer", "4layer"],
     },
 
     pdfFormat: {

@@ -373,6 +373,35 @@ function getSubscriptionSource(currentUser) {
   return currentUser?.tenantId?.subscriptionPlan || currentUser?.subscription || null;
 }
 
+function showVerificationBanner(currentUser) {
+  if (!currentUser || document.getElementById('verificationBanner')) return;
+  const emailVerified = currentUser.emailVerified === true;
+  const phoneVerified = currentUser.phoneVerified === true;
+  if (emailVerified && phoneVerified) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'verificationBanner';
+  banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:200000;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:12px 16px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 32px);';
+  banner.innerHTML = `<strong>Verification pending</strong><span>${emailVerified ? '' : 'Email'}${!emailVerified && !phoneVerified ? ' and ' : ''}${phoneVerified ? '' : 'WhatsApp/mobile'}</span><button type="button" id="verifyEmailNow">Verify Email</button><button type="button" id="verifyPhoneNow">Verify WhatsApp</button><button type="button" id="closeVerificationBanner" aria-label="Close">×</button>`;
+  document.body.appendChild(banner);
+
+  async function verify(channel) {
+    const send = await fetch(`${BASE_URL}/api/v1/user/verification/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ channel }) });
+    const sendResult = await send.json().catch(() => ({}));
+    if (!send.ok) throw new Error(sendResult.message || 'Unable to send OTP');
+    const code = window.prompt(`Enter the ${channel} OTP:`);
+    if (!code) return;
+    const response = await fetch(`${BASE_URL}/api/v1/user/verification/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ channel, code }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.message || 'Verification failed');
+    alert(`${channel} verified successfully`);
+    banner.remove();
+  }
+  document.getElementById('verifyEmailNow')?.addEventListener('click', () => verify('email').catch(error => alert(error.message)));
+  document.getElementById('verifyPhoneNow')?.addEventListener('click', () => verify('phone').catch(error => alert(error.message)));
+  document.getElementById('closeVerificationBanner')?.addEventListener('click', () => banner.remove());
+}
+
 function formatSubscriptionDate(dateValue) {
   if (!dateValue) return "";
 
@@ -474,6 +503,7 @@ async function verifyAccessToken() {
       role = data.user.createdBy.role;
       userRole = data.user.role;
       user = data.user;
+        showVerificationBanner(user);
       document.getElementById('logo').src = user.tenantId.logo;
       console.log("Staff user role:");
       usericon(user);
@@ -487,6 +517,7 @@ async function verifyAccessToken() {
       role = data.user.role;
       userRole = data.user.role;
       user = data.user;
+      showVerificationBanner(user);
       document.getElementById('logo').src = user.tenantId.logo;
       usericon(user);
 
@@ -1007,7 +1038,7 @@ async function checkAuthorization() {
   return true;
 }
 
-async function fetchNotifications() {
+async function fetchNotificationsLegacy() {
   try {
     const response = await fetch(`${BASE_URL}/api/v1/user/getnewnotificationforadmin`);
     const data = await response.json();

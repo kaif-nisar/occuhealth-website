@@ -57,8 +57,8 @@ function toggleAccordion(button) {
             document.getElementById('margin-right').value = data.marginRight || '';
             document.getElementById('margin-left').value = data.marginLeft || '';
             document.getElementById('show-lab').checked = data.labinchargesign || false;
-            document.getElementById('pdf-font-size').value = data.selectedFontSize || 12;
-            document.getElementById('spacing').value = data.RowSpacing || 1;
+            document.getElementById('pdf-font-size').value = data.selectedFontSize ?? 12;
+            document.getElementById('spacing').value = data.RowSpacing ?? 1;
             document.getElementById('high-low-marker').checked = data.HighLow;
             document.getElementById('abnormal-results-red').checked = data.HLinred;
             document.getElementById('abnormal-results-bold').checked = data.BoldRow;
@@ -526,17 +526,51 @@ function toggleAccordion(button) {
         const BoldRow = document.getElementById('abnormal-results-bold').checked;
         const showInvest = document.getElementById('show-investigations').checked;
 
-        localStorage.setItem("printSettings", JSON.stringify({
-            HighLow,
-            HLinred,
-            BoldRow,
-            showInvest
-        }));
+        pageloader.style.display = "flex";
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/user/save-pdf-settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    selectedFontSize: Number(selectedFontSize),
+                    RowSpacing: Number(RowSpacing),
+                    HighLow,
+                    HLinred,
+                    BoldRow,
+                    showInvest,
+                }),
+            });
 
-        autogeneratingpdf({
-            selectedFontSize: selectedFontSize, RowSpacing: RowSpacing,
-            HighLow: HighLow, HLinred: HLinred, BoldRow: BoldRow, showInvest: showInvest
-        }); // Generate the PDF with the uploaded file
+            if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                throw new Error(result.message || 'Failed to save PDF settings');
+            }
+
+            localStorage.setItem("printSettings", JSON.stringify({
+                selectedFontSize: Number(selectedFontSize),
+                RowSpacing: Number(RowSpacing),
+                HighLow,
+                HLinred,
+                BoldRow,
+                showInvest
+            }));
+
+            await autogeneratingpdf({
+                selectedFontSize: Number(selectedFontSize),
+                RowSpacing: Number(RowSpacing),
+                HighLow,
+                HLinred,
+                BoldRow,
+                showInvest
+            });
+        } catch (error) {
+            console.error('Error saving PDF settings:', error);
+            alert(error.message);
+        } finally {
+            pageloader.style.display = "none";
+        }
     });
 
     // Function to validate input field values and update button state

@@ -853,10 +853,12 @@ async function allcases() {
                 openBillModal(booking);
             }
             else if (target.classList.contains("hold-btn")) {
+                const reason = window.prompt("Enter the reason for putting this booking on Hold:");
+                if (!reason || !reason.trim()) return alert("A Hold reason is required.");
                 const confirmation = window.confirm("Are you want to update the status as 'Hold'");
                 if (!confirmation) return;
 
-                await updatebookingStatus(bookingId, "Hold");
+                await updatebookingStatus(bookingId, "Hold", reason);
 
                 if (user.tenantId.modelType !== "1layer") {
                     showPopup(bookingId, createdBy);
@@ -866,10 +868,12 @@ async function allcases() {
                 await fetchBookings(currentPage);
             }
             else if (target.classList.contains("clinical-btn")) {
-                const confirmation = window.confirm("Are you want to update the status as 'clinical'");
+                const reason = window.prompt("Enter the reason for marking this booking Clinical:");
+                if (!reason || !reason.trim()) return alert("A Clinical reason is required.");
+                const confirmation = window.confirm("Are you want to update the status as 'Clinical'");
                 if (!confirmation) return;
 
-                await updatebookingStatus(bookingId, "clinical");
+                await updatebookingStatus(bookingId, "Clinical", reason);
 
                 if (user.tenantId.modelType !== "1layer") {
                     showPopup(bookingId, createdBy);
@@ -879,6 +883,8 @@ async function allcases() {
                 await fetchBookings(currentPage);
             }
             else if (target.classList.contains("cancel-btn")) {
+                const reason = window.prompt("Enter the cancellation reason:");
+                if (!reason || !reason.trim()) return alert("A cancellation reason is required.");
                 const confirmation = window.confirm("Are you sure you want to cancel this booking?");
                 if (!confirmation) return;
 
@@ -892,7 +898,7 @@ async function allcases() {
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ bookingId })
+                        body: JSON.stringify({ bookingId, reason: reason.trim() })
                     });
 
                     if (!response.ok) {
@@ -1000,16 +1006,19 @@ async function allcases() {
         if (overlay) overlay.style.display = "block";
     }
 
-    async function updatebookingStatus(bookingid, status) {
+    async function updatebookingStatus(bookingid, status, reason) {
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/statusBookingcontroller`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ bookingid, status }),
+                body: JSON.stringify({ bookingid, status, reason }),
             });
             if (!response.ok) {
-                console.log("status not updated");
+                const result = await response.json().catch(() => ({}));
+                alert(result.message || "Booking status was not updated.");
+                return false;
             }
+            return true;
         } catch (error) {
             console.log(error)
         }

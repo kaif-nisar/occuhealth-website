@@ -105,6 +105,18 @@ const TestBookingSchema = new Schema({
         type: String,
         default: 'On Hold'
     },
+    statusHistory: [{
+        previousStatus: { type: String, required: true },
+        newStatus: { type: String, required: true },
+        reason: { type: String, required: true, trim: true },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        changedByRole: { type: String },
+        changedAt: { type: Date, default: Date.now },
+        requestId: { type: String },
+    }],
+    cancelledAt: Date,
+    cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    cancellationReason: { type: String, trim: true },
     isreportready: {
         type: Boolean,
         default: false
