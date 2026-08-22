@@ -102,6 +102,7 @@ import {
   moneySendToSuperFranchisee,
   amountUpdate,
   getMyFranchisees,
+  toggleFranchiseeStatus,
   fetchAllFranchisee,
   fetchFranchiseeChain,
   setOverdraft,
@@ -408,6 +409,7 @@ router.route("/login-admin").post(loginUser);
 router.route("/franchisee-create").post(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), superFranchiseeCreate);
 
 router.route("/get-super-franchisee").get(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), getMyFranchisees);
+router.route("/toggle-franchisee-status/:franchiseeId").put(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), toggleFranchiseeStatus);
 // // single franchisee data
 router.route('/franchisee-data').get(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), franchisee)
 // // secured routes

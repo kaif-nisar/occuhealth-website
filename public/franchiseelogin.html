@@ -1163,7 +1163,7 @@
                 const data = await response.json();
 
                 if (response.status === 403) {
-                    errorDiv.innerText = "Your account is inactive. Please contact support.";
+                    errorDiv.innerText = data.message || "आपका पोर्टल लॉक हो चुका है, एडमिन से संपर्क करें।";
                     errorDiv.classList.add('show');
                     return;
                 }

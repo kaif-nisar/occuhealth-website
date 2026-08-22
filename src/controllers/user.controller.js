@@ -112,6 +112,16 @@ const loginUser = asyncHandler(async (req, res) => {
       message: "Invalid credentials",
     });
   }
+
+  // 🛑 CRITICAL: Block login if franchisee account is locked/inactive by admin
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      message: "आपका पोर्टल लॉक हो चुका है, एडमिन से संपर्क करें।",
+      accountLocked: true,
+    });
+  }
+
   // ✅ CRITICAL: Check subscription but allow login for renewal
   let subscriptionStatus = "active";
 
@@ -539,6 +549,60 @@ const getMyFranchisees = asyncHandler(async (req, res) => {
       )
     );
   // return res.status(200).json(new ApiResponse(200, franchisees, "Franchisees retrieved successfully"));
+});
+
+// Toggle franchisee active/inactive status (Lock/Unlock)
+const toggleFranchiseeStatus = asyncHandler(async (req, res) => {
+  const { franchiseeId } = req.params;
+  const { isActive } = req.body;
+
+  if (!franchiseeId) {
+    return res.status(400).json({
+      success: false,
+      message: "Franchisee ID is required"
+    });
+  }
+
+  // Find the franchisee
+  const franchisee = await User.findById(franchiseeId);
+  if (!franchisee) {
+    return res.status(404).json({
+      success: false,
+      message: "Franchisee not found"
+    });
+  }
+
+  // 🛑 CRITICAL: Enforce tenant isolation - target must belong to same tenant
+  assertSameTenant(req.user, franchisee);
+
+  // Determine new status (toggle if not provided)
+  const newStatus = typeof isActive === 'boolean' ? isActive : !franchisee.isActive;
+
+  // Update the franchisee status
+  franchisee.isActive = newStatus;
+  await franchisee.save({ validateBeforeSave: false });
+
+  // Log activity
+  await franchisee.logActivity(
+    "user_management",
+    {
+      action: newStatus ? "unlocked" : "locked",
+      performedBy: req.user._id,
+      performedByName: req.user.fullName,
+      timestamp: new Date()
+    },
+    { model: "franchisee", id: franchisee._id }
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: newStatus ? "Franchisee unlocked successfully" : "Franchisee locked successfully",
+    data: {
+      _id: franchisee._id,
+      isActive: franchisee.isActive,
+      fullName: franchisee.fullName
+    }
+  });
 });
 
 // Utility function to generate transaction number
@@ -1971,6 +2035,7 @@ export {
   moneySendToSuperFranchisee,
   amountUpdate,
   getMyFranchisees,
+  toggleFranchiseeStatus,
   fetchAllFranchisee,
   fetchFranchiseeChain,
   moneyDebitFromSuperFranchisee,
