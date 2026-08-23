@@ -283,9 +283,14 @@ const getReportController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    const printSettings = (await customization.findOne({ reportId: Report._id }).lean()) ||
-        (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
-        {};
+    const [reportCustomization, tenantDefaults] = await Promise.all([
+        customization.findOne({ reportId: Report._id, tenantId }).lean(),
+        defaultpdfsetting.findOne({ tenantId }).lean(),
+    ]);
+    const printSettings = {
+        ...(reportCustomization || {}),
+        ...(tenantDefaults || {}),
+    };
 
     const responsePayload = Report.toObject();
     responsePayload.pdfFormat = user?.pdfFormat || "";
@@ -325,9 +330,14 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    const printSettings = (await customization.findOne({ reportId: Report._id }).lean()) ||
-        (await defaultpdfsetting.findOne({ tenantId }).lean()) ||
-        {};
+    const [reportCustomization, tenantDefaults] = await Promise.all([
+        customization.findOne({ reportId: Report._id, tenantId }).lean(),
+        defaultpdfsetting.findOne({ tenantId }).lean(),
+    ]);
+    const printSettings = {
+        ...(reportCustomization || {}),
+        ...(tenantDefaults || {}),
+    };
 
     const responsePayload = Report.toObject();
     responsePayload.pdfFormat = user?.pdfFormat || "";

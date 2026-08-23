@@ -1212,21 +1212,9 @@ const getpdfcontroller = async (req, res) => {
             customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
         });
 
-        const defaultpdfsetting = await saveOrUpdatePdfSetting({
-            tenantId: tid,
-            createdBy: userId,
-            headermargin,
-            footermargin,
-            marginRight,
-            marginLeft,
-            investigationmargin,
-            showInvest,
-            BoldRow,
-            HLinred,
-            HighLow,
-            RowSpacing,
-            selectedFontSize,
-        })
+        // PDF generation must not create a settings row. A missing row should
+        // remain distinguishable from a row containing saved tenant settings.
+        const defaultSettings = await defaultpdfsetting.findOne({ tenantId: tid }).lean();
 
         let mergedValues;
 
@@ -1235,12 +1223,12 @@ const getpdfcontroller = async (req, res) => {
             mergedValues = {
                 pdfformat: pdfformat,
                 tenantId: pdfContext.resolvedTenantId || tid, // ✅ Added tenantId
-                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
-                BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
-                HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
-                selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                showInvest: defaultSettings?.showInvest ?? gettingcustomization?.showInvest ?? true,
+                BoldRow: defaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
+                HLinred: defaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
+                HighLow: defaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
+                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
@@ -1248,11 +1236,11 @@ const getpdfcontroller = async (req, res) => {
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: "",
-                headermargin: defaultpdfsetting?.headermargin || gettingcustomization?.headermargin || "2.8",
-                footermargin: defaultpdfsetting?.footermargin || gettingcustomization?.footermargin || "1",
-                marginRight: defaultpdfsetting?.marginRight || gettingcustomization?.marginRight || "0",
-                marginLeft: defaultpdfsetting?.marginLeft || gettingcustomization?.marginLeft || "0",
-                investigationmargin: defaultpdfsetting?.investigationmargin || gettingcustomization?.investigationmargin || 40,
+                headermargin: defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
+                footermargin: defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1",
+                marginRight: defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0",
+                marginLeft: defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                investigationmargin: defaultSettings?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
                 showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
@@ -1271,12 +1259,12 @@ const getpdfcontroller = async (req, res) => {
             mergedValues = {
                 pdfformat: pdfformat,
                 tenantId: pdfContext.resolvedTenantId || tid, // ✅ Added tenantId
-                showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true, // Updated logic
-                BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true, // Updated logic     
-                HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
-                selectedFontSize: defaultpdfsetting.selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                showInvest: defaultSettings?.showInvest ?? gettingcustomization?.showInvest ?? true,
+                BoldRow: defaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
+                HLinred: defaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
+                HighLow: defaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
+                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Request > Database > Default
@@ -1284,11 +1272,11 @@ const getpdfcontroller = async (req, res) => {
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
-                headermargin: defaultpdfsetting?.headermargin || gettingcustomization?.headermargin || "2.8",
-                footermargin: defaultpdfsetting?.footermargin || gettingcustomization?.footermargin || "1",
-                marginRight: defaultpdfsetting?.marginRight || gettingcustomization?.marginRight || "0",
-                marginLeft: defaultpdfsetting?.marginLeft || gettingcustomization?.marginLeft || "0",
-                investigationmargin: defaultpdfsetting?.investigationmargin || gettingcustomization?.investigationmargin || 40,
+                headermargin: defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
+                footermargin: defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1",
+                marginRight: defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0",
+                marginLeft: defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                investigationmargin: defaultSettings?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
                 showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
@@ -1421,40 +1409,29 @@ const mergePdfsController = async (req, res) => {
         for (let reportId of reportIds) {
             try {
                 // Fetch customization for this report
-                const gettingcustomization = await customization.findOne({ reportId });
-
                 const tid = req.user.tenantId._id;
-                let userId;
-                if (req.user.role === 'staff') {
-                    userId = req.user.parentUser;
-                } else {
-                    userId = req.user._id;
-                }
-
-                const defaultpdfsetting = await saveOrUpdatePdfSetting({
-                    tenantId: tid,
-                    createdBy: userId,
-                });
+                const gettingcustomization = await customization.findOne({ reportId, tenantId: tid });
+                const tenantDefaultSettings = await defaultpdfsetting.findOne({ tenantId: tid }).lean();
 
                 // Prepare merged values
                 const mergedValues = {
-                    showInvest: defaultpdfsetting?.showInvest ?? gettingcustomization?.showInvest ?? true,
-                    BoldRow: defaultpdfsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
-                    HLinred: defaultpdfsetting?.HLinred ?? gettingcustomization?.HLinred ?? false,
-                    HighLow: defaultpdfsetting?.HighLow ?? gettingcustomization?.HighLow ?? false,
-                    RowSpacing: defaultpdfsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
-                    selectedFontSize: defaultpdfsetting?.selectedFontSize || gettingcustomization?.selectedFontSize || 12,
+                    showInvest: tenantDefaultSettings?.showInvest ?? gettingcustomization?.showInvest ?? true,
+                    BoldRow: tenantDefaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
+                    HLinred: tenantDefaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
+                    HighLow: tenantDefaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
+                    RowSpacing: tenantDefaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
+                    selectedFontSize: tenantDefaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
                     reportId: reportId,
                     htmlContent: gettingcustomization?.htmlContent || "",
                     cssContent: gettingcustomization?.cssContent || "",
                     header: gettingcustomization?.header || "",
                     footer: gettingcustomization?.footer || "",
                     backgroundImageUrl: checkBox ? "" : (gettingcustomization?.backgroundImageUrl || ""),
-                    headermargin: defaultpdfsetting?.headermargin || gettingcustomization?.headermargin || "2.8",
-                    footermargin: defaultpdfsetting?.footermargin || gettingcustomization?.footermargin || "1",
-                    marginRight: defaultpdfsetting?.marginRight || gettingcustomization?.marginRight || "0",
-                    marginLeft: defaultpdfsetting?.marginLeft || gettingcustomization?.marginLeft || "0",
-                    investigationmargin: defaultpdfsetting?.investigationmargin || gettingcustomization?.investigationmargin || 40,
+                    headermargin: tenantDefaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
+                    footermargin: tenantDefaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1",
+                    marginRight: tenantDefaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0",
+                    marginLeft: tenantDefaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                    investigationmargin: tenantDefaultSettings?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
                     showlab: gettingcustomization?.showlab ?? false,
                     showdoctorfirst: gettingcustomization?.showdoctorfirst ?? true,
                     showdoctorsecond: gettingcustomization?.showdoctorsecond ?? true,
@@ -1747,23 +1724,23 @@ const getpdfcontrolleruser = async (req, res) => {
                 layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: showInvest ?? defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
-                BoldRow: BoldRow ?? defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
-                HLinred: HLinred ?? defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: HighLow ?? defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || defaultsetting?.RowSpacing || gettingcustomization?.RowSpacing || 7,
-                selectedFontSize: selectedFontSize || defaultsetting?.selectedFontSize || gettingcustomization?.selectedFontSize || 12,
+                showInvest: defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false,
+                BoldRow: defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false,
+                HLinred: defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false,
+                HighLow: defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false,
+                RowSpacing: defaultsetting?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
+                selectedFontSize: defaultsetting?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: "",
-                headermargin: headermargin || gettingcustomization?.headermargin || "2.8",
-                footermargin: footermargin || gettingcustomization?.footermargin || "1",
-                marginRight: marginRight || gettingcustomization?.marginRight || "0",
-                marginLeft: marginLeft || gettingcustomization?.marginLeft || "0",
-                investigationmargin: investigationmargin || gettingcustomization?.investigationmargin || 40,
+                headermargin: defaultsetting?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
+                footermargin: defaultsetting?.footermargin ?? gettingcustomization?.footermargin ?? "1",
+                marginRight: defaultsetting?.marginRight ?? gettingcustomization?.marginRight ?? "0",
+                marginLeft: defaultsetting?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                investigationmargin: defaultsetting?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
                 showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
@@ -1783,23 +1760,23 @@ const getpdfcontrolleruser = async (req, res) => {
                 layerone: layerOne || (userLayerOne ? "1layer" : ""),
                 tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: showInvest ?? defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false, // Updated logic     
-                BoldRow: BoldRow ?? defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
-                HLinred: HLinred ?? defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
-                HighLow: HighLow ?? defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || defaultsetting?.RowSpacing || gettingcustomization?.RowSpacing || 8,
-                selectedFontSize: selectedFontSize || defaultsetting?.selectedFontSize || gettingcustomization?.selectedFontSize || 12,
+                showInvest: defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? showInvest ?? false,
+                BoldRow: defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? BoldRow ?? false,
+                HLinred: defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? HLinred ?? false,
+                HighLow: defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? HighLow ?? false,
+                RowSpacing: defaultsetting?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
+                selectedFontSize: defaultsetting?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
-                headermargin: headermargin || gettingcustomization?.headermargin || "2.8",
-                footermargin: footermargin || gettingcustomization?.footermargin || "1",
-                marginRight: marginRight || gettingcustomization?.marginRight || "0",
-                marginLeft: marginLeft || gettingcustomization?.marginLeft || "0",
-                investigationmargin: investigationmargin || gettingcustomization?.investigationmargin || 40,
+                headermargin: defaultsetting?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
+                footermargin: defaultsetting?.footermargin ?? gettingcustomization?.footermargin ?? "1",
+                marginRight: defaultsetting?.marginRight ?? gettingcustomization?.marginRight ?? "0",
+                marginLeft: defaultsetting?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                investigationmargin: defaultsetting?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
                 showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
@@ -1884,13 +1861,18 @@ const savingPdfDatacontroller = async (req, res) => {
         }
     );
 
-    await saveOrUpdatePdfSetting({
-        tenantId,
-        createdBy: userId,
-        headermargin,
-        footermargin,
-        investigationmargin,
-    })
+    const hasDefaultSettingValues = [headermargin, footermargin, investigationmargin]
+        .some((value) => value !== undefined && value !== null && value !== "");
+
+    if (hasDefaultSettingValues) {
+        await saveOrUpdatePdfSetting({
+            tenantId,
+            createdBy: userId,
+            headermargin,
+            footermargin,
+            investigationmargin,
+        });
+    }
 
     return res.status(200).json(getcustomization)
 }
@@ -1938,7 +1920,7 @@ const getCustomizationByReportId = async (req, res) => {
         const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
 
         // Find the document by reportId
-        const customizationData = await customization.findOne({ reportId: reportId });
+        const customizationData = await customization.findOne({ reportId: reportId, tenantId });
 
         // Also fetch the tenant-level default settings as a fallback.
         // The general settings (font size, spacing, checkboxes, margins) are saved
