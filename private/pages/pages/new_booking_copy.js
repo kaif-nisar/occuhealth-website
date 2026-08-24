@@ -381,9 +381,16 @@ async function bookingload() {
             // Add event listener to the Add Doctor button
             addDoctorBtn.addEventListener('click', function () {
                 // Gather form data
+                const firstname = document.getElementById('firstname').value.trim();
+                const lastname = document.getElementById('lastname').value.trim();
+                if (!firstname || !lastname) {
+                    alert('First name and last name are required.');
+                    return;
+                }
+
                 const doctorData = {
-                    firstname: document.getElementById('firstname').value,
-                    lastname: document.getElementById('lastname').value,
+                    firstname,
+                    lastname,
                     specialization: document.getElementById('specialization').value,
                     dob: document.getElementById('dob').value,
                     gender: document.getElementById('gender').value,

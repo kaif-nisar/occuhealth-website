@@ -11,7 +11,8 @@ const doctorSchema = new Schema({
     },
     specialization: {
         type: String,
-        required: true
+        required: false,
+        default: ""
     },
     DOB: {
         type: Date,
@@ -19,7 +20,7 @@ const doctorSchema = new Schema({
     gender: {
         type: String,
         enum: ["male", "female", "other"],
-        required: true
+        required: false
     },
     remarks: {
         type: String,

@@ -1183,32 +1183,82 @@
         });
     }
 
-    // Function to Print a Specific Area
+    // Open a print-only document using the same markup and stylesheet as the report.
     document.getElementById('BrowserPrint').addEventListener('click', function () {
-        // Select the area to print
-        const printArea = document.getElementById('container').innerHTML;
-        const cssContent = document.getElementById('stying').innerHTML;
-        // Create a new window for printing
+        const reportMarkup = document.getElementById('container').outerHTML;
+        const footerMarkup = document.querySelector('.signed-off-div').outerHTML;
+        const reportStyles = document.getElementById('stying').textContent;
         const printWindow = window.open('', '_blank');
+
+        if (!printWindow) {
+            alert('Please allow pop-ups to print the report.');
+            return;
+        }
+
         printWindow.document.open();
         printWindow.document.write(`
+            <!doctype html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <title>Print Report</title>
                 <style>
-                    ${styling}
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .container { width: 100%; }
-                    .header { text-align: center; }
-                    .barcode-div { margin-top: 20px; text-align: center; }
+                    ${reportStyles}
+                    @page { margin: 0; }
+                    html, body {
+                        width: 100%;
+                        margin: 0;
+                        padding: 0;
+                        overflow-x: hidden;
+                    }
+                    body { background: #fff; }
+                    .container-format1 {
+                        width: 100% !important;
+                        box-sizing: border-box;
+                        padding: 0 !important;
+                        box-shadow: none;
+                        margin: 0 auto;
+                        overflow: visible;
+                    }
+                    .container22 {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        box-sizing: border-box;
+                        padding: 0 12px !important;
+                        margin: 0 auto;
+                    }
+                    .report-details,
+                    .container2,
+                    .table-div,
+                    .signed-off-div {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        box-sizing: border-box;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
+                    }
+                    .report-details-innerDiv2 {
+                        width: 100% !important;
+                        box-sizing: border-box;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
+                    }
+                    table { width: 100% !important; }
+                    .download-pdf-div, #modal, #popupModal { display: none !important; }
                 </style>
             </head>
-            <body onload="window.print(); window.close();">
-                ${printArea}
+            <body>
+                ${reportMarkup}
+                ${footerMarkup}
             </body>
             </html>
         `);
         printWindow.document.close();
+
+        printWindow.addEventListener('load', () => {
+            printWindow.print();
+            printWindow.close();
+        }, { once: true });
     });
 
 

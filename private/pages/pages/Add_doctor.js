@@ -1,10 +1,17 @@
 document.querySelector(".submit-btn button").addEventListener("click", async (e) => {
     e.preventDefault(); // Prevent default form submission
 
+    const firstname = document.getElementById("firstname").value.trim();
+    const lastname = document.getElementById("lastname").value.trim();
+    if (!firstname || !lastname) {
+        alert("First name and last name are required.");
+        return;
+    }
+
     // Collect form data
     const doctorData = {
-        firstname: document.getElementById("firstname").value,
-        lastname: document.getElementById("lastname").value,
+        firstname,
+        lastname,
         dob: document.getElementById("dob").value,
         gender: document.getElementById("gender").value,
         specialization: document.getElementById("specialization").value,

@@ -5,8 +5,8 @@ import { doctors } from "../models/doctor.model.js";
 import { User } from "../models/user.model.js";
 const addDoctorsController = asyncHandler(async (req, res) => {
   const { firstname, lastname, specialization, dob, gender, address, remarks } = req.body;
-  if (!(firstname && lastname && specialization && dob && gender)) {
-    throw new ApiError(500, "all fields are required");
+  if (!(firstname && lastname)) {
+    throw new ApiError(400, "first name and last name are required");
   }
 
   let userId;
