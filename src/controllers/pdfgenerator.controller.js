@@ -1724,6 +1724,15 @@ const getpdfcontrolleruser = async (req, res) => {
         fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId } = req.body;
 
     try {
+        const resolvePdfValue = (...values) => {
+            for (const value of values) {
+                if (value === undefined || value === null) continue;
+                if (typeof value === 'string' && value.trim() === '') continue;
+                return value;
+            }
+            return undefined;
+        };
+
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId });
         const gettingcustomization = await customization.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id, bookingId: pdfContext.resolvedBookingId });
@@ -1740,74 +1749,72 @@ const getpdfcontrolleruser = async (req, res) => {
         let mergedValues;
 
         if (checkBox || DownloadPdf) {
-            // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfformat: pdfFormat || userPdfFormat || gettingcustomization?.format || "",
-                layerone: layerOne || (userLayerOne ? "1layer" : ""),
-                tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
-                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? false,
-                BoldRow: defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? false,
-                HLinred: defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? false,
-                HighLow: defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? false,
-                RowSpacing: defaultsetting?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
-                selectedFontSize: defaultsetting?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
+                pdfformat: resolvePdfValue(pdfFormat, userPdfFormat, gettingcustomization?.format, defaultsetting?.format, "") || "",
+                layerone: resolvePdfValue(layerOne, userLayerOne ? "1layer" : "", gettingcustomization?.layerone, defaultsetting?.layerone, "") || "",
+                tenantId: resolvePdfValue(pdfContext.resolvedTenantId, gettingcustomization?.tenantId, defaultsetting?.tenantId, "") || "",
+                bookingId: resolvePdfValue(pdfContext.resolvedBookingId, gettingcustomization?.bookingId, defaultsetting?.bookingId, "") || "",
+                showInvest: resolvePdfValue(showInvest, gettingcustomization?.showInvest, defaultsetting?.showInvest, false),
+                BoldRow: resolvePdfValue(BoldRow, gettingcustomization?.BoldRow, defaultsetting?.BoldRow, false),
+                HLinred: resolvePdfValue(HLinred, gettingcustomization?.HLinred, defaultsetting?.HLinred, false),
+                HighLow: resolvePdfValue(HighLow, gettingcustomization?.HighLow, defaultsetting?.HighLow, false),
+                RowSpacing: resolvePdfValue(RowSpacing, gettingcustomization?.RowSpacing, defaultsetting?.RowSpacing, 7),
+                selectedFontSize: resolvePdfValue(selectedFontSize, gettingcustomization?.selectedFontSize, defaultsetting?.selectedFontSize, 12),
                 reportId: pdfContext.resolvedReportId,
-                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
-                cssContent: cssContent || gettingcustomization?.cssContent || "",
-                header: header || gettingcustomization?.header || "",
-                footer: footer || gettingcustomization?.footer || "",
+                htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
+                cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",
+                header: resolvePdfValue(header, gettingcustomization?.header, defaultsetting?.header, "") || "",
+                footer: resolvePdfValue(footer, gettingcustomization?.footer, defaultsetting?.footer, "") || "",
                 backgroundImageUrl: "",
-                headermargin: defaultsetting?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
-                footermargin: defaultsetting?.footermargin ?? gettingcustomization?.footermargin ?? "1",
-                marginRight: defaultsetting?.marginRight ?? gettingcustomization?.marginRight ?? "0",
-                marginLeft: defaultsetting?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
-                investigationmargin: defaultsetting?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
-                showlab: showlab ?? gettingcustomization?.showlab ?? false,
-                showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
-                showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
-                fileInputLab: fileInputLab || gettingcustomization?.fileInputLab || "",
-                fileInputDoctorleft: fileInputDoctorleft || gettingcustomization?.fileInputDoctorleft || "",
-                fileInputDoctorright: fileInputDoctorright || gettingcustomization?.fileInputDoctorright || "",
-                fileInputLabtext: fileInputLabtext || gettingcustomization?.fileInputLabtext || "",
-                fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
-                fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
+                headermargin: resolvePdfValue(headermargin, gettingcustomization?.headermargin, defaultsetting?.headermargin, "2.8") || "2.8",
+                footermargin: resolvePdfValue(footermargin, gettingcustomization?.footermargin, defaultsetting?.footermargin, "1") || "1",
+                marginRight: resolvePdfValue(marginRight, gettingcustomization?.marginRight, defaultsetting?.marginRight, "0") || "0",
+                marginLeft: resolvePdfValue(marginLeft, gettingcustomization?.marginLeft, defaultsetting?.marginLeft, "0") || "0",
+                investigationmargin: resolvePdfValue(investigationmargin, gettingcustomization?.investigationmargin, defaultsetting?.investigationmargin, 40),
+                showlab: resolvePdfValue(showlab, gettingcustomization?.showlab, defaultsetting?.showlab, false),
+                showdoctorfirst: resolvePdfValue(showdoctorfirst, gettingcustomization?.showdoctorfirst, defaultsetting?.showdoctorfirst, true),
+                showdoctorsecond: resolvePdfValue(showdoctorsecond, gettingcustomization?.showdoctorsecond, defaultsetting?.showdoctorsecond, true),
+                fileInputLab: resolvePdfValue(fileInputLab, gettingcustomization?.fileInputLab, defaultsetting?.fileInputLab, "") || "",
+                fileInputDoctorleft: resolvePdfValue(fileInputDoctorleft, gettingcustomization?.fileInputDoctorleft, defaultsetting?.fileInputDoctorleft, "") || "",
+                fileInputDoctorright: resolvePdfValue(fileInputDoctorright, gettingcustomization?.fileInputDoctorright, defaultsetting?.fileInputDoctorright, "") || "",
+                fileInputLabtext: resolvePdfValue(fileInputLabtext, gettingcustomization?.fileInputLabtext, defaultsetting?.fileInputLabtext, "") || "",
+                fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
+                fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
         } else {
-            // Define fallback logic to prioritize database values first
             mergedValues = {
-                pdfformat: pdfFormat || userPdfFormat || gettingcustomization?.format || "",
-                layerone: layerOne || (userLayerOne ? "1layer" : ""),
-                tenantId: pdfContext.resolvedTenantId || gettingcustomization?.tenantId || "",
-                bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                showInvest: defaultsetting?.showInvest ?? gettingcustomization?.showInvest ?? showInvest ?? false,
-                BoldRow: defaultsetting?.BoldRow ?? gettingcustomization?.BoldRow ?? BoldRow ?? false,
-                HLinred: defaultsetting?.HLinred ?? gettingcustomization?.HLinred ?? HLinred ?? false,
-                HighLow: defaultsetting?.HighLow ?? gettingcustomization?.HighLow ?? HighLow ?? false,
-                RowSpacing: defaultsetting?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
-                selectedFontSize: defaultsetting?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
+                pdfformat: resolvePdfValue(pdfFormat, userPdfFormat, gettingcustomization?.format, defaultsetting?.format, "") || "",
+                layerone: resolvePdfValue(layerOne, userLayerOne ? "1layer" : "", gettingcustomization?.layerone, defaultsetting?.layerone, "") || "",
+                tenantId: resolvePdfValue(pdfContext.resolvedTenantId, gettingcustomization?.tenantId, defaultsetting?.tenantId, "") || "",
+                bookingId: resolvePdfValue(pdfContext.resolvedBookingId, gettingcustomization?.bookingId, defaultsetting?.bookingId, "") || "",
+                showInvest: resolvePdfValue(showInvest, gettingcustomization?.showInvest, defaultsetting?.showInvest, false),
+                BoldRow: resolvePdfValue(BoldRow, gettingcustomization?.BoldRow, defaultsetting?.BoldRow, false),
+                HLinred: resolvePdfValue(HLinred, gettingcustomization?.HLinred, defaultsetting?.HLinred, false),
+                HighLow: resolvePdfValue(HighLow, gettingcustomization?.HighLow, defaultsetting?.HighLow, false),
+                RowSpacing: resolvePdfValue(RowSpacing, gettingcustomization?.RowSpacing, defaultsetting?.RowSpacing, 7),
+                selectedFontSize: resolvePdfValue(selectedFontSize, gettingcustomization?.selectedFontSize, defaultsetting?.selectedFontSize, 12),
                 reportId: pdfContext.resolvedReportId,
-                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
-                cssContent: cssContent || gettingcustomization?.cssContent || "",
-                header: header || gettingcustomization?.header || "",
-                footer: footer || gettingcustomization?.footer || "",
+                htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
+                cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",
+                header: resolvePdfValue(header, gettingcustomization?.header, defaultsetting?.header, "") || "",
+                footer: resolvePdfValue(footer, gettingcustomization?.footer, defaultsetting?.footer, "") || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
-                headermargin: defaultsetting?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
-                footermargin: defaultsetting?.footermargin ?? gettingcustomization?.footermargin ?? "1",
-                marginRight: defaultsetting?.marginRight ?? gettingcustomization?.marginRight ?? "0",
-                marginLeft: defaultsetting?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
-                investigationmargin: defaultsetting?.investigationmargin ?? gettingcustomization?.investigationmargin ?? 40,
-                showlab: showlab ?? gettingcustomization?.showlab ?? false,
-                showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
-                showdoctorsecond: showdoctorsecond ?? gettingcustomization?.showdoctorsecond ?? true,
-                fileInputLab: fileInputLab || gettingcustomization?.fileInputLab || "",
-                fileInputDoctorleft: fileInputDoctorleft || gettingcustomization?.fileInputDoctorleft || "",
-                fileInputDoctorright: fileInputDoctorright || gettingcustomization?.fileInputDoctorright || "",
-                fileInputLabtext: fileInputLabtext || gettingcustomization?.fileInputLabtext || "",
-                fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
-                fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
+                headermargin: resolvePdfValue(headermargin, gettingcustomization?.headermargin, defaultsetting?.headermargin, "2.8") || "2.8",
+                footermargin: resolvePdfValue(footermargin, gettingcustomization?.footermargin, defaultsetting?.footermargin, "1") || "1",
+                marginRight: resolvePdfValue(marginRight, gettingcustomization?.marginRight, defaultsetting?.marginRight, "0") || "0",
+                marginLeft: resolvePdfValue(marginLeft, gettingcustomization?.marginLeft, defaultsetting?.marginLeft, "0") || "0",
+                investigationmargin: resolvePdfValue(investigationmargin, gettingcustomization?.investigationmargin, defaultsetting?.investigationmargin, 40),
+                showlab: resolvePdfValue(showlab, gettingcustomization?.showlab, defaultsetting?.showlab, false),
+                showdoctorfirst: resolvePdfValue(showdoctorfirst, gettingcustomization?.showdoctorfirst, defaultsetting?.showdoctorfirst, true),
+                showdoctorsecond: resolvePdfValue(showdoctorsecond, gettingcustomization?.showdoctorsecond, defaultsetting?.showdoctorsecond, true),
+                fileInputLab: resolvePdfValue(fileInputLab, gettingcustomization?.fileInputLab, defaultsetting?.fileInputLab, "") || "",
+                fileInputDoctorleft: resolvePdfValue(fileInputDoctorleft, gettingcustomization?.fileInputDoctorleft, defaultsetting?.fileInputDoctorleft, "") || "",
+                fileInputDoctorright: resolvePdfValue(fileInputDoctorright, gettingcustomization?.fileInputDoctorright, defaultsetting?.fileInputDoctorright, "") || "",
+                fileInputLabtext: resolvePdfValue(fileInputLabtext, gettingcustomization?.fileInputLabtext, defaultsetting?.fileInputLabtext, "") || "",
+                fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
+                fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
