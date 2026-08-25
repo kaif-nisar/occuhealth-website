@@ -50,11 +50,11 @@ const customizationSchema = new mongoose.Schema(
     },
     RowSpacing: {
       type: Number,
-      default: 7,
+      default: 3,
     },
     selectedFontSize: {
       type: Number,
-      default: 12,
+      default: 10,
     },
   },
   {

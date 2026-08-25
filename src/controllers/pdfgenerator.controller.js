@@ -1249,8 +1249,8 @@ const getpdfcontroller = async (req, res) => {
                 BoldRow: defaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
                 HLinred: defaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
                 HighLow: defaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
-                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
-                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
+                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 3,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
@@ -1285,8 +1285,8 @@ const getpdfcontroller = async (req, res) => {
                 BoldRow: defaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
                 HLinred: defaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
                 HighLow: defaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
-                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
-                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
+                RowSpacing: defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 3,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Request > Database > Default
