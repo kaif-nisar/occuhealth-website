@@ -777,35 +777,46 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
-                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
-                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-                                -webkit-font-smoothing: antialiased;
-                                -moz-osx-font-smoothing: grayscale;
-                                text-rendering: optimizeLegibility;
-                            }
+                           @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                           *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                               font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                               -webkit-font-smoothing: antialiased;
+                               -moz-osx-font-smoothing: grayscale;
+                               text-rendering: optimizeLegibility;
+                           }
                          *{
-                                margin: 0px;
-                                padding: 0px;
-                                box-sizing: border-box;
-                            }
-                            ${cssContent}
-                            .pdf-footer-div {
-                            width: 92%; 
-                            display: flex;
-                            justify-content: center;
-                            font-size: 12px; 
-                            font-weight: 450; 
-                            text-align: center; 
-                            margin: 0px auto;
-                            margin-bottom: ${footermarginPx}px;
-                            }
+                               margin: 0px;
+                               padding: 0px;
+                               box-sizing: border-box;
+                           }
+                           ${cssContent}
+                           .pdf-footer-div {
+                           width: 92%; 
+                           display: flex;
+                           justify-content: center;
+                           font-size: 12px; 
+                           font-weight: 450; 
+                           text-align: center; 
+                           margin: 0px auto;
+                           margin-bottom: ${footermarginPx}px;
+                           }
+                           .pdf-page-count {
+                               position: fixed;
+                               right: 14px;
+                               bottom: 6px;
+                               font-size: 10px;
+                               color: #333;
+                               white-space: nowrap;
+                               line-height: 1.2;
+                               pointer-events: none;
+                           }
                         </style>
                     </head>
                     <body>
                 <div class="pdf-footer-div">
                     ${footer}
                 </div>
+                <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
                 margin: { top: `${headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
@@ -1057,35 +1068,46 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 <html>
                     <head>
                         <style>
-                            @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-                            *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
-                                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-                                -webkit-font-smoothing: antialiased;
-                                -moz-osx-font-smoothing: grayscale;
-                                text-rendering: optimizeLegibility;
-                            }
+                           @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+                           *, *::before, *::after, html, body, table, tr, th, td, div, span, input, button, textarea, select, p, h1, h2, h3, h4, h5, h6 {
+                               font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+                               -webkit-font-smoothing: antialiased;
+                               -moz-osx-font-smoothing: grayscale;
+                               text-rendering: optimizeLegibility;
+                           }
                          *{
-                                margin: 0px;
-                                padding: 0px;
-                                box-sizing: border-box;
-                            }
-                            ${cssContent}
-                            .pdf-footer-div {
-                            width: 92%; 
-                            display: flex;
-                            justify-content: center;
-                            font-size: 12px; 
-                            font-weight: 450; 
-                            text-align: center; 
-                            margin: 0px auto;
-                            margin-bottom: ${footermarginPx}px;
-                            }
+                               margin: 0px;
+                               padding: 0px;
+                               box-sizing: border-box;
+                           }
+                           ${cssContent}
+                           .pdf-footer-div {
+                           width: 92%; 
+                           display: flex;
+                           justify-content: center;
+                           font-size: 12px; 
+                           font-weight: 450; 
+                           text-align: center; 
+                           margin: 0px auto;
+                           margin-bottom: ${footermarginPx}px;
+                           }
+                           .pdf-page-count {
+                               position: fixed;
+                               right: 14px;
+                               bottom: 6px;
+                               font-size: 10px;
+                               color: #333;
+                               white-space: nowrap;
+                               line-height: 1.2;
+                               pointer-events: none;
+                           }
                         </style>
                     </head>
                     <body>
                 <div class="pdf-footer-div">
                     ${footer}
                 </div>
+                <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
                 margin: { top: `${headermarginPx + investigationmargin - 40}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
