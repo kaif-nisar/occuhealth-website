@@ -688,7 +688,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                             font-size: ${selectedFontSize}px !important;
                         }
                         .test-name, .test-name * {
-                            font-size: ${(parseFloat(selectedFontSize) || 12) + 4}px !important;
+                            font-size: ${Number(selectedFontSize) + 4}px !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -981,7 +981,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                             font-size: ${selectedFontSize}px !important;
                         }
                         .test-name, .test-name * {
-                            font-size: ${(parseFloat(selectedFontSize) || 12) + 4}px !important;
+                            font-size: ${Number(selectedFontSize) + 4}px !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -1441,8 +1441,8 @@ const mergePdfsController = async (req, res) => {
                     BoldRow: tenantDefaultSettings?.BoldRow ?? gettingcustomization?.BoldRow ?? true,
                     HLinred: tenantDefaultSettings?.HLinred ?? gettingcustomization?.HLinred ?? false,
                     HighLow: tenantDefaultSettings?.HighLow ?? gettingcustomization?.HighLow ?? false,
-                    RowSpacing: tenantDefaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 7,
-                    selectedFontSize: tenantDefaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 12,
+                    RowSpacing: tenantDefaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 3,
+                    selectedFontSize: tenantDefaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                     reportId: reportId,
                     htmlContent: gettingcustomization?.htmlContent || "",
                     cssContent: gettingcustomization?.cssContent || "",
@@ -1564,7 +1564,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                         font-size: ${mergedValues.selectedFontSize}px !important;
                     }
                     .test-name, .test-name * {
-                        font-size: ${(parseFloat(mergedValues.selectedFontSize) || 12) + 4}px !important;
+                        font-size: ${Number(mergedValues.selectedFontSize) + 4}px !important;
                     }
                     td {
                         padding-top: ${parseFloat(mergedValues.RowSpacing) / 2}px !important;
@@ -1758,8 +1758,8 @@ const getpdfcontrolleruser = async (req, res) => {
                 BoldRow: resolvePdfValue(BoldRow, gettingcustomization?.BoldRow, defaultsetting?.BoldRow, false),
                 HLinred: resolvePdfValue(HLinred, gettingcustomization?.HLinred, defaultsetting?.HLinred, false),
                 HighLow: resolvePdfValue(HighLow, gettingcustomization?.HighLow, defaultsetting?.HighLow, false),
-                RowSpacing: resolvePdfValue(RowSpacing, gettingcustomization?.RowSpacing, defaultsetting?.RowSpacing, 7),
-                selectedFontSize: resolvePdfValue(selectedFontSize, gettingcustomization?.selectedFontSize, defaultsetting?.selectedFontSize, 12),
+                RowSpacing: resolvePdfValue(defaultsetting?.RowSpacing, RowSpacing, gettingcustomization?.RowSpacing, 3),
+                selectedFontSize: resolvePdfValue(defaultsetting?.selectedFontSize, selectedFontSize, gettingcustomization?.selectedFontSize, 10),
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
                 cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",
@@ -1793,8 +1793,8 @@ const getpdfcontrolleruser = async (req, res) => {
                 BoldRow: resolvePdfValue(BoldRow, gettingcustomization?.BoldRow, defaultsetting?.BoldRow, false),
                 HLinred: resolvePdfValue(HLinred, gettingcustomization?.HLinred, defaultsetting?.HLinred, false),
                 HighLow: resolvePdfValue(HighLow, gettingcustomization?.HighLow, defaultsetting?.HighLow, false),
-                RowSpacing: resolvePdfValue(RowSpacing, gettingcustomization?.RowSpacing, defaultsetting?.RowSpacing, 7),
-                selectedFontSize: resolvePdfValue(selectedFontSize, gettingcustomization?.selectedFontSize, defaultsetting?.selectedFontSize, 12),
+                RowSpacing: resolvePdfValue(defaultsetting?.RowSpacing, RowSpacing, gettingcustomization?.RowSpacing, 3),
+                selectedFontSize: resolvePdfValue(defaultsetting?.selectedFontSize, selectedFontSize, gettingcustomization?.selectedFontSize, 10),
                 reportId: pdfContext.resolvedReportId,
                 htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
                 cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",

@@ -5,6 +5,7 @@ import fetch from 'node-fetch'; // Import node-fetch to handle fetching images
 import { fileURLToPath } from 'url'; // Import fileURLToPath for ES Modules
 import { PDFDocument } from 'pdf-lib';
 import { customization } from '../models/printsetting.model.js';
+import { defaultpdfsetting } from '../models/defaultpdfsettings.model.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { invoices } from '../models/invoicepdf.model.js';
@@ -273,7 +274,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                             font-size: ${selectedFontSize}px !important;
                         }
                         .test-name, .test-name * {
-                            font-size: ${(parseFloat(selectedFontSize) || 12) + 4}px !important;
+                            font-size: ${Number(selectedFontSize) + 4}px !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -497,6 +498,7 @@ const getpdfcontroller = async (req, res) => {
     try {
         // Attempt to fetch data from the database
         const gettingcustomization = await customization.findOne({ reportId: value1 });
+        const defaultSettings = await defaultpdfsetting.findOne({ tenantId: req.user.tenantId._id }).lean();
         let mergedValues;
 
         if (checkBox || DownloadPdf) {
@@ -507,8 +509,8 @@ const getpdfcontroller = async (req, res) => {
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 7,
-                selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                RowSpacing: defaultSettings?.RowSpacing ?? RowSpacing ?? gettingcustomization?.RowSpacing ?? 3,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: value1,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
@@ -539,8 +541,8 @@ const getpdfcontroller = async (req, res) => {
                 BoldRow: BoldRow ?? gettingcustomization?.BoldRow ?? false, // Updated logic     
                 HLinred: HLinred ?? gettingcustomization?.HLinred ?? false, // Updated logic     
                 HighLow: HighLow ?? gettingcustomization?.HighLow ?? false, // Updated logic     
-                RowSpacing: RowSpacing || gettingcustomization.RowSpacing || 8,
-                selectedFontSize: selectedFontSize || gettingcustomization.selectedFontSize || 12,
+                RowSpacing: defaultSettings?.RowSpacing ?? RowSpacing ?? gettingcustomization?.RowSpacing ?? 3,
+                selectedFontSize: defaultSettings?.selectedFontSize ?? selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: value1,
                 htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",

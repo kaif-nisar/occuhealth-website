@@ -34,12 +34,12 @@ const customizationSchema = new mongoose.Schema({
         default: true
     },
     RowSpacing: {
-        type: Number,
-        default: 7
+        // General settings are owned by defaultSettings, not a report customization.
+        type: Number
     },
     selectedFontSize: {
-        type: Number,
-        default: 12
+        // Do not persist the old 12 fallback on every new report.
+        type: Number
     },
     reportId: {
         type: Schema.Types.ObjectId

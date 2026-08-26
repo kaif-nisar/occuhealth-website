@@ -48,8 +48,8 @@ function toggleAccordion(button) {
             document.getElementById('margin-right').value = data.marginRight || '';
             document.getElementById('margin-left').value = data.marginLeft || '';
             document.getElementById('show-lab').checked = data.labinchargesign || false;
-            document.getElementById('pdf-font-size').value = data.selectedFontSize || 12;
-            document.getElementById('spacing').value = data.RowSpacing || 1;
+            document.getElementById('pdf-font-size').value = data.selectedFontSize ?? 10;
+            document.getElementById('spacing').value = data.RowSpacing ?? 3;
             document.getElementById('high-low-marker').checked = data.HighLow;
             document.getElementById('abnormal-results-red').checked = data.HLinred;
             document.getElementById('abnormal-results-bold').checked = data.BoldRow;
