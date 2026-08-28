@@ -1,14 +1,19 @@
-<!DOCTYPE html>
-<html>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>report format</title>
-
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lab Report</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
-
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!--
+        OccuHealth LIS Â· Pathology Report Layout (Format 1)
+        PDF PARITY: the Puppeteer pipeline snapshots the LEGACY stylesheet
+        below (style#stying) and ships it verbatim as cssContent.
+        DO NOT EDIT that block â€” the generated PDF must stay identical.
+        All modern UI css lives in style#ohScreen, which is never sent
+        to the backend. Also: never change .report-details geometry in
+        ohScreen â€” investigationmargin measures its live height.
+    -->
     <style id="stying">
         .container {
             width: 100%;
@@ -48,7 +53,7 @@
 
         .report-details {
             width: 100%;
-            margin-top: 1rem;
+            margin-top: 4rem;
         }
 
         .report-details-innerDiv2 {
@@ -521,14 +526,14 @@
             width: 9%;
         }
 
-        /* ✅ Documented content specific styles */
+        /* âœ… Documented content specific styles */
         .documented-content {
             overflow-x: auto;
             word-wrap: break-word;
             background: white;
         }
 
-        /* ✅ Isolate tables inside documented content */
+        /* âœ… Isolate tables inside documented content */
         .documented-content table {
             border-collapse: separate !important;
             border-spacing: 0;
@@ -542,12 +547,12 @@
             padding: 8px;
         }
 
-        /* ✅ Prevent documented content from breaking parent table */
+        /* âœ… Prevent documented content from breaking parent table */
         td[colspan="4"] {
             vertical-align: top;
         }
 
-        /* ✅ Ensure proper rendering of CKEditor content */
+        /* âœ… Ensure proper rendering of CKEditor content */
         .documented-content p {
             margin: 5px 0;
         }
@@ -564,7 +569,7 @@
             margin: 10px 0 5px 0;
         }
 
-        /* ✅ Table header background */
+        /* âœ… Table header background */
         thead tr {
             background-color: #f5f5f5 !important;
         }
@@ -576,7 +581,7 @@
             border-bottom: 2px solid #ddd !important;
         }
 
-        /* ✅ Documented content styles - applies to ALL CKEditor content */
+        /* âœ… Documented content styles - applies to ALL CKEditor content */
         .documented-content {
             /* padding: 10px; */
             overflow-x: auto;
@@ -585,7 +590,7 @@
             /* line-height: 1.6; */
         }
 
-        /* ✅ Isolate tables inside documented content */
+        /* âœ… Isolate tables inside documented content */
         .documented-content table {
             border-collapse: separate !important;
             border-spacing: 0 !important;
@@ -606,7 +611,7 @@
             font-weight: 600;
         }
 
-        /* ✅ Typography inside documented content */
+        /* âœ… Typography inside documented content */
         .documented-content p {
             margin: 8px 0;
         }
@@ -642,7 +647,7 @@
             font-weight: bold;
         }
 
-        /* ✅ Blockquotes */
+        /* âœ… Blockquotes */
         .documented-content blockquote {
             border-left: 4px solid #ddd;
             padding-left: 15px;
@@ -651,7 +656,7 @@
             font-style: italic;
         }
 
-        /* ✅ Code blocks */
+        /* âœ… Code blocks */
         .documented-content pre {
             background: #f5f5f5;
             border: 1px solid #ddd;
@@ -668,7 +673,7 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* ✅ Images inside documented content */
+        /* âœ… Images inside documented content */
         .documented-content img {
             max-width: 100%;
             height: auto;
@@ -676,19 +681,19 @@
             margin: 10px 0;
         }
 
-        /* ✅ Links */
+        /* âœ… Links */
         .documented-content a {
             color: #1a73e8;
             text-decoration: underline;
         }
 
-        /* ✅ Prevent documented content from breaking parent table */
+        /* âœ… Prevent documented content from breaking parent table */
         td[colspan="4"] {
             vertical-align: top;
             padding: 0 !important;
         }
 
-        /* ✅ Details row specific styling */
+        /* âœ… Details row specific styling */
         .details-row {
             padding: 0 !important;
             font-size: 13px;
@@ -698,7 +703,7 @@
             padding-left: 20px;
         }
 
-        /* ✅ Interpretation styling */
+        /* âœ… Interpretation styling */
         .interpretation {
             padding: 10px;
         }
@@ -707,12 +712,12 @@
             margin: 5px 0;
         }
 
-        /* ✅ More details section */
+        /* âœ… More details section */
         .moreDetails .documented-content {
             padding-left: 20px;
         }
 
-        /* ✅ Print specific styles */
+        /* âœ… Print specific styles */
         @media print {
             thead tr {
                 background-color: #f5f5f5 !important;
@@ -830,152 +835,501 @@
             }
         }
     </style>
+    <style id="ohScreen">
+/* =====================================================================
+   OccuHealth LIS Â· SCREEN-ONLY DESIGN LAYER  (never shipped to Puppeteer)
+   Mission: make the web preview MIRROR the generated PDF ("ditto") while
+   fixing overflow / truncation / dock bugs. Backend PDF css = #stying.
+   FROZEN ZONE: .report-details subtree geometry (investigationmargin).
+   ===================================================================== */
+:root {
+    --bg: #edf1f6;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --ink: #0f172a;
+    --ink-soft: #334155;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --brand: #0e7490;
+    --brand-dark: #155e75;
+    --teal: #0d9488;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --rule: #dbe3ec;
+    --ok: #059669;
+    --warn: #b45309;
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+    --sh-sheet: 0 1px 2px rgba(15,23,42,.07), 0 24px 55px -24px rgba(15,23,42,.30);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    --font-doc: 'Times New Roman', Times, serif;
+    --pad-x: 40px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: hidden; }              /* BUG#1: no page bleed */
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0; min-height: 100vh;
+    font-family: var(--font-ui); color: var(--ink);
+    background:
+        radial-gradient(1100px 380px at 88% -160px, rgba(13,148,136,.10), transparent 60%),
+        radial-gradient(900px 420px at -5% -170px, rgba(14,116,144,.12), transparent 55%),
+        var(--bg);
+}
+img { max-width: 100%; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(13,148,136,.22); }
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@keyframes ohShimmer { 100% { transform: translateX(100%); } }
+@keyframes ohFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ohDockUp {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes ohSpin { to { transform: rotate(360deg); } }
+
+/* ---------- skeleton boot screen ---------- */
+#skeletonScreen {
+    position: absolute; inset: 0 auto auto 0; z-index: 20;
+    width: 794px; min-height: 1123px;
+    display: block; background: transparent;
+    transition: opacity .35s ease; overflow: hidden;
+}
+#skeletonScreen.is-done { opacity: 0; pointer-events: none; }
+.skel-wrap { width: 794px; margin: 0; }
+.skel-sheet {
+    box-sizing: border-box;
+    min-height: 1123px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh-sheet);
+    padding: 0 var(--pad-x) 24px;
+}
+.skel-block { position: relative; overflow: hidden; background: #e2e8f0; border-radius: var(--r-md); }
+.skel-block::after {
+    content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+    animation: ohShimmer 1.4s infinite;
+}
+.skel-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 0; box-shadow: var(--sh-sheet);
+    padding: 26px var(--pad-x); margin: 0;
+}
+.skel-letterhead { height: 92px; margin: 0 calc(var(--pad-x) * -1) 18px; }
+.skel-patient-box { height: 110px; border: 1px solid var(--line-strong); border-radius: 0; padding: 16px; }
+.skel-patient-grid { display: grid; grid-template-columns: 1.1fr 1fr .65fr; gap: 12px; height: 100%; }
+.skel-patient-col { display: flex; flex-direction: column; justify-content: space-between; }
+.skel-line { height: 13px; border-radius: 999px; }
+.w15{width:15%}.w25{width:25%}.w40{width:40%}.w60{width:60%}.w80{width:80%}
+.skel-gap { height: 14px; }
+.skel-category { width: 34%; height: 18px; margin: 32px auto 14px; }
+.skel-table { margin-top: 26px; }
+.skel-thead { display: grid; grid-template-columns: 26px 2.4fr 1fr .7fr 1.2fr; gap: 12px; padding: 10px 8px; background: var(--surface-alt); border-bottom: 2px solid var(--rule); }
+.skel-tr { display: grid; grid-template-columns: 26px 2.4fr 1fr .7fr 1.2fr; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--line); }
+.skel-error { display: none; margin-top: 18px; padding: 18px; border: 1px solid #fecaca; background: #fef2f2; border-radius: var(--r-md); color: #991b1b; font-size: 14px; text-align: center; }
+.skel-error button { margin-top: 10px; border: 0; cursor: pointer; background: var(--brand); color: #fff; padding: 8px 22px; border-radius: 999px; font-weight: 600; }
+.skel-error.is-visible { display: block; animation: ohFadeUp .3s ease; }
+
+/* ---------- top utility bar (kept & refined) ---------- */
+.app-toolbar {
+    position: sticky; top: 0; z-index: 900;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px clamp(14px, 3vw, 28px);
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+}
+.brand-chip {
+    flex: none; width: 38px; height: 38px; border-radius: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--brand), var(--teal));
+    color: #fff; font-size: 17px; box-shadow: 0 4px 10px -3px rgba(14,116,144,.55);
+}
+.toolbar-titles { min-width: 0; margin-right: auto; }
+.toolbar-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar-subtitle { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-pill {
+    flex: none; display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: #fef3c7; color: var(--warn); transition: .25s;
+}
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status-pill.is-signed { background: #d1fae5; color: var(--ok); }
+.edit-toggle {
+    display: inline-flex; align-items: center; gap: 7px; flex: none;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--line-strong); background: #fff;
+    color: var(--ink-soft); font-size: 13px; font-weight: 600; transition: .18s;
+}
+.edit-toggle:hover { border-color: var(--brand); color: var(--brand-dark); }
+.edit-toggle[aria-pressed="true"] { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+.dirty-dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-left: 7px; vertical-align: middle; }
+body.is-dirty .dirty-dot { display: inline-block; }
+
+/* ---------- viewport & A4 sheet canvas ---------- */
+.report-viewport { padding: 20px clamp(10px, 2.5vw, 32px) calc(96px + var(--safe-b)); }
+.container { background: transparent !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+.container22 { position: relative; width: 100%; max-width: 794px; margin: 0 auto; }
+
+.sheet-page {
+    position: relative;
+    display: flex; flex-direction: column;
+    width: 100%; min-height: 420px;
+    background: var(--surface); border-radius: 0;
+    box-shadow: var(--sh-sheet); margin: 0 auto 26px;
+    overflow: hidden; animation: ohFadeUp .35s ease both;
+}
+.mode-paginated .sheet-page { width: 794px; height: 1123px; min-height: 0; margin-bottom: 28px; }
+/* Safety valve: an oversized lone block grows the sheet instead of clipping */
+.mode-paginated .sheet-page.sheet-auto { height: auto; min-height: 1123px; }
+.sheet-head { flex: none; padding: 22px var(--pad-x) 14px; border-bottom: 1px solid var(--rule); background: transparent; }
+.sheet-head:not(.sheet-head--cont) { padding-top: 92px; }
+.sheet-body, .sheet-foot { position: relative; z-index: 1; }
+.sheet-body { flex: 1 1 auto; padding: 16px var(--pad-x) 10px; min-height: 80px; overflow: hidden; background: transparent; }
+body:not(.mode-paginated) .sheet-body,
+.sheet-page.sheet-auto .sheet-body { overflow: visible; }
+.sheet-foot {
+    flex: none; padding: 12px var(--pad-x) 18px;
+    border-top: 1px solid var(--rule); background: transparent;
+}
+.sheet-meta-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; color: var(--faint); }
+.page-indicator { font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+.foot-disclaimer { margin: 6px auto 0; max-width: 94%; text-align: center; font-size: 10.5px; line-height: 1.45; color: var(--faint); font-family: var(--font-doc); font-style: italic; }
+
+/* Template letterhead band â€” mirrors the PDF's printed header artwork */
+.tpl-img {
+    position: absolute; inset: 0; z-index: 0;
+    display: block; width: 100%; height: 100%; max-height: none;
+    object-fit: fill; object-position: center; margin: 0;
+    pointer-events: none;
+}
+.sheet-head--cont { padding-top: 92px; }
+
+/* Match the printed section label hierarchy without changing PDF CSS. */
+.section > .headings > h2 {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 12px 10px 8px;
+}
+
+/* ---------- PATIENT BAR Â· GEOMETRY FROZEN (PDF parity) ----------
+   investigationmargin = live height of .report-details â†’ only height-
+   neutral cosmetics here; typography/layout come from legacy #stying. */
+.report-details, .report-details * {
+    font-family: 'Times New Roman', Times, serif;
+    box-sizing: content-box;
+}
+/* Cloned continuation headers do not retain #barcodeImage; keep their barcode
+   dimensions identical to the first page's legacy-ID-styled barcode. */
+.report-details .barcode-div2 img {
+    width: 100px;
+    height: 50px;
+    max-width: none;
+}
+.report-details-innerDiv2 {
+    border-color: #000;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* ---------- TEST TABLES Â· ditto-PDF typography ---------- */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll .test-table { min-width: 540px; }   /* scroll instead of squeeze */
+.test-table th { font-weight: 700; }
+.high-low div { display: inline-block; min-width: 30px; }
+.high-low span { display: inline-block; }
+
+/* ---------- EDITABLE CELLS (data extraction) ---------- */
+.cell-edit {
+    border-radius: 4px; padding: 0 3px; margin: 0 -3px;
+    transition: background-color .15s ease, box-shadow .15s ease;
+    min-width: 12px; display: inline-block;
+}
+body.editing .cell-edit {
+    cursor: text;
+    box-shadow: inset 0 0 0 1px rgba(14,116,144,.30);
+    background: rgba(14,116,144,.05);
+}
+body.editing .cell-edit:hover { background: rgba(14,116,144,.10); }
+body.editing .cell-edit:focus {
+    outline: none; background: #fff;
+    box-shadow: 0 0 0 2px rgba(14,116,144,.25), inset 0 0 0 1px var(--brand);
+}
+
+/* ---------- END-OF-REPORT marker ---------- */
+.end-report {
+    text-align: center; margin: 18px 0 4px; font-size: 11.5px;
+    letter-spacing: .14em; color: var(--faint); font-weight: 600;
+}
+
+/* ---------- SIGNATURES Â· stable flex grid (BUG#4) ----------
+   Hosted once, in the LAST page footer â€” never splits across breaks. */
+.sheet-foot--sigs { padding-top: 16px; }
+.signed-off-div { width: 100%; }
+.signed-off-div2 {
+    width: 100%;
+    display: flex; justify-content: space-evenly; align-items: flex-end;
+    gap: 16px; row-gap: 14px; flex-wrap: wrap;
+}
+.signdivstyleclass {
+    width: auto; min-width: 128px; max-width: 190px; flex: 1 1 128px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.signdivstyleclass img { object-fit: contain; max-height: 46px; }
+.signdivstyleclass .textspan {
+    margin-top: 6px; padding-top: 5px; width: 100%;
+    border-top: 1px solid var(--line-strong);
+    font-size: 11px; font-weight: 600; color: var(--ink-soft);
+    font-family: var(--font-ui);
+}
+.qr-div { flex: 0 0 auto; width: 64px; }
+.qr-div img { width: 100%; height: auto; }
+
+/* ---------- ACTION DOCK Â· BUG#1 FIX ----------
+   Centered floating pill that WRAPS instead of overflowing.
+   width:max-content up to 96vw â†’ never bleeds off-screen. */
+.download-pdf-div {
+    position: fixed; z-index: 950;
+    left: 59%; transform: translateX(-50%);
+    bottom: calc(14px + var(--safe-b));
+    display: none;
+    flex-wrap: nowrap; justify-content: center; align-items: center;
+    gap: 2px; padding: 4px;
+    width: max-content; max-width: calc(100vw - 24px);
+    background: rgba(15,23,42,.93);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px -12px rgba(15,23,42,.55);
+}
+.download-pdf-div.is-ready { display: flex; animation: ohDockUp .35s ease both; }
+.downloadDiv { position: relative; border-radius: 10px; }
+#downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 10px; font-weight: 600; font-size: 12px;
+    border: 0; border-radius: 10px; cursor: pointer;
+    color: #e2e8f0; background: transparent; white-space: nowrap;
+    transition: background-color .18s ease, transform .12s ease;
+}
+#enterResult {
+    color: #fcd34d;
+    background: rgba(180, 83, 9, .76);
+}
+#enterResult i { color: #fde68a; }
+#downloadPDF:hover, #signOff:hover, #PDFsetting:hover,
+#BrowserPrint:hover, #sendReport:hover, #enterResult:hover {
+    background: rgba(255,255,255,.14); transform: translateY(-1px);
+}
+#downloadPDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i { font-size: 15px; }
+#enterResult i { font-size: 15px; }
+#downloadPDF { background: linear-gradient(135deg, var(--brand), var(--teal)); color: #fff; box-shadow: 0 6px 16px -6px rgba(14,116,144,.7); }
+#downloadPDF:hover { background: linear-gradient(135deg, var(--brand-dark), #0f766e); }
+#downloadPDF i { color: #fff; }
+#sendReport { color: #6ee7b7; } #sendReport i { color: #34d399; }
+#signOff { color: #93c5fd; }   #signOff i { color: #60a5fa; }
+.loading-overlay {
+    position: absolute; inset: 0; z-index: 5;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.65); border-radius: 10px;
+}
+.lo { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; animation: ohSpin 1s linear infinite; }
+@media (max-width: 900px) {
+    #downloadPDF span, #signOff span, #PDFsetting span,
+    #BrowserPrint span, #sendReport span, #enterResult span { display: none; }
+    #downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 9px 11px; }
+}
+
+/* ---------- TOASTS ---------- */
+#toastStack {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(86px + var(--safe-b)); z-index: 1200;
+    display: flex; flex-direction: column; gap: 8px;
+    width: max-content; max-width: 92vw;
+}
+.toast {
+    display: flex; align-items: center; gap: 10px;
+    background: #0f172a; color: #e2e8f0;
+    padding: 10px 16px; border-radius: 12px;
+    box-shadow: 0 14px 30px -10px rgba(0,0,0,.5);
+    font-size: 13.5px; animation: ohFadeUp .3s ease both;
+}
+.toast i { color: #34d399; }
+.toast--error { background: #7f1d1d; } .toast--error i { color: #fca5a5; }
+.toast--warn  { background: #78350f; } .toast--warn i  { color: #fcd34d; }
+.toast.is-leaving { opacity: 0; transform: translateY(6px); transition: .3s ease; }
+
+/* ---------- SHARE MODAL fit fixes ---------- */
+.popup-content { max-width: 92vw; }
+.pdf-viewer { border-radius: var(--r-md); border: 1px solid var(--line); }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1023px) {
+    :root { --pad-x: 40px; }
+    /* Preserve real A4 geometry on touch devices; scroll the canvas rather
+       than shrinking the report and corrupting its header/table layout. */
+    .report-viewport {
+        padding: 16px 0 calc(96px + var(--safe-b));
+        overflow-x: auto; overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable both-edges;
+    }
+    .report-viewport .container { width: 794px; min-width: 794px; }
+    #sheetStackWrap { width: 794px !important; min-width: 794px !important; max-width: none; }
+    .mode-paginated .sheet-page { width: 794px; height: 1123px; min-height: 0; }
+    #skeletonScreen, .skel-sheet { min-height: 1123px; }
+    .skel-sheet { min-height: 900px; }
+    .skel-patient-grid { grid-template-columns: 1fr 1fr; }
+    .skel-patient-col:last-child { display: none; }
+}
+@media (max-width: 956px) {
+    /* legacy min-width guards â€” kill horizontal scroll at the source */
+    .container22, .signed-off-div2 { min-width: 0 !important; }
+    .toolbar-title { max-width: 44vw; }
+    .status-pill { font-size: 11px; padding: 4px 10px; }
+}
+@media (max-width: 640px) {
+    :root { --pad-x: 18px; }
+    .skel-sheet { min-height: 1123px; }
+    .skel-letterhead { height: 74px; margin-bottom: 14px; }
+    .skel-patient-box { height: 132px; padding: 12px; }
+    .skel-patient-grid { gap: 8px; }
+    .skel-category { margin-top: 24px; }
+    td { font-size: 12px; }
+    th { font-size: 12px; }
+    .signdivstyleclass { min-width: 104px; }
+    .qr-div { width: 52px; }
+    .notes span:not(.cell-edit), .remark-row span:not(.cell-edit),
+    .advice span, .remarks span { margin-left: 35%; }
+    .download-pdf-div {left: 50%;}
+}
+
+/* ---------- PRINT (screen sheets flatten; PDF itself uses #stying) ---------- */
+@media print {
+    body { background: #fff !important; }
+    .app-toolbar, .download-pdf-div, #skeletonScreen, #toastStack,
+    .edit-toggle, .no-print { display: none !important; }
+    .report-viewport { padding: 0 !important; }
+    .sheet-page {
+        box-shadow: none !important; border-radius: 0 !important;
+        height: auto !important; min-height: 0 !important; margin: 0 !important;
+        break-after: page; page-break-after: always;
+    }
+    .sheet-page:last-of-type { break-after: auto; page-break-after: auto; }
+    tbody tr, .headings { break-inside: avoid; page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    h2, h3 { break-after: avoid; page-break-after: avoid; }
+    .page-break { break-before: page; page-break-before: always; }
+    .wrong i, .delete-btn i { visibility: hidden; }
+    tbody tr:hover { background: transparent !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}</style>
 </head>
-
 <body>
-    <div id="modal" class="modal" style="display: none;">
-        <div class="form-section">
-            <span class="close-btn" onclick="closeModal()">✖️</span> <!-- Close button -->
-            <div class="selectTypeDiv">
-                <label for="select-type">Select Type</label>
-                <select id="select-type" onchange="toggleForm(this)">
-                    <option value="numeric" selected>Numeric</option>
-                    <option value="text">Text</option>
-                </select>
-            </div>
-
-            <div id="form-container">
-                <div class="row-container">
-                    <span class="delete-btn" onclick="deleteRow(this)">🗑️</span>
-                    <div class="row-item">
-                        <label for="sex">Sex</label>
-                        <select name="sex" class="sex">
-                            <option value="Any">Any</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
-                    </div>
-                    <div class="row-item">
-                        <label for="min_age">Min. Age</label>
-                        <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
-                    </div>
-                    <div class="row-item">
-                        <label for="min_age_unit">Min Age Unit</label>
-                        <select name="min_age_unit">
-                            <option value="Years">Years</option>
-                            <option value="Months">Months</option>
-                            <option value="Days">Days</option>
-                        </select>
-                    </div>
-                    <div class="row-item">
-                        <label for="max_age">Max. Age</label>
-                        <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="20">
-                    </div>
-                    <div class="row-item">
-                        <label for="max_age_unit">Max Age Unit</label>
-                        <select name="max_age_unit">
-                            <option value="Years">Years</option>
-                            <option value="Months">Months</option>
-                            <option value="Days">Days</option>
-                        </select>
-                    </div>
-                    <div class="row-item">
-                        <label for="lower_value">Lower Value</label>
-                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value"
-                            value="2.1" oninput="updateReportDisplay(this)">
-                    </div>
-                    <div class="row-item">
-                        <label for="upper_value">Upper Value</label>
-                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value"
-                            value="17.7" oninput="updateReportDisplay(this)">
-                    </div>
-                    <div class="row-item">
-                        <label for="upper_value">Display report</label>
-                        <span class="display-report">2.1 - 17.7</span>
+    <!-- ================= SKELETON BOOT SCREEN ================= -->
+    <div id="skeletonScreen" aria-busy="true" aria-live="polite">
+        <div class="skel-wrap">
+            <div class="skel-sheet">
+                <div class="skel-block skel-letterhead"></div>
+                <div class="skel-patient-box">
+                    <div class="skel-patient-grid">
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w40"></div>
+                        </div>
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                        </div>
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
-
-            <div class="add-more-btn" id="add-more-btn" onclick="addRow()">+ Add more</div>
-            <div class="submit-div">
-                <button id="submit-button"> Submit now</button>
-            </div>
-        </div>
-    </div>
-    <br><br>
-    <div class="container" id="container">
-        <div class="container22">
-            <div class="header">
-                <h1>Lab Report</h1>
-                <span class="badge">booking Id. <span id="booking-registeration-number"></span></span>
-            </div>
-            <div class="report-details"
-                style="width: 100%; display: flex; justify-content: center;align-items: center;">
-
-            </div>
-            <div class="container2" id="containerpdf">
-                <div class="table-div" id="tables-container">
-                    <div class="spinner-grow" role="status">
-                        <span class="sr-only">Loading...</span>
+                <div class="skel-block skel-category"></div>
+                <div class="skel-table" aria-hidden="true">
+                    <div class="skel-thead">
+                        <div></div><div class="skel-block skel-line w80"></div>
+                        <div class="skel-block skel-line w40"></div>
+                        <div class="skel-block skel-line w25"></div>
+                        <div class="skel-block skel-line w60"></div>
                     </div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w60"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w40"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w80"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w60"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w40"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                </div>
+                <div class="skel-error">
+                    <span class="skel-error-msg">Something went wrong.</span><br>
+                    <button type="button" onclick="window.location.reload()">Retry</button>
                 </div>
             </div>
-            <br><br>
-            <hr>
-            <h3>~~~~End report~~~~</h3>
         </div>
-    </div>
-    <div class="signed-off-div">
-
-    </div>
     </div>
 
-    <div class="download-pdf-div">
-        <div class="downloadDiv">
-            <button id="signOff"><i class="fa-solid fa-signature"></i><span>Sign off</span></button>
-            <div id="loadingOverlay">
-                <div class="lo"></div>
+            <!-- ================= APP TOOLBAR ================= -->
+    <!-- ================= REPORT DOCUMENT VIEWPORT ================= -->
+    <main class="report-viewport">
+        <div class="container" id="container" data-report-section="document-root">
+            <div class="container22" id="sheetStackWrap">
+                <!-- A4 sheets are generated here by reportFormat.js -->
             </div>
         </div>
+    </main>
+
+    <!-- ================= ACTION DOCK ================= -->
+    <div class="download-pdf-div no-print" role="toolbar" aria-label="Report actions">
         <div class="downloadDiv">
-            <button id="downloadPDF" class="sign click"><i class="fa-solid fa-file-pdf"></i><span>Download
-                    PDF</span></button>
-            <div id="loadingOverlay">
-                <div class="lo"></div>
-            </div>
+            <button id="signOff"><i class="fas fa-signature"></i><span>Sign off</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
-            <button id="sendReport" class="sign click"><i class="fa-solid fa-paper-plane"></i> <span>Send
-                    Report</span></button>
-            <div id="loadingOverlay">
-                <div class="lo"></div>
-            </div>
+            <button id="enterResult" type="button"><i class="fas fa-pen-to-square"></i><span>Enter Result</span></button>
         </div>
         <div class="downloadDiv">
-            <button id="BrowserPrint" class="sign click"><i class="fa-solid fa-print"></i> <span>Browser
-                    print</span></button>
-            <div id="loadingOverlay">
-                <div class="lo"></div>
-            </div>
+            <button id="downloadPDF" class="sign click"><i class="fas fa-file-pdf"></i><span>Download PDF</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
-            <a href="pages/pages/printsetting.html" id="PDFsettinganchr"><button id="PDFsetting" class="sign click"><i
-                        class="fa-solid fa-gear"></i>
-                    <span>print Settings</span></button>
+            <button id="sendReport" class="sign click"><i class="fas fa-paper-plane"></i><span>Send Report</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <button id="BrowserPrint" class="sign click"><i class="fas fa-print"></i><span>Browser print</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <a href="pages/pages/printsetting.html" id="PDFsettinganchr" style="text-decoration:none;">
+                <button id="PDFsetting" class="sign click"><i class="fas fa-gear"></i><span>Print settings</span></button>
             </a>
-            <div id="loadingOverlay">
-                <div class="lo"></div>
-            </div>
+            <div class="loading-overlay"><div class="lo"></div></div>
         </div>
     </div>
 
-    <!-- Popup Modal -->
-    <div id="popupModal" class="popup-modal">
+    <!-- ================= SHARE / SEND MODAL ================= -->
+    <div id="popupModal" class="popup-modal" role="dialog" aria-modal="true" aria-label="Send report">
         <div class="popup-content">
-            <!-- Close Button -->
-            <!-- Buttons -->
             <div class="popup-header">
                 <div class="share-buttons">
                     <button id="smsButton">SMS</button>
@@ -983,21 +1337,23 @@
                     <button id="emailButton">Email</button>
                     <button id="openPdfButton">Open PDF</button>
                 </div>
-                <div class="closeBtnDiv">
-                    <span class="close-button">&times;</span>
-                </div>
+                <div class="closeBtnDiv"><span class="close-button" role="button" aria-label="Close">&times;</span></div>
             </div>
-            <!-- Input Field for WhatsApp/Email/SMS -->
-            <div id="inputField" class="input-container" style="display: none;">
+            <div id="inputField" class="input-container" style="display:none;">
                 <input id="contactInput" type="text" placeholder="Enter Phone Number or Email" />
                 <button id="sendButton">Send</button>
             </div>
-            <!-- PDF Iframe -->
-            <iframe id="pdfFrame" src="" class="pdf-viewer"></iframe>
+            <iframe id="pdfFrame" src="" class="pdf-viewer" title="PDF preview"></iframe>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- ================= TOASTS ================= -->
+    <div id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+    <noscript>
+        <p style="text-align:center;padding:20px;">This report viewer requires JavaScript.</p>
+    </noscript>
+
     <script src="reportFormat.js"></script>
 </body>
 

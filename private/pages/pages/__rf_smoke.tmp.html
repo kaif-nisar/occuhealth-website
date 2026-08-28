@@ -1,3 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <!--
+        OccuHealth LIS · Pathology Report Layout (Format 1)
+        PDF PARITY: the Puppeteer pipeline snapshots the LEGACY stylesheet
+        below (style#stying) and ships it verbatim as cssContent.
+        DO NOT EDIT that block — the generated PDF must stay identical.
+        All modern UI css lives in style#ohScreen, which is never sent
+        to the backend. Also: never change .report-details geometry in
+        ohScreen — investigationmargin measures its live height.
+    -->
+    <style id="stying">
+        .container {
+            width: 100%;
+            height: auto;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 50px 25px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            /* position: relative; */
+            overflow: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5eaf2;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .badge {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-details {
+            width: 100%;
+            margin-top: 4rem;
+        }
+
+        .report-details-innerDiv2 {
+            position: relative;
+            width: 95%;
+            border: 1px solid black;
+            padding: 0px 5px;
+        }
+
+        .left2 {
+            width: 40%;
+            display: inline-block;
+        }
+
+        .right2 {
+            position: absolute;
+            display: inline-block;
+            left: 58%;
+            transform: translateX(-50%);
+        }
+
+        .registeration-tag2 {
+            width: 110px;
+            display: inline-grid;
+        }
+
+        .registered-div2 {
+            width: 144%;
+            padding-top: 3px;
+            padding-bottom: 3px;
+        }
+
+        .time-div {
+            width: 43%;
+            display: inline-flex;
+            justify-content: space-between;
+        }
+
+        /* .time-div span {
+            justify-content: space-between;
+        } */
+
+
+        .barcode-div2 {
+            display: inline-block;
+            position: absolute;
+            right: 2%;
+            top: 25%;
+        }
+
+        #barcodeImage {
+            height: 50px;
+            width: 100px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        th,
+        td {
+            text-align: left;
+        }
+
+        th {
+            font-size: 14px;
+            color: rgb(44, 44, 44)
+        }
+
+        td {
+            font-size: 13px;
+        }
+
+        .unit i,
+        .reference i {
+            margin-left: 10px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Dark overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-pdf-div {
+            display: flex;
+            margin-top: 1rem;
+            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            z-index: 100;
+            bottom: 0px;
+            width: 100%;
+            background-color: white;
+        }
+
+        #downloadPDF,
+        #signOff,
+        #PDFsetting,
+        #BrowserPrint,
+        #sendReport {
+            padding: 0.5rem 1rem;
+            font-weight: bolder;
+            font-size: 1rem;
+            box-shadow: 1px 1px 10px 1px rgba(46, 46, 46, 0.329);
+            border: none;
+            border-radius: 5px;
+        }
+
+        #downloadPDF i,
+        #signOff i,
+        #PDFsetting i,
+        #BrowserPrint i,
+        #sendReport i {
+            margin-right: 8px;
+            font-size: 1.5rem;
+            color: rgba(255, 0, 0, 0.703);
+        }
+
+        #sendReport {
+            background-color: #2bff0066;
+            border: none;
+        }
+
+        #sendReport i {
+            color: #20b801;
+        }
+
+        #signOff {
+            background-color: #00b7ffb0;
+            border-radius: 5px;
+        }
+
+        #signOff i {
+            color: rgb(48, 48, 48);
+        }
+
+        h3 {
+            text-align: center;
+            margin: 0px;
+        }
+
+        .signed-off-div {
+            width: 92%;
+            bottom: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 4rem;
+            overflow: auto;
+        }
+
+        .container2 {
+            width: 95%;
+            margin: 0px auto;
+        }
+
+        /* Modal Styling */
+        .popup-modal {
+            display: none;
+            position: fixed;
+            z-index: 500;
+            top: 0%;
+            width: 80%;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow-y: scroll;
+        }
+
+        .popup-content {
+            margin: auto;
+            margin-top: 10rem;
+            background: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Close Button */
+        .close-button {
+            font-size: 30px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        /* Header Buttons */
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .popup-header button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .popup-header button:hover {
+            background-color: #0056b3;
+        }
+
+        /* PDF Viewer */
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Input Container */
+        .input-container {
+            margin: 20px 0px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .input-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #218838;
+        }
+
+        /* td {
+            width: 0rem;
+        } */
+
+        .infor-div {
+            display: table;
+            table-layout: fixed;
+            border: none;
+        }
+
+        .tags {
+            display: table-cell;
+            min-width: 110px;
+            /* FIXED FOREVER */
+            vertical-align: top;
+            box-sizing: border-box;
+        }
+
+        .value {
+            display: table-cell;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        .sign {
+            display: none;
+        }
+
+        .details-row {
+            padding-left: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .headings {
+            margin: 10px;
+        }
+
+        tbody {
+            border-bottom: 1px solid rgb(44, 44, 44);
+            font-size: 16px;
+            padding-top: 1rem;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .wrong i,
+        .delete-btn i {
+            font-weight: 700;
+            color: #7474746d;
+        }
+
+        .wrong i:hover,
+        .delete-btn i:hover {
+            font-weight: 700;
+            color: #2b2b2b;
+        }
+
+        .delete-btn i {
+            font-size: 1.5rem;
+            padding-left: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        th,
+        td {
+            text-align: left;
+            word-wrap: break-word;
+        }
+
+        .deletion {
+            width: 1rem;
+        }
+
+        .test-name {
+            width: 40%;
+            margin: 0px;
+            padding: 0rem 0rem;
+            position: relative;
+        }
+
+        td {
+            padding-top: 2px;
+        }
+
+        .notes,
+        .remark-row,
+        .advice,
+        .remarks {
+            padding-left: 10px;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .notes span,
+        .remark-row span,
+        .advice span,
+        .remarks span {
+            margin-left: 55%;
+        }
+
+        .notes div,
+        .advice div,
+        .remarks div,
+        .remark-row div {
+            display: inline-block;
+            width: 60px;
+        }
+
+        .moreDetails {
+            margin-top: 1rem;
+        }
+
+        .moreDetails span {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        .moreDetails div {
+            padding-left: 16px;
+        }
+
+        .valuecell {
+            padding-left: 50px !important;
+        }
+
+        .high-low div {
+            width: 50px;
+            display: inline-block;
+        }
+
+        .high-low span {
+            display: inline-block;
+        }
+
+        .labInchargeDiv {
+            display: none;
+        }
+
+        th .valuecell {
+            padding-left: 0px;
+        }
+
+        #investDiv {
+            display: flex;
+        }
+
+        /* Full-screen overlay */
+        #loadingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* lo Animation */
+        .lo {
+            width: 25px;
+            height: 25px;
+            border: 5px solid #fff;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .downloadDiv {
+            margin: 0.5rem 0.25rem;
+            position: relative;
+            width: fit-content;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .signed-off-div2 {
+            width: 92%;
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .signed-off-div,
+        .container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .signed-off-div::-webkit-scrollbar,
+        .container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .signdivstyleclass {
+            width: 20%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .qr-div {
+            width: 9%;
+        }
+
+        /* ✅ Documented content specific styles */
+        .documented-content {
+            overflow-x: auto;
+            word-wrap: break-word;
+            background: white;
+        }
+
+        /* ✅ Isolate tables inside documented content */
+        .documented-content table {
+            border-collapse: separate !important;
+            border-spacing: 0;
+            margin: 10px 0;
+            width: 100% !important;
+        }
+
+        .documented-content table td,
+        .documented-content table th {
+            border: 1px solid #ddd !important;
+            padding: 8px;
+        }
+
+        /* ✅ Prevent documented content from breaking parent table */
+        td[colspan="4"] {
+            vertical-align: top;
+        }
+
+        /* ✅ Ensure proper rendering of CKEditor content */
+        .documented-content p {
+            margin: 5px 0;
+        }
+
+        .documented-content ul,
+        .documented-content ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .documented-content h1,
+        .documented-content h2,
+        .documented-content h3 {
+            margin: 10px 0 5px 0;
+        }
+
+        /* ✅ Table header background */
+        thead tr {
+            background-color: #f5f5f5 !important;
+        }
+
+        thead th {
+            background-color: #f5f5f5 !important;
+            font-weight: 600;
+            padding: 8px 4px !important;
+            border-bottom: 2px solid #ddd !important;
+        }
+
+        /* ✅ Documented content styles - applies to ALL CKEditor content */
+        .documented-content {
+            /* padding: 10px; */
+            overflow-x: auto;
+            word-wrap: break-word;
+            background: white;
+            /* line-height: 1.6; */
+        }
+
+        /* ✅ Isolate tables inside documented content */
+        .documented-content table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            margin: 10px 0 !important;
+            width: 100% !important;
+            background: white !important;
+        }
+
+        .documented-content table td,
+        .documented-content table th {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            background: white !important;
+        }
+
+        .documented-content table thead th {
+            background-color: #e9ecef !important;
+            font-weight: 600;
+        }
+
+        /* ✅ Typography inside documented content */
+        .documented-content p {
+            margin: 8px 0;
+        }
+
+        .documented-content ul,
+        .documented-content ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .documented-content h1 {
+            font-size: 1.8em;
+            margin: 15px 0 10px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h2 {
+            font-size: 1.5em;
+            margin: 12px 0 8px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h3 {
+            font-size: 1.3em;
+            margin: 10px 0 6px 0;
+            font-weight: bold;
+        }
+
+        .documented-content h4,
+        .documented-content h5,
+        .documented-content h6 {
+            margin: 8px 0 4px 0;
+            font-weight: bold;
+        }
+
+        /* ✅ Blockquotes */
+        .documented-content blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* ✅ Code blocks */
+        .documented-content pre {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .documented-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ✅ Images inside documented content */
+        .documented-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px 0;
+        }
+
+        /* ✅ Links */
+        .documented-content a {
+            color: #1a73e8;
+            text-decoration: underline;
+        }
+
+        /* ✅ Prevent documented content from breaking parent table */
+        td[colspan="4"] {
+            vertical-align: top;
+            padding: 0 !important;
+        }
+
+        /* ✅ Details row specific styling */
+        .details-row {
+            padding: 0 !important;
+            font-size: 13px;
+        }
+
+        .details-row .documented-content {
+            padding-left: 20px;
+        }
+
+        /* ✅ Interpretation styling */
+        .interpretation {
+            padding: 10px;
+        }
+
+        .interpretation p {
+            margin: 5px 0;
+        }
+
+        /* ✅ More details section */
+        .moreDetails .documented-content {
+            padding-left: 20px;
+        }
+
+        /* ✅ Print specific styles */
+        @media print {
+            thead tr {
+                background-color: #f5f5f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            thead th {
+                background-color: #f5f5f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .documented-content table td,
+            .documented-content table th {
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        @media screen and (max-width: 956px) {
+            .high-low div {
+                text-align: center;
+            }
+
+            .report-details-innerDiv2 {
+                font-size: 12px;
+            }
+
+            td {
+                font-size: 11px;
+            }
+
+            .container22 {
+                min-width: 712px;
+            }
+
+            .signed-off-div {
+                width: 95%;
+            }
+
+            .signed-off-div2 {
+                min-width: 712px;
+            }
+
+            .downloadDiv button span {
+                display: none;
+            }
+
+            #downloadPDF i,
+            #signOff i,
+            #PDFsetting i,
+            #BrowserPrint i,
+            #sendReport i {
+                font-size: 1rem;
+                margin: 0px;
+            }
+
+            #downloadPDF,
+            #signOff,
+            #PDFsetting,
+            #BrowserPrint,
+            #sendReport {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .popup-modal {
+                width: 100%;
+            }
+
+            .popup-content {
+                width: 40rem;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media print {
+
+            table,
+            tr,
+            td,
+            p {
+                margin: 0 !important;
+                border-spacing: 0 !important;
+                border-collapse: collapse !important;
+                line-height: 1 !important;
+            }
+
+            .infor-div {
+                padding-top: 0px !important;
+                padding-bottom: 0px !important;
+            }
+
+            .registered-div2 {
+                padding-top: 0px !important;
+                padding-bottom: 0px !important;
+            }
+
+            .signed-off-div2 {
+                justify-content: space-between;
+            }
+
+            .barcode-div2 {
+                top: 18% !important;
+            }
+        }
+    </style>
+    <style id="ohScreen">
+/* =====================================================================
+   OccuHealth LIS · SCREEN-ONLY DESIGN LAYER  (never shipped to Puppeteer)
+   Mission: make the web preview MIRROR the generated PDF ("ditto") while
+   fixing overflow / truncation / dock bugs. Backend PDF css = #stying.
+   FROZEN ZONE: .report-details subtree geometry (investigationmargin).
+   ===================================================================== */
+:root {
+    --bg: #edf1f6;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --ink: #0f172a;
+    --ink-soft: #334155;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --brand: #0e7490;
+    --brand-dark: #155e75;
+    --teal: #0d9488;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --rule: #dbe3ec;
+    --ok: #059669;
+    --warn: #b45309;
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+    --sh-sheet: 0 1px 2px rgba(15,23,42,.07), 0 24px 55px -24px rgba(15,23,42,.30);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    --font-doc: 'Times New Roman', Times, serif;
+    --pad-x: 40px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: hidden; }              /* BUG#1: no page bleed */
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0; min-height: 100vh;
+    font-family: var(--font-ui); color: var(--ink);
+    background:
+        radial-gradient(1100px 380px at 88% -160px, rgba(13,148,136,.10), transparent 60%),
+        radial-gradient(900px 420px at -5% -170px, rgba(14,116,144,.12), transparent 55%),
+        var(--bg);
+}
+img { max-width: 100%; }
+button { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(13,148,136,.22); }
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@keyframes ohShimmer { 100% { transform: translateX(100%); } }
+@keyframes ohFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ohDockUp {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes ohSpin { to { transform: rotate(360deg); } }
+
+/* ---------- skeleton boot screen ---------- */
+#skeletonScreen {
+    position: absolute; inset: 0 auto auto 0; z-index: 20;
+    width: 794px; min-height: 1123px;
+    display: block; background: transparent;
+    transition: opacity .35s ease; overflow: hidden;
+}
+#skeletonScreen.is-done { opacity: 0; pointer-events: none; }
+.skel-wrap { width: 794px; margin: 0; }
+.skel-sheet {
+    box-sizing: border-box;
+    min-height: 1123px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--sh-sheet);
+    padding: 0 var(--pad-x) 24px;
+}
+.skel-block { position: relative; overflow: hidden; background: #e2e8f0; border-radius: var(--r-md); }
+.skel-block::after {
+    content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+    animation: ohShimmer 1.4s infinite;
+}
+.skel-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 0; box-shadow: var(--sh-sheet);
+    padding: 26px var(--pad-x); margin: 0;
+}
+.skel-letterhead { height: 92px; margin: 0 calc(var(--pad-x) * -1) 18px; }
+.skel-patient-box { height: 110px; border: 1px solid var(--line-strong); border-radius: 0; padding: 16px; }
+.skel-patient-grid { display: grid; grid-template-columns: 1.1fr 1fr .65fr; gap: 12px; height: 100%; }
+.skel-patient-col { display: flex; flex-direction: column; justify-content: space-between; }
+.skel-line { height: 13px; border-radius: 999px; }
+.w15{width:15%}.w25{width:25%}.w40{width:40%}.w60{width:60%}.w80{width:80%}
+.skel-gap { height: 14px; }
+.skel-category { width: 34%; height: 18px; margin: 32px auto 14px; }
+.skel-table { margin-top: 26px; }
+.skel-thead { display: grid; grid-template-columns: 26px 2.4fr 1fr .7fr 1.2fr; gap: 12px; padding: 10px 8px; background: var(--surface-alt); border-bottom: 2px solid var(--rule); }
+.skel-tr { display: grid; grid-template-columns: 26px 2.4fr 1fr .7fr 1.2fr; gap: 12px; padding: 12px 8px; border-bottom: 1px solid var(--line); }
+.skel-error { display: none; margin-top: 18px; padding: 18px; border: 1px solid #fecaca; background: #fef2f2; border-radius: var(--r-md); color: #991b1b; font-size: 14px; text-align: center; }
+.skel-error button { margin-top: 10px; border: 0; cursor: pointer; background: var(--brand); color: #fff; padding: 8px 22px; border-radius: 999px; font-weight: 600; }
+.skel-error.is-visible { display: block; animation: ohFadeUp .3s ease; }
+
+/* ---------- top utility bar (kept & refined) ---------- */
+.app-toolbar {
+    position: sticky; top: 0; z-index: 900;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px clamp(14px, 3vw, 28px);
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+}
+.brand-chip {
+    flex: none; width: 38px; height: 38px; border-radius: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--brand), var(--teal));
+    color: #fff; font-size: 17px; box-shadow: 0 4px 10px -3px rgba(14,116,144,.55);
+}
+.toolbar-titles { min-width: 0; margin-right: auto; }
+.toolbar-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toolbar-subtitle { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-pill {
+    flex: none; display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: #fef3c7; color: var(--warn); transition: .25s;
+}
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status-pill.is-signed { background: #d1fae5; color: var(--ok); }
+.edit-toggle {
+    display: inline-flex; align-items: center; gap: 7px; flex: none;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--line-strong); background: #fff;
+    color: var(--ink-soft); font-size: 13px; font-weight: 600; transition: .18s;
+}
+.edit-toggle:hover { border-color: var(--brand); color: var(--brand-dark); }
+.edit-toggle[aria-pressed="true"] { background: #ccfbf1; color: #0f766e; border-color: #99f6e4; }
+.dirty-dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-left: 7px; vertical-align: middle; }
+body.is-dirty .dirty-dot { display: inline-block; }
+
+/* ---------- viewport & A4 sheet canvas ---------- */
+.report-viewport { padding: 20px clamp(10px, 2.5vw, 32px) calc(96px + var(--safe-b)); }
+.container { background: transparent !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+.container22 { position: relative; width: 100%; max-width: 794px; margin: 0 auto; }
+
+.sheet-page {
+    position: relative;
+    display: flex; flex-direction: column;
+    width: 100%; min-height: 420px;
+    background: var(--surface); border-radius: 0;
+    box-shadow: var(--sh-sheet); margin: 0 auto 26px;
+    overflow: hidden; animation: ohFadeUp .35s ease both;
+}
+.mode-paginated .sheet-page { width: 794px; height: 1123px; min-height: 0; margin-bottom: 28px; }
+/* Safety valve: an oversized lone block grows the sheet instead of clipping */
+.mode-paginated .sheet-page.sheet-auto { height: auto; min-height: 1123px; }
+.sheet-head { flex: none; padding: 22px var(--pad-x) 14px; border-bottom: 1px solid var(--rule); background: transparent; }
+.sheet-head:not(.sheet-head--cont) { padding-top: 92px; }
+.sheet-body, .sheet-foot { position: relative; z-index: 1; }
+.sheet-body { flex: 1 1 auto; padding: 16px var(--pad-x) 10px; min-height: 80px; overflow: hidden; background: transparent; }
+body:not(.mode-paginated) .sheet-body,
+.sheet-page.sheet-auto .sheet-body { overflow: visible; }
+.sheet-foot {
+    flex: none; padding: 12px var(--pad-x) 18px;
+    border-top: 1px solid var(--rule); background: transparent;
+}
+.sheet-meta-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; color: var(--faint); }
+.page-indicator { font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+.foot-disclaimer { margin: 6px auto 0; max-width: 94%; text-align: center; font-size: 10.5px; line-height: 1.45; color: var(--faint); font-family: var(--font-doc); font-style: italic; }
+
+/* Template letterhead band — mirrors the PDF's printed header artwork */
+.tpl-img {
+    position: absolute; inset: 0; z-index: 0;
+    display: block; width: 100%; height: 100%; max-height: none;
+    object-fit: fill; object-position: center; margin: 0;
+    pointer-events: none;
+}
+.sheet-head--cont { padding-top: 92px; }
+
+/* Match the printed section label hierarchy without changing PDF CSS. */
+.section > .headings > h2 {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 12px 10px 8px;
+}
+
+/* ---------- PATIENT BAR · GEOMETRY FROZEN (PDF parity) ----------
+   investigationmargin = live height of .report-details → only height-
+   neutral cosmetics here; typography/layout come from legacy #stying. */
+.report-details, .report-details * {
+    font-family: 'Times New Roman', Times, serif;
+    box-sizing: content-box;
+}
+/* Cloned continuation headers do not retain #barcodeImage; keep their barcode
+   dimensions identical to the first page's legacy-ID-styled barcode. */
+.report-details .barcode-div2 img {
+    width: 100px;
+    height: 50px;
+    max-width: none;
+}
+.report-details-innerDiv2 {
+    border-color: #000;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* ---------- TEST TABLES · ditto-PDF typography ---------- */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll .test-table { min-width: 540px; }   /* scroll instead of squeeze */
+.test-table th { font-weight: 700; }
+.high-low div { display: inline-block; min-width: 30px; }
+.high-low span { display: inline-block; }
+
+/* ---------- EDITABLE CELLS (data extraction) ---------- */
+.cell-edit {
+    border-radius: 4px; padding: 0 3px; margin: 0 -3px;
+    transition: background-color .15s ease, box-shadow .15s ease;
+    min-width: 12px; display: inline-block;
+}
+body.editing .cell-edit {
+    cursor: text;
+    box-shadow: inset 0 0 0 1px rgba(14,116,144,.30);
+    background: rgba(14,116,144,.05);
+}
+body.editing .cell-edit:hover { background: rgba(14,116,144,.10); }
+body.editing .cell-edit:focus {
+    outline: none; background: #fff;
+    box-shadow: 0 0 0 2px rgba(14,116,144,.25), inset 0 0 0 1px var(--brand);
+}
+
+/* ---------- END-OF-REPORT marker ---------- */
+.end-report {
+    text-align: center; margin: 18px 0 4px; font-size: 11.5px;
+    letter-spacing: .14em; color: var(--faint); font-weight: 600;
+}
+
+/* ---------- SIGNATURES · stable flex grid (BUG#4) ----------
+   Hosted once, in the LAST page footer — never splits across breaks. */
+.sheet-foot--sigs { padding-top: 16px; }
+.signed-off-div { width: 100%; }
+.signed-off-div2 {
+    width: 100%;
+    display: flex; justify-content: space-evenly; align-items: flex-end;
+    gap: 16px; row-gap: 14px; flex-wrap: wrap;
+}
+.signdivstyleclass {
+    width: auto; min-width: 128px; max-width: 190px; flex: 1 1 128px;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.signdivstyleclass img { object-fit: contain; max-height: 46px; }
+.signdivstyleclass .textspan {
+    margin-top: 6px; padding-top: 5px; width: 100%;
+    border-top: 1px solid var(--line-strong);
+    font-size: 11px; font-weight: 600; color: var(--ink-soft);
+    font-family: var(--font-ui);
+}
+.qr-div { flex: 0 0 auto; width: 64px; }
+.qr-div img { width: 100%; height: auto; }
+
+/* ---------- ACTION DOCK · BUG#1 FIX ----------
+   Centered floating pill that WRAPS instead of overflowing.
+   width:max-content up to 96vw → never bleeds off-screen. */
+.download-pdf-div {
+    position: fixed; z-index: 950;
+    left: 59%; transform: translateX(-50%);
+    bottom: calc(14px + var(--safe-b));
+    display: none;
+    flex-wrap: nowrap; justify-content: center; align-items: center;
+    gap: 2px; padding: 4px;
+    width: max-content; max-width: calc(100vw - 24px);
+    background: rgba(15,23,42,.93);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    box-shadow: 0 18px 40px -12px rgba(15,23,42,.55);
+}
+.download-pdf-div.is-ready { display: flex; animation: ohDockUp .35s ease both; }
+.downloadDiv { position: relative; border-radius: 10px; }
+#downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 10px; font-weight: 600; font-size: 12px;
+    border: 0; border-radius: 10px; cursor: pointer;
+    color: #e2e8f0; background: transparent; white-space: nowrap;
+    transition: background-color .18s ease, transform .12s ease;
+}
+#enterResult {
+    color: #fcd34d;
+    background: rgba(180, 83, 9, .76);
+}
+#enterResult i { color: #fde68a; }
+#downloadPDF:hover, #signOff:hover, #PDFsetting:hover,
+#BrowserPrint:hover, #sendReport:hover, #enterResult:hover {
+    background: rgba(255,255,255,.14); transform: translateY(-1px);
+}
+#downloadPDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i { font-size: 15px; }
+#enterResult i { font-size: 15px; }
+#downloadPDF { background: linear-gradient(135deg, var(--brand), var(--teal)); color: #fff; box-shadow: 0 6px 16px -6px rgba(14,116,144,.7); }
+#downloadPDF:hover { background: linear-gradient(135deg, var(--brand-dark), #0f766e); }
+#downloadPDF i { color: #fff; }
+#sendReport { color: #6ee7b7; } #sendReport i { color: #34d399; }
+#signOff { color: #93c5fd; }   #signOff i { color: #60a5fa; }
+.loading-overlay {
+    position: absolute; inset: 0; z-index: 5;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.65); border-radius: 10px;
+}
+.lo { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; animation: ohSpin 1s linear infinite; }
+@media (max-width: 900px) {
+    #downloadPDF span, #signOff span, #PDFsetting span,
+    #BrowserPrint span, #sendReport span, #enterResult span { display: none; }
+    #downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 9px 11px; }
+}
+
+/* ---------- TOASTS ---------- */
+#toastStack {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(86px + var(--safe-b)); z-index: 1200;
+    display: flex; flex-direction: column; gap: 8px;
+    width: max-content; max-width: 92vw;
+}
+.toast {
+    display: flex; align-items: center; gap: 10px;
+    background: #0f172a; color: #e2e8f0;
+    padding: 10px 16px; border-radius: 12px;
+    box-shadow: 0 14px 30px -10px rgba(0,0,0,.5);
+    font-size: 13.5px; animation: ohFadeUp .3s ease both;
+}
+.toast i { color: #34d399; }
+.toast--error { background: #7f1d1d; } .toast--error i { color: #fca5a5; }
+.toast--warn  { background: #78350f; } .toast--warn i  { color: #fcd34d; }
+.toast.is-leaving { opacity: 0; transform: translateY(6px); transition: .3s ease; }
+
+/* ---------- SHARE MODAL fit fixes ---------- */
+.popup-content { max-width: 92vw; }
+.pdf-viewer { border-radius: var(--r-md); border: 1px solid var(--line); }
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 1023px) {
+    :root { --pad-x: 40px; }
+    /* Preserve real A4 geometry on touch devices; scroll the canvas rather
+       than shrinking the report and corrupting its header/table layout. */
+    .report-viewport {
+        padding: 16px 0 calc(96px + var(--safe-b));
+        overflow-x: auto; overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable both-edges;
+    }
+    .report-viewport .container { width: 794px; min-width: 794px; }
+    #sheetStackWrap { width: 794px !important; min-width: 794px !important; max-width: none; }
+    .mode-paginated .sheet-page { width: 794px; height: 1123px; min-height: 0; }
+    #skeletonScreen, .skel-sheet { min-height: 1123px; }
+    .skel-sheet { min-height: 900px; }
+    .skel-patient-grid { grid-template-columns: 1fr 1fr; }
+    .skel-patient-col:last-child { display: none; }
+}
+@media (max-width: 956px) {
+    /* legacy min-width guards — kill horizontal scroll at the source */
+    .container22, .signed-off-div2 { min-width: 0 !important; }
+    .toolbar-title { max-width: 44vw; }
+    .status-pill { font-size: 11px; padding: 4px 10px; }
+}
+@media (max-width: 640px) {
+    :root { --pad-x: 18px; }
+    .skel-sheet { min-height: 1123px; }
+    .skel-letterhead { height: 74px; margin-bottom: 14px; }
+    .skel-patient-box { height: 132px; padding: 12px; }
+    .skel-patient-grid { gap: 8px; }
+    .skel-category { margin-top: 24px; }
+    td { font-size: 12px; }
+    th { font-size: 12px; }
+    .signdivstyleclass { min-width: 104px; }
+    .qr-div { width: 52px; }
+    .notes span:not(.cell-edit), .remark-row span:not(.cell-edit),
+    .advice span, .remarks span { margin-left: 35%; }
+}
+
+/* ---------- PRINT (screen sheets flatten; PDF itself uses #stying) ---------- */
+@media print {
+    body { background: #fff !important; }
+    .app-toolbar, .download-pdf-div, #skeletonScreen, #toastStack,
+    .edit-toggle, .no-print { display: none !important; }
+    .report-viewport { padding: 0 !important; }
+    .sheet-page {
+        box-shadow: none !important; border-radius: 0 !important;
+        height: auto !important; min-height: 0 !important; margin: 0 !important;
+        break-after: page; page-break-after: always;
+    }
+    .sheet-page:last-of-type { break-after: auto; page-break-after: auto; }
+    tbody tr, .headings { break-inside: avoid; page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    h2, h3 { break-after: avoid; page-break-after: avoid; }
+    .page-break { break-before: page; page-break-before: always; }
+    .wrong i, .delete-btn i { visibility: hidden; }
+    tbody tr:hover { background: transparent !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}</style>
+</head>
+<body>
+    <!-- ================= SKELETON BOOT SCREEN ================= -->
+    <div id="skeletonScreen" aria-busy="true" aria-live="polite">
+        <div class="skel-wrap">
+            <div class="skel-sheet">
+                <div class="skel-block skel-letterhead"></div>
+                <div class="skel-patient-box">
+                    <div class="skel-patient-grid">
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w40"></div>
+                        </div>
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                        </div>
+                        <div class="skel-patient-col">
+                            <div class="skel-block skel-line w80"></div>
+                            <div class="skel-block skel-line w60"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="skel-block skel-category"></div>
+                <div class="skel-table" aria-hidden="true">
+                    <div class="skel-thead">
+                        <div></div><div class="skel-block skel-line w80"></div>
+                        <div class="skel-block skel-line w40"></div>
+                        <div class="skel-block skel-line w25"></div>
+                        <div class="skel-block skel-line w60"></div>
+                    </div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w60"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w40"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w80"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w60"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w15"></div><div class="skel-block skel-line w40"></div></div>
+                    <div class="skel-tr"><div></div><div class="skel-block skel-line w80"></div><div class="skel-block skel-line w40"></div><div class="skel-block skel-line w25"></div><div class="skel-block skel-line w60"></div></div>
+                </div>
+                <div class="skel-error">
+                    <span class="skel-error-msg">Something went wrong.</span><br>
+                    <button type="button" onclick="window.location.reload()">Retry</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+            <!-- ================= APP TOOLBAR ================= -->
+    <!-- ================= REPORT DOCUMENT VIEWPORT ================= -->
+    <main class="report-viewport">
+        <div class="container" id="container" data-report-section="document-root">
+            <div class="container22" id="sheetStackWrap">
+                <!-- A4 sheets are generated here by reportFormat.js -->
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= ACTION DOCK ================= -->
+    <div class="download-pdf-div no-print" role="toolbar" aria-label="Report actions">
+        <div class="downloadDiv">
+            <button id="signOff"><i class="fas fa-signature"></i><span>Sign off</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <button id="enterResult" type="button"><i class="fas fa-pen-to-square"></i><span>Enter Result</span></button>
+        </div>
+        <div class="downloadDiv">
+            <button id="downloadPDF" class="sign click"><i class="fas fa-file-pdf"></i><span>Download PDF</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <button id="sendReport" class="sign click"><i class="fas fa-paper-plane"></i><span>Send Report</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <button id="BrowserPrint" class="sign click"><i class="fas fa-print"></i><span>Browser print</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+        <div class="downloadDiv">
+            <a href="pages/pages/printsetting.html" id="PDFsettinganchr" style="text-decoration:none;">
+                <button id="PDFsetting" class="sign click"><i class="fas fa-gear"></i><span>Print settings</span></button>
+            </a>
+            <div class="loading-overlay"><div class="lo"></div></div>
+        </div>
+    </div>
+
+    <!-- ================= SHARE / SEND MODAL ================= -->
+    <div id="popupModal" class="popup-modal" role="dialog" aria-modal="true" aria-label="Send report">
+        <div class="popup-content">
+            <div class="popup-header">
+                <div class="share-buttons">
+                    <button id="smsButton">SMS</button>
+                    <button id="whatsappButton">WhatsApp</button>
+                    <button id="emailButton">Email</button>
+                    <button id="openPdfButton">Open PDF</button>
+                </div>
+                <div class="closeBtnDiv"><span class="close-button" role="button" aria-label="Close">&times;</span></div>
+            </div>
+            <div id="inputField" class="input-container" style="display:none;">
+                <input id="contactInput" type="text" placeholder="Enter Phone Number or Email" />
+                <button id="sendButton">Send</button>
+            </div>
+            <iframe id="pdfFrame" src="" class="pdf-viewer" title="PDF preview"></iframe>
+        </div>
+    </div>
+
+    <!-- ================= TOASTS ================= -->
+    <div id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+    <noscript>
+        <p style="text-align:center;padding:20px;">This report viewer requires JavaScript.</p>
+    </noscript>
+
+    
+<script>
+window.__lastPdfPayload = null;
+window.BASE_URL = 'http://mock.local';
+window.user = { pdfFormat: 'reportFormat', showprintsetting: true,
+                tenantId: { _id: 'tenant1', modelType: '2layer' } };
+const R = (body) => Promise.resolve({ ok: true, status: 200,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+    blob: () => Promise.resolve(new Blob(['%PDF-mock'], { type: 'application/pdf' })) });
+window.fetch = function (url, opts) {
+    url = String(url);
+    if (url.includes('/ReportData')) return R({"_id":"rep123","reg_id":"REG-777","bookingId":"BK-001","patientName":"Zaid","year":"34","gender":"Male","doctorName":"Dr. House","labName":"TDS Health Diagnostics","uniquetestArray":"CBC, LFT","date":"2026-08-20T00:00:00Z","time":"09:30","collectedOn":"2026-08-20T01:00:00Z","receivedOn":"2026-08-20T02:00:00Z","reportedOn":"2026-08-21T05:00:00Z","showLabIncharge":true,"signOff":false,"categorizedPDF":true,"CategoryAndTest":[{"category":"Haematology","title":"Complete Blood Count","tests":[{"testName":"Analyte 1.1","value":"1","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.2","value":"2","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.3","value":"3","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":"<div class=\"documented-content\"><p>Method notes.</p></div>"},{"testName":"Analyte 1.4","value":"4","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.5","value":"5","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.6","value":"6","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.7","value":"7","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.8","value":"8","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.9","value":"9","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.10","value":"10","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.11","value":"11","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.12","value":"12","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.13","value":"13","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.14","value":"14","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.15","value":"15","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.16","value":"16","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.17","value":"17","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.18","value":"18","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.19","value":"19","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.20","value":"20","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.21","value":"21","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.22","value":"22","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 1.23","value":"0","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.24","value":"1","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.25","value":"2","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.26","value":"3","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.27","value":"4","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.28","value":"5","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.29","value":"6","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 1.30","value":"7","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""}],"advice":"<p>Stay hydrated.</p>","notes":"<p>Fasting not required.</p>","interpretation":"<p>Within expected limits.</p>"},{"category":"Biochemistry","title":"Liver Function","tests":[{"testName":"Analyte 2.1","value":"2","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.2","value":"4","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.3","value":"6","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":"<div class=\"documented-content\"><p>Method notes.</p></div>"},{"testName":"Analyte 2.4","value":"8","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.5","value":"10","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.6","value":"12","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.7","value":"14","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.8","value":"16","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.9","value":"18","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.10","value":"20","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.11","value":"22","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.12","value":"1","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.13","value":"3","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.14","value":"5","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.15","value":"7","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.16","value":"9","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.17","value":"11","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.18","value":"13","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.19","value":"15","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.20","value":"17","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.21","value":"19","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.22","value":"21","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.23","value":"0","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.24","value":"2","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.25","value":"4","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.26","value":"6","unit":"g/dL","reference":"8.0 - 18.0","remark":"Low","details":""},{"testName":"Analyte 2.27","value":"8","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.28","value":"10","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.29","value":"12","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""},{"testName":"Analyte 2.30","value":"14","unit":"g/dL","reference":"8.0 - 18.0","remark":"","details":""}],"remarks":"<p>Mild variation acceptable.</p>"}],"MoreDetails":"<div class=\"documented-content\"><p>Additional findings none.</p></div>"});
+    if (url.includes('/templates')) return R({ urls: [{ template: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' }] });
+    if (url.includes('getDoctorsSign')) return R({"showlabinchargesign":true,"labinchargesign":"data:image/gif;base64,R0lGODlhAQABAAAAACw=","labinchargeinfo":"Dr. Lab Incharge","showfirstdoctorsign":true,"firstdoctorsign":"data:image/gif;base64,R0lGODlhAQABAAAAACw=","firstdoctorsigninfo":"Dr. First Pathologist","showseconddoctorsign":true,"seconddoctorsign":"data:image/gif;base64,R0lGODlhAQABAAAAACw=","seconddoctorsigninfo":"Dr. Second Pathologist"});
+    if (url.includes('generate-barcode')) return R({ barcode: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=' });
+    if (url.includes('generate-qr')) return R({ qrCode: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=' });
+    if (url.includes('adding-pdf-data')) {
+        try { window.__lastPdfPayload = JSON.parse(opts.body); } catch (e) {}
+        return R({ success: true });
+    }
+    if (url.includes('get-pdf')) return R({ pdf: true });
+    if (url.includes('editReportsignofffield')) return R({ success: true });
+    if (url.includes('CompleteBookingcontroller')) return R({ success: true });
+    return R({});
+};
+</script>
+<script>
 /* ============================================================================
     OccuHealth LIS · Pathology Report Layout (Format 1) — redesigned UI layer
     ----------------------------------------------------------------------------
@@ -954,46 +2337,11 @@
         const button = document.getElementById('enterResult');
         if (!button) return;
 
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', () => {
             if (!state.report) return;
-
-            const bookingId = state.report.bookingId || state.report.reg_id || state.report.booking_id;
-            if (!bookingId) {
-                toast('Booking ID not found for this report.', 'error');
-                return;
-            }
-
-            try {
-                button.disabled = true;
-                const response = await fetch(`${BASE_URL}/api/v1/user/getbooking`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ value1: bookingId })
-                });
-
-                if (response.ok) {
-                    const booking = await response.json();
-                    if (booking && (booking.bookingId || booking._id)) {
-                        booking.__fullBooking = true;
-                        localStorage.setItem('booking', JSON.stringify(booking));
-                        localStorage.setItem('regId', JSON.stringify(booking.bookingId || bookingId));
-                        window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
-                        return;
-                    }
-                }
-
-                // Fallback to state.report if getbooking API response is not valid
-                localStorage.setItem('booking', JSON.stringify(state.report));
-                localStorage.setItem('regId', JSON.stringify(bookingId));
-                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
-            } catch (error) {
-                console.error('Error fetching booking details for Enter Result:', error);
-                localStorage.setItem('booking', JSON.stringify(state.report));
-                localStorage.setItem('regId', JSON.stringify(bookingId));
-                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
-            } finally {
-                button.disabled = false;
-            }
+            localStorage.setItem('booking', JSON.stringify(state.report));
+            localStorage.setItem('regId', JSON.stringify(state.report.reg_id || state.report.bookingId || ''));
+            window.open(BASE_URL + '/admin/admin.html?page=labreport', '_blank');
         });
     }
 
@@ -1491,3 +2839,87 @@
 
     boot();
 })();
+</script>
+
+<script>
+window.__probe = async function () {
+    await new Promise(r => setTimeout(r, 550));
+    const q = s => document.querySelector(s);
+    const qa = s => Array.from(document.querySelectorAll(s));
+    const de = document.documentElement;
+    const dock = q('.download-pdf-div');
+    const dr = dock ? dock.getBoundingClientRect() : null;
+    /* Visible-text brand scan: strip script/style so the probe's own
+       source can't self-match. */
+    const cleanBody = document.body.cloneNode(true);
+    cleanBody.querySelectorAll('script,style').forEach((s) => s.remove());
+    const visibleText = cleanBody.textContent || '';
+    const bodiesOverflow = [];
+    let noClip = true;
+    qa('.sheet-body').forEach((b) => {
+        const sheet = b.closest('.sheet-page');
+        if (!(sheet && sheet.classList.contains('sheet-auto')) &&
+            b.scrollHeight > b.clientHeight + 1) {
+            noClip = false;
+            bodiesOverflow.push({ s: b.scrollHeight, c: b.clientHeight });
+        }
+    });
+    const tpl = q('.sheet-head .tpl-img');
+    return {
+        skeletonGone: !document.getElementById('skeletonScreen'),
+        dockReady: dock && dock.classList.contains('is-ready'),
+        isPaginatedClass: document.body.classList.contains('mode-paginated'),
+        sheets: qa('.sheet-page').length,
+        testRows: qa('.test-table tbody tr').length,
+        sigBlocks: qa('.signed-off-div').length,
+        sigHas2: !!q('.signed-off-div .signed-off-div2'),
+        sigFootClass: !!q('.sheet-foot--sigs'),
+        indicators: qa('.page-indicator').map(e => e.textContent),
+        hOverflowPx: de.scrollWidth - window.innerWidth,
+        vw: window.innerWidth,
+        dockLeft: dr ? Math.round(dr.left) : null,
+        dockRight: dr ? Math.round(dr.right) : null,
+        tplOk: !!tpl && (tpl.getAttribute('src') || '').startsWith('data:image/png'),
+        tplCount: qa('.tpl-img').length,
+        hasTableScroll: !!q('.table-scroll'),
+        noClip,
+        bodiesOverflow,
+        inventedBrand: visibleText.includes('OccuHealth Diagnostics') ||
+                       visibleText.includes('SKU Health')
+    };
+};
+/* PDF-PARITY: .report-details height must be identical with and without
+   #ohScreen — investigationmargin feeds Puppeteer's top margin. */
+window.__probeParity = async function () {
+    const el = document.querySelector('.report-details');
+    const ohs = document.getElementById('ohScreen');
+    await new Promise(r => setTimeout(r, 200));
+    const withOverlay = el.offsetHeight;
+    ohs.disabled = true;
+    void el.offsetWidth;
+    const withoutOverlay = el.offsetHeight;
+    ohs.disabled = false;
+    void el.offsetWidth;
+    return { withOverlay, withoutOverlay };
+};
+window.__probePayload = async function () {
+    document.getElementById('downloadPDF').click();
+    await new Promise(r => setTimeout(r, 600));
+    const p = window.__lastPdfPayload || {};
+    return {
+        missingKeys: ['htmlContent','cssContent','header','footer',
+            'investigationmargin','reportId','bookingId'].filter(k => p[k] === undefined),
+        cssIsLegacy: (p.cssContent || '').includes('#1a73e8') &&
+                     !(p.cssContent || '').includes('--oh-primary'),
+        cssMatchesStying: p.cssContent === document.getElementById('stying').innerHTML,
+        headerInlineOk: (p.header || '').startsWith(
+            '<div class="report-details" style="width: 100%; display: flex; justify-content: center;align-items: center;">'),
+        footerOk: (p.footer || '').includes('signed-off-div2') &&
+                  (p.footer || '').includes('Dr. Lab Incharge'),
+        marginIsNumber: typeof p.investigationmargin === 'number'
+    };
+};
+</script>
+</body>
+
+</html>
