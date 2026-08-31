@@ -724,24 +724,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             </html>`;
 
             await page.setContent(contentWithCssAndImage, { waitUntil: 'domcontentloaded', timeout: pdfContentLoadTimeout });
-            const computedTopMarginPx = headermarginPx + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)));
-            const actualHeaderPx = await page.evaluate((headerMarkup, isFormat3, hMargin) => {
-                const sandbox = document.createElement('div');
-                sandbox.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:794px;visibility:hidden;pointer-events:none;background:#fff;';
-                sandbox.innerHTML = `
-                    <div class="pdf-header-div" style="width:${isFormat3 ? "100%" : "95%"};margin:0 auto;border:${isFormat3 ? "none" : "1px solid black"};margin-top:${isFormat3 ? "0" : hMargin}cm !important;">
-                        <div class="report-details-innerDiv2" style="width:${isFormat3 ? "95%" : "100%"} !important;font-size:12px;margin-top:${isFormat3 ? hMargin : "0"}cm !important;border:none !important;">
-                            ${headerMarkup}
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(sandbox);
-                const h = sandbox.firstElementChild ? sandbox.firstElementChild.offsetHeight : 0;
-                document.body.removeChild(sandbox);
-                return h;
-            }, header, format3, headermargin).catch(() => 0);
-
-            const finalTopMarginPx = Math.max(computedTopMarginPx, actualHeaderPx > 0 ? headermarginPx + actualHeaderPx + 15 : 200);
+            await waitForPdfDocumentReady(page);
 
             const renderStart = Date.now();
             const renderedPdf = await renderPdfWithFallback(page, {
@@ -836,7 +819,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
-                margin: { top: `${finalTopMarginPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
+                margin: { top: `${(headermarginPx - 30) + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
