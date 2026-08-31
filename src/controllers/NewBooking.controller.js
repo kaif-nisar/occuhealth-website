@@ -4223,42 +4223,95 @@ const editBookingController = async (req, res) => {
 };
 
 const searchit = asyncHandler(async (req, res) => {
-    const search = req.query.search || '';
+    const rawSearch = (req.query.search || '').trim();
     const requestedPage = Number.parseInt(req.query.page, 10);
     const requestedLimit = Number.parseInt(req.query.limit, 10);
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
         ? Math.min(requestedLimit, 100)
         : 10;
-    const requestedFromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
-    const requestedToDate = req.query.toDate ? new Date(req.query.toDate) : null;
-    const fromDate = requestedFromDate && !isNaN(requestedFromDate.getTime())
-        ? requestedFromDate
-        : new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const toDate = requestedToDate && !isNaN(requestedToDate.getTime())
-        ? requestedToDate
-        : new Date();
-    toDate.setHours(23, 59, 59, 999);
+
+    const hasFromDate = Boolean(req.query.fromDate && req.query.fromDate.trim());
+    const hasToDate = Boolean(req.query.toDate && req.query.toDate.trim());
+
+    const requestedFromDate = hasFromDate ? new Date(req.query.fromDate) : null;
+    const requestedToDate = hasToDate ? new Date(req.query.toDate) : null;
+
+    let fromDate = requestedFromDate && !isNaN(requestedFromDate.getTime()) ? requestedFromDate : null;
+    let toDate = requestedToDate && !isNaN(requestedToDate.getTime()) ? requestedToDate : null;
+
+    // Only apply the 24-hour default date filter when NO search query is typed.
+    // If a search query (rawSearch) is typed, search across ALL historical dates so matching bookings are never hidden.
+    if (!rawSearch && !fromDate && !toDate) {
+        fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        toDate = new Date();
+    }
+
+    if (toDate) {
+        toDate.setHours(23, 59, 59, 999);
+    }
+
     try {
-        // Billing search is tenant-wide so staff/admin users can bill bookings
-        // created by any user in the same tenant.
-        const query = {
-            $and: [
-                { tenantId: req.user.tenantId._id },
-                { createdAt: { $gte: fromDate, $lte: toDate } },
-                {
-                    $or: [
-                        { bookingId: { $regex: search, $options: 'i' } },
-                        { patientName: { $regex: search, $options: 'i' } },
-                        { doctorName: { $regex: search, $options: 'i' } },
-                        { "savedDoctor.doctorName": { $regex: search, $options: 'i' } },
-                        { "savedDoctor.name": { $regex: search, $options: 'i' } },
-                        { "tableData.barcodeId": { $regex: search, $options: 'i' } },
-                        { "tableData.testName": { $regex: search, $options: 'i' } }
-                    ]
-                }
-            ]
-        };
+        const andConditions = [];
+
+        // 1. Role-Based Scoping & Security:
+        // Admin Users (role === 'admin' or staff of admin): Can search ALL bookings across all tenants.
+        // Franchise / Staff Users: Restricted ONLY to their own tenant and bookings created by them / their franchise.
+        if (!isAdminActor(req.user)) {
+            const actorId = getBookingActorId(req.user);
+            const userTenantId = req.user?.tenantId?._id || req.user?.tenantId;
+
+            const userScopeConditions = [];
+            if (userTenantId) {
+                userScopeConditions.push({ tenantId: userTenantId });
+            }
+            if (actorId) {
+                userScopeConditions.push({ createdBy: actorId });
+                userScopeConditions.push({ subFranchiseeId: actorId });
+            }
+            if (req.user?._id) {
+                userScopeConditions.push({ createdBy: req.user._id });
+            }
+
+            if (userScopeConditions.length > 0) {
+                andConditions.push({ $or: userScopeConditions });
+            }
+        }
+
+        // 2. Date Range Filter:
+        // Apply date range filter when specified or defaulted (when search is empty)
+        if (fromDate || toDate) {
+            const dateQuery = {};
+            if (fromDate) dateQuery.$gte = fromDate;
+            if (toDate) dateQuery.$lte = toDate;
+            andConditions.push({ createdAt: dateQuery });
+        }
+
+        // 3. Multi-Field Search Filter:
+        // Searches across bookingId, barcodeId, patientName, patientPhone, doctorName, testName, etc.
+        if (rawSearch) {
+            const searchRegex = { $regex: rawSearch, $options: 'i' };
+            andConditions.push({
+                $or: [
+                    { bookingId: searchRegex },
+                    { patientName: searchRegex },
+                    { patientPhone: searchRegex },
+                    { doctorName: searchRegex },
+                    { "savedDoctor.doctorName": searchRegex },
+                    { "savedDoctor.name": searchRegex },
+                    { "tableData.barcodeId": searchRegex },
+                    { "tableData.testName": searchRegex },
+                    { labName: searchRegex },
+                    { franchisee: searchRegex },
+                    { subFranchisee: searchRegex },
+                    { courierId: searchRegex },
+                    { courierName: searchRegex }
+                ]
+            });
+        }
+
+        const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
         const total = await newBooking.countDocuments(query);
         const bookings = await newBooking.find(query)
             .sort({ createdAt: -1 })
@@ -4274,7 +4327,7 @@ const searchit = asyncHandler(async (req, res) => {
             totalPages: Math.max(1, Math.ceil(total / limit))
         });
     } catch (error) {
-        console.error(error);
+        console.error('Search error in searchit:', error);
         res.status(500).json({ error: 'Failed to fetch bookings.' });
     }
 });

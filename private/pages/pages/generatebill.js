@@ -193,9 +193,14 @@
         var searchValue = (searchInput ? searchInput.value : "").trim();
         var fromDate = $id("from-date");
         var toDate = $id("to-date");
+
+        // When a search value is entered, omit default date bounds so historical matching bookings are found.
+        var fromDateVal = searchValue ? "" : (fromDate ? fromDate.value : "");
+        var toDateVal = searchValue ? "" : (toDate ? toDate.value : "");
+
         var bookingSearchUrl = BASE_URL + "/api/v1/user/bookings-search?search=" + encodeURIComponent(searchValue) +
-            "&fromDate=" + encodeURIComponent(fromDate ? fromDate.value : "") +
-            "&toDate=" + encodeURIComponent(toDate ? toDate.value : "") +
+            "&fromDate=" + encodeURIComponent(fromDateVal) +
+            "&toDate=" + encodeURIComponent(toDateVal) +
             "&page=" + encodeURIComponent(state.page) +
             "&limit=" + encodeURIComponent(state.pageSize);
 
