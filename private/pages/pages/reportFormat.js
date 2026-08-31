@@ -1004,16 +1004,17 @@
         const pill = document.getElementById('reportStatusPill');
         const text = document.getElementById('reportStatusText');
         if (!pill || !text) return;
-        pill.classList.toggle('is-signed', signed);
+        pill.classList.toggle('is-signed', Boolean(signed));
         text.textContent = signed ? 'Signed off' : 'Pending sign-off';
     }
 
     function setupSignOff() {
-        if (state.report.signOff) {
+        const initialSigned = Boolean(state.report && state.report.signOff);
+        if (initialSigned) {
             /* Legacy behaviour: a pre-signed report unlocks the gated buttons */
             $$('.click').forEach((button) => button.classList.remove('sign'));
-            setSignOffUI(true);
         }
+        setSignOffUI(initialSigned);
 
         document.getElementById('signOff').addEventListener('click', async function (e) {
             const loader = e.target.closest('.downloadDiv') && e.target.closest('.downloadDiv').querySelector('.loading-overlay');
@@ -1034,6 +1035,7 @@
                 });
                 if (!response.ok) throw new Error('signoff field not updated');
                 setSignOffUI(signoff);
+                if (state.report) state.report.signOff = signoff;
             } catch (error) {
                 console.error('Sign-off flag update failed:', error);
             }

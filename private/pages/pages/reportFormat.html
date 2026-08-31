@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -957,11 +957,29 @@ button { font-family: inherit; }
 .toolbar-subtitle { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-pill {
     flex: none; display: inline-flex; align-items: center; gap: 7px;
-    padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
-    background: #fef3c7; color: var(--warn); transition: .25s;
+    padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.01em;
+    background: #fffbe6; color: #b45309; border: 1px solid #fde68a;
+    box-shadow: 0 1px 3px rgba(180,83,9,.08);
+    transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.status-pill.is-signed { background: #d1fae5; color: var(--ok); }
+.status-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+    box-shadow: 0 0 0 2px rgba(180,83,9,.2);
+    animation: statusPulse 2s infinite;
+}
+.status-pill.is-signed {
+    background: #ecfdf5; color: #047857; border-color: #a7f3d0;
+    box-shadow: 0 1px 3px rgba(4,120,87,.08);
+}
+.status-pill.is-signed .dot {
+    box-shadow: 0 0 0 2px rgba(4,120,87,.2);
+    animation: none;
+}
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
 .edit-toggle {
     display: inline-flex; align-items: center; gap: 7px; flex: none;
     padding: 8px 14px; border-radius: 10px; cursor: pointer;
@@ -1289,6 +1307,17 @@ body.editing .cell-edit:focus {
     </div>
 
             <!-- ================= APP TOOLBAR ================= -->
+    <header class="app-toolbar no-print">
+        <div class="brand-chip"><i class="fas fa-file-medical"></i></div>
+        <div class="toolbar-titles">
+            <div class="toolbar-title">Pathology Lab Report</div>
+            <div class="toolbar-subtitle" id="toolbarSubtitle">Loading report...</div>
+        </div>
+        <div class="status-pill" id="reportStatusPill" title="Report Sign-off Status">
+            <span class="dot"></span>
+            <span id="reportStatusText">Pending sign-off</span>
+        </div>
+    </header>
     <!-- ================= REPORT DOCUMENT VIEWPORT ================= -->
     <main class="report-viewport">
         <div class="container" id="container" data-report-section="document-root">
