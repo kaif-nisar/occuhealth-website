@@ -1525,6 +1525,11 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     const marginRightPx = cmToPx(finitePdfNumber(mergedValues.marginRight, 0, { max: 10 }));
     const marginLeftPx = cmToPx(finitePdfNumber(mergedValues.marginLeft, 0, { max: 10 }));
 
+    /* Clamp investigationmargin to A4-valid desktop range before computing
+       Puppeteer margin.top — prevents mobile-inflated DB values from
+       collapsing or inverting the header/content gap. */
+    mergedValues.investigationmargin = finitePdfNumber(mergedValues.investigationmargin, 135, { min: 60, max: 280 }) + 20;
+
     const inlinedSegments = await inlinePdfHtmlSegments({
         htmlContent: mergedValues.htmlContent,
         header: mergedValues.header,
@@ -1876,6 +1881,20 @@ const savingPdfDatacontroller = async (req, res) => {
     for (const key in vars) {
         if (vars[key] != null) updateFields[key] = vars[key];
     }
+
+    /* Clamp investigationmargin to A4-valid range before persisting.
+       Mobile browsers measure .report-details at screen width (e.g. 375px),
+       returning 300-400px — far more than the ~135px Puppeteer sees at 794px.
+       Storing the inflated value would make every subsequent PDF download
+       (including from desktop) produce a zero/negative body gap.
+       Valid A4 header heights sit comfortably between 60px and 280px. */
+    if (updateFields.investigationmargin != null) {
+        const rawIM = Number(updateFields.investigationmargin);
+        if (!Number.isFinite(rawIM) || rawIM < 60 || rawIM > 280) {
+            updateFields.investigationmargin = 135;   // safe A4 desktop default
+        }
+    }
+
     updateFields.updatedAt = new Date();
 
     const getcustomization = await customization.findOneAndUpdate(

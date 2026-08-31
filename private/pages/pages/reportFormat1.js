@@ -882,9 +882,21 @@
     downloadpdffunction();
 
     function countLines() {
-        const span = document.querySelector(".report-details");
-        const totallines = span.offsetHeight;
-        return totallines;
+        const header = document.querySelector(".report-details");
+        if (!header) return 135;
+
+        /* Measure header height in a strictly isolated A4 desktop sandbox (794px width)
+           so measurements are 100% device-agnostic regardless of mobile/tablet screen size.
+           On a 375px mobile screen the element wraps onto many lines and gives 300-400px —
+           completely wrong for Puppeteer which always renders at A4/794px. */
+        const sandbox = document.createElement('div');
+        sandbox.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:794px;visibility:hidden;pointer-events:none;box-sizing:border-box;background:#fff;overflow:hidden;';
+        const clone = header.cloneNode(true);
+        sandbox.appendChild(clone);
+        document.body.appendChild(sandbox);
+        const measuredHeight = clone.offsetHeight || header.offsetHeight || 135;
+        document.body.removeChild(sandbox);
+        return measuredHeight;
     }
 
     async function signoffdivfunction() {
