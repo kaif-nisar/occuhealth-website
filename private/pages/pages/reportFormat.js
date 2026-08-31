@@ -794,8 +794,26 @@
         SNAPSHOT PIPELINE (legacy contract — keys & shapes unchanged)
        ======================================================================== */
     function countLines() {
-        const span = $('.report-details');
-        return span ? span.offsetHeight : 0;
+        const header = $('.report-details');
+        if (!header) return 0;
+
+        /* Measure header height in a strictly isolated A4 desktop sandbox (794px width)
+           so measurements are 100% device-agnostic regardless of mobile/tablet screen size. */
+        const sandbox = document.createElement('div');
+        sandbox.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:794px;visibility:hidden;pointer-events:none;box-sizing:border-box;background:#fff;';
+
+        const clone = header.cloneNode(true);
+        const liveBarcode = $('#barcodeImage', header);
+        const cloneBarcode = $('#barcodeImage', clone);
+        if (liveBarcode && cloneBarcode && liveBarcode.src) {
+            cloneBarcode.src = liveBarcode.src;
+        }
+
+        sandbox.appendChild(clone);
+        document.body.appendChild(sandbox);
+        const measuredHeight = clone.offsetHeight || header.offsetHeight || 0;
+        document.body.removeChild(sandbox);
+        return measuredHeight;
     }
 
     /* Rebuild a standalone .container2 holding every canonical child in order.

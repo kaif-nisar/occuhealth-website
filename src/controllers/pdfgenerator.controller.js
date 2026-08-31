@@ -629,7 +629,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
-    investigationmargin = finitePdfNumber(investigationmargin, 40, { max: 500 }) + 20;
+    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 }) + 20;
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
 
@@ -922,7 +922,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
-    investigationmargin = parseFloat(investigationmargin) + 20;
+    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 }) + 20;
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
 
