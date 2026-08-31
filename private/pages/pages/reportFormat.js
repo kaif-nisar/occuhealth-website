@@ -1122,8 +1122,10 @@
 
             loader.style.display = 'flex';
 
+            let snapshot;
             try {
-                await savePdfDataFromPage(getPdfDataSnapshot());
+                snapshot = getPdfDataSnapshot();
+                await savePdfDataFromPage(snapshot);
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 toast(error.message || 'Data save failed. PDF generation stopped.', 'error');
@@ -1137,6 +1139,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         value1: state.reportId,
+                        investigationmargin: snapshot ? snapshot.investigationmargin : countLines(),
                         labinchargesign: o.labinchargesign || null,
                         checkBox: o.checkBox || false,
                         backgroundImageUrl: state.backgroundImageUrl,
