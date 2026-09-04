@@ -68,6 +68,7 @@
         editing: false,
         signInfo: { labinchargeinfo: null, sign: null }
     };
+    const requestState = { download: false, send: false };
 
     /* Keep the preview in the same A4 pagination mode at every viewport size.
        Narrow screens scroll the canvas instead of compressing PDF geometry. */
@@ -295,12 +296,12 @@
 
     async function convertImagesToBase64(selector) {
         const images = $$(selector || '.signed-off-div2 img');
-        for (const img of images) {
+        await Promise.all(images.map(async (img) => {
             const src = String(img.getAttribute('src') || '').trim();
-            if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
+            if (!src || src.startsWith('data:') || src.startsWith('blob:')) return;
             try { img.src = await imageToBase64(src); }
             catch (error) { console.warn('base64 conversion skipped:', src, error); }
-        }
+        }));
     }
 
     /* ========================= H/L FLAG EVALUATION (shared by render + live edits) ========================= */
@@ -1035,11 +1036,14 @@
         setSignOffUI(initialSigned);
 
         document.getElementById('signOff').addEventListener('click', async function (e) {
-            const loader = e.target.closest('.downloadDiv') && e.target.closest('.downloadDiv').querySelector('.loading-overlay');
+            const downloadDiv = e.target.closest('.downloadDiv');
+            const loader = downloadDiv && downloadDiv.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
 
             loader.style.display = 'flex';
 
+            /* Optimistically toggle the gated-button class so the UI feels
+               instant; we revert on failure. */
             const targetButtons = $$('.click');
             targetButtons.forEach((button) => button.classList.toggle('sign'));
             const anyButtonHasSign = targetButtons.some((b) => b.classList.contains('sign'));
@@ -1052,21 +1056,24 @@
                     body: JSON.stringify({ value1: state.reportId, signoff })
                 });
                 if (!response.ok) throw new Error('signoff field not updated');
+
                 setSignOffUI(signoff);
                 if (state.report) state.report.signOff = signoff;
+                toast(signoff ? 'Report signed off successfully.' : 'Sign-off removed.', 'success');
+
+                /* Fire-and-forget: mark the booking report-ready in the
+                   background so the UI stays responsive. The server-side
+                   status transition + notification pipeline runs
+                   independently and must never block sign-off. */
+                if (state.report && state.report.bookingId) {
+                    updatebookingisreportreadyfield(state.report.bookingId)
+                        .catch((error) => console.warn('Background booking status update failed:', error));
+                }
             } catch (error) {
                 console.error('Sign-off flag update failed:', error);
-            }
-
-            try {
-                await savePdfDataFromPage(getPdfDataSnapshot(), {
-                    bookingId: state.report.bookingId,
-                    isdocumented: state.report.isDocumented
-                });
-                await updatebookingisreportreadyfield(state.report.bookingId);
-            } catch (error) {
-                console.error('Sign-off snapshot failed:', error);
-                toast('Sign-off could not be saved.', 'error');
+                toast('Sign-off could not be saved. Please try again.', 'error');
+                /* Revert the optimistic UI toggle */
+                targetButtons.forEach((button) => button.classList.toggle('sign'));
             } finally {
                 loader.style.display = 'none';
             }
@@ -1116,6 +1123,8 @@
     async function downloadpdffunction(options) {
         const o = options || {};
         document.getElementById('downloadPDF').addEventListener('click', async (e) => {
+            if (requestState.download) return;
+            requestState.download = true;
             const wrapper = e.target.closest('.downloadDiv');
             const loader = wrapper && wrapper.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
@@ -1169,6 +1178,7 @@
                 toast('PDF generation failed. Please try again.', 'error');
             } finally {
                 loader.style.display = 'none';
+                requestState.download = false;
             }
         });
     }
@@ -1204,6 +1214,8 @@
         const openPdfButton = document.getElementById('openPdfButton');
 
         document.getElementById('sendReport').addEventListener('click', async (e) => {
+            if (requestState.send) return;
+            requestState.send = true;
             const wrapper = e.target.closest('.downloadDiv');
             const loader = wrapper && wrapper.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
@@ -1240,6 +1252,8 @@
                 toast('Error generating PDF. Please try again.', 'error');
                 popupModal.style.display = 'none';
                 loader.style.display = 'none';
+            } finally {
+                requestState.send = false;
             }
         });
 
@@ -1291,16 +1305,14 @@
 
     /* ========================= SHARE TRANSPORTS ========================= */
     async function sendSMS(phoneNumber, pdfUrl) {
-        const response = await fetch(pdfUrl);
-        const blob = await response.blob();
-        const pdfFile = new File([blob], 'report2.pdf', { type: 'application/pdf' });
-
-        const formData = new FormData();
-        formData.append('pdf', pdfFile);
-        formData.append('phoneNumber', phoneNumber);
-        formData.append('message', 'This is your test report from OccuHealth. Thank you for using our services!');
-
         try {
+            const pdfResponse = await fetch(pdfUrl);
+            if (!pdfResponse.ok) throw new Error('PDF download failed');
+            const pdfFile = new File([await pdfResponse.blob()], 'report2.pdf', { type: 'application/pdf' });
+            const formData = new FormData();
+            formData.append('pdf', pdfFile);
+            formData.append('phoneNumber', phoneNumber);
+            formData.append('message', 'This is your test report from OccuHealth. Thank you for using our services!');
             const response = await fetch(BASE_URL + '/api/v1/user/send-sms', { method: 'POST', body: formData });
             if (response.ok) toast('SMS sent successfully!');
             else toast('Failed to send SMS. Please try again.', 'error');
@@ -1323,16 +1335,15 @@
 
     async function sendEmail(email) {
         try {
-            const response = await fetch(BASE_URL + '/api/v1/user/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    subject: 'Your Test Report from OccuHealth',
-                    body: 'This is your test report from OccuHealth. Thank you for using our services!',
-                    urlWithParam
-                })
-            });
+            if (!iframe || !iframe.src) throw new Error('PDF is not ready');
+            const pdfResponse = await fetch(iframe.src);
+            if (!pdfResponse.ok) throw new Error('PDF download failed');
+            const formData = new FormData();
+            formData.append('pdf', new File([await pdfResponse.blob()], 'report.pdf', { type: 'application/pdf' }));
+            formData.append('email', email);
+            formData.append('subject', 'Your Test Report from OccuHealth');
+            formData.append('body', 'This is your test report from OccuHealth. Thank you for using our services!');
+            const response = await fetch(BASE_URL + '/api/v1/user/send-email', { method: 'POST', body: formData });
             if (response.ok) toast('Email sent successfully!');
             else toast('Failed to send Email. Please try again.', 'error');
         } catch (error) {
@@ -1458,10 +1469,14 @@
             if (!report || !report._id) throw new Error('Report data is unavailable.');
             state.report = report;
             state.reportId = report._id;
-            state.backgroundImageUrl = await fetchTemplateImages();
+            const [backgroundImageUrl, doctorsData] = await Promise.all([
+                fetchTemplateImages(),
+                fetchDoctorsSign(),
+            ]);
+            state.backgroundImageUrl = backgroundImageUrl;
             setupSession(state.reportId);
 
-            state.doctorsData = await fetchDoctorsSign();
+            state.doctorsData = doctorsData;
             const { labinchargeinfo, sign } = await fetchLabSignAndSetInputs();
             state.signInfo = { labinchargeinfo, sign };
 

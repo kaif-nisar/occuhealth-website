@@ -152,6 +152,7 @@ const reportData = new Schema({
 
 reportData.index({ tenantId: 1, bookingId: 1 }, { unique: true });
 reportData.index({ tenantId: 1, status: 1, createdAt: -1 });
+reportData.index({ tenantId: 1, status: 1, date: -1 });
 reportData.index({ tenantId: 1, patientPhone: 1 });
 reportData.index({ tenantId: 1, createdBy: 1, createdAt: -1 });
 

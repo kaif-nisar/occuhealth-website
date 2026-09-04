@@ -6,13 +6,13 @@
     <title>Lab Report</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
     <!--
-        OccuHealth LIS · Pathology Report Layout (Format 1)
+        OccuHealth LIS Â· Pathology Report Layout (Format 1)
         PDF PARITY: the Puppeteer pipeline snapshots the LEGACY stylesheet
         below (style#stying) and ships it verbatim as cssContent.
-        DO NOT EDIT that block — the generated PDF must stay identical.
+        DO NOT EDIT that block â€” the generated PDF must stay identical.
         All modern UI css lives in style#ohScreen, which is never sent
         to the backend. Also: never change .report-details geometry in
-        ohScreen — investigationmargin measures its live height.
+        ohScreen â€” investigationmargin measures its live height.
     -->
     <style id="stying">
         .container {
@@ -526,14 +526,14 @@
             width: 9%;
         }
 
-        /* ✅ Documented content specific styles */
+        /* âœ… Documented content specific styles */
         .documented-content {
             overflow-x: auto;
             word-wrap: break-word;
             background: white;
         }
 
-        /* ✅ Isolate tables inside documented content */
+        /* âœ… Isolate tables inside documented content */
         .documented-content table {
             border-collapse: separate !important;
             border-spacing: 0;
@@ -547,12 +547,12 @@
             padding: 8px;
         }
 
-        /* ✅ Prevent documented content from breaking parent table */
+        /* âœ… Prevent documented content from breaking parent table */
         td[colspan="4"] {
             vertical-align: top;
         }
 
-        /* ✅ Ensure proper rendering of CKEditor content */
+        /* âœ… Ensure proper rendering of CKEditor content */
         .documented-content p {
             margin: 5px 0;
         }
@@ -569,7 +569,7 @@
             margin: 10px 0 5px 0;
         }
 
-        /* ✅ Table header background */
+        /* âœ… Table header background */
         thead tr {
             background-color: #f5f5f5 !important;
         }
@@ -581,7 +581,7 @@
             border-bottom: 2px solid #ddd !important;
         }
 
-        /* ✅ Documented content styles - applies to ALL CKEditor content */
+        /* âœ… Documented content styles - applies to ALL CKEditor content */
         .documented-content {
             /* padding: 10px; */
             overflow-x: auto;
@@ -590,7 +590,7 @@
             /* line-height: 1.6; */
         }
 
-        /* ✅ Isolate tables inside documented content */
+        /* âœ… Isolate tables inside documented content */
         .documented-content table {
             border-collapse: separate !important;
             border-spacing: 0 !important;
@@ -611,7 +611,7 @@
             font-weight: 600;
         }
 
-        /* ✅ Typography inside documented content */
+        /* âœ… Typography inside documented content */
         .documented-content p {
             margin: 8px 0;
         }
@@ -647,7 +647,7 @@
             font-weight: bold;
         }
 
-        /* ✅ Blockquotes */
+        /* âœ… Blockquotes */
         .documented-content blockquote {
             border-left: 4px solid #ddd;
             padding-left: 15px;
@@ -656,7 +656,7 @@
             font-style: italic;
         }
 
-        /* ✅ Code blocks */
+        /* âœ… Code blocks */
         .documented-content pre {
             background: #f5f5f5;
             border: 1px solid #ddd;
@@ -673,7 +673,7 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* ✅ Images inside documented content */
+        /* âœ… Images inside documented content */
         .documented-content img {
             max-width: 100%;
             height: auto;
@@ -681,19 +681,19 @@
             margin: 10px 0;
         }
 
-        /* ✅ Links */
+        /* âœ… Links */
         .documented-content a {
             color: #1a73e8;
             text-decoration: underline;
         }
 
-        /* ✅ Prevent documented content from breaking parent table */
+        /* âœ… Prevent documented content from breaking parent table */
         td[colspan="4"] {
             vertical-align: top;
             padding: 0 !important;
         }
 
-        /* ✅ Details row specific styling */
+        /* âœ… Details row specific styling */
         .details-row {
             padding: 0 !important;
             font-size: 13px;
@@ -703,7 +703,7 @@
             padding-left: 20px;
         }
 
-        /* ✅ Interpretation styling */
+        /* âœ… Interpretation styling */
         .interpretation {
             padding: 10px;
         }
@@ -712,12 +712,12 @@
             margin: 5px 0;
         }
 
-        /* ✅ More details section */
+        /* âœ… More details section */
         .moreDetails .documented-content {
             padding-left: 20px;
         }
 
-        /* ✅ Print specific styles */
+        /* âœ… Print specific styles */
         @media print {
             thead tr {
                 background-color: #f5f5f5 !important;
@@ -837,7 +837,7 @@
     </style>
     <style id="ohScreen">
 /* =====================================================================
-   OccuHealth LIS · SCREEN-ONLY DESIGN LAYER  (never shipped to Puppeteer)
+   OccuHealth LIS Â· SCREEN-ONLY DESIGN LAYER  (never shipped to Puppeteer)
    Mission: make the web preview MIRROR the generated PDF ("ditto") while
    fixing overflow / truncation / dock bugs. Backend PDF css = #stying.
    FROZEN ZONE: .report-details subtree geometry (investigationmargin).
@@ -957,11 +957,29 @@ button { font-family: inherit; }
 .toolbar-subtitle { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-pill {
     flex: none; display: inline-flex; align-items: center; gap: 7px;
-    padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 600;
-    background: #fef3c7; color: var(--warn); transition: .25s;
+    padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.01em;
+    background: #fffbe6; color: #b45309; border: 1px solid #fde68a;
+    box-shadow: 0 1px 3px rgba(180,83,9,.08);
+    transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.status-pill.is-signed { background: #d1fae5; color: var(--ok); }
+.status-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+    box-shadow: 0 0 0 2px rgba(180,83,9,.2);
+    animation: statusPulse 2s infinite;
+}
+.status-pill.is-signed {
+    background: #ecfdf5; color: #047857; border-color: #a7f3d0;
+    box-shadow: 0 1px 3px rgba(4,120,87,.08);
+}
+.status-pill.is-signed .dot {
+    box-shadow: 0 0 0 2px rgba(4,120,87,.2);
+    animation: none;
+}
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
 .edit-toggle {
     display: inline-flex; align-items: center; gap: 7px; flex: none;
     padding: 8px 14px; border-radius: 10px; cursor: pointer;
@@ -1003,7 +1021,7 @@ body:not(.mode-paginated) .sheet-body,
 .page-indicator { font-weight: 700; letter-spacing: .05em; color: var(--muted); }
 .foot-disclaimer { margin: 6px auto 0; max-width: 94%; text-align: center; font-size: 10.5px; line-height: 1.45; color: var(--faint); font-family: var(--font-doc); font-style: italic; }
 
-/* Template letterhead band — mirrors the PDF's printed header artwork */
+/* Template letterhead band â€” mirrors the PDF's printed header artwork */
 .tpl-img {
     position: absolute; inset: 0; z-index: 0;
     display: block; width: 100%; height: 100%; max-height: none;
@@ -1020,8 +1038,8 @@ body:not(.mode-paginated) .sheet-body,
     margin: 12px 10px 8px;
 }
 
-/* ---------- PATIENT BAR · GEOMETRY FROZEN (PDF parity) ----------
-   investigationmargin = live height of .report-details → only height-
+/* ---------- PATIENT BAR Â· GEOMETRY FROZEN (PDF parity) ----------
+   investigationmargin = live height of .report-details â†’ only height-
    neutral cosmetics here; typography/layout come from legacy #stying. */
 .report-details, .report-details * {
     font-family: 'Times New Roman', Times, serif;
@@ -1041,7 +1059,7 @@ body:not(.mode-paginated) .sheet-body,
     box-shadow: none;
 }
 
-/* ---------- TEST TABLES · ditto-PDF typography ---------- */
+/* ---------- TEST TABLES Â· ditto-PDF typography ---------- */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table-scroll .test-table { min-width: 540px; }   /* scroll instead of squeeze */
 .test-table th { font-weight: 700; }
@@ -1071,8 +1089,8 @@ body.editing .cell-edit:focus {
     letter-spacing: .14em; color: var(--faint); font-weight: 600;
 }
 
-/* ---------- SIGNATURES · stable flex grid (BUG#4) ----------
-   Hosted once, in the LAST page footer — never splits across breaks. */
+/* ---------- SIGNATURES Â· stable flex grid (BUG#4) ----------
+   Hosted once, in the LAST page footer â€” never splits across breaks. */
 .sheet-foot--sigs { padding-top: 16px; }
 .signed-off-div { width: 100%; }
 .signed-off-div2 {
@@ -1094,9 +1112,9 @@ body.editing .cell-edit:focus {
 .qr-div { flex: 0 0 auto; width: 64px; }
 .qr-div img { width: 100%; height: auto; }
 
-/* ---------- ACTION DOCK · BUG#1 FIX ----------
+/* ---------- ACTION DOCK Â· BUG#1 FIX ----------
    Centered floating pill that WRAPS instead of overflowing.
-   width:max-content up to 96vw → never bleeds off-screen. */
+   width:max-content up to 96vw â†’ never bleeds off-screen. */
 .download-pdf-div {
     position: fixed; z-index: 950;
     left: 59%; transform: translateX(-50%);
@@ -1113,7 +1131,7 @@ body.editing .cell-edit:focus {
 }
 .download-pdf-div.is-ready { display: flex; animation: ohDockUp .35s ease both; }
 .downloadDiv { position: relative; border-radius: 10px; }
-#downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport {
+#downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 7px 10px; font-weight: 600; font-size: 12px;
     border: 0; border-radius: 10px; cursor: pointer;
@@ -1191,7 +1209,7 @@ body.editing .cell-edit:focus {
     .skel-patient-col:last-child { display: none; }
 }
 @media (max-width: 956px) {
-    /* legacy min-width guards — kill horizontal scroll at the source */
+    /* legacy min-width guards â€” kill horizontal scroll at the source */
     .container22, .signed-off-div2 { min-width: 0 !important; }
     .toolbar-title { max-width: 44vw; }
     .status-pill { font-size: 11px; padding: 4px 10px; }
@@ -1209,6 +1227,7 @@ body.editing .cell-edit:focus {
     .qr-div { width: 52px; }
     .notes span:not(.cell-edit), .remark-row span:not(.cell-edit),
     .advice span, .remarks span { margin-left: 35%; }
+    .download-pdf-div {left: 50%;}
 }
 
 /* ---------- PRINT (screen sheets flatten; PDF itself uses #stying) ---------- */
@@ -1288,6 +1307,17 @@ body.editing .cell-edit:focus {
     </div>
 
             <!-- ================= APP TOOLBAR ================= -->
+    <header class="app-toolbar no-print">
+        <div class="brand-chip"><i class="fas fa-file-medical"></i></div>
+        <div class="toolbar-titles">
+            <div class="toolbar-title">Pathology Lab Report</div>
+            <div class="toolbar-subtitle" id="toolbarSubtitle">Loading report...</div>
+        </div>
+        <div class="status-pill" id="reportStatusPill" title="Report Sign-off Status">
+            <span class="dot"></span>
+            <span id="reportStatusText">Pending sign-off</span>
+        </div>
+    </header>
     <!-- ================= REPORT DOCUMENT VIEWPORT ================= -->
     <main class="report-viewport">
         <div class="container" id="container" data-report-section="document-root">
@@ -1451,6 +1481,7 @@ window.fetch = function (url, opts) {
         editing: false,
         signInfo: { labinchargeinfo: null, sign: null }
     };
+    const requestState = { download: false, send: false };
 
     /* Keep the preview in the same A4 pagination mode at every viewport size.
        Narrow screens scroll the canvas instead of compressing PDF geometry. */
@@ -2177,8 +2208,26 @@ window.fetch = function (url, opts) {
         SNAPSHOT PIPELINE (legacy contract — keys & shapes unchanged)
        ======================================================================== */
     function countLines() {
-        const span = $('.report-details');
-        return span ? span.offsetHeight : 0;
+        const header = $('.report-details');
+        if (!header) return 0;
+
+        /* Measure header height in a strictly isolated A4 desktop sandbox (794px width)
+           so measurements are 100% device-agnostic regardless of mobile/tablet screen size. */
+        const sandbox = document.createElement('div');
+        sandbox.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:794px;visibility:hidden;pointer-events:none;box-sizing:border-box;background:#fff;';
+
+        const clone = header.cloneNode(true);
+        const liveBarcode = $('#barcodeImage', header);
+        const cloneBarcode = $('#barcodeImage', clone);
+        if (liveBarcode && cloneBarcode && liveBarcode.src) {
+            cloneBarcode.src = liveBarcode.src;
+        }
+
+        sandbox.appendChild(clone);
+        document.body.appendChild(sandbox);
+        const measuredHeight = clone.offsetHeight || header.offsetHeight || 0;
+        document.body.removeChild(sandbox);
+        return measuredHeight;
     }
 
     /* Rebuild a standalone .container2 holding every canonical child in order.
@@ -2337,11 +2386,46 @@ window.fetch = function (url, opts) {
         const button = document.getElementById('enterResult');
         if (!button) return;
 
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
             if (!state.report) return;
-            localStorage.setItem('booking', JSON.stringify(state.report));
-            localStorage.setItem('regId', JSON.stringify(state.report.reg_id || state.report.bookingId || ''));
-            window.open(BASE_URL + '/admin/admin.html?page=labreport', '_blank');
+
+            const bookingId = state.report.bookingId || state.report.reg_id || state.report.booking_id;
+            if (!bookingId) {
+                toast('Booking ID not found for this report.', 'error');
+                return;
+            }
+
+            try {
+                button.disabled = true;
+                const response = await fetch(`${BASE_URL}/api/v1/user/getbooking`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value1: bookingId })
+                });
+
+                if (response.ok) {
+                    const booking = await response.json();
+                    if (booking && (booking.bookingId || booking._id)) {
+                        booking.__fullBooking = true;
+                        localStorage.setItem('booking', JSON.stringify(booking));
+                        localStorage.setItem('regId', JSON.stringify(booking.bookingId || bookingId));
+                        window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+                        return;
+                    }
+                }
+
+                // Fallback to state.report if getbooking API response is not valid
+                localStorage.setItem('booking', JSON.stringify(state.report));
+                localStorage.setItem('regId', JSON.stringify(bookingId));
+                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+            } catch (error) {
+                console.error('Error fetching booking details for Enter Result:', error);
+                localStorage.setItem('booking', JSON.stringify(state.report));
+                localStorage.setItem('regId', JSON.stringify(bookingId));
+                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+            } finally {
+                button.disabled = false;
+            }
         });
     }
 
@@ -2352,23 +2436,27 @@ window.fetch = function (url, opts) {
         const pill = document.getElementById('reportStatusPill');
         const text = document.getElementById('reportStatusText');
         if (!pill || !text) return;
-        pill.classList.toggle('is-signed', signed);
+        pill.classList.toggle('is-signed', Boolean(signed));
         text.textContent = signed ? 'Signed off' : 'Pending sign-off';
     }
 
     function setupSignOff() {
-        if (state.report.signOff) {
+        const initialSigned = Boolean(state.report && state.report.signOff);
+        if (initialSigned) {
             /* Legacy behaviour: a pre-signed report unlocks the gated buttons */
             $$('.click').forEach((button) => button.classList.remove('sign'));
-            setSignOffUI(true);
         }
+        setSignOffUI(initialSigned);
 
         document.getElementById('signOff').addEventListener('click', async function (e) {
-            const loader = e.target.closest('.downloadDiv') && e.target.closest('.downloadDiv').querySelector('.loading-overlay');
+            const downloadDiv = e.target.closest('.downloadDiv');
+            const loader = downloadDiv && downloadDiv.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
 
             loader.style.display = 'flex';
 
+            /* Optimistically toggle the gated-button class so the UI feels
+               instant; we revert on failure. */
             const targetButtons = $$('.click');
             targetButtons.forEach((button) => button.classList.toggle('sign'));
             const anyButtonHasSign = targetButtons.some((b) => b.classList.contains('sign'));
@@ -2381,20 +2469,24 @@ window.fetch = function (url, opts) {
                     body: JSON.stringify({ value1: state.reportId, signoff })
                 });
                 if (!response.ok) throw new Error('signoff field not updated');
+
                 setSignOffUI(signoff);
+                if (state.report) state.report.signOff = signoff;
+                toast(signoff ? 'Report signed off successfully.' : 'Sign-off removed.', 'success');
+
+                /* Fire-and-forget: mark the booking report-ready in the
+                   background so the UI stays responsive. The server-side
+                   status transition + notification pipeline runs
+                   independently and must never block sign-off. */
+                if (state.report && state.report.bookingId) {
+                    updatebookingisreportreadyfield(state.report.bookingId)
+                        .catch((error) => console.warn('Background booking status update failed:', error));
+                }
             } catch (error) {
                 console.error('Sign-off flag update failed:', error);
-            }
-
-            try {
-                await savePdfDataFromPage(getPdfDataSnapshot(), {
-                    bookingId: state.report.bookingId,
-                    isdocumented: state.report.isDocumented
-                });
-                await updatebookingisreportreadyfield(state.report.bookingId);
-            } catch (error) {
-                console.error('Sign-off snapshot failed:', error);
-                toast('Sign-off could not be saved.', 'error');
+                toast('Sign-off could not be saved. Please try again.', 'error');
+                /* Revert the optimistic UI toggle */
+                targetButtons.forEach((button) => button.classList.toggle('sign'));
             } finally {
                 loader.style.display = 'none';
             }
@@ -2444,14 +2536,18 @@ window.fetch = function (url, opts) {
     async function downloadpdffunction(options) {
         const o = options || {};
         document.getElementById('downloadPDF').addEventListener('click', async (e) => {
+            if (requestState.download) return;
+            requestState.download = true;
             const wrapper = e.target.closest('.downloadDiv');
             const loader = wrapper && wrapper.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
 
             loader.style.display = 'flex';
 
+            let snapshot;
             try {
-                await savePdfDataFromPage(getPdfDataSnapshot());
+                snapshot = getPdfDataSnapshot();
+                await savePdfDataFromPage(snapshot);
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 toast(error.message || 'Data save failed. PDF generation stopped.', 'error');
@@ -2465,6 +2561,7 @@ window.fetch = function (url, opts) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         value1: state.reportId,
+                        investigationmargin: snapshot ? snapshot.investigationmargin : countLines(),
                         labinchargesign: o.labinchargesign || null,
                         checkBox: o.checkBox || false,
                         backgroundImageUrl: state.backgroundImageUrl,
@@ -2494,6 +2591,7 @@ window.fetch = function (url, opts) {
                 toast('PDF generation failed. Please try again.', 'error');
             } finally {
                 loader.style.display = 'none';
+                requestState.download = false;
             }
         });
     }
@@ -2529,6 +2627,8 @@ window.fetch = function (url, opts) {
         const openPdfButton = document.getElementById('openPdfButton');
 
         document.getElementById('sendReport').addEventListener('click', async (e) => {
+            if (requestState.send) return;
+            requestState.send = true;
             const wrapper = e.target.closest('.downloadDiv');
             const loader = wrapper && wrapper.querySelector('.loading-overlay');
             if (!loader) { console.error('Loading overlay not found'); return; }
@@ -2565,6 +2665,8 @@ window.fetch = function (url, opts) {
                 toast('Error generating PDF. Please try again.', 'error');
                 popupModal.style.display = 'none';
                 loader.style.display = 'none';
+            } finally {
+                requestState.send = false;
             }
         });
 
@@ -2616,16 +2718,14 @@ window.fetch = function (url, opts) {
 
     /* ========================= SHARE TRANSPORTS ========================= */
     async function sendSMS(phoneNumber, pdfUrl) {
-        const response = await fetch(pdfUrl);
-        const blob = await response.blob();
-        const pdfFile = new File([blob], 'report2.pdf', { type: 'application/pdf' });
-
-        const formData = new FormData();
-        formData.append('pdf', pdfFile);
-        formData.append('phoneNumber', phoneNumber);
-        formData.append('message', 'This is your test report from OccuHealth. Thank you for using our services!');
-
         try {
+            const pdfResponse = await fetch(pdfUrl);
+            if (!pdfResponse.ok) throw new Error('PDF download failed');
+            const pdfFile = new File([await pdfResponse.blob()], 'report2.pdf', { type: 'application/pdf' });
+            const formData = new FormData();
+            formData.append('pdf', pdfFile);
+            formData.append('phoneNumber', phoneNumber);
+            formData.append('message', 'This is your test report from OccuHealth. Thank you for using our services!');
             const response = await fetch(BASE_URL + '/api/v1/user/send-sms', { method: 'POST', body: formData });
             if (response.ok) toast('SMS sent successfully!');
             else toast('Failed to send SMS. Please try again.', 'error');
@@ -2648,16 +2748,15 @@ window.fetch = function (url, opts) {
 
     async function sendEmail(email) {
         try {
-            const response = await fetch(BASE_URL + '/api/v1/user/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    subject: 'Your Test Report from OccuHealth',
-                    body: 'This is your test report from OccuHealth. Thank you for using our services!',
-                    urlWithParam
-                })
-            });
+            if (!iframe || !iframe.src) throw new Error('PDF is not ready');
+            const pdfResponse = await fetch(iframe.src);
+            if (!pdfResponse.ok) throw new Error('PDF download failed');
+            const formData = new FormData();
+            formData.append('pdf', new File([await pdfResponse.blob()], 'report.pdf', { type: 'application/pdf' }));
+            formData.append('email', email);
+            formData.append('subject', 'Your Test Report from OccuHealth');
+            formData.append('body', 'This is your test report from OccuHealth. Thank you for using our services!');
+            const response = await fetch(BASE_URL + '/api/v1/user/send-email', { method: 'POST', body: formData });
             if (response.ok) toast('Email sent successfully!');
             else toast('Failed to send Email. Please try again.', 'error');
         } catch (error) {

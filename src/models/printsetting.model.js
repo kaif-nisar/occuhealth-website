@@ -136,6 +136,8 @@ const customizationSchema = new mongoose.Schema({
 
 customizationSchema.index({ reportId: 1 }, { sparse: true });
 customizationSchema.index({ tenantId: 1, bookingId: 1 });
+customizationSchema.index({ tenantId: 1, reportId: 1 });
+customizationSchema.index({ tenantId: 1, bookingId: 1, updatedAt: -1 });
 customizationSchema.index({ tenantId: 1, createdAt: -1 });
 customizationSchema.index({ tenantId: 1, isdocumented: 1, createdAt: -1 });
 

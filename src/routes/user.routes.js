@@ -1074,7 +1074,7 @@ router.route("/updatePannelOrder").post(verifyJWT, updatePannelOrder);
 router.route("/updatePannelOrdersuper").post(verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageTest"), updatePannelOrdersuper);
 
 // send sms
-router.route("/send-sms").post(upload.fields([
+router.route("/send-sms").post(verifyJWT, upload.fields([
   {
     name: "pdf",
     maxCount: 1
@@ -1082,7 +1082,7 @@ router.route("/send-sms").post(upload.fields([
 ]), sendSMS)
 
 // send email
-router.route("/send-email").post(upload.fields([
+router.route("/send-email").post(verifyJWT, upload.fields([
   {
     name: "pdf",
     maxCount: 1

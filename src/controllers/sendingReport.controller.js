@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import fetch from 'node-fetch';
 import { Request } from '../models/request.model.js';
 import { SuperAdminNotification } from '../models/superadminnotification.model.js';
+import { enqueueReportEmail } from '../services/reportDispatchQueue.js';
 
 // Twilio credentials
 const accountSid = 'AC01ebdcdef6050c6e56be55a6170a62e9'; // Replace with your Twilio SID
@@ -78,41 +79,17 @@ async function sendEmail(req, res) {
         throw new Error("Please provide a valid WhatsApp number and PDF file");
     }
 
-    // Path of the uploaded file in the temp directory
-    // const filePath = `./public/temp/${file.filename}`;
-
-    // Use Dropbox utility to upload the file and get the download link
-    const pdfUrl = await uploadPDFToFileIO(file.path);
-
-    if (!email || !subject || !body || !pdfUrl) {
-        return res.status(400).json({ error: 'Email, subject, body, and PDF URL are required.' });
+    if (!email || !subject || !body) {
+        await fs.unlink(file.path).catch(() => {});
+        return res.status(400).json({ error: 'Email, subject, and body are required.' });
     }
 
     try {
-        const mailOptions = {
-            from: 'kaifquest786@gmail.com', // Replace with your email
-            to: email,
-            subject: subject,
-            text: `${body}\n\nDownload your report PDF here: ${pdfUrl}`, // Fallback for text-only email clients
-            html: `
-                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-                    <p style="font-size: 16px;">${body}</p>
-                    <p style="font-size: 18px; font-weight: bold;">
-                        <a href="${pdfUrl}" target="_blank" style="color: #007BFF; text-decoration: none;">
-                            Click here to download your PDF report
-                        </a>
-                    </p>
-                    <p style="font-size: 12px; color: #888;">
-                        If you have any questions, reply to this email. <br/>
-                        Reference ID: ${Date.now()}
-                    </p>
-                </div>
-            `,
-        };
-
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ success: true, message: 'Email sent successfully.' });
+        void enqueueReportEmail({ filePath: file.path, email, subject, body })
+            .catch((error) => console.error('Queued report email failed:', error.message));
+        return res.status(202).json({ success: true, queued: true, message: 'Email queued successfully.' });
     } catch (error) {
+        await fs.unlink(file.path).catch(() => {});
         console.error('Error sending email:', error);
         res.status(500).json({ success: false, error: 'Failed to send email.' });
     }

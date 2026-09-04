@@ -236,6 +236,16 @@ const withQueuedPdfPage = async (label, task) => {
             return await runWithTimeout(async () => {
                 const browser = await getSharedBrowser();
                 page = await browser.newPage();
+                await page.setRequestInterception(true);
+                page.on('request', (request) => {
+                    const resourceType = request.resourceType();
+                    const url = request.url();
+                    if (resourceType === 'font' || /google-analytics|googletagmanager|doubleclick/i.test(url)) {
+                        request.abort().catch(() => {});
+                    } else {
+                        request.continue().catch(() => {});
+                    }
+                });
                 await page.setDefaultNavigationTimeout(pdfContentLoadTimeout);
                 await page.setDefaultTimeout(pdfContentLoadTimeout);
                 await page.setCacheEnabled(false);
@@ -414,6 +424,10 @@ const adjustPdfMargins = async (pdfBuffer, marginRight, marginLeft) => {
     marginRight = marginRight || 0;
     marginLeft = marginLeft || 0;
 
+    if (marginRight === 0 && marginLeft === 0) {
+        return pdfBuffer;
+    }
+
 
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const pages = pdfDoc.getPages();
@@ -450,6 +464,10 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
     if (!inputPdfBuffer) {
         console.error('Input PDF buffer is null or undefined');
         return null;
+    }
+
+    if (!String(backgroundImageUrl || '').trim()) {
+        return inputPdfBuffer;
     }
 
     try {
@@ -543,25 +561,29 @@ const convertImageToBase64 = async (imageUrl) => {
     }
 };
 
+const pdfImageCache = new Map();
+
 // Function to process HTML and convert all images to Base64
 const convertImagesInHtmlToBase64 = async (htmlContent) => {
-    const $ = cheerio.load(htmlContent);  // Load HTML content using cheerio
+    const $ = cheerio.load(htmlContent);
     const images = $('img');  // Select all <img> tags
 
-    // Iterate over each <img> tag
-    for (let i = 0; i < images.length; i++) {
-        const img = $(images[i]);
+    await Promise.all(Array.from(images).map(async (image) => {
+        const img = $(image);
         const imageUrl = img.attr('src');  // Get the 'src' attribute of the image
 
-        // Convert image to Base64 if the src is an image URL
         if (imageUrl && !imageUrl.startsWith('data:image')) {
-            const base64Image = await convertImageToBase64(imageUrl);
+            let conversion = pdfImageCache.get(imageUrl);
+            if (!conversion) {
+                conversion = convertImageToBase64(imageUrl);
+                pdfImageCache.set(imageUrl, conversion);
+            }
+            const base64Image = await conversion;
             if (base64Image) {
-                // Update the 'src' attribute with the Base64 string
                 img.attr('src', `data:image/png;base64,${base64Image}`);
             }
         }
-    }
+    }));
 
     // Return updated HTML with Base64 images
     return $.html();
@@ -572,15 +594,15 @@ const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
     let reportContext = null;
 
     if (bookingId) {
-        reportContext = await reports.findOne({ bookingId }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ bookingId, tenantId }).select(reportSelect).lean();
     }
 
     if (!reportContext && value1 && mongoose.Types.ObjectId.isValid(value1)) {
-        reportContext = await reports.findOne({ _id: value1 }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ _id: value1, tenantId }).select(reportSelect).lean();
     }
 
     if (!reportContext && value1) {
-        reportContext = await reports.findOne({ bookingId: value1 }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ bookingId: value1, tenantId }).select(reportSelect).lean();
     }
 
     return {
@@ -1226,7 +1248,10 @@ const getpdfcontroller = async (req, res) => {
     try {
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId: tid });
-        const gettingcustomization = await customization.findOne({ tenantId: tid, bookingId: pdfContext.resolvedBookingId });
+        const [gettingcustomization, defaultSettings] = await Promise.all([
+            customization.findOne({ tenantId: tid, bookingId: pdfContext.resolvedBookingId }).lean(),
+            defaultpdfsetting.findOne({ tenantId: tid }).lean(),
+        ]);
         // console.log("Fetched customization from DB:", gettingcustomization);
         const resolvedBackgroundImageUrl = await resolveLetterheadBackgroundImage({
             tenantId: tid,
@@ -1236,8 +1261,6 @@ const getpdfcontroller = async (req, res) => {
 
         // PDF generation must not create a settings row. A missing row should
         // remain distinguishable from a row containing saved tenant settings.
-        const defaultSettings = await defaultpdfsetting.findOne({ tenantId: tid }).lean();
-
         let mergedValues;
 
         if (checkBox || DownloadPdf) {

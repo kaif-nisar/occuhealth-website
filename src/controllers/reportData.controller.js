@@ -257,25 +257,24 @@ const editReportsignofffieldController = asyncHandler(async (req, res) => {
 const getReportController = asyncHandler(async (req, res) => {
     const { value1, bookingId } = req.body;
     const tenantId = req.user.tenantId._id;
-    const user = await User.findOne({
-        _id: req.user._id,
-        tenantId: tenantId,
-    }).select("pdfFormat");
-    const usertenant = await Tenant.findById(tenantId).select("modelType");
+    const [user, usertenant] = await Promise.all([
+        User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
+        Tenant.findById(tenantId).select("modelType").lean(),
+    ]);
     // console.log( typeof bookingId)
     // console.log(typeof value1)
     // Pehle bookingId ke basis par report dhundho
     let Report = await reports.findOne({
         bookingId: value1,
         tenantId: tenantId
-    });
+    }).lean();
 
     // Agar bookingId se report na mile aur value1 ek valid ObjectId hai to _id se dhundho
     if (Report == null && mongoose.Types.ObjectId.isValid(value1)) {
         Report = await reports.findOne({
             _id: value1,
             tenantId: tenantId
-        });
+        }).lean();
     }
 
     // Agar Report nahi mili to error throw karo
@@ -292,7 +291,7 @@ const getReportController = asyncHandler(async (req, res) => {
         ...(tenantDefaults || {}),
     };
 
-    const responsePayload = Report.toObject();
+    const responsePayload = { ...Report };
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
 
@@ -309,20 +308,14 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
     let Report = await reports.findOne({
         bookingId: value1,
         tenantId: tenantId
-    });
-
-    const user = await User.findOne({
-        tenantId: tenantId,
-    }).select("pdfFormat");
-
-    const usertenant = await Tenant.findById(tenantId).select("modelType");
+    }).lean();
 
     // Agar bookingId se report na mile aur value1 ek valid ObjectId hai to _id se dhundho
     if (Report == null && mongoose.Types.ObjectId.isValid(value1)) {
         Report = await reports.findOne({
             _id: value1,
             tenantId: tenantId
-        });
+        }).lean();
     }
 
     // Agar Report nahi mili to error throw karo
@@ -330,7 +323,9 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    const [reportCustomization, tenantDefaults] = await Promise.all([
+    const [user, usertenant, reportCustomization, tenantDefaults] = await Promise.all([
+        User.findOne({ tenantId }).select("pdfFormat").lean(),
+        Tenant.findById(tenantId).select("modelType").lean(),
         customization.findOne({ reportId: Report._id, tenantId }).lean(),
         defaultpdfsetting.findOne({ tenantId }).lean(),
     ]);
@@ -339,7 +334,7 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         ...(tenantDefaults || {}),
     };
 
-    const responsePayload = Report.toObject();
+    const responsePayload = { ...Report };
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
 
