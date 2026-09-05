@@ -66,7 +66,8 @@
         sheets: [],
         mode: 'paginated',     /* 'paginated' | 'continuous' */
         editing: false,
-        signInfo: { labinchargeinfo: null, sign: null }
+        signInfo: { labinchargeinfo: null, sign: null },
+        qrCodeReady: false
     };
     const requestState = { download: false, send: false };
 
@@ -249,7 +250,7 @@
             '<div class="left-sign signdivstyleclass" style="display:' + (doctorsdata.showfirstdoctorsign ? 'block' : 'none') + ';">' +
                 '<img src="' + (doctorsdata.firstdoctorsign || '') + '" width="90" height="32" /><br>' +
                 '<div class="textspan">' + (doctorsdata.firstdoctorsigninfo || '') + '</div></div>' +
-            '<div class="sign click qr-div format3qrdiv">' +
+            '<div class="click qr-div format3qrdiv">' +
                 '<img id="qrimg" src="https://res.cloudinary.com/dmlfjbpb5/image/upload/v1730987604/vximbk8olbhmhmhp5ele.jpg" width="100" height="100"></div>' +
             '<div class="right-sign signdivstyleclass" style="display:' + (doctorsdata.showseconddoctorsign ? 'block' : 'none') + ';">' +
                 '<img src="' + (doctorsdata.seconddoctorsign || '') + '" width="90" height="32" /><br>' +
@@ -272,10 +273,30 @@
             if (!response.ok) throw new Error('QR http ' + response.status);
             const data = await response.json();
             const qr = document.getElementById('qrimg');
-            if (qr) { qr.src = data.qrCode; qr.style.display = 'block'; }
+            if (!qr || !data || !data.qrCode) throw new Error('QR image was not returned');
+            qr.src = data.qrCode;
+            qr.style.display = 'block';
+            state.qrCodeReady = true;
         } catch (error) {
+            state.qrCodeReady = false;
             console.warn('QR generation skipped:', error.message);
         }
+    }
+
+    async function ensureQrCodeReady() {
+        let qr = document.getElementById('qrimg');
+        if (!state.qrCodeReady || !qr || !String(qr.getAttribute('src') || '').trim()) {
+            await qrcodegenerator();
+        }
+
+        qr = document.getElementById('qrimg');
+        const src = qr && String(qr.getAttribute('src') || '').trim();
+        if (!state.qrCodeReady || !src || src.includes('vximbk8olbhmhmhp5ele.jpg')) {
+            throw new Error('QR code is not ready. Report data was not saved.');
+        }
+
+        await convertImagesToBase64('#qrimg');
+        return qr;
     }
 
     /* ========================= IMAGE -> BASE64 (PDF export parity) ========================= */
@@ -840,6 +861,35 @@
         return { htmlContent, cssContent, header, footer, investigationmargin };
     }
 
+    function getSignOffPdfSnapshot() {
+        const snapshot = getPdfDataSnapshot();
+        const footerRoot = document.createElement('div');
+        const headerRoot = document.createElement('div');
+        footerRoot.innerHTML = snapshot.footer;
+        headerRoot.innerHTML = snapshot.header;
+
+        const qr = footerRoot.querySelector('#qrimg');
+        const qrSrc = qr && String(qr.getAttribute('src') || '').trim();
+        const qrWrapper = qr && qr.closest('.qr-div');
+        if (!qr || !qrSrc || qrSrc.includes('vximbk8olbhmhmhp5ele.jpg')) {
+            throw new Error('QR code is missing from the PDF data. Report was not saved.');
+        }
+        if (qrWrapper) {
+            qrWrapper.classList.remove('sign');
+            qrWrapper.style.display = 'block';
+        }
+
+        const barcode = headerRoot.querySelector('#barcodeImage');
+        const barcodeSrc = barcode && String(barcode.getAttribute('src') || '').trim();
+        if (!barcode || !barcodeSrc) {
+            throw new Error('Barcode is missing from the PDF data. Report was not saved.');
+        }
+
+        snapshot.footer = footerRoot.innerHTML;
+        snapshot.header = headerRoot.innerHTML;
+        return snapshot;
+    }
+
     function buildPdfDataPayload(snapshot, extraFields) {
         return Object.assign({
             labinchargesign: state.report.showLabIncharge,
@@ -1042,14 +1092,21 @@
 
             loader.style.display = 'flex';
 
-            /* Optimistically toggle the gated-button class so the UI feels
-               instant; we revert on failure. */
             const targetButtons = $$('.click');
-            targetButtons.forEach((button) => button.classList.toggle('sign'));
-            const anyButtonHasSign = targetButtons.some((b) => b.classList.contains('sign'));
-            const signoff = !anyButtonHasSign;
 
             try {
+                await ensureQrCodeReady();
+
+                /* Save the complete report snapshot before changing sign-off
+                   state so other portals never receive a blank report. */
+                await savePdfDataFromPage(getSignOffPdfSnapshot());
+
+                /* Optimistically toggle the gated-button class after the
+                   report data is persisted; revert it if sign-off fails. */
+                targetButtons.forEach((button) => button.classList.toggle('sign'));
+                const anyButtonHasSign = targetButtons.some((b) => b.classList.contains('sign'));
+                const signoff = !anyButtonHasSign;
+
                 const response = await fetch(BASE_URL + '/api/v1/user/editReportsignofffield', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
