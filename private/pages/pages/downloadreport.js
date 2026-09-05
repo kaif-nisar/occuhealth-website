@@ -57,11 +57,16 @@ async function loadInfoandDownloadreport() {
                     value1: patientDetails._id, labinchargesign, checkBox, labinchargeinfo, backgroundImageUrl, headermargin, footermargin, marginRight
                     , footermargin, marginRight, marginLeft, labinchargeinfo,
                     labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred,
-                    BoldRow, showInvest, DownloadPdf, bookingId
+                    BoldRow, showInvest, DownloadPdf, bookingId, tenantId
                 })
             });
 
-            if (!response.ok) throw new Error('PDF generation failed');
+            if (!response.ok) {
+                const details = await response.json().catch(() => null);
+                throw new Error(details && details.message
+                    ? details.message
+                    : 'PDF generation failed (' + response.status + ')');
+            }
 
             // Create a Blob from the response
             const pdfBlob = await response.blob();
@@ -110,7 +115,7 @@ async function loadInfoandDownloadreport() {
                 HLinred: null,
                 BoldRow: null,
                 showInvest: null,
-                DownloadPdf: false,
+                DownloadPdf: true,
                 bookingId: patientDetails.bookingId
             });
         } catch (error) {

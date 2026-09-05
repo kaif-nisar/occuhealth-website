@@ -592,17 +592,18 @@ const convertImagesInHtmlToBase64 = async (htmlContent) => {
 const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
     const reportSelect = 'tenantId bookingId patientName';
     let reportContext = null;
+    const tenantFilter = tenantId ? { tenantId } : {};
 
     if (bookingId) {
-        reportContext = await reports.findOne({ bookingId, tenantId }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ bookingId, ...tenantFilter }).select(reportSelect).lean();
     }
 
     if (!reportContext && value1 && mongoose.Types.ObjectId.isValid(value1)) {
-        reportContext = await reports.findOne({ _id: value1, tenantId }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ _id: value1, ...tenantFilter }).select(reportSelect).lean();
     }
 
     if (!reportContext && value1) {
-        reportContext = await reports.findOne({ bookingId: value1, tenantId }).select(reportSelect).lean();
+        reportContext = await reports.findOne({ bookingId: value1, ...tenantFilter }).select(reportSelect).lean();
     }
 
     return {
@@ -1763,7 +1764,27 @@ const getpdfcontrolleruser = async (req, res) => {
 
         // Attempt to fetch data from the database
         const pdfContext = await resolveUserPdfContext({ value1, bookingId, tenantId });
-        const gettingcustomization = await customization.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id, bookingId: pdfContext.resolvedBookingId });
+        const customizationTenantId = pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id;
+        const customizationQuery = { tenantId: customizationTenantId };
+        if (pdfContext.resolvedBookingId) {
+            customizationQuery.bookingId = pdfContext.resolvedBookingId;
+        }
+        let gettingcustomization = await customization.findOne(customizationQuery).sort({ updatedAt: -1 }).lean();
+        if (!gettingcustomization && pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)) {
+            gettingcustomization = await customization.findOne({
+                tenantId: customizationTenantId,
+                reportId: pdfContext.resolvedReportId
+            }).sort({ updatedAt: -1 }).lean();
+        }
+        if (pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)) {
+            const reportCustomization = await customization.findOne({
+                tenantId: customizationTenantId,
+                reportId: pdfContext.resolvedReportId
+            }).sort({ updatedAt: -1 }).lean();
+            if (hasPdfMarkup(reportCustomization?.htmlContent)) {
+                gettingcustomization = reportCustomization;
+            }
+        }
         const userPdfFormat = req.user?.role === "admin"
             ? req.user?.pdfFormat
             : req.user?.createdBy?.pdfFormat;
@@ -1920,11 +1941,21 @@ const savingPdfDatacontroller = async (req, res) => {
 
     updateFields.updatedAt = new Date();
 
+    const customizationIdentity = [];
+    if (bookingId) customizationIdentity.push({ bookingId });
+    if (reportId && mongoose.Types.ObjectId.isValid(reportId)) {
+        customizationIdentity.push({ reportId });
+    }
+
+    if (!customizationIdentity.length) {
+        return res.status(400).json({ message: "A report or booking reference is required." });
+    }
+
     const getcustomization = await customization.findOneAndUpdate(
         {
             tenantId: tenantId,
-            bookingId: bookingId
-        }, // Or use some identifier
+            $or: customizationIdentity
+        },
         updateFields,
         {
             new: true,  // Return updated document
