@@ -1079,9 +1079,10 @@
 
     function setupSignOff() {
         const initialSigned = Boolean(state.report && state.report.signOff);
+        const targetButtons = $$('#downloadPDF, #sendReport, #BrowserPrint, #PDFsetting');
         if (initialSigned) {
             /* Legacy behaviour: a pre-signed report unlocks the gated buttons */
-            $$('.click').forEach((button) => button.classList.remove('sign'));
+            targetButtons.forEach((button) => button.classList.remove('sign'));
         }
         setSignOffUI(initialSigned);
 
@@ -1091,8 +1092,6 @@
             if (!loader) { console.error('Loading overlay not found'); return; }
 
             loader.style.display = 'flex';
-
-            const targetButtons = $$('.click');
 
             try {
                 await ensureQrCodeReady();
