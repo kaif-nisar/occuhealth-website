@@ -2105,12 +2105,16 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
     }
     if (franchisee) query.createdbyuser = { $regex: franchisee, $options: 'i' };
 
-    const defaultFromDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const from = fromDate ? new Date(fromDate) : defaultFromDate;
-    const to = toDate ? new Date(toDate) : new Date();
-    if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-        to.setHours(23, 59, 59, 999);
-        query.createdAt = { $gte: from, $lte: to };
+    if (fromDate || toDate) {
+        const from = fromDate ? new Date(fromDate) : null;
+        const to = toDate ? new Date(toDate) : null;
+        const dateQuery = {};
+        if (from && !isNaN(from.getTime())) dateQuery.$gte = from;
+        if (to && !isNaN(to.getTime())) {
+            to.setHours(23, 59, 59, 999);
+            dateQuery.$lte = to;
+        }
+        if (Object.keys(dateQuery).length > 0) query.createdAt = dateQuery;
     }
 
     // Handle barcode filter

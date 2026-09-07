@@ -1388,8 +1388,8 @@ async function allcases() {
                 if (labNameEl) labNameEl.value = "";
                 if (statusEl) statusEl.value = "";
                 if (franchiseeEl) franchiseeEl.value = "";
-                if (fromDateEl) fromDateEl.value = formatDateInputValue(Date.now() - 24 * 60 * 60 * 1000);
-                if (toDateEl) toDateEl.value = formatDateInputValue(new Date());
+                if (fromDateEl) fromDateEl.value = "";
+                if (toDateEl) toDateEl.value = "";
 
                 fetchBookings(1);
             });
@@ -1584,9 +1584,6 @@ async function allcases() {
 
     const fromDateInput = document.getElementById("from-date");
     const toDateInput = document.getElementById("to-date");
-    if (fromDateInput && !fromDateInput.value) fromDateInput.value = formatDateInputValue(Date.now() - 24 * 60 * 60 * 1000);
-    if (toDateInput && !toDateInput.value) toDateInput.value = formatDateInputValue(new Date());
-
     await fetchBookings(1);
 
     // Close all dropdowns when clicking outside
