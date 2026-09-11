@@ -707,7 +707,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                             const addedPanelIds = new Set();
 
                             doc.testIds.forEach(test => {
-                                if (test.sampleType === element.typeOfSample && !addedTestIds.has(test._id.toString())) {
+                                if (normalizeSampleType(test.sampleType) === normalizeSampleType(element.typeOfSample) && !addedTestIds.has(test._id.toString())) {
                                     packagetestNames.push(test.Name);
                                     packagetestObjects.push({ id: test._id, collectionName: "testSchema" });
                                     addedTestIds.add(test._id.toString());
@@ -715,7 +715,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                             });
 
                             doc.pannelIds.forEach(panel => {
-                                if (panel.sample_types[0] === element.typeOfSample && !addedPanelIds.has(panel._id.toString())) {
+                                if ((panel.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(element.typeOfSample)) && !addedPanelIds.has(panel._id.toString())) {
                                     packagepanelNames.push(panel.name);
                                     packagepanelObjects.push({ id: panel._id, collectionName: "addPannel" });
                                     addedPanelIds.add(panel._id.toString());
@@ -1796,14 +1796,14 @@ const editbookingbookedtests = async (req, res) => {
                             const packagePanelObjects = [];
 
                             doc.testIds.forEach(test => {
-                                if (test.sampleType === element.typeOfSample) {
+                                if (normalizeSampleType(test.sampleType) === normalizeSampleType(element.typeOfSample)) {
                                     packageTestNames.push(test.Name);
                                     packageTestObjects.push({ id: test._id, collectionName: "testSchema" });
                                 }
                             });
 
                             doc.pannelIds.forEach(panel => {
-                                if (panel.sampleType === element.typeOfSample) {
+                                if ((panel.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(element.typeOfSample))) {
                                     packagePanelNames.push(panel.name);
                                     packagePanelObjects.push({ id: panel._id, collectionName: "addPannel" });
                                 }
@@ -3151,7 +3151,7 @@ async function getbarcodetestsandpanels(tid, barcodeId) {
         const addedPanelIds = new Set();
 
         for (const test of doc.testIds || []) {
-            if (!test?._id || test.sampleType !== sampleType) continue;
+            if (!test?._id || normalizeSampleType(test.sampleType) !== normalizeSampleType(sampleType)) continue;
 
             const testId = test._id.toString();
             if (addedTestIds.has(testId)) continue;
@@ -3161,7 +3161,7 @@ async function getbarcodetestsandpanels(tid, barcodeId) {
         }
 
         for (const panel of doc.pannelIds || []) {
-            if (!panel?._id || !Array.isArray(panel.sample_types) || !panel.sample_types.includes(sampleType)) continue;
+            if (!panel?._id || !Array.isArray(panel.sample_types) || !panel.sample_types.some(st => normalizeSampleType(st) === normalizeSampleType(sampleType))) continue;
 
             const panelId = panel._id.toString();
             if (addedPanelIds.has(panelId)) continue;
@@ -3351,12 +3351,21 @@ const getTestNameController = async (req, res) => {
     const tid = req.user.tenantId._id;
 
     try {
-        const barcodes = await acceptedBarcode.findOne({
-            tenantId: tid,
-            bookingId
-        }).select("bookingId createdAt barcodes").lean();
+        // acceptedBarcode is a derived snapshot. Some legacy bookings have
+        // only the expanded test ids there, so also load the original booking
+        // selection (which retains the Package id) as the source of truth.
+        const [barcodes, booking] = await Promise.all([
+            acceptedBarcode.findOne({
+                tenantId: tid,
+                bookingId
+            }).select("bookingId createdAt barcodes").lean(),
+            newBooking.findOne({
+                tenantId: tid,
+                bookingId
+            }).select("bookingId createdAt tableData").lean()
+        ]);
 
-        if (!barcodes) {
+        if (!barcodes && !booking) {
             return res.status(404).json({ message: "No test and panels found for this booking ID." });
         }
 
@@ -3377,16 +3386,37 @@ const getTestNameController = async (req, res) => {
             return normalized;
         };
 
+        // Barcodes are historical records: their ids may refer to the
+        // original/base catalogue item or to a tenant copy. Prefer the copy,
+        // but keep the exact-id fallback for old acceptedBarcode records.
+        const buildCatalogueQuery = (ids, alternateKey) => ({
+            $or: [
+                {
+                    tenantId: tid,
+                    $or: [
+                        { _id: { $in: ids } },
+                        { [alternateKey]: { $in: ids } }
+                    ]
+                },
+                { _id: { $in: ids } }
+            ]
+        });
+
         const buildLookupMap = (docs = [], alternateKey) => {
             const map = new Map();
 
             docs.forEach((doc) => {
                 if (!doc?._id) return;
 
-                map.set(doc._id.toString(), doc);
+                const isTenantCopy = doc.tenantId?.toString() === tid.toString();
+                const setPreferred = (key) => {
+                    // Do not allow a base item to overwrite its tenant copy.
+                    if (!map.has(key) || isTenantCopy) map.set(key, doc);
+                };
 
+                setPreferred(doc._id.toString());
                 if (alternateKey && doc[alternateKey]) {
-                    map.set(doc[alternateKey].toString(), doc);
+                    setPreferred(doc[alternateKey].toString());
                 }
             });
 
@@ -3415,7 +3445,64 @@ const getTestNameController = async (req, res) => {
             }));
         };
 
-        const barcodeEntries = Array.isArray(barcodes.barcodes) ? barcodes.barcodes : [];
+        const mergeTestIds = (...lists) => {
+            const seen = new Set();
+
+            return lists.flat()
+                .filter((item) => item?.id && item?.collectionName)
+                .filter((item) => {
+                    const key = `${item.id.toString()}__${item.collectionName}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+        };
+
+        const normalizedBarcode = (value) => String(value || "").trim();
+        const acceptedEntries = Array.isArray(barcodes?.barcodes) ? barcodes.barcodes : [];
+        const bookingEntries = Array.isArray(booking?.tableData) ? booking.tableData : [];
+        const bookingEntryByBarcode = new Map(
+            bookingEntries
+                .filter((entry) => normalizedBarcode(entry?.barcodeId))
+                .map((entry) => [normalizedBarcode(entry.barcodeId), entry])
+        );
+
+        // Merge original booking ids into the accepted snapshot. This restores
+        // package ids for old rows where acceptedBarcode saved only tests.
+        const barcodeEntries = acceptedEntries.map((entry) => {
+            const bookingEntry = bookingEntryByBarcode.get(normalizedBarcode(entry?.barcode));
+
+            if (!bookingEntry) return entry;
+
+            return {
+                ...entry,
+                typeOfSample: entry?.typeOfSample || bookingEntry.typeOfSample,
+                testIds: mergeTestIds(entry?.testIds || [], bookingEntry.ids || []),
+                testandpannelArray: (entry?.testandpannelArray || []).length
+                    ? entry.testandpannelArray
+                    : String(bookingEntry.testName || "").split(",").map((name) => name.trim()).filter(Boolean)
+            };
+        });
+
+        // A few historic bookings have no acceptedBarcode document at all.
+        // They can still produce a correct report from the booked table rows.
+        bookingEntries.forEach((bookingEntry) => {
+            const barcode = normalizedBarcode(bookingEntry?.barcodeId);
+            if (!barcode || barcodeEntries.some((entry) => normalizedBarcode(entry?.barcode) === barcode)) {
+                return;
+            }
+
+            barcodeEntries.push({
+                barcode,
+                typeOfSample: bookingEntry.typeOfSample,
+                testIds: mergeTestIds(bookingEntry.ids || []),
+                testandpannelArray: String(bookingEntry.testName || "")
+                    .split(",")
+                    .map((name) => name.trim())
+                    .filter(Boolean)
+            });
+        });
+
         const directTestIds = [];
         const directPanelIds = [];
         const packageIds = [];
@@ -3436,31 +3523,13 @@ const getTestNameController = async (req, res) => {
 
         const [directTests, directPanelsRaw, packageDocs] = await Promise.all([
             directTestObjectIds.length
-                ? testSchema.find({
-                    tenantId: tid,
-                    $or: [
-                        { _id: { $in: directTestObjectIds } },
-                        { originalTestId: { $in: directTestObjectIds } }
-                    ]
-                }).select(LAB_REPORT_TEST_SELECT).lean()
+                ? testSchema.find(buildCatalogueQuery(directTestObjectIds, "originalTestId")).select(`${LAB_REPORT_TEST_SELECT} tenantId originalTestId`).lean()
                 : Promise.resolve([]),
             directPanelObjectIds.length
-                ? addPannel.find({
-                    tenantId: tid,
-                    $or: [
-                        { _id: { $in: directPanelObjectIds } },
-                        { originalPanelId: { $in: directPanelObjectIds } }
-                    ]
-                }).select(LAB_REPORT_PANEL_SELECT).lean()
+                ? addPannel.find(buildCatalogueQuery(directPanelObjectIds, "originalPanelId")).select(`${LAB_REPORT_PANEL_SELECT} tenantId originalPanelId`).lean()
                 : Promise.resolve([]),
             packageObjectIds.length
-                ? Package.find({
-                    tenantId: tid,
-                    $or: [
-                        { _id: { $in: packageObjectIds } },
-                        { originalPackageId: { $in: packageObjectIds } }
-                    ]
-                }).select("testIds pannelIds originalPackageId").lean()
+                ? Package.find(buildCatalogueQuery(packageObjectIds, "originalPackageId")).select("testIds pannelIds tenantId originalPackageId").lean()
                 : Promise.resolve([])
         ]);
 
@@ -3469,22 +3538,10 @@ const getTestNameController = async (req, res) => {
 
         const [packageTestsRaw, packagePanelsRaw] = await Promise.all([
             packageTestObjectIds.length
-                ? testSchema.find({
-                    tenantId: tid,
-                    $or: [
-                        { _id: { $in: packageTestObjectIds } },
-                        { originalTestId: { $in: packageTestObjectIds } }
-                    ]
-                }).select(LAB_REPORT_TEST_SELECT).lean()
+                ? testSchema.find(buildCatalogueQuery(packageTestObjectIds, "originalTestId")).select(`${LAB_REPORT_TEST_SELECT} tenantId originalTestId`).lean()
                 : Promise.resolve([]),
             packagePanelObjectIds.length
-                ? addPannel.find({
-                    tenantId: tid,
-                    $or: [
-                        { _id: { $in: packagePanelObjectIds } },
-                        { originalPanelId: { $in: packagePanelObjectIds } }
-                    ]
-                }).select(LAB_REPORT_PANEL_SELECT).lean()
+                ? addPannel.find(buildCatalogueQuery(packagePanelObjectIds, "originalPanelId")).select(`${LAB_REPORT_PANEL_SELECT} tenantId originalPanelId`).lean()
                 : Promise.resolve([])
         ]);
 
@@ -3497,13 +3554,7 @@ const getTestNameController = async (req, res) => {
         );
 
         const nestedPanelTests = nestedPanelTestObjectIds.length
-            ? await testSchema.find({
-                tenantId: tid,
-                $or: [
-                    { _id: { $in: nestedPanelTestObjectIds } },
-                    { originalTestId: { $in: nestedPanelTestObjectIds } }
-                ]
-            }).select(LAB_REPORT_TEST_SELECT).lean()
+            ? await testSchema.find(buildCatalogueQuery(nestedPanelTestObjectIds, "originalTestId")).select(`${LAB_REPORT_TEST_SELECT} tenantId originalTestId`).lean()
             : [];
 
         const nestedPanelTestsMap = buildLookupMap(nestedPanelTests, "originalTestId");
@@ -3574,7 +3625,7 @@ const getTestNameController = async (req, res) => {
                 (matchedPackage.testIds || []).forEach((testId) => {
                     const testDoc = allTestsMap.get(testId.toString());
                     if (!testDoc) return;
-                    if (!barcode.typeOfSample || testDoc.sampleType === barcode.typeOfSample) {
+                    if (!barcode.typeOfSample || normalizeSampleType(testDoc.sampleType) === normalizeSampleType(barcode.typeOfSample)) {
                         addSingleTest(testDoc);
                     }
                 });
@@ -3582,7 +3633,7 @@ const getTestNameController = async (req, res) => {
                 (matchedPackage.pannelIds || []).forEach((panelId) => {
                     const panelDoc = allPanelsMap.get(panelId.toString());
                     if (!panelDoc) return;
-                    if (!barcode.typeOfSample || (panelDoc.sample_types || []).includes(barcode.typeOfSample)) {
+                    if (!barcode.typeOfSample || (panelDoc.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(barcode.typeOfSample))) {
                         addPanel(panelDoc);
                     }
                 });
@@ -3595,7 +3646,14 @@ const getTestNameController = async (req, res) => {
         ]);
 
         return res.status(200).json([{
-            barcodes,
+            // Return the repaired entries too; the report page uses this list
+            // for its investigation and sample-barcode display.
+            barcodes: {
+                ...(barcodes || {}),
+                bookingId: barcodes?.bookingId || booking?.bookingId || bookingId,
+                createdAt: barcodes?.createdAt || booking?.createdAt,
+                barcodes: barcodeEntries
+            },
             singleTests: singleTestsWithCategory,
             panels: panelsWithCategory
         }]);
@@ -3725,7 +3783,7 @@ const getTestNameControllerLegacy = async (req, res) => {
 
                             // ✅ Filter tests based on sample type
                             doc.testIds?.forEach(test => {
-                                if (test && test.sampleType === element.typeOfSample) {
+                                if (test && normalizeSampleType(test.sampleType) === normalizeSampleType(element.typeOfSample)) {
                                     const testKey = test._id.toString();
                                     if (!processedTests.has(testKey)) {
                                         processedTests.add(testKey);
@@ -3736,7 +3794,7 @@ const getTestNameControllerLegacy = async (req, res) => {
 
                             // ✅ Filter panels based on sample type
                             doc.pannelIds?.forEach(panel => {
-                                if (panel && panel.sample_types?.[0] === element.typeOfSample) {
+                                if (panel && (panel.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(element.typeOfSample))) {
                                     const panelKey = panel._id.toString();
                                     if (!processedPanels.has(panelKey)) {
                                         processedPanels.add(panelKey);

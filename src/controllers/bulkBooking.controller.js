@@ -23,6 +23,11 @@ const REFRESH_TOKEN_SECRET = process.env.SUPER_ADMIN_REFRESH_TOKEN_SECRET;
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || "1d";
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || "7d";
 
+// Helper function to normalize sample type for case-insensitive comparison
+function normalizeSampleType(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
 const getPreferredOrigin = (req) => {
     const requestOrigin = String(req?.headers?.origin || req?.get?.("origin") || "").trim();
     if (requestOrigin) {
@@ -242,7 +247,7 @@ const resolveBarcodeTestDetails = async (entry, session) => {
             const packagePanelIds = new Set();
 
             for (const test of doc.testIds || []) {
-                if (test?.sampleType === entry?.typeOfSample && !packageTestIds.has(test._id.toString())) {
+                if (normalizeSampleType(test?.sampleType) === normalizeSampleType(entry?.typeOfSample) && !packageTestIds.has(test._id.toString())) {
                     packageTestIds.add(test._id.toString());
                     if (test?.Name) {
                         resolvedNames.push(test.Name);
@@ -252,7 +257,7 @@ const resolveBarcodeTestDetails = async (entry, session) => {
             }
 
             for (const panel of doc.pannelIds || []) {
-                if (panel?.sample_types?.[0] === entry?.typeOfSample && !packagePanelIds.has(panel._id.toString())) {
+                if ((panel?.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(entry?.typeOfSample)) && !packagePanelIds.has(panel._id.toString())) {
                     packagePanelIds.add(panel._id.toString());
                     if (panel?.name) {
                         resolvedNames.push(panel.name);
