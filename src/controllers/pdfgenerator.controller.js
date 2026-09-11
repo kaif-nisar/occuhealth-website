@@ -241,9 +241,9 @@ const withQueuedPdfPage = async (label, task) => {
                     const resourceType = request.resourceType();
                     const url = request.url();
                     if (resourceType === 'font' || /google-analytics|googletagmanager|doubleclick/i.test(url)) {
-                        request.abort().catch(() => {});
+                        request.abort().catch(() => { });
                     } else {
-                        request.continue().catch(() => {});
+                        request.continue().catch(() => { });
                     }
                 });
                 await page.setDefaultNavigationTimeout(pdfContentLoadTimeout);
@@ -652,7 +652,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
-    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 }) + 20;
+    // investigationmargin is the measured header height. Keep the body exactly 1 cm below it.
+    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
 
@@ -671,6 +672,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
     headermarginPx = cmToPx(finitePdfNumber(headermargin, 2.8, { max: 10 }));
     footermarginPx = cmToPx(finitePdfNumber(footermargin, 1, { max: 10 }));
+    const mainContentTopPx = headermarginPx + investigationmargin + cmToPx(1);
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
@@ -779,7 +781,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                             .report-details-innerDiv2 {
                             width: ${format3 ? "95%" : "100%"} !important;
                             font-size: 12px;
-                            margin-top: ${format3 ? headermargin : "0"}cm !important;
+                            margin-top: ${format3 ? headermargin : '0'}cm !important;
                             border: none !important;
                             }
                             #investDiv {
@@ -842,7 +844,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
-                margin: { top: `${(headermarginPx + 20) + (format3 ? ((investigationmargin * 1.10) + (layerone ? (investigationmargin < 110 ? 75 : 15) : (investigationmargin < 160 ? 55 : 0))) : ((investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
+                margin: { top: `${mainContentTopPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -945,7 +947,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
 
-    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 }) + 20;
+    // investigationmargin is the measured header height. Keep the body exactly 1 cm below it.
+    investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
 
@@ -964,6 +967,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
     headermarginPx = cmToPx(parseFloat(headermargin));
     footermarginPx = cmToPx(parseFloat(footermargin));
+    const mainContentTopPx = headermarginPx + investigationmargin + cmToPx(1);
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
@@ -1133,7 +1137,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
-                margin: { top: `${headermarginPx + investigationmargin - 40}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
+                margin: { top: `${mainContentTopPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -1552,7 +1556,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     /* Clamp investigationmargin to A4-valid desktop range before computing
        Puppeteer margin.top — prevents mobile-inflated DB values from
        collapsing or inverting the header/content gap. */
-    mergedValues.investigationmargin = finitePdfNumber(mergedValues.investigationmargin, 135, { min: 60, max: 280 }) + 20;
+    mergedValues.investigationmargin = finitePdfNumber(mergedValues.investigationmargin, 135, { min: 60, max: 280 });
 
     const inlinedSegments = await inlinePdfHtmlSegments({
         htmlContent: mergedValues.htmlContent,
@@ -1714,7 +1718,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                 </body>
             </html>`,
             margin: {
-                top: `${headermarginPx + (format3 ? ((mergedValues.investigationmargin * 1.10) + (layerone ? (mergedValues.investigationmargin < 110 ? 75 : 15) : (mergedValues.investigationmargin < 160 ? 55 : 0))) : ((mergedValues.investigationmargin * 0.90) + (layerone ? 10 : 0)))}px`,
+                top: `${headermarginPx + mergedValues.investigationmargin + cmToPx(1)}px`,
                 bottom: '175px',
                 left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`,
                 right: `${marginRightPx > 0 ? marginRightPx : 10}px`
@@ -1983,13 +1987,27 @@ const savePdfSettingsController = async (req, res) => {
     try {
         const tenantId = req.user.tenantId._id;
         const createdBy = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
-        const { selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest } = req.body;
+        const {
+            selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+            headermargin, footermargin, marginRight, marginLeft
+        } = req.body;
 
         const fontSize = Number(selectedFontSize);
         const rowSpacing = Number(RowSpacing);
+        const layoutValues = {
+            headermargin: Number(headermargin),
+            footermargin: Number(footermargin),
+            marginRight: Number(marginRight),
+            marginLeft: Number(marginLeft),
+        };
+
         if (!Number.isFinite(fontSize) || fontSize < 7 || fontSize > 22 ||
-            !Number.isFinite(rowSpacing) || rowSpacing < 1 || rowSpacing > 12) {
-            return res.status(400).json({ message: 'Invalid font size or spacing value' });
+            !Number.isFinite(rowSpacing) || rowSpacing < 1 || rowSpacing > 12 ||
+            !Number.isFinite(layoutValues.headermargin) || layoutValues.headermargin < 0 || layoutValues.headermargin > 10 ||
+            !Number.isFinite(layoutValues.footermargin) || layoutValues.footermargin < 0 || layoutValues.footermargin > 6 ||
+            !Number.isFinite(layoutValues.marginRight) || layoutValues.marginRight < 0 || layoutValues.marginRight > 4 ||
+            !Number.isFinite(layoutValues.marginLeft) || layoutValues.marginLeft < 0 || layoutValues.marginLeft > 4) {
+            return res.status(400).json({ message: 'Invalid print layout, font size, or spacing value' });
         }
 
         const settings = await saveOrUpdatePdfSetting({
@@ -2001,6 +2019,10 @@ const savePdfSettingsController = async (req, res) => {
             HLinred: Boolean(HLinred),
             BoldRow: Boolean(BoldRow),
             showInvest: Boolean(showInvest),
+            headermargin: String(layoutValues.headermargin),
+            footermargin: String(layoutValues.footermargin),
+            marginRight: String(layoutValues.marginRight),
+            marginLeft: String(layoutValues.marginLeft),
         });
 
         return res.status(200).json(settings);

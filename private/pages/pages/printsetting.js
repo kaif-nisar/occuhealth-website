@@ -1,68 +1,162 @@
 const BASE_URL = window.location.origin;
+
 function toggleAccordion(button) {
     const content = button.nextElementSibling;
     const icon = button.querySelector('.icon');
-    content.classList.toggle('show');
-    button.classList.toggle('active');
+    if (content) {
+        content.classList.toggle('show');
+    }
+    if (button) {
+        button.classList.toggle('active');
+    }
 }
-(async function () {
 
+(async function () {
     const pageloader = document.querySelector(".printspinnerbox");
     const value1 = localStorage.getItem('myKey');
+    const layoutFieldIds = ['header', 'footer', 'margin-right', 'margin-left'];
+
+    const readLayoutSettings = () => {
+        const values = {
+            headermargin: Number(document.getElementById('header').value),
+            footermargin: Number(document.getElementById('footer').value),
+            marginRight: Number(document.getElementById('margin-right').value),
+            marginLeft: Number(document.getElementById('margin-left').value)
+        };
+        const limits = { headermargin: [0, 10], footermargin: [0, 6], marginRight: [0, 4], marginLeft: [0, 4] };
+        for (const [name, value] of Object.entries(values)) {
+            const [min, max] = limits[name];
+            if (!Number.isFinite(value) || value < min || value > max) {
+                throw new Error('Please enter a ' + min + '-' + max + ' cm value for ' + name + '.');
+            }
+        }
+        return values;
+    };
+
+    const readGeneralSettings = () => ({
+        selectedFontSize: Number(document.getElementById('pdf-font-size').value),
+        RowSpacing: Number(document.getElementById('spacing').value),
+        HighLow: document.getElementById('high-low-marker').checked,
+        HLinred: document.getElementById('abnormal-results-red').checked,
+        BoldRow: document.getElementById('abnormal-results-bold').checked,
+        showInvest: document.getElementById('show-investigations').checked
+    });
+
+    async function savePrintSettings(layout = readLayoutSettings()) {
+        const response = await fetch(BASE_URL + '/api/v1/user/save-pdf-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...readGeneralSettings(), ...layout })
+        });
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            throw new Error(result.message || 'Could not save print settings');
+        }
+        return response.json();
+    }
+
+    function refreshLayoutGuide() {
+        let layout;
+        try {
+            layout = readLayoutSettings();
+        } catch (_) {
+            const headerVal = Number(document.getElementById('header')?.value) || 0;
+            const footerVal = Number(document.getElementById('footer')?.value) || 0;
+            layout = { headermargin: headerVal, footermargin: footerVal };
+        }
+
+        const headerSpan = document.getElementById('headermargininfospan');
+        const footerSpan = document.getElementById('footermargininfospan');
+        const headerScale = document.getElementById('headermeasurescale');
+        const footerScale = document.getElementById('footermeasurescale');
+        const mainContentSpan = document.getElementById('maincontentinfospan');
+        const middleScale = document.getElementById('middlemeasurescale');
+
+        if (headerSpan) headerSpan.textContent = `${layout.headermargin} cm`;
+        if (footerSpan) footerSpan.textContent = `${layout.footermargin} cm`;
+
+        // Header margin is a shared vertical offset: it moves the header and
+        // main content together, while this fixed gap remains unchanged.
+        const TOTAL_A4_CM = 18.0;
+        const HEADER_CONTENT_CM = 3.2;
+        const FOOTER_CONTENT_CM = 1.8;
+        const HEADER_TO_MAIN_GAP_CM = 1;
+        const headerTotalCm = layout.headermargin + HEADER_CONTENT_CM;
+        const footerTotalCm = layout.footermargin + FOOTER_CONTENT_CM;
+        const mainContentCm = Math.max(0, TOTAL_A4_CM - (headerTotalCm + HEADER_TO_MAIN_GAP_CM + footerTotalCm));
+
+        if (headerScale) headerScale.textContent = `${headerTotalCm.toFixed(1)} cm`;
+        if (footerScale) footerScale.textContent = `${footerTotalCm.toFixed(1)} cm`;
+        if (mainContentSpan) mainContentSpan.textContent = `${mainContentCm.toFixed(1)} cm`;
+        if (middleScale) middleScale.textContent = `${mainContentCm.toFixed(1)} cm`;
+
+        const occupiedCm = headerTotalCm + HEADER_TO_MAIN_GAP_CM + mainContentCm + footerTotalCm;
+        const scaleCm = Math.max(TOTAL_A4_CM, occupiedCm);
+        const headerPct = (headerTotalCm / scaleCm) * 100;
+        const headerToMainGapPct = (HEADER_TO_MAIN_GAP_CM / scaleCm) * 100;
+        const middlePct = (mainContentCm / scaleCm) * 100;
+        const footerPct = (footerTotalCm / scaleCm) * 100;
+        const mainTopPct = headerPct + headerToMainGapPct;
+        const footerTopPct = mainTopPct + middlePct;
+
+        const headBox = document.getElementById('headermeasurescalebigbox');
+        const midBox = document.getElementById('middlemeasurescalebigbox');
+        const footBox = document.getElementById('footermeasurescalebigbox');
+
+        const headInfo = document.getElementById('headerinformationdiv');
+        const midInfo = document.getElementById('middleinformationdiv');
+        const footInfo = document.getElementById('footerinformationdiv');
+
+        if (headBox && midBox && footBox) {
+            headBox.style.top = `0%`;
+            headBox.style.height = `${headerPct}%`;
+
+            midBox.style.top = `${mainTopPct}%`;
+            midBox.style.height = `${middlePct}%`;
+
+            footBox.style.top = `${footerTopPct}%`;
+            footBox.style.height = `${footerPct}%`;
+        }
+
+        if (headInfo && midInfo && footInfo) {
+            headInfo.style.top = `0%`;
+            headInfo.style.height = `${headerPct}%`;
+
+            midInfo.style.top = `${mainTopPct}%`;
+            midInfo.style.height = `${middlePct}%`;
+
+            footInfo.style.top = `${footerTopPct}%`;
+            footInfo.style.height = `${footerPct}%`;
+        }
+    }
 
     const fetchDataAndSetInputs = async () => {
-        pageloader.style.display = "flex";
+        if (pageloader) pageloader.style.display = "flex";
         try {
-            // Send a POST request to the API with value1 in the request body
             const response = await fetch(`${BASE_URL}/api/v1/user/getting-pdf-data`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reportId: value1 }),
             });
 
-            // Check if the response is okay
             if (!response.ok) {
                 throw new Error('Failed to fetch data from API');
             }
 
-            // Parse the response JSON
             const data = await response.json();
 
-            const headermargin = (Number(data.headermargin) - (Number(data.headermargin) * 0.35)) + 1.8;
-            const footermargin = (Number(data.footermargin) + 1.2) - (Number(data.footermargin) === 1 ? 0 : Number(data.footermargin) * 0.3);
-            const middledivconatiner = document.getElementById('outermeasurebox');
-            const middlescaleheight = (Number(middledivconatiner.offsetHeight) / 37.8).toFixed(2);
-            console.log("middledivconatiner:", middlescaleheight);
-            // Base height calculation
-            const baseHeight = middlescaleheight - (headermargin + footermargin + 0.5);
-
-            // Centimeter (cm) format
-            const middleDivHeightInCm = `${parseFloat(baseHeight.toFixed(2))}cm`;
-
-            // Percentage (%) format (adding 50% as per your logic)
-            const middleDivHeightInPercent = `${parseFloat(baseHeight.toFixed(2)) + 48}%`;
-            document.getElementById('header').value = data.headermargin || '';
-            document.getElementById('headermeasurescale').innerText = `${Number(data.headermargin) + 3.2}cm` || '';
-            document.getElementById('headermargininfospan').innerText = `${data.headermargin}cm` || '';
-            document.getElementById('headermeasurescalebigbox').style.height = `${headermargin + 21}%`;
-            document.getElementById('footermeasurescale').innerText = `${Number(data.footermargin) + 1.8}cm` || '';
-            document.getElementById('footermargininfospan').innerText = `${data.footermargin}cm` || '';
-            document.getElementById('footermeasurescalebigbox').style.height = `${footermargin + 10}%`;
-            document.getElementById('middlemeasurescale').innerText = middleDivHeightInCm || '';
-            document.getElementById('middlemeasurescalebigbox').style.height = middleDivHeightInPercent;
-            document.getElementById('middlemeasurescalebigbox').style.top = `${headermargin + 21.22}%`;
-            document.getElementById('footer').value = data.footermargin || '';
-            document.getElementById('margin-right').value = data.marginRight || '';
-            document.getElementById('margin-left').value = data.marginLeft || '';
+            document.getElementById('header').value = data.headermargin ?? '';
+            document.getElementById('footer').value = data.footermargin ?? '';
+            document.getElementById('margin-right').value = data.marginRight ?? '';
+            document.getElementById('margin-left').value = data.marginLeft ?? '';
             document.getElementById('show-lab').checked = data.labinchargesign || false;
             document.getElementById('pdf-font-size').value = data.selectedFontSize ?? 10;
             document.getElementById('spacing').value = data.RowSpacing ?? 3;
-            document.getElementById('high-low-marker').checked = data.HighLow;
-            document.getElementById('abnormal-results-red').checked = data.HLinred;
-            document.getElementById('abnormal-results-bold').checked = data.BoldRow;
-            document.getElementById('show-investigations').checked = data.showInvest;
+            document.getElementById('high-low-marker').checked = data.HighLow ?? true;
+            document.getElementById('abnormal-results-red').checked = data.HLinred ?? false;
+            document.getElementById('abnormal-results-bold').checked = data.BoldRow ?? true;
+            document.getElementById('show-investigations').checked = data.showInvest ?? true;
+
             localStorage.setItem("printSettings", JSON.stringify({
                 HighLow: data.HighLow,
                 HLinred: data.HLinred,
@@ -70,67 +164,58 @@ function toggleAccordion(button) {
                 showInvest: data.showInvest
             }));
 
-            console.log('Input fields updated successfully');
+            refreshLayoutGuide();
         } catch (error) {
             console.error('Error fetching data and setting inputs:', error.message);
         } finally {
-            pageloader.style.display = "none";
+            if (pageloader) pageloader.style.display = "none";
         }
     };
 
     const fetchLabSignAndSetInputs = async () => {
-        pageloader.style.display = "flex";
+        if (pageloader) pageloader.style.display = "flex";
 
         try {
-            // Send a POST request to the API with value1 in the request body
             const response = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
+            if (!response.ok) throw new Error('Failed to fetch data from API');
 
-            // Check if the response is okay
-            if (!response.ok) {
-                throw new Error('Failed to fetch data from API');
-            }
-
-            // Parse the response JSON
             const data = await response.json();
-            console.log(data);
             if (data) {
                 document.getElementById('lab-info').value = data.labinchargeinfo || '';
                 document.getElementById('firstdoctor-info').value = data.firstdoctorsigninfo || '';
                 document.getElementById('seconddoctor-info').value = data.seconddoctorsigninfo || '';
-                document.getElementById('show-lab').checked = data.showlabinchargesign;
-                document.getElementById('show-doctor1').checked = data.showfirstdoctorsign;
-                document.getElementById('show-doctor2').checked = data.showseconddoctorsign;
+                document.getElementById('show-lab').checked = data.showlabinchargesign || false;
+                document.getElementById('show-doctor1').checked = data.showfirstdoctorsign || false;
+                document.getElementById('show-doctor2').checked = data.showseconddoctorsign || false;
 
                 const labSignImgdiv = document.getElementById('labSignImgdiv');
                 labSignImgdiv.innerHTML = '';
                 if (data.labinchargesign) {
                     labSignImgdiv.setAttribute("data-id", data._id);
                     labSignImgdiv.innerHTML = `
-                    <img src="${data.labinchargesign}" data-srcfeild="labinchargesign" id="labinchargesign" data-publicfeild="labinchargesignpublicid" data-asset="${data.labinchargesignpublicid}" alt="Lab Incharge Sign" height="50"; width="100";>`
+                    <img src="${data.labinchargesign}" data-srcfeild="labinchargesign" id="labinchargesign" data-publicfeild="labinchargesignpublicid" data-asset="${data.labinchargesignpublicid}" alt="Lab Incharge Sign" height="40" width="80">`;
                 }
 
                 const firstSignImgdiv = document.getElementById('firstSignImgdiv');
                 firstSignImgdiv.innerHTML = '';
                 if (data.firstdoctorsign) {
                     firstSignImgdiv.setAttribute("data-id", data._id);
-
                     firstSignImgdiv.innerHTML = `
-                    <img src="${data.firstdoctorsign}" data-srcfeild="firstdoctorsign" id="firstdoctorsign" data-publicfeild="firstdoctorsignpublicid" data-asset="${data.firstdoctorsignpublicid}" alt="Lab Incharge Sign" height="50"; width="100";>`
+                    <img src="${data.firstdoctorsign}" data-srcfeild="firstdoctorsign" id="firstdoctorsign" data-publicfeild="firstdoctorsignpublicid" data-asset="${data.firstdoctorsignpublicid}" alt="Doctor 1 Sign" height="40" width="80">`;
                 }
 
                 const seconddoctorinfo = document.getElementById('secondSignImgdiv');
                 seconddoctorinfo.innerHTML = '';
                 if (data.seconddoctorsign) {
                     seconddoctorinfo.setAttribute("data-id", data._id);
-
                     seconddoctorinfo.innerHTML = `
-                    <img src="${data.seconddoctorsign}" data-srcfeild="seconddoctorsign" id="seconddoctorsign" data-publicfeild="seconddoctorsignpublicid" data-asset="${data.seconddoctorsignpublicid}" alt="Lab Incharge Sign" height="50"; width="100";>`;
+                    <img src="${data.seconddoctorsign}" data-srcfeild="seconddoctorsign" id="seconddoctorsign" data-publicfeild="seconddoctorsignpublicid" data-asset="${data.seconddoctorsignpublicid}" alt="Doctor 2 Sign" height="40" width="80">`;
                 }
             }
         } catch (error) {
-            console.error('Error fetching data and setting inputs:', error.message);
+            console.error('Error fetching sign data:', error.message);
         } finally {
-            pageloader.style.display = "none";
+            if (pageloader) pageloader.style.display = "none";
         }
     };
 
@@ -138,87 +223,75 @@ function toggleAccordion(button) {
         const images = document.querySelectorAll('.image');
 
         images.forEach(image => {
-            // Create a container for each image with a delete icon
+            if (image.parentElement.classList.contains('image-container')) return;
+
             const container = document.createElement('div');
             container.classList.add('image-container');
 
             const deleteIcon = document.createElement('span');
             deleteIcon.classList.add('delete-icon');
-            deleteIcon.innerHTML = '&#x2715;'; // Unicode for the "X" symbol (close)
+            deleteIcon.innerHTML = '&#x2715;';
 
-            // Wrap the image with the container and append the delete icon
-            container.appendChild(image.cloneNode(true)); // Clone the image
+            container.appendChild(image.cloneNode(true));
             container.appendChild(deleteIcon);
-            image.replaceWith(container); // Replace the original image with the container
+            image.replaceWith(container);
 
             deleteIcon.addEventListener('click', async (e) => {
-                e.stopPropagation(); // Prevent triggering image selection
+                e.stopPropagation();
 
-                const imageUrl = image.src; // Use the image URL
-                const public_id = image.getAttribute('data-asset');
+                const innerImg = container.querySelector('img');
+                const imageUrl = innerImg?.src;
+                const public_id = innerImg?.getAttribute('data-asset');
 
                 if (imageUrl) {
-                    pageloader.style.display = "flex";
+                    if (pageloader) pageloader.style.display = "flex";
 
                     try {
-                        // Send a request to delete the image by its URL
                         const response = await fetch(`${BASE_URL}/api/v1/user/delete-image`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ url: imageUrl, public_id }), // Send the URL in the request body
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: imageUrl, public_id }),
                         });
                         const result = await response.json();
 
                         if (response.ok) {
-                            // Remove the image container from the DOM
                             container.remove();
-                            alert('template deleted successfully')
+                            alert('Template deleted successfully');
                         } else {
-                            alert(`Failed to delete the image: ${result.message}`);
+                            alert(`Failed to delete image: ${result.message}`);
                         }
                     } catch (error) {
                         console.error('Error deleting image:', error);
-                        alert('Error deleting the image.');
+                        alert('Error deleting image.');
                     } finally {
-                        pageloader.style.display = "none";
+                        if (pageloader) pageloader.style.display = "none";
                     }
                 }
             });
 
-
-            // Handle image selection and deselection (click event)
-            container.querySelector('.image').addEventListener('click', () => {
-                const selectedImage = document.querySelector('.image.selected');
-                if (selectedImage) {
-                    selectedImage.classList.remove('selected');
-                }
-                container.querySelector('.image').classList.add('selected');
+            container.querySelector('img').addEventListener('click', (e) => {
+                document.querySelectorAll('.image.selected').forEach(el => el.classList.remove('selected'));
+                e.target.classList.add('selected');
             });
         });
     }
 
     async function imagedeletion() {
-
         document.querySelectorAll('.deleteIcon').forEach((icon) => {
-            icon.addEventListener('click', async function (e) {
-
-                const parentDiv = icon.parentElement; // icon ka direct parent (e.g. labSignImgdiv, firstSignImgdiv)
+            icon.addEventListener('click', async function () {
+                const parentDiv = icon.parentElement;
                 const imgtag = parentDiv.querySelector('img');
-                const urlfield = imgtag.getAttribute('data-srcfeild')
-                const publicIdfield = imgtag.getAttribute('data-publicfeild')
+                if (!imgtag) return;
+                const urlfield = imgtag.getAttribute('data-srcfeild');
+                const publicIdfield = imgtag.getAttribute('data-publicfeild');
                 const publicId = imgtag.getAttribute('data-asset');
-                pageloader.style.display = "flex";
+                if (pageloader) pageloader.style.display = "flex";
 
                 try {
-                    // Send a request to delete the image by its URL
                     const response = await fetch(`${BASE_URL}/api/v1/user/deleteLabInchargeSign`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ publicId, urlfield, publicIdfield }), // Send the URL in the request body
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ publicId, urlfield, publicIdfield }),
                     });
                     const result = await response.json();
 
@@ -226,30 +299,27 @@ function toggleAccordion(button) {
                         await fetchLabSignAndSetInputs();
                         imagedeletion();
                     } else {
-                        alert(`Failed to delete the image: ${result.message}`);
+                        alert(`Failed to delete signature: ${result.message}`);
                     }
                 } catch (error) {
-                    console.error('Error deleting image:', error);
-                    alert('Error deleting the image.');
+                    console.error('Error deleting signature image:', error);
+                    alert('Error deleting signature.');
                 } finally {
-                    pageloader.style.display = "none";
-
+                    if (pageloader) pageloader.style.display = "none";
                 }
-
             });
         });
     }
 
     async function fetchTemplateImages() {
-        pageloader.style.display = "flex";
+        if (pageloader) pageloader.style.display = "flex";
 
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/templates`, { method: "POST" }); // Update URL as per your backend
+            const response = await fetch(`${BASE_URL}/api/v1/user/templates`, { method: "POST" });
             const data = await response.json();
-            console.log("this is urls: ", data.urls);
 
             if (data.urls && Array.isArray(data.urls)) {
-                const container = document.getElementById('images-div'); // Assuming you have a container with this ID
+                const container = document.getElementById('images-div');
                 container.innerHTML = "";
                 let order = 1;
 
@@ -258,88 +328,69 @@ function toggleAccordion(button) {
                     img.src = url.template;
                     img.classList.add('image');
                     img.setAttribute('data-id', order++);
-                    img.setAttribute('data-asset', url.public_id)
+                    img.setAttribute('data-asset', url.public_id);
                     img.alt = 'Template Image';
                     container.appendChild(img);
                 });
-            } else {
-                console.error('No URLs found:', data);
             }
         } catch (error) {
             console.error('Error fetching template images:', error);
         } finally {
-            pageloader.style.display = "none";
-
+            if (pageloader) pageloader.style.display = "none";
         }
-    };
+    }
 
-    // end populating data=================================================================================
-
-    async function autogeneratingpdf({ value1, checkBox = false, showlab, showdoctorfirst, showdoctorsecond,
+    async function autogeneratingpdf({ value1: argVal1, checkBox = false, showlab, showdoctorfirst, showdoctorsecond,
         backgroundImageUrl = null, headermargin, footermargin, marginRight, marginLeft,
-        selectedFontSize, RowSpacing, HighLow, HLinred: HLinred,
-        BoldRow, showInvest, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext
-        , fileInputDoctorlefttext, fileInputDoctorrighttext } = {}) {
+        selectedFontSize, RowSpacing, HighLow, HLinred,
+        BoldRow, showInvest, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+        fileInputDoctorlefttext, fileInputDoctorrighttext } = {}) {
         const loader = document.querySelector('.loaderDiv');
         const value2 = localStorage.getItem('myKey');
-        console.log("value2 is:", value2);
-
 
         try {
-            loader.style.display = 'flex';
-            loader.style.zIndex = '9999';
+            if (loader) {
+                loader.style.display = 'flex';
+                loader.style.zIndex = '9999';
+            }
             const response = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // body: JSON.stringify({ htmlContent, cssContent, header, footer, backgroundImageUrl, value1 }),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     value1: value2, checkBox, backgroundImageUrl,
                     headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing,
-                    HighLow, HLinred,
-                    BoldRow, showInvest, showlab, showdoctorfirst, showdoctorsecond, fileInputLab,
-                    fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, fileInputDoctorlefttext,
-                    fileInputDoctorrighttext
+                    HighLow, HLinred, BoldRow, showInvest, showlab, showdoctorfirst, showdoctorsecond,
+                    fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+                    fileInputDoctorlefttext, fileInputDoctorrighttext
                 })
             });
 
             if (!response.ok) throw new Error('PDF generation failed');
 
-            // Create a Blob from the response
             const pdfBlob = await response.blob();
-
-            // Create a URL for the Blob
             const pdfUrl = URL.createObjectURL(pdfBlob);
-
-            // Set the URL in the iframe
             const iframe = document.getElementById('pdf-preview');
             if (iframe) {
                 iframe.src = pdfUrl;
-            } else {
-                console.error('Iframe with ID "pdf-preview" not found!');
             }
         } catch (error) {
             console.error('Error generating PDF:', error);
         } finally {
-            loader.style.display = 'none';
-            loader.style.zIndex = '-1';
+            if (loader) {
+                loader.style.display = 'none';
+                loader.style.zIndex = '-1';
+            }
         }
     }
 
-    const checkBox = document.getElementById('check1'); // Get the checkbox element
-
-    checkBox.addEventListener('change', function () {
-        if (checkBox.checked) {
-            // Without background
+    const checkBox = document.getElementById('check1');
+    if (checkBox) {
+        checkBox.addEventListener('change', function () {
             autogeneratingpdf({ checkBox: checkBox.checked });
-        } else {
-            autogeneratingpdf({ checkBox: checkBox.checked });
-        }
-    })
+        });
+    }
 
     async function Initialization() {
-
         await fetchDataAndSetInputs();
         await fetchLabSignAndSetInputs();
         await fetchTemplateImages();
@@ -348,20 +399,27 @@ function toggleAccordion(button) {
         selectionimage();
     }
 
-
     Initialization();
 
-    document.getElementById('uploadTemplate').addEventListener('click', async function () {
+    document.getElementById('uploadTemplate')?.addEventListener('click', async function () {
         const fileInput = document.getElementById('fileInput');
         const messageElement = document.getElementById('message');
         let selectedImage = document.querySelector('.image.selected');
-        let imageUrlToSend = null; // URL to send to the backend
-        const headermargin = document.getElementById("header").value;
-        const footermargin = document.getElementById("footer").value;
-        const marginRight = document.getElementById("margin-right").value;
-        const marginLeft = document.getElementById("margin-left").value;
+        let imageUrlToSend = null;
+        let layout;
+        try {
+            layout = readLayoutSettings();
+            if (pageloader) pageloader.style.display = "flex";
+            await savePrintSettings(layout);
+            refreshLayoutGuide();
+        } catch (error) {
+            if (messageElement) messageElement.textContent = error.message;
+            return;
+        } finally {
+            if (pageloader) pageloader.style.display = "none";
+        }
+        const { headermargin, footermargin, marginRight, marginLeft } = layout;
 
-        // Ensure the first image is selected by default if no other image is selected
         if (!selectedImage) {
             selectedImage = document.querySelector('.image');
             if (selectedImage) {
@@ -370,18 +428,16 @@ function toggleAccordion(button) {
         }
 
         if (fileInput && fileInput.files.length > 0) {
-            // Case 1: File is uploaded
             const file = fileInput.files[0];
 
             if (!file.type.startsWith('image/')) {
-                messageElement.textContent = 'Only image files are allowed.';
+                if (messageElement) messageElement.textContent = 'Only image files are allowed.';
                 return;
             }
 
-            // Upload the file to the backend
             const formData = new FormData();
             formData.append('template', file);
-            pageloader.style.display = "flex";
+            if (pageloader) pageloader.style.display = "flex";
 
             try {
                 const response = await fetch(`${BASE_URL}/api/v1/user/template`, {
@@ -392,34 +448,31 @@ function toggleAccordion(button) {
                 if (response.ok) {
                     fileInput.value = "";
                     const result = await response.json();
-                    messageElement.textContent = 'File uploaded successfully!';
-                    imageUrlToSend = result.url; // Use the uploaded file's URL
+                    if (messageElement) messageElement.textContent = 'File uploaded successfully!';
+                    imageUrlToSend = result.url;
                     await fetchTemplateImages();
                     await selectionimage();
-                    await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft }); // Generate the PDF with the uploaded file
+                    await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft });
                     fetchDataAndSetInputs();
-                    return; // Exit early since uploaded file is prioritized
+                    return;
                 } else {
                     const errorResult = await response.json();
-                    messageElement.textContent = `Error: ${errorResult.message}`;
+                    if (messageElement) messageElement.textContent = `Error: ${errorResult.message}`;
                     return;
                 }
             } catch (error) {
-                messageElement.textContent = 'An error occurred while uploading the file.';
+                if (messageElement) messageElement.textContent = 'An error occurred while uploading the file.';
                 console.error('Upload error:', error);
                 return;
             } finally {
-                pageloader.style.display = "none";
-
+                if (pageloader) pageloader.style.display = "none";
             }
         }
 
-        // Case 2: Use the selected image if available
         if (selectedImage) {
             imageUrlToSend = selectedImage.src;
         }
 
-        // Case 3: If no file is uploaded and no image is selected, use the first image
         if (!imageUrlToSend) {
             const firstImage = document.querySelector('.image');
             if (firstImage) {
@@ -427,17 +480,17 @@ function toggleAccordion(button) {
             }
         }
 
-        // Ensure the image URL is sent to generate the PDF
         if (imageUrlToSend) {
             await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft });
-            messageElement.textContent = 'PDF generated successfully with the selected/default image!';
+            if (messageElement) messageElement.textContent = 'PDF generated successfully with the selected image!';
             fetchDataAndSetInputs();
         } else {
-            messageElement.textContent = 'No image or file available to generate the PDF.';
+            await autogeneratingpdf({ headermargin, footermargin, marginRight, marginLeft });
+            if (messageElement) messageElement.textContent = 'Layout saved and preview refreshed.';
         }
     });
 
-    document.getElementById('updateSign').addEventListener('click', async function () {
+    document.getElementById('updateSign')?.addEventListener('click', async function () {
         const showlab = document.getElementById('show-lab').checked;
         const showdoctorfirst = document.getElementById('show-doctor1').checked;
         const showdoctorsecond = document.getElementById('show-doctor2').checked;
@@ -447,10 +500,6 @@ function toggleAccordion(button) {
         const fileInputLabtext = document.getElementById('lab-info').value;
         const fileInputDoctorlefttext = document.getElementById('firstdoctor-info').value;
         const fileInputDoctorrighttext = document.getElementById('seconddoctor-info').value;
-
-        const labsigndiv = document.getElementById('labSignImgdiv');
-        const imgUrl = labsigndiv.querySelector('img')?.src || "";
-        console.log("this is the image Url", imgUrl);
 
         const file1 = fileInputLab1?.files?.[0];
         const file2 = fileInputDoctorleft1?.files?.[0];
@@ -474,7 +523,7 @@ function toggleAccordion(button) {
         formData.append('showlab', showlab);
         formData.append('showdoctorfirst', showdoctorfirst);
         formData.append('showdoctorsecond', showdoctorsecond);
-        pageloader.style.display = "flex";
+        if (pageloader) pageloader.style.display = "flex";
 
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/uploadDoctorsSign`, {
@@ -489,23 +538,17 @@ function toggleAccordion(button) {
                 fileInputLab1.value = "";
                 fileInputDoctorleft1.value = "";
                 fileInputDoctorright1.value = "";
-                const showlab = document.getElementById('show-lab').checked;
-                const showdoctorfirst = document.getElementById('show-doctor1').checked;
-                const showdoctorsecond = document.getElementById('show-doctor2').checked;
+
                 const fileInputLab = document.getElementById('labinchargesign')?.src || "";
                 const fileInputDoctorleft = document.getElementById('firstdoctorsign')?.src || "";
                 const fileInputDoctorright = document.getElementById('seconddoctorsign')?.src || "";
-                const fileInputLabtext = document.getElementById('lab-info').value;
-                const fileInputDoctorlefttext = document.getElementById('firstdoctor-info').value;
-                const fileInputDoctorrighttext = document.getElementById('seconddoctor-info').value;
-                const value1 = localStorage.getItem('myKey');
 
                 autogeneratingpdf({
-                    value1, showlab: showlab, showdoctorfirst: showdoctorfirst, showdoctorsecond: showdoctorsecond, fileInputLab: fileInputLab,
-                    fileInputDoctorleft: fileInputDoctorleft, fileInputDoctorright: fileInputDoctorright,
-                    fileInputLabtext: fileInputLabtext, fileInputDoctorlefttext: fileInputDoctorlefttext,
-                    fileInputDoctorrighttext: fileInputDoctorrighttext
-                })
+                    value1: localStorage.getItem('myKey'),
+                    showlab, showdoctorfirst, showdoctorsecond,
+                    fileInputLab, fileInputDoctorleft, fileInputDoctorright,
+                    fileInputLabtext, fileInputDoctorlefttext, fileInputDoctorrighttext
+                });
             } else {
                 alert("Error: " + result.message);
             }
@@ -513,123 +556,82 @@ function toggleAccordion(button) {
             console.error('Upload error:', error.message);
             alert(error.message);
         } finally {
-            pageloader.style.display = "none";
-
+            if (pageloader) pageloader.style.display = "none";
         }
     });
 
-    document.getElementById('updateGeneral').addEventListener('click', async function () {
-        const selectedFontSize = document.getElementById('pdf-font-size').value;
-        const RowSpacing = document.getElementById('spacing').value;
-        const HighLow = document.getElementById('high-low-marker').checked;
-        const HLinred = document.getElementById('abnormal-results-red').checked;
-        const BoldRow = document.getElementById('abnormal-results-bold').checked;
-        const showInvest = document.getElementById('show-investigations').checked;
+    document.getElementById('updateGeneral')?.addEventListener('click', async function () {
+        const general = readGeneralSettings();
+        const layout = readLayoutSettings();
 
-        pageloader.style.display = "flex";
+        if (pageloader) pageloader.style.display = "flex";
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/save-pdf-settings`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    selectedFontSize: Number(selectedFontSize),
-                    RowSpacing: Number(RowSpacing),
-                    HighLow,
-                    HLinred,
-                    BoldRow,
-                    showInvest,
-                }),
-            });
-
-            if (!response.ok) {
-                const result = await response.json().catch(() => ({}));
-                throw new Error(result.message || 'Failed to save PDF settings');
-            }
-
-            localStorage.setItem("printSettings", JSON.stringify({
-                selectedFontSize: Number(selectedFontSize),
-                RowSpacing: Number(RowSpacing),
-                HighLow,
-                HLinred,
-                BoldRow,
-                showInvest
-            }));
-
-            await autogeneratingpdf({
-                selectedFontSize: Number(selectedFontSize),
-                RowSpacing: Number(RowSpacing),
-                HighLow,
-                HLinred,
-                BoldRow,
-                showInvest
-            });
+            await savePrintSettings(layout);
+            localStorage.setItem("printSettings", JSON.stringify(general));
+            await autogeneratingpdf({ ...general, ...layout });
         } catch (error) {
             console.error('Error saving PDF settings:', error);
             alert(error.message);
         } finally {
-            pageloader.style.display = "none";
+            if (pageloader) pageloader.style.display = "none";
         }
     });
 
-    // Function to validate input field values and update button state
     function validateField(input, min, max) {
         const value = parseFloat(input.value);
         const errorId = input.id + "-error";
         const errorElement = document.getElementById(errorId);
 
         if (isNaN(value) || value < min || value > max) {
-            errorElement.textContent = `Value must be between ${min} and ${max} cm.`;
-            errorElement.style.color = "red";
-            input.style.borderColor = "red";
+            if (errorElement) errorElement.textContent = `Value must be between ${min} and ${max} cm.`;
+            input.style.borderColor = "#dc2626";
         } else {
-            errorElement.textContent = "";
-            input.style.borderColor = "green";
+            if (errorElement) errorElement.textContent = "";
+            input.style.borderColor = "#16a34a";
         }
 
-        // Call function to update button state
         updateButtonState();
     }
 
-    // Function to check all fields and enable/disable the button
     function updateButtonState() {
         const fields = ['header', 'footer', 'margin-right', 'margin-left'];
         let isValid = true;
 
         fields.forEach(fieldId => {
-            const input = document.getElementById(fieldId);
-            const errorId = fieldId + "-error";
-            const errorElement = document.getElementById(errorId);
-
-            // If any error message is present, mark form as invalid
-            if (errorElement.textContent) {
+            const errorElement = document.getElementById(fieldId + "-error");
+            if (errorElement && errorElement.textContent) {
                 isValid = false;
             }
         });
 
-        // Enable or disable the update button based on form validity
         const updateButton = document.getElementById('uploadTemplate');
-        if (isValid) {
-            updateButton.removeAttribute('disabled');
-            updateButton.style.cursor = 'pointer';
-        } else {
-            updateButton.setAttribute('disabled', true);
-            updateButton.style.cursor = 'not-allowed';
+        if (updateButton) {
+            if (isValid) {
+                updateButton.removeAttribute('disabled');
+            } else {
+                updateButton.setAttribute('disabled', true);
+            }
         }
     }
 
-    // Attach validation to input fields
-    document.getElementById('header').addEventListener('input', () => validateField(document.getElementById('header'), 0, 10));
-    document.getElementById('footer').addEventListener('input', () => validateField(document.getElementById('footer'), 0, 6));
-    document.getElementById('margin-right').addEventListener('input', () => validateField(document.getElementById('margin-right'), 0, 4));
-    document.getElementById('margin-left').addEventListener('input', () => validateField(document.getElementById('margin-left'), 0, 4));
+    const layoutValidation = { header: [0, 10], footer: [0, 6], 'margin-right': [0, 4], 'margin-left': [0, 4] };
+    layoutFieldIds.forEach((id) => {
+        const input = document.getElementById(id);
+        if (input) {
+            const [min, max] = layoutValidation[id];
+            input.addEventListener('input', () => {
+                validateField(input, min, max);
+                try { refreshLayoutGuide(); } catch (_) {}
+            });
+            input.addEventListener('change', () => {
+                try { refreshLayoutGuide(); } catch (_) {}
+            });
+        }
+    });
 
-    // Initial call to disable the button on page load
     updateButtonState();
 
-    // Add event listener to the back button
-    document.getElementById('close-btn').addEventListener('click', function () {
+    document.getElementById('close-btn')?.addEventListener('click', function () {
         const bookingId = localStorage.getItem('myKey');
         const format = localStorage.getItem('pdfformat');
         window.location.href = `${BASE_URL}/admin/admin.html?page=${format}&value1=${bookingId}`;
@@ -642,14 +644,18 @@ function toggleAccordion(button) {
         textareainfo.forEach((feild) => {
             feild.addEventListener('input', () => {
                 if (feild.value.length >= maxlength) {
-                    errormessage.style.display = "block";
-                    errormessage.textContent = "❗ Maximum 75 characters allowed";
+                    if (errormessage) {
+                        errormessage.style.display = "block";
+                        errormessage.textContent = "❗ Maximum 75 characters allowed";
+                    }
                 } else {
-                    errormessage.style.display = "none";
-                    errormessage.textContent = ""
+                    if (errormessage) {
+                        errormessage.style.display = "none";
+                        errormessage.textContent = "";
+                    }
                 }
-            })
-        })
+            });
+        });
     }
     verifyinputfeilds();
 
