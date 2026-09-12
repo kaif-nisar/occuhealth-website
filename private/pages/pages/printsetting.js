@@ -373,6 +373,13 @@ function toggleAccordion(button) {
             if (iframe) {
                 iframe.src = pdfUrl;
             }
+            // Mobile fallback: set href on the open-button so user can tap to view PDF
+            const mobilePdfBtn = document.getElementById('mobile-pdf-open-btn');
+            if (mobilePdfBtn) {
+                mobilePdfBtn.href = pdfUrl;
+                mobilePdfBtn.classList.add('pdf-ready');
+                mobilePdfBtn.innerHTML = '<i class="fas fa-file-pdf"></i> Open PDF Preview';
+            }
         } catch (error) {
             console.error('Error generating PDF:', error);
         } finally {

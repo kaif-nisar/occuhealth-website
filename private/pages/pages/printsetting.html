@@ -771,6 +771,42 @@
                 width: 100%;
             }
         }
+        /* Mobile PDF open button — shown on small screens instead of iframe */
+        .mobile-pdf-btn {
+            display: none;
+            width: 100%;
+            background: var(--ps-primary);
+            color: #fff;
+            padding: 18px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+            transition: background 0.2s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25);
+        }
+        .mobile-pdf-btn:hover { background: var(--ps-primary-hover); color: #fff; }
+        .mobile-pdf-btn.pdf-ready { background: #166534; box-shadow: 0 4px 12px rgba(22, 101, 52, 0.25); }
+        .mobile-pdf-note {
+            display: none;
+            font-size: 13px;
+            color: var(--ps-muted);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            #pdf-preview-div { display: none !important; }
+            .mobile-pdf-btn { display: flex !important; }
+            .mobile-pdf-note { display: block !important; }
+        }
     </style>
 </head>
 
@@ -1057,6 +1093,11 @@
                             </div>
                             <iframe id="pdf-preview" title="PDF Preview"></iframe>
                         </div>
+                        <!-- Mobile fallback: iframe doesn't render PDF on mobile browsers -->
+                        <a id="mobile-pdf-open-btn" class="mobile-pdf-btn" href="#" target="_blank" rel="noopener">
+                            <i class="fas fa-file-pdf"></i> Open PDF Preview
+                        </a>
+                        <p class="mobile-pdf-note">Tap above to preview the generated PDF in your browser.</p>
                     </div>
                 </div>
             </div>

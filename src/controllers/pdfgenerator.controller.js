@@ -616,13 +616,17 @@ const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
 };
 
 // Patient name se safe PDF filename banane wala helper
-const buildPdfFilename = (patientName) => {
-    const name = String(patientName || 'Patient_Report').trim();
-    const safe = name.replace(/[\/\\?%*:|"<>]/g, '').replace(/\s+/g, '_') || 'Patient_Report';
+const buildPdfFilename = (patientName, bookingId) => {
+    const name = String(patientName || 'Patient').trim();
+    const safe = name.replace(/[\/\\?%*:|"<>]/g, '').replace(/\s+/g, '_') || 'Patient';
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, '0');
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const yyyy = today.getFullYear();
+    if (bookingId) {
+        const safeBkId = String(bookingId).replace(/[\/\\?%*:|"<>]/g, '').trim();
+        return `${safe}_${safeBkId}_${dd}-${mm}-${yyyy}.pdf`;
+    }
     return `${safe}_${dd}-${mm}-${yyyy}.pdf`;
 };
 
@@ -930,7 +934,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
 
         res.setHeader('Content-Type', 'application/pdf');
-        const pdfFilename2 = buildPdfFilename(patientName);
+        const pdfFilename2 = buildPdfFilename(patientName, bookingId || requestBookingId);
         res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename2}"; filename*=UTF-8''${encodeURIComponent(pdfFilename2)}`);
         res.setHeader('Content-Length', responsePdfBuffer.length);
         res.end(responsePdfBuffer);
@@ -1214,8 +1218,16 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
         );
 
 
+        // Patient ka naam DB se fetch karo filename ke liye
+        const reportForName3 = await reports.findOne(
+            reportId && mongoose.Types.ObjectId.isValid(reportId)
+                ? { _id: reportId }
+                : { bookingId: bookingId }
+        ).select('patientName').lean();
+        const patientName3 = reportForName3?.patientName || '';
+
         res.setHeader('Content-Type', 'application/pdf');
-        const pdfFilename3 = buildPdfFilename(bookingId);
+        const pdfFilename3 = buildPdfFilename(patientName3, bookingId);
         res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename3}"; filename*=UTF-8''${encodeURIComponent(pdfFilename3)}`);
         res.setHeader('Content-Length', responsePdfBuffer.length);
         res.end(responsePdfBuffer);
