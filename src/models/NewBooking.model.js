@@ -156,7 +156,28 @@ TestBookingSchema.index({ tenantId: 1, "tableData.barcodeId": 1 });
 TestBookingSchema.index({ tenantId: 1, date: -1, createdAt: -1 });
 TestBookingSchema.index({ tenantId: 1, date: 1 });
 TestBookingSchema.index({ tenantId: 1, patientName: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, doctorName: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, labName: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, createdbyuser: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, savedDoctor: 1, createdAt: -1 });
+TestBookingSchema.index({ tenantId: 1, courierName: 1, createdAt: -1 });
 TestBookingSchema.index({ createdAt: -1 });
+
+// Text index for efficient full-text search across key string fields
+TestBookingSchema.index({
+    bookingId: 'text',
+    patientName: 'text',
+    patientPhone: 'text',
+    doctorName: 'text',
+    savedDoctor: 'text',
+    labName: 'text',
+    franchisee: 'text',
+    subFranchisee: 'text',
+    courierName: 'text',
+    courierId: 'text',
+    clinicalHistory: 'text',
+    createdbyuser: 'text'
+});
 
 const newBooking = mongoose.model("testBooking", TestBookingSchema)
 

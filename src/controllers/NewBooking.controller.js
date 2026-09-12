@@ -410,19 +410,19 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
             const parentUserCache = new Map();
 
             // ============================================================
-            // Calculate commissions — FIXED
+            // Calculate commissions ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â FIXED
             // ============================================================
             for (const item of parsedSelectedTestIds) {
-                console.log(`\n📦 Processing test/package ID: ${item}`);
+                console.log(`\nÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â¦ Processing test/package ID: ${item}`);
 
-                // ✅ FIX: session properly pass kiya har query mein
+                // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX: session properly pass kiya har query mein
                 const testOrPackage =
                     await testSchema.findById(item).session(session) ||
                     await addPannel.findById(item).session(session) ||
                     await Package.findById(item).session(session);
 
                 if (!testOrPackage) {
-                    console.error(`❌ Test/Package not found for ID: ${item}`);
+                    console.error(`ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Test/Package not found for ID: ${item}`);
                     await session.abortTransaction();
                     session.endSession();
                     throw new ApiError(404, `Test/Package with ID ${item} not found`);
@@ -448,7 +448,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 let currentPrice = getAssignedPriceForUser(bookingUser._id);
 
                 if (currentPrice === undefined || currentPrice === null) {
-                    console.error(`❌ BOOKING FAILED — No assignedPrice for booking user: ${bookingUser.username} (ID: ${bookingUser._id})`);
+                    console.error(`ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ BOOKING FAILED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â No assignedPrice for booking user: ${bookingUser.username} (ID: ${bookingUser._id})`);
                     console.error(`   Reason: This user's ID is missing in the test's assignedPrices array.`);
                     console.error(`   Fix: Admin should assign a price for this user in test/package settings.`);
                     await session.abortTransaction();
@@ -456,7 +456,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     throw new ApiError(403, `No assigned price found for user ${bookingUser.username} on this test/package`);
                 }
 
-                console.log(`   Booking user (${bookingUser.username}) price: ₹${currentPrice}`);
+                console.log(`   Booking user (${bookingUser.username}) price: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${currentPrice}`);
 
                 testDetailsForCurrentUser.push({
                     testName: testOrPackage.name || testOrPackage.packageName || testOrPackage.Name,
@@ -471,45 +471,45 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 console.log(`   Commission chain start for booking user ${bookingUser.username}: parentId=${parentId}`);
 
                 if (!parentId) {
-                    console.warn(`⚠️ Booking user ${bookingUser.username} has no createdBy or parentUser set — no commission chain exists.`);
+                    console.warn(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â Booking user ${bookingUser.username} has no createdBy or parentUser set ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no commission chain exists.`);
                 }
 
                 // ============================================================
-                // Commission distribution loop — FIXED
+                // Commission distribution loop ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â FIXED
                 // ============================================================
                 while (parentId) {
                     parentChainSteps += 1;
-                    // ✅ FIX: toString() ensure kiya cache key ke liye
+                    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX: toString() ensure kiya cache key ke liye
                     let parentUser = parentUserCache.get(parentId.toString());
                     if (!parentUser) {
                         parentUser = await User.findById(parentId).session(session);
                         if (!parentUser) {
-                            console.warn(`⚠️ Parent user not found in DB for ID: ${parentId}. Commission chain broken here.`);
+                            console.warn(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â Parent user not found in DB for ID: ${parentId}. Commission chain broken here.`);
                             break;
                         }
                         parentUserCache.set(parentId.toString(), parentUser);
                     }
 
-                    console.log(`\n🔁 Checking commission for: ${parentUser.username} (Role: ${parentUser.role})`);
-                    console.log(`   Child price being used (currentPrice): ₹${currentPrice}`);
+                    console.log(`\nÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Checking commission for: ${parentUser.username} (Role: ${parentUser.role})`);
+                    console.log(`   Child price being used (currentPrice): ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${currentPrice}`);
 
                     const parentPrice = getAssignedPriceForUser(parentUser._id);
 
                     if (parentPrice === undefined || parentPrice === null) {
-                        console.warn(`⚠️ COMMISSION SKIPPED — No assignedPrice for: ${parentUser.username} (ID: ${parentUser._id})`);
+                        console.warn(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â COMMISSION SKIPPED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â No assignedPrice for: ${parentUser.username} (ID: ${parentUser._id})`);
                         console.warn(`   Reason: This user's ID is not present in assignedPrices of this test/package.`);
                         console.warn(`   Fix: Admin should assign a price for this user.`);
                         parentId = parentUser.createdBy || parentUser.parentUser;
                         continue;
                     }
 
-                    console.log(`   ${parentUser.username}'s assignedPrice: ₹${parentPrice}`);
+                    console.log(`   ${parentUser.username}'s assignedPrice: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${parentPrice}`);
                     const commissionForParent = currentPrice - parentPrice;
-                    console.log(`   Commission = currentPrice(₹${currentPrice}) - parentPrice(₹${parentPrice}) = ₹${commissionForParent}`);
+                    console.log(`   Commission = currentPrice(ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${currentPrice}) - parentPrice(ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${parentPrice}) = ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${commissionForParent}`);
 
                     if (commissionForParent < 0) {
-                        console.warn(`⚠️ COMMISSION SKIPPED — Negative commission for ${parentUser.username}`);
-                        console.warn(`   Reason: parentPrice(₹${parentPrice}) > currentPrice(₹${currentPrice}). Price structure galat hai.`);
+                        console.warn(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â COMMISSION SKIPPED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Negative commission for ${parentUser.username}`);
+                        console.warn(`   Reason: parentPrice(ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${parentPrice}) > currentPrice(ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${currentPrice}). Price structure galat hai.`);
                         console.warn(`   Fix: Parent ka assigned price child se hamesha kam ya barabar hona chahiye.`);
                         parentId = parentUser.createdBy || parentUser.parentUser;
                         childUsername = parentUser.username;
@@ -518,15 +518,15 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     }
 
                     if (commissionForParent === 0) {
-                        console.warn(`⚠️ COMMISSION SKIPPED — Zero commission for ${parentUser.username}`);
-                        console.warn(`   Reason: Parent aur child ka price same hai (₹${currentPrice}). Koi margin nahi.`);
+                        console.warn(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚Â COMMISSION SKIPPED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Zero commission for ${parentUser.username}`);
+                        console.warn(`   Reason: Parent aur child ka price same hai (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${currentPrice}). Koi margin nahi.`);
                         parentId = parentUser.createdBy || parentUser.parentUser;
                         childUsername = parentUser.username;
                         currentPrice = parentPrice;
                         continue;
                     }
 
-                    // ✅ Valid commission — process karo
+                    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Valid commission ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â process karo
                     totalCommission += commissionForParent;
 
                     const parentLedgerEntry = new Ledger({
@@ -554,15 +554,15 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                     parentUser.bookingWallet += commissionForParent;
                     await parentUser.save({ session });
 
-                        console.log(`✅ Commission credited to ${parentUser.username}: ₹${commissionForParent} | New wallet: ₹${parentUser.bookingWallet}`);
+                        console.log(`ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Commission credited to ${parentUser.username}: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${commissionForParent} | New wallet: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${parentUser.bookingWallet}`);
 
-                    // ✅ FIX: Sirf tab update karo jab commission successfully process hua ho
+                    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ FIX: Sirf tab update karo jab commission successfully process hua ho
                     parentId = parentUser.createdBy || parentUser.parentUser;
                     childUsername = parentUser.username;
                     currentPrice = parentPrice;
                 }
 
-                console.log(`\n📊 Commission distributed for this test — Total so far: ₹${totalCommission}`);
+                console.log(`\nÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€¦Ã‚Â  Commission distributed for this test ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Total so far: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${totalCommission}`);
                 console.log(`   Commission chain end for booking user ${bookingUser.username}: startingParentId=${startingParentId}, steps=${parentChainSteps}`);
             }
 
@@ -586,7 +586,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
 
             bookingUser.bookingWallet = balanceAfterTransaction;
             await bookingUser.save({ session });
-            console.log(`💳 Booking user ${bookingUser.username} wallet debited. New balance: ₹${balanceAfterTransaction}`);
+            console.log(`ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢Ãƒâ€šÃ‚Â³ Booking user ${bookingUser.username} wallet debited. New balance: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¹${balanceAfterTransaction}`);
         }
 
         // ============================================================
@@ -875,8 +875,8 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
 });
 
 /**
- * बल्क बुकिंग को प्रोसेस करने वाला कंट्रोलर
- * यह फ्रंटएंड से मिले JSON ऐरे को प्रोसेस करके डेटाबेस में बुकिंग्स बनाता है।
+ * ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂµÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°
+ * ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â«ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â®ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ JSON ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â®ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€šÃ‚Â¤
  */
 const bulkBookingsController = asyncHandler(async (req, res) => {
     const bookingsData = req.body;
@@ -893,7 +893,7 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
 
     for (const booking of bookingsData) {
         try {
-            // रोगी का नाम कैपिटलाइज़ करना (Capitalize Patient Name)
+            // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â® ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ (Capitalize Patient Name)
             const capitalizedName = String(booking.PatientName || booking.patientName || "").toUpperCase();
 
             const bookingObj = {
@@ -1989,7 +1989,7 @@ const editBookingBarcodes = async (req, res) => {
             await acceptedBarcodeDoc.save();
         }
 
-        // अगर staff का parentUser है तो उसे भी notify करें
+        // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
         if (req.user.role === 'staff') {
             await User.findByIdAndUpdate(req.user._id, {
                 $push: {
@@ -2767,7 +2767,7 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
         // throw new Error("status not updated");
     }
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -2804,7 +2804,7 @@ const rejectBookingcontroller = async (req, res) => {
     } else {
         userRole = req.user.role
     }
-    // 1️⃣ Booking cancel करना
+    // 1ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Booking cancel ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾
     const updatedStatus = await newBooking.findOneAndUpdate(
         {
             tenantId,
@@ -2822,14 +2822,14 @@ const rejectBookingcontroller = async (req, res) => {
             throw new Error("Booking status not updated");
         }
 
-        // 2️⃣ User ढूंढना
+        // 2ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ User ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾
         const user = await User.findById(updatedStatus.createdBy).select("_id").lean();
 
         if (!user) {
             throw new Error("User not found");
         }
 
-        // 3️⃣ Wallet amount जोड़ना
+        // 3ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Wallet amount ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾
         const updatedUser = await User.findByIdAndUpdate(
             user._id,
             {
@@ -2843,7 +2843,7 @@ const rejectBookingcontroller = async (req, res) => {
         }
     }
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -2867,7 +2867,7 @@ const rejectBookingcontroller = async (req, res) => {
         });
     }
 
-    // 4️⃣ Success response
+    // 4ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Success response
     return res.status(200).json({ message: "Booking cancelled successfully, Refund initiated" });
 };
 
@@ -2898,7 +2898,7 @@ const CompleteBookingcontroller = async (req, res) => {
         throw new Error("status not updated");
     }
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -2941,7 +2941,7 @@ const statusBookingcontroller = async (req, res) => {
         throw new Error("status not updated");
     }
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -2998,7 +2998,7 @@ const deleteBarcode = asyncHandler(async (req, res) => {
         { new: true }
     );
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -3302,7 +3302,7 @@ const bookingreportgenOrnot = asyncHandler(async (req, res) => {
     if (!updatedisreportready) {
         throw new Error("isreportready not updated");
     }
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -3667,7 +3667,7 @@ const getTestNameControllerLegacy = async (req, res) => {
     const { bookingId } = req.body;
     const tid = req.user.tenantId._id;
 
-    // ✅ Declare tracking Sets
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Declare tracking Sets
     const processedPackages = new Set();
     const processedTests = new Set();
     const processedPanels = new Set();
@@ -3689,7 +3689,7 @@ const getTestNameControllerLegacy = async (req, res) => {
             barcodes.barcodes.map(async (element) => {
                 const array = await Promise.all(
                     element.testIds.map(async (obj) => {
-                        // ✅ Handle Test
+                        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle Test
                         if (obj.collectionName === "testSchema") {
                             const testKey = obj.id.toString();
                             if (processedTests.has(testKey)) {
@@ -3697,7 +3697,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             }
                             processedTests.add(testKey);
 
-                            // ✅ Find test by _id OR originalTestId + tenantId compulsory
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Find test by _id OR originalTestId + tenantId compulsory
                             const docs = await testSchema.find({
                                 $or: [
                                     { _id: obj.id },
@@ -3709,7 +3709,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             return { singleTests: docs, panels: [] };
                         }
 
-                        // ✅ Handle Panel
+                        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle Panel
                         if (obj.collectionName === "addPannel") {
                             const panelKey = obj.id.toString();
                             if (processedPanels.has(panelKey)) {
@@ -3717,7 +3717,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             }
                             processedPanels.add(panelKey);
 
-                            // ✅ Find panel by _id OR originalPanelId + tenantId compulsory
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Find panel by _id OR originalPanelId + tenantId compulsory
                             const docs = await addPannel.find({
                                 $or: [
                                     { _id: obj.id },
@@ -3738,7 +3738,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             return { singleTests: [], panels: docs };
                         }
 
-                        // ✅ Handle Package
+                        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle Package
                         if (obj.collectionName === "Package") {
                             const packageKey = `${obj.id}_${element.typeOfSample}`;
                             if (processedPackages.has(packageKey)) {
@@ -3746,7 +3746,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             }
                             processedPackages.add(packageKey);
 
-                            // ✅ Find package by _id OR originalPackageId + tenantId
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Find package by _id OR originalPackageId + tenantId
                             const doc = await Package.findOne({
                                 $or: [
                                     { _id: obj.id },
@@ -3781,7 +3781,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                             const packageTestIds = [];
                             const packagePanelIds = [];
 
-                            // ✅ Filter tests based on sample type
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Filter tests based on sample type
                             doc.testIds?.forEach(test => {
                                 if (test && normalizeSampleType(test.sampleType) === normalizeSampleType(element.typeOfSample)) {
                                     const testKey = test._id.toString();
@@ -3792,7 +3792,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                                 }
                             });
 
-                            // ✅ Filter panels based on sample type
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Filter panels based on sample type
                             doc.pannelIds?.forEach(panel => {
                                 if (panel && (panel.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(element.typeOfSample))) {
                                     const panelKey = panel._id.toString();
@@ -3803,7 +3803,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                                 }
                             });
 
-                            // ✅ Fetch full test documents with condition
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Fetch full test documents with condition
                             const packageTests = await testSchema.find({
                                 $or: [
                                     { _id: { $in: packageTestIds } },
@@ -3812,7 +3812,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                                 tenantId: tid
                             });
 
-                            // ✅ Fetch full panel documents with populated tests
+                            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Fetch full panel documents with populated tests
                             const packagePanels = await addPannel.find({
                                 $or: [
                                     { _id: { $in: packagePanelIds } },
@@ -3860,7 +3860,7 @@ const getTestNameControllerLegacy = async (req, res) => {
                         category: categoryMap.get(test.category?._id?.toString()) || test.category
                     }));
                 };
-                // ✅ Flatten results
+                // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Flatten results
                 let singleTests = array.flatMap(r => r.singleTests);
 
                 singleTests = await attachLatestCategory(singleTests, tid);
@@ -3871,7 +3871,7 @@ const getTestNameControllerLegacy = async (req, res) => {
             })
         );
 
-        // ✅ Merge all barcode results
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Merge all barcode results
         const mergedResult = barcodeResults.reduce(
             (acc, curr, index) => {
                 if (index === 0) {
@@ -3924,23 +3924,23 @@ const loadBooking = asyncHandler(async (req, res) => {
 
         const query = {};
 
-        // ✅ Handle franchiseeId first (priority over userId)
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle franchiseeId first (priority over userId)
         if (franchiseeId) {
             query.createdBy = franchiseeId;
         } else if (userId) {
             query.createdBy = userId;
         }
 
-        // ✅ Add status filter
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Add status filter
         const statusQuery = buildBookingStatusQuery(status);
         if (statusQuery) {
             query.status = statusQuery;
         }
 
-        // ✅ Add tenant filter
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Add tenant filter
         query.tenantId = req.user.tenantId._id;
 
-        // ✅ Handle date range filter
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle date range filter
         if (startDate || endDate) {
             query.createdAt = {};
 
@@ -3970,7 +3970,7 @@ const loadBooking = asyncHandler(async (req, res) => {
                 query.createdAt.$lte = parsedEndDate;
             }
         } else {
-            // ✅ Default to last 24 hours if no dates provided
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Default to last 24 hours if no dates provided
             const now = new Date();
             const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             query.createdAt = {
@@ -3986,14 +3986,14 @@ const loadBooking = asyncHandler(async (req, res) => {
             newBooking.find(query)
                 .select(BOOKING_LIST_PROJECTION)
                 .populate('createdBy', 'fullName')
-                .sort({ createdAt: -1 }) // ✅ Most recent first
+                .sort({ createdAt: -1 }) // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Most recent first
                 .skip(skip)
                 .limit(limitNumber)
                 .lean(),
             newBooking.countDocuments(query)
         ]);
 
-        // ✅ Return consistent response format with pagination metadata
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Return consistent response format with pagination metadata
         res.status(200).json({
             success: true,
             count: bookings.length,
@@ -4019,7 +4019,7 @@ const loadAllBooking = asyncHandler(async (req, res) => {
         const { userId, franchiseeId, startDate, endDate } = req.query;
         const query = {};
 
-        // ✅ Handle userId and franchiseeId properly
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle userId and franchiseeId properly
         if (franchiseeId) {
             query.createdBy = franchiseeId;
         } else if (userId) {
@@ -4028,7 +4028,7 @@ const loadAllBooking = asyncHandler(async (req, res) => {
 
         query.tenantId = req.user.tenantId._id;
 
-        // ✅ Add date filter
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Add date filter
         if (startDate || endDate) {
             query.createdAt = {};
 
@@ -4051,10 +4051,10 @@ const loadAllBooking = asyncHandler(async (req, res) => {
         const bookings = await newBooking.find(query)
             .select(BOOKING_LIST_PROJECTION)
             .populate('createdBy', 'fullName')
-            .sort({ createdAt: -1 }) // ✅ Most recent first
+            .sort({ createdAt: -1 }) // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Most recent first
             .lean();
 
-        // ✅ Return consistent response format
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Return consistent response format
         res.status(200).json({
             success: true,
             count: bookings.length,
@@ -4104,7 +4104,7 @@ const getBookingcontroller = async (req, res) => {
         .map((item) => item?.barcode)
         .filter(Boolean);
 
-    // Admins may change tests AND barcodes for any booking in their tenant —
+    // Admins may change tests AND barcodes for any booking in their tenant ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â
     // including bookings created by franchisees or other portals. Non-admin
     // portals may only edit tests/barcodes on bookings they created.
     booking.canEditTests = isAdminActor(req.user) || canEditBookingCompletely(req.user, booking);
@@ -4123,7 +4123,7 @@ const editBookingController = async (req, res) => {
 
         let { subFranchiseeId, savedDoctorId, savedLabId } = req.body;
 
-        // ✅ Validate and clean ObjectIds
+        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Validate and clean ObjectIds
         const isValidObjectId = (id) => {
             if (!id || id === "null" || id === "undefined") return false;
             return /^[0-9a-fA-F]{24}$/.test(id);
@@ -4133,7 +4133,7 @@ const editBookingController = async (req, res) => {
         savedDoctorId = isValidObjectId(savedDoctorId) ? savedDoctorId : null;
         savedLabId = isValidObjectId(savedLabId) ? savedLabId : null;
 
-        // 🔍 Pehle purani booking lao
+        // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Pehle purani booking lao
         const booking = await newBooking.findOne({
             bookingId,
             tenantId: req.user.tenantId._id,
@@ -4152,7 +4152,7 @@ const editBookingController = async (req, res) => {
             filelink = await uploadOnCloudinary(uploadableFilepath);
         }
 
-        // 🆕 New values object
+        // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ New values object
         const updates = {
             courierName,
             courierId,
@@ -4175,18 +4175,18 @@ const editBookingController = async (req, res) => {
             savedLabId
         };
 
-        // 🧠 CHANGE TRACKING LOGIC with proper comparison
+        // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚Â§Ãƒâ€šÃ‚Â  CHANGE TRACKING LOGIC with proper comparison
         let historyLogs = [];
 
         Object.keys(updates).forEach((field) => {
             let oldValue = booking[field];
             let newValue = updates[field];
 
-            // ✅ Skip null/undefined checks - normalize
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Skip null/undefined checks - normalize
             if (oldValue === null || oldValue === undefined) oldValue = "";
             if (newValue === null || newValue === undefined) newValue = "";
 
-            // ✅ Special handling for Date field
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Special handling for Date field
             if (field === 'date') {
                 // Convert both to YYYY-MM-DD format for comparison
                 const oldDate = oldValue ? new Date(oldValue).toISOString().split('T')[0] : "";
@@ -4201,7 +4201,7 @@ const editBookingController = async (req, res) => {
                 newValue = newValue ? new Date(newValue) : "";
             }
 
-            // ✅ Special handling for ObjectId fields
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Special handling for ObjectId fields
             else if (field === 'subFranchiseeId' || field === 'savedDoctorId' || field === 'savedLabId') {
                 // Convert to string for comparison
                 const oldId = oldValue ? oldValue.toString() : "";
@@ -4212,7 +4212,7 @@ const editBookingController = async (req, res) => {
                 }
             }
 
-            // ✅ String fields - trim and normalize
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ String fields - trim and normalize
             else if (typeof oldValue === 'string' && typeof newValue === 'string') {
                 oldValue = oldValue.trim();
                 newValue = newValue.trim();
@@ -4222,14 +4222,14 @@ const editBookingController = async (req, res) => {
                 }
             }
 
-            // ✅ General comparison for other fields
+            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ General comparison for other fields
             else {
                 if (JSON.stringify(oldValue) === JSON.stringify(newValue)) {
                     return; // Skip if values are same
                 }
             }
 
-            // 📝 Log the change
+            // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â Log the change
             historyLogs.push({
                 fieldName: field,
                 oldValue: booking[field], // Store original value from DB
@@ -4242,14 +4242,14 @@ const editBookingController = async (req, res) => {
             booking[field] = updates[field]; // apply change
         });
 
-        // 📝 History push only if changes exist
+        // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€šÃ‚Â History push only if changes exist
         if (historyLogs.length > 0) {
             booking.editHistory.push(...historyLogs);
         }
 
         await booking.save();
 
-        // 🔔 Activity log (staff case)
+        // ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Activity log (staff case)
         if (req.user.role === 'staff' && historyLogs.length > 0) {
             await User.findByIdAndUpdate(req.user._id, {
                 $push: {
@@ -4286,6 +4286,9 @@ const editBookingController = async (req, res) => {
 
 const searchit = asyncHandler(async (req, res) => {
     const rawSearch = (req.query.search || '').trim();
+    const searchField = (req.query.field || '').trim();
+    const statusFilter = (req.query.status || '').trim();
+    const requestedUserId = (req.query.userId || '').trim();
     const requestedPage = Number.parseInt(req.query.page, 10);
     const requestedLimit = Number.parseInt(req.query.limit, 10);
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -4318,25 +4321,37 @@ const searchit = asyncHandler(async (req, res) => {
 
         // 1. Role-Based Scoping & Security:
         // Admin Users (role === 'admin' or staff of admin): Can search ALL bookings across all tenants.
-        // Franchise / Staff Users: Restricted ONLY to their own tenant and bookings created by them / their franchise.
+        // Franchise / Staff Users: Restricted ONLY to their own tenant and ONLY bookings created by them.
+        // This is the critical fix - previously a $or was used which returned every booking in the tenant.
         if (!isAdminActor(req.user)) {
             const actorId = getBookingActorId(req.user);
             const userTenantId = req.user?.tenantId?._id || req.user?.tenantId;
 
-            const userScopeConditions = [];
+            // Non-admin users can ONLY see bookings from their own tenant
             if (userTenantId) {
-                userScopeConditions.push({ tenantId: userTenantId });
-            }
-            if (actorId) {
-                userScopeConditions.push({ createdBy: actorId });
-                userScopeConditions.push({ subFranchiseeId: actorId });
-            }
-            if (req.user?._id) {
-                userScopeConditions.push({ createdBy: req.user._id });
+                andConditions.push({ tenantId: userTenantId });
             }
 
-            if (userScopeConditions.length > 0) {
-                andConditions.push({ $or: userScopeConditions });
+            // Non-admin users can ONLY see bookings they themselves created (createdBy == current user's actor ID)
+            // getBookingActorId returns parentUser for staff, or the user's own _id otherwise
+            if (actorId) {
+                andConditions.push({ createdBy: actorId });
+            }
+
+            // Allow optional explicit userId override via query param (for admin/superadmin viewing a specific user's bookings)
+            if (requestedUserId && isAdminActor(req.user)) {
+                const userObjectId = mongoose.isValidObjectId(requestedUserId)
+                    ? new mongoose.Types.ObjectId(requestedUserId)
+                    : requestedUserId;
+                andConditions.push({ createdBy: userObjectId });
+            }
+        } else {
+            // Admin actors: optionally scope by a specific userId query param
+            if (requestedUserId) {
+                const userObjectId = mongoose.isValidObjectId(requestedUserId)
+                    ? new mongoose.Types.ObjectId(requestedUserId)
+                    : requestedUserId;
+                andConditions.push({ createdBy: userObjectId });
             }
         }
 
@@ -4349,37 +4364,113 @@ const searchit = asyncHandler(async (req, res) => {
             andConditions.push({ createdAt: dateQuery });
         }
 
-        // 3. Multi-Field Search Filter:
-        // Searches across bookingId, barcodeId, patientName, patientPhone, doctorName, testName, etc.
+        // 3. Status Filter:
+        // Allow filtering by exact status value (On Hold, Pending, completed, etc.)
+        if (statusFilter) {
+            andConditions.push({ status: statusFilter });
+        }
+
+        // 4. Multi-Field Search Filter:
+        // Supports both broad multi-field search and field-specific search via the 'field' query param.
         if (rawSearch) {
             const searchRegex = { $regex: rawSearch, $options: 'i' };
-            andConditions.push({
-                $or: [
-                    { bookingId: searchRegex },
-                    { patientName: searchRegex },
-                    { patientPhone: searchRegex },
-                    { doctorName: searchRegex },
-                    { "savedDoctor.doctorName": searchRegex },
-                    { "savedDoctor.name": searchRegex },
-                    { "tableData.barcodeId": searchRegex },
-                    { "tableData.testName": searchRegex },
-                    { labName: searchRegex },
-                    { franchisee: searchRegex },
-                    { subFranchisee: searchRegex },
-                    { courierId: searchRegex },
-                    { courierName: searchRegex }
-                ]
-            });
+
+            // Define all searchable fields for broad search
+            const allSearchableFields = [
+                { bookingId: searchRegex },
+                { patientName: searchRegex },
+                { patientPhone: searchRegex },
+                { doctorName: searchRegex },
+                { savedDoctor: searchRegex },           // savedDoctor is a String in the schema
+                { savedDoctorId: searchRegex },
+                { "tableData.barcodeId": searchRegex },
+                { "tableData.testName": searchRegex },
+                { labName: searchRegex },
+                { franchisee: searchRegex },
+                { subFranchisee: searchRegex },
+                { createdbyuser: searchRegex },          // createdbyuser is a String in the schema
+                { courierId: searchRegex },
+                { courierName: searchRegex },
+                { clinicalHistory: searchRegex }
+            ];
+
+            // Field-specific search: only search the specified field
+            const fieldSpecificMap = {
+                bookingId: { bookingId: searchRegex },
+                barcode: { "tableData.barcodeId": searchRegex },
+                testName: { "tableData.testName": searchRegex },
+                patientName: { patientName: searchRegex },
+                patientPhone: { patientPhone: searchRegex },
+                doctorName: { doctorName: searchRegex },
+                savedDoctor: { savedDoctor: searchRegex },
+                labName: { labName: searchRegex },
+                franchisee: { franchisee: searchRegex },
+                courierId: { courierId: searchRegex },
+                courierName: { courierName: searchRegex },
+                createdbyuser: { createdbyuser: searchRegex },
+                clinicalHistory: { clinicalHistory: searchRegex }
+            };
+
+            if (searchField && fieldSpecificMap[searchField]) {
+                // Field-specific search: only match the requested field
+                andConditions.push({ $or: [fieldSpecificMap[searchField]] });
+            } else {
+                // Broad multi-field search across all searchable fields
+                andConditions.push({ $or: allSearchableFields });
+            }
         }
 
         const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
-        const total = await newBooking.countDocuments(query);
-        const bookings = await newBooking.find(query)
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit)
-            .lean();
+        // Use aggregation pipeline for efficient projection and data transfer
+        const aggregationPipeline = [
+            { $match: query },
+            { $sort: { createdAt: -1 } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+                $project: {
+                    _id: 1,
+                    bookingId: 1,
+                    date: 1,
+                    time: 1,
+                    patientName: 1,
+                    patientPhone: 1,
+                    gender: 1,
+                    doctorName: 1,
+                    savedDoctor: 1,
+                    labName: 1,
+                    franchisee: 1,
+                    clinicalHistory: 1,
+                    tableData: 1,
+                    total: 1,
+                    subFranchisee: 1,
+                    savedLab: 1,
+                    status: 1,
+                    isreportready: 1,
+                    discountamount: 1,
+                    discountunit: 1,
+                    tenantId: 1,
+                    createdBy: 1,
+                    createdbyuser: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        ];
+
+        // Get count using aggregation for accuracy with the same query
+        const countPipeline = [
+            { $match: query },
+            { $count: "total" }
+        ];
+
+        const [countResult, bookings] = await Promise.all([
+            newBooking.aggregate(countPipeline),
+            newBooking.aggregate(aggregationPipeline)
+        ]);
+
+        const total = countResult.length > 0 ? countResult[0].total : 0;
 
         res.status(200).json({
             bookings,
@@ -4409,7 +4500,7 @@ const updategeneratedbillvariable = async (req, res) => {
         return res.status(501).json("something went wrong! try again");
     }
 
-    // अगर staff का parentUser है तो उसे भी notify करें
+    // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
     if (req.user.role === 'staff') {
         await User.findByIdAndUpdate(req.user._id, {
             $push: {
@@ -4543,7 +4634,7 @@ const countBookingsForAllTenants = asyncHandler(async (req, res) => {
 });
 
 
-// URL parameter से bookingId लेने के लिए
+// URL parameter ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ bookingId ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â
 const DeleteBookingByParamsController = asyncHandler(async (req, res) => {
     try {
         const { bookingId } = req.params;
@@ -4563,7 +4654,7 @@ const DeleteBookingByParamsController = asyncHandler(async (req, res) => {
             return res.status(404).json({ message: "Booking not found" });
         }
 
-        // अगर staff का parentUser है तो उसे भी notify करें
+        // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
         if (req.user.role === 'staff') {
             await User.findByIdAndUpdate(req.user._id, {
                 $push: {

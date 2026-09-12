@@ -1,63 +1,941 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Search Booking</title>
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* High Contrast & Sharp Medical Theme for Occuhealth */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent-pink: #ec4899;
+      --accent-pink-hover: #db2777;
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-sub: #475569;
+      --border-strong: #94a3b8;
+      --border-card: #cbd5e1;
+      --border-table: #cbd5e1;
+      --bg-card: #ffffff;
+      --bg-hover: #e2e8f0;
+      --bg-zebra: #f8fafc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .pw {
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 12px 40px;
+    }
+
+    /* Page Header */
+    .ph {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .phi {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #1e40af, #2563eb);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+    }
+    .ph h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .bc {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 2px;
+    }
+    .bc a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .bc a:hover {
+      text-decoration: underline;
+    }
+
+    /* Cards */
+    .sc {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 2px solid #cbd5e1;
+    }
+    .sct {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sct i {
+      color: #2563eb;
+      font-size: 16px;
+    }
+
+    /* Main Search Controls */
+    .msr {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .sfs {
+      flex: 0 0 auto;
+      min-width: 170px;
+      height: 44px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      border: 2px solid #94a3b8;
+      background: #ffffff;
+      color: #0f172a;
+      padding: 0 12px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sfs:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    .siw {
+      flex: 1 1 240px;
+      position: relative;
+    }
+    .sico {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #475569;
+      font-size: 16px;
+      pointer-events: none;
+    }
+    #search-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 42px 0 42px;
+      border: 2px solid #94a3b8;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #0f172a;
+      background: #ffffff;
+      outline: none;
+      transition: all 0.2s;
+    }
+    #search-input::placeholder {
+      color: #64748b;
+      font-weight: 500;
+    }
+    #search-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+    .clb {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #e2e8f0;
+      border: none;
+      color: #334155;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+      padding: 5px;
+      width: 24px;
+      height: 24px;
+      line-height: 1;
+      border-radius: 50%;
+      text-align: center;
+    }
+    .clb:hover {
+      color: #0f172a;
+      background: #cbd5e1;
+    }
+
+    /* Primary & Secondary Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 20px;
+      height: 44px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-p {
+      background: #ec4899 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);
+    }
+    .btn-p:hover {
+      background: #db2777 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(236, 72, 153, 0.45);
+    }
+    .btn-s {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 2px solid #94a3b8 !important;
+      font-weight: 700 !important;
+    }
+    .btn-s:hover {
+      background: #f1f5f9 !important;
+      border-color: #64748b !important;
+    }
+    .btn-sm {
+      height: 38px;
+      padding: 0 14px;
+      font-size: 13px;
+    }
+
+    /* Filter Row */
+    .fr {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      align-items: flex-end;
+    }
+    .fi {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .fi label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .fi input[type=date],
+    .fi select {
+      height: 40px;
+      padding: 0 12px;
+      border: 2px solid #94a3b8;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      background: #ffffff;
+      color: #0f172a;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .fi input[type=date]:focus,
+    .fi select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    /* Quick Filter Chips */
+    .qf {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .qfl {
+      font-size: 13px;
+      color: #0f172a;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .qft {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid #cbd5e1;
+      background: #f8fafc;
+      color: #1e293b;
+      user-select: none;
+      transition: all 0.15s ease-in-out;
+    }
+    .qft:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .qft.active {
+      background: #1e40af !important;
+      color: #ffffff !important;
+      border-color: #1e40af !important;
+    }
+    .qft.oh:hover, .qft.oh.active {
+      background: #dc2626 !important;
+      color: #ffffff !important;
+      border-color: #dc2626 !important;
+    }
+    .qft.pe:hover, .qft.pe.active {
+      background: #d97706 !important;
+      color: #ffffff !important;
+      border-color: #d97706 !important;
+    }
+    .qft.co:hover, .qft.co.active {
+      background: #16a34a !important;
+      color: #ffffff !important;
+      border-color: #16a34a !important;
+    }
+
+    /* Results Bar */
+    .rb {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+    .ri {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .ri strong {
+      color: #0f172a;
+      font-weight: 800;
+    }
+    .ra {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Table Container & Table */
+    .tc {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      border: 2px solid #cbd5e1;
+      overflow: hidden;
+    }
+    .ts {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: #94a3b8 #f1f5f9;
+    }
+    .ts::-webkit-scrollbar {
+      height: 8px;
+    }
+    .ts::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .ts::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse !important;
+      min-width: 820px;
+      background: #ffffff;
+    }
+    .tc table thead,
+    .tc table thead tr {
+      background-color: #0f172a !important;
+      background: #0f172a !important;
+    }
+    .tc table thead th,
+    .tc table th,
+    .tc th,
+    table thead th,
+    table th,
+    th {
+      background-color: #0f172a !important;
+      background: #0f172a !important;
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      padding: 14px 16px !important;
+      text-align: left !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.06em !important;
+      white-space: nowrap !important;
+      border: 1px solid #334155 !important;
+      border-bottom: 2px solid #000000 !important;
+    }
+    .tc table thead th:last-child,
+    .tc table th:last-child,
+    th:last-child {
+      border-right: none !important;
+    }
+
+    td {
+      padding: 13px 16px !important;
+      font-size: 13.5px !important;
+      color: #0f172a !important;
+      border-bottom: 1px solid #cbd5e1 !important;
+      border-right: 1px solid #e2e8f0 !important;
+      vertical-align: middle !important;
+      background-color: transparent;
+    }
+    td:last-child {
+      border-right: none !important;
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+      background-color: #ffffff;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    tbody tr:hover {
+      background-color: #e0f2fe !important;
+    }
+    tbody tr:last-child td {
+      border-bottom: none !important;
+    }
+
+    /* High-Contrast Status Badges */
+    .sb {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+    .sb::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+    .boh {
+      background: #fee2e2 !important;
+      border: 1.5px solid #ef4444 !important;
+      color: #b91c1c !important;
+    }
+    .bpe {
+      background: #fef3c7 !important;
+      border: 1.5px solid #f59e0b !important;
+      color: #92400e !important;
+    }
+    .bco {
+      background: #dcfce7 !important;
+      border: 1.5px solid #10b981 !important;
+      color: #15803d !important;
+    }
+    .bpa {
+      background: #e0e7ff !important;
+      border: 1.5px solid #6366f1 !important;
+      color: #3730a3 !important;
+    }
+    .bdf {
+      background: #f1f5f9 !important;
+      border: 1.5px solid #94a3b8 !important;
+      color: #334155 !important;
+    }
+
+    /* Booking ID Pill / Link */
+    .bil {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #1d4ed8 !important;
+      font-weight: 800 !important;
+      font-size: 13.5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: #eff6ff !important;
+      border: 1.5px solid #93c5fd !important;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      font-family: inherit;
+    }
+    .bil:hover {
+      background: #1d4ed8 !important;
+      color: #ffffff !important;
+      border-color: #1d4ed8 !important;
+    }
+
+    /* Barcode Chip */
+    .bch {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: #f1f5f9 !important;
+      border: 1.5px solid #94a3b8 !important;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0f172a !important;
+      margin: 2px;
+    }
+    .bch i {
+      color: #2563eb !important;
+      font-size: 12px;
+    }
+
+    .tnc {
+      max-width: 240px;
+      white-space: normal;
+      font-weight: 600;
+      color: #0f172a !important;
+      line-height: 1.4;
+    }
+
+    /* Row Actions */
+    .rax {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .rbtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .rbe {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+    }
+    .rbe:hover {
+      background: #0369a1 !important;
+      transform: translateY(-1px);
+    }
+    .rbp {
+      background: #dc2626 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+    }
+    .rbp:hover {
+      background: #b91c1c !important;
+      transform: translateY(-1px);
+    }
+
+    /* Empty & Loading States */
+    .es {
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .ei {
+      width: 76px;
+      height: 76px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: #475569;
+      margin: 0 auto 18px;
+    }
+    .et {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+    .es2 {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #334155;
+    }
+    .spin {
+      display: inline-block;
+      width: 38px;
+      height: 38px;
+      border: 4px solid #cbd5e1;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: sp 0.8s linear infinite;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* Pagination */
+    .pb {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px 20px;
+      border-top: 2px solid #cbd5e1;
+      background: #f8fafc;
+    }
+    .pi {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .pbs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .pgb {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border: 2px solid #94a3b8;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pgb:hover:not(:disabled) {
+      border-color: #1e40af;
+      color: #1e40af;
+      background: #eff6ff;
+    }
+    .pgb.active {
+      background: #1e40af !important;
+      border-color: #1e40af !important;
+      color: #ffffff !important;
+    }
+    .pgb:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Toasts */
+    .toc {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+      border-left: 5px solid #2563eb;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      animation: si 0.3s ease;
+      max-width: 380px;
+      pointer-events: all;
+    }
+    .toast.success { border-color: #16a34a; }
+    .toast.error { border-color: #dc2626; }
+    .toast.warning { border-color: #d97706; }
+    .toast i { font-size: 18px; flex-shrink: 0; }
+    .toast.success i { color: #16a34a; }
+    .toast.error i { color: #dc2626; }
+    .toast.warning i { color: #d97706; }
+    @keyframes si { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* PDF Loader Overlay */
+    #loader1 {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 99998;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .lb {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 36px 44px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+      border: 2px solid #cbd5e1;
+    }
+    .ls {
+      width: 52px;
+      height: 52px;
+      border: 5px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: sp 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    .lt {
+      font-size: 16px;
+      color: #0f172a;
+      font-weight: 800;
+    }
+    .ls2 {
+      font-size: 13.5px;
+      color: #475569;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+      font-weight: 700;
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    mark.hl {
+      background: #fef08a !important;
+      border: 1px solid #eab308 !important;
+      padding: 1px 4px !important;
+      border-radius: 3px !important;
+      font-weight: 800 !important;
+      color: #000000 !important;
+    }
+
+    /* Stats Row */
+    .sr {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .sch {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 2px solid #cbd5e1;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+    .sci {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .sv {
+      font-size: 20px;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1;
+    }
+    .sl {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 3px;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 640px) {
+      .pw { padding: 10px 8px 30px; }
+      .msr { flex-direction: column; }
+      .sfs { width: 100%; }
+      .btn { width: 100%; justify-content: center; }
+      .fr { flex-direction: column; }
+      .fi { width: 100%; }
+      .fi input, .fi select { width: 100%; }
+      .rb { flex-direction: column; align-items: flex-start; }
+      .pb { flex-direction: column; align-items: flex-start; }
+      .sch { flex: 1 1 calc(50% - 7px); min-width: 130px; }
+    }
+  </style>
 </head>
-
-<body class="font-sans bg-blue-50">
-  <div class="container w-full max-w-5xl mx-auto p-5">
-    <h1 class="text-2xl font-bold mb-4">Search Booking</h1>
-
-    <!-- Breadcrumb -->
-    <div class="breadcrumb text-sm text-gray-600 mb-5 flex items-center gap-1">
-      <a href="#" class="text-gray-500 no-underline hover:underline flex items-center gap-1">
-        <i class="fas fa-home"></i> Dashboard
-      </a>
-      <span>&gt;</span>
-      <span>Search Booking</span>
-    </div>
-
-    <!-- Search box -->
-    <div class="search-box flex flex-wrap gap-5 bg-white p-3 rounded-lg shadow mb-5">
-      <i class="fas fa-users text-2xl text-gray-500 mr-3"></i>
-      <input id="search-input" class="text w-80 p-2 border border-blue-200 rounded mr-3 text-base focus:outline-none" type="text" placeholder="Search...">
-      <button id="search-button" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 flex items-center gap-2">
-        <i class="fas fa-search"></i> Search
-      </button>
-    </div>
-
-    <!-- Table -->
-    <div class="table-container overflow-x-auto mt-5">
-      <table class="min-w-full border-collapse">
-        <thead>
-          <tr>
-            <th class="bg-black text-white p-2 border">Booking ID</th>
-            <th class="bg-black text-white p-2 border">Patient Name</th>
-            <th class="bg-black text-white p-2 border">Barcodes</th>
-            <th class="bg-black text-white p-2 border">Ref By</th>
-            <th class="bg-black text-white p-2 border">Test Name</th>
-            <th class="bg-black text-white p-2 border">Status</th>
-            <th class="bg-black text-white p-2 border">Action</th>
-          </tr>
-        </thead>
-        <tbody id="table-body">
-          <!-- Dynamic rows will be added here -->
-        </tbody>
-      </table>
+<body>
+  <div class="toc" id="toast-container"></div>
+  <div id="loader1">
+    <div class="lb">
+      <div class="ls"></div>
+      <div class="lt">Generating Report PDF...</div>
+      <div class="ls2">Please wait, this may take a moment</div>
     </div>
   </div>
-
-  <!-- Loader -->
-  <div id="loader1" class="loaderDiv1 hidden fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="spinner1 border-4 border-gray-200 border-t-blue-500 rounded-full w-12 h-12 animate-spin"></div>
-    <p class="text-white ml-3">Generating PDF...</p>
+  <div class="pw">
+    <div class="ph">
+      <div class="phi"><i class="fas fa-search"></i></div>
+      <div>
+        <h1>Search Bookings</h1>
+        <div class="bc"><a href="#"><i class="fas fa-home"></i> Dashboard</a> &rsaquo; Search Bookings</div>
+      </div>
+    </div>
+    <div class="sr" id="stats-row" style="display:none;"></div>
+    <div class="sc">
+      <div class="sct">
+        <i class="fas fa-filter"></i> Search &amp; Filter
+        <span style="margin-left:auto;font-size:12px;color:#334155;font-weight:600;">
+          Press <span class="kbd">Enter</span> to search &bull; <span class="kbd">Esc</span> to clear
+        </span>
+      </div>
+      <div class="msr">
+        <select id="search-field" class="sfs">
+          <option value="">All Fields</option>
+          <option value="bookingId">Booking ID</option>
+          <option value="barcode">Barcode</option>
+          <option value="testName">Test Name</option>
+          <option value="patientName">Patient Name</option>
+          <option value="patientPhone">Phone No.</option>
+          <option value="doctorName">Doctor Name</option>
+          <option value="savedDoctor">Ref Doctor</option>
+          <option value="labName">Lab Name</option>
+          <option value="franchisee">Franchisee</option>
+          <option value="courierId">Courier ID</option>
+          <option value="courierName">Courier Name</option>
+          <option value="clinicalHistory">Clinical History</option>
+        </select>
+        <div class="siw">
+          <i class="fas fa-search sico"></i>
+          <input id="search-input" type="text" placeholder="Search booking ID, barcode, patient, test name..." autocomplete="off" spellcheck="false" />
+          <button class="clb" id="clear-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <button id="search-button" class="btn btn-p"><i class="fas fa-search"></i> <span>Search</span></button>
+      </div>
+      <div class="fr">
+        <div class="fi"><label>From Date</label><input type="date" id="from-date" /></div>
+        <div class="fi"><label>To Date</label><input type="date" id="to-date" /></div>
+        <div class="fi">
+          <label>Status</label>
+          <select id="status-filter">
+            <option value="">All Status</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="Partially Completed">Partially Completed</option>
+          </select>
+        </div>
+        <div class="fi">
+          <label>Per Page</label>
+          <select id="page-size">
+            <option value="10">10 results</option>
+            <option value="20">20 results</option>
+            <option value="50">50 results</option>
+            <option value="100">100 results</option>
+          </select>
+        </div>
+        <div class="fi"><label style="opacity:0;">.</label><button class="btn btn-s btn-sm" id="reset-filters" style="height:38px;"><i class="fas fa-undo-alt"></i> Reset</button></div>
+      </div>
+      <div class="qf">
+        <span class="qfl">Quick:</span>
+        <span class="qft" data-action="today"><i class="fas fa-clock"></i> Today</span>
+        <span class="qft" data-action="yesterday"><i class="fas fa-history"></i> Yesterday</span>
+        <span class="qft" data-action="week"><i class="fas fa-calendar-week"></i> This Week</span>
+        <span class="qft oh" data-status="On Hold"><i class="fas fa-pause-circle"></i> On Hold</span>
+        <span class="qft pe" data-status="Pending"><i class="fas fa-hourglass-half"></i> Pending</span>
+        <span class="qft co" data-status="completed"><i class="fas fa-check-circle"></i> Completed</span>
+      </div>
+    </div>
+    <div class="rb" id="results-bar" style="display:none;">
+      <div class="ri" id="results-info"></div>
+      <div class="ra">
+        <button class="btn btn-s btn-sm" id="sort-toggle"><i class="fas fa-sort-amount-down" id="sort-icon"></i> <span id="sort-label">Latest First</span></button>
+      </div>
+    </div>
+    <div class="tc">
+      <div class="ts">
+        <table>
+          <thead style="background-color: #0f172a !important;">
+            <tr style="background-color: #0f172a !important;">
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important; text-align: center;">#</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Booking ID</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Patient Details</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Barcodes</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Doctor / Ref By</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Test Names</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important; text-align: center;">Status</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Date</th>
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="9"><div class="es"><div class="ei"><i class="fas fa-search"></i></div><div class="et">Search Your Bookings</div><div class="es2">Enter a Booking ID, Barcode, Patient Name, Test Name, or any other detail to find bookings instantly.</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pb" id="pagination-bar" style="display:none;">
+        <div class="pi" id="pagination-info"></div>
+        <div class="pbs" id="pagination-btns"></div>
+      </div>
+    </div>
   </div>
+  <script src="Search_booking.js"></script>
 </body>
-
 </html>
