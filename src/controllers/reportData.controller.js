@@ -151,6 +151,12 @@ const SaveReportController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "please try again after sometime, report not saved");
     }
 
+    if (saveMode === "final") {
+        const customizationIdentity = [{ bookingId: booking.bookingId }];
+        if (savedREport._id) customizationIdentity.push({ reportId: savedREport._id });
+        await customization.deleteMany({ tenantId, $or: customizationIdentity });
+    }
+
     if (existingBooking && bookingStatus !== currentBookingStatus) {
         await newBooking.findOneAndUpdate(
             {
@@ -296,6 +302,7 @@ const getReportController = asyncHandler(async (req, res) => {
     const responsePayload = { ...Report };
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
+    responsePayload.savedPdfLayout = reportCustomization?.htmlContent || null;
 
     return res.status(200).json({
         ...responsePayload,

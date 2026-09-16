@@ -1131,7 +1131,7 @@ body.editing .cell-edit:focus {
 }
 .download-pdf-div.is-ready { display: flex; animation: ohDockUp .35s ease both; }
 .downloadDiv { position: relative; border-radius: 10px; }
-#downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult {
+#downloadPDF, #savePDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 7px 10px; font-weight: 600; font-size: 12px;
     border: 0; border-radius: 10px; cursor: pointer;
@@ -1143,15 +1143,17 @@ body.editing .cell-edit:focus {
     background: rgba(180, 83, 9, .76);
 }
 #enterResult i { color: #fde68a; }
-#downloadPDF:hover, #signOff:hover, #PDFsetting:hover,
+#downloadPDF:hover, #savePDF:hover, #signOff:hover, #PDFsetting:hover,
 #BrowserPrint:hover, #sendReport:hover, #enterResult:hover {
     background: rgba(255,255,255,.14); transform: translateY(-1px);
 }
-#downloadPDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i { font-size: 15px; }
+#downloadPDF i, #savePDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i { font-size: 15px; }
 #enterResult i { font-size: 15px; }
 #downloadPDF { background: linear-gradient(135deg, var(--brand), var(--teal)); color: #fff; box-shadow: 0 6px 16px -6px rgba(14,116,144,.7); }
 #downloadPDF:hover { background: linear-gradient(135deg, var(--brand-dark), #0f766e); }
 #downloadPDF i { color: #fff; }
+#savePDF { color: #fcd34d; background: rgba(180, 83, 9, .76); }
+#savePDF i { color: #fde68a; }
 #sendReport { color: #6ee7b7; } #sendReport i { color: #34d399; }
 #signOff { color: #93c5fd; }   #signOff i { color: #60a5fa; }
 .loading-overlay {
@@ -1161,9 +1163,9 @@ body.editing .cell-edit:focus {
 }
 .lo { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; animation: ohSpin 1s linear infinite; }
 @media (max-width: 900px) {
-    #downloadPDF span, #signOff span, #PDFsetting span,
+    #downloadPDF span, #savePDF span, #signOff span, #PDFsetting span,
     #BrowserPrint span, #sendReport span, #enterResult span { display: none; }
-    #downloadPDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 9px 11px; }
+    #downloadPDF, #savePDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 9px 11px; }
 }
 
 /* ---------- TOASTS ---------- */
@@ -1335,6 +1337,10 @@ body.editing .cell-edit:focus {
         </div>
         <div class="downloadDiv">
             <button id="enterResult" type="button"><i class="fas fa-pen-to-square"></i><span>Enter Result</span></button>
+        </div>
+        <div class="downloadDiv">
+            <button id="savePDF" type="button"><i class="fas fa-save"></i><span>Save PDF</span></button>
+            <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
             <button id="downloadPDF" class="sign click"><i class="fas fa-file-pdf"></i><span>Download PDF</span></button>

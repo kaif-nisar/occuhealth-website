@@ -70,6 +70,12 @@
         qrCodeReady: false
     };
     const requestState = { download: false, send: false };
+    let layoutSaveTimer = null;
+    let layoutSaveInFlight = false;
+    let layoutSaveQueued = false;
+    let layoutSaveStarted = false;
+    let layoutSavePromise = null;
+    const boundDeleteNodes = new WeakSet();
 
     /* Keep the preview in the same A4 pagination mode at every viewport size.
        Narrow screens scroll the canvas instead of compressing PDF geometry. */
@@ -416,6 +422,64 @@
             current.remove();
             onContentMutated();
         });
+    }
+
+    function wireSectionDelete(section) {
+        const categoryDelete = $('.headings h2 .delete-btn', section);
+        if (categoryDelete && !boundDeleteNodes.has(categoryDelete)) {
+            boundDeleteNodes.add(categoryDelete);
+            categoryDelete.addEventListener('click', () => {
+                removeFromCanonical(section);
+                section.remove();
+                onContentMutated();
+            });
+        }
+
+        const titleDelete = $('.headings h3 .delete-btn', section);
+        if (titleDelete && !boundDeleteNodes.has(titleDelete)) {
+            boundDeleteNodes.add(titleDelete);
+            titleDelete.addEventListener('click', () => {
+                const titleHeading = titleDelete.closest('h3');
+                const tableWrap = $('.table-scroll', section);
+                if (titleHeading) titleHeading.remove();
+                if (tableWrap) tableWrap.remove();
+                onContentMutated();
+            });
+        }
+
+        $$('.delete-row-icon', section).forEach((icon) => {
+            if (boundDeleteNodes.has(icon)) return;
+            boundDeleteNodes.add(icon);
+            icon.addEventListener('click', () => {
+                const current = icon.closest('tr');
+                if (!current) return;
+                let next = current.nextElementSibling;
+                if (next && $('.remark-row', next)) {
+                    next.remove();
+                    next = current.nextElementSibling;
+                }
+                if (next && $('.details-row', next)) next.remove();
+                current.remove();
+                onContentMutated();
+            });
+        });
+    }
+
+    function restoreSavedLayout(report) {
+        const savedMarkup = String(report && report.savedPdfLayout || '').trim();
+        if (!savedMarkup) return false;
+
+        const holder = document.createElement('div');
+        holder.innerHTML = savedMarkup;
+        const savedSections = Array.from(holder.querySelectorAll('.section'));
+        if (!savedSections.length) return false;
+
+        state.bodyChildren = savedSections;
+        state.bodyChildren.forEach((section) => wireSectionDelete(section));
+
+        const savedMoreDetails = holder.querySelector('.moreDetails');
+        if (savedMoreDetails) state.bodyChildren.push(savedMoreDetails);
+        return true;
     }
 
     /* ========================= MAIN RENDER (canonical children) ========================= */
@@ -803,6 +867,7 @@
     function onContentMutated() {
         document.body.classList.add('is-dirty');
         scheduleRepaginate();
+        if (layoutSaveStarted) scheduleLayoutSave();
     }
 
     desktopMQ.addEventListener('change', () => {
@@ -914,6 +979,63 @@
         return savePdfData(buildPdfDataPayload(snapshot, extraFields));
     }
 
+    function scheduleLayoutSave() {
+        clearTimeout(layoutSaveTimer);
+        layoutSaveTimer = setTimeout(() => { flushLayoutSave(); }, 700);
+    }
+
+    function setupSavePdfLayout() {
+        const button = document.getElementById('savePDF');
+        if (!button) return;
+
+        button.addEventListener('click', async () => {
+            const wrapper = button.closest('.downloadDiv');
+            const loader = wrapper && wrapper.querySelector('.loading-overlay');
+            if (loader) loader.style.display = 'flex';
+            button.disabled = true;
+            try {
+                clearTimeout(layoutSaveTimer);
+                const saved = await flushLayoutSave();
+                if (!saved) throw new Error('PDF layout save was not completed');
+                toast('PDF layout saved. Franchise downloads will use this version.');
+            } catch (error) {
+                toast('PDF layout could not be saved. Please try again.', 'error');
+            } finally {
+                button.disabled = false;
+                if (loader) loader.style.display = 'none';
+            }
+        });
+    }
+
+    async function flushLayoutSave() {
+        if (!layoutSaveStarted || !state.reportId) return;
+        if (layoutSaveInFlight) {
+            layoutSaveQueued = true;
+            return layoutSavePromise;
+        }
+
+        layoutSaveInFlight = true;
+        layoutSavePromise = (async () => {
+            try {
+                await savePdfDataFromPage(getPdfDataSnapshot());
+                document.body.classList.remove('is-dirty');
+                return true;
+            } catch (error) {
+                document.body.classList.add('is-dirty');
+                console.warn('Report layout autosave failed:', error);
+                return false;
+            } finally {
+                layoutSaveInFlight = false;
+                layoutSavePromise = null;
+                if (layoutSaveQueued) {
+                    layoutSaveQueued = false;
+                    scheduleLayoutSave();
+                }
+            }
+        })();
+        return layoutSavePromise;
+    }
+
     async function updatebookingisreportreadyfield(bookingid) {
         try {
             const response = await fetch(BASE_URL + '/api/v1/user/CompleteBookingcontroller', {
@@ -989,9 +1111,23 @@
         const section = table && table.closest('.section');
         if (!section) return null;
         const ci = state.bodyChildren.indexOf(section);
-        const category = state.report &&
-            state.report.CategoryAndTest && state.report.CategoryAndTest[ci];
+        const categoryHeading = $('.headings h2', section)?.textContent?.trim();
+        const titleHeading = $('.headings h3', section)?.textContent?.trim();
+        const categories = state.report && state.report.CategoryAndTest || [];
+        const category = categories.find((item) =>
+            String(item.category || '').trim() === categoryHeading &&
+            (!titleHeading || String(item.title || '').trim() === titleHeading)
+        ) || categories[ci];
         if (!category) return null;
+
+        const renderedTestName = $('.test-name', row)?.textContent?.trim();
+        if (renderedTestName) {
+            const namedTest = (category.tests || []).find((test) =>
+                String(test.testName || '').trim() === renderedTestName
+            );
+            if (namedTest) return namedTest;
+        }
+
         const rowIndex = Array.prototype.indexOf.call($('tbody', table).children, row);
 
         /* Walk tests with their rendered row footprint to find owner */
@@ -1223,7 +1359,6 @@
                 link.click();
                 document.body.removeChild(link);
 
-                await updatebookingisreportreadyfield(state.report.bookingId);
                 toast('PDF downloaded.');
             } catch (error) {
                 console.error('Error generating PDF:', error);
@@ -1541,6 +1676,7 @@
             await barcodegenerator();
             injectSignatures(state.doctorsData);
             renderData(report);
+            restoreSavedLayout(report);
 
             /* Mount canonical children into the flowing first page */
             const firstBody = $('.sheet-body', state.sheets[0]);
@@ -1562,6 +1698,7 @@
             bindEditableCells();
             setupEnterResult();
             setupSignOff();
+            setupSavePdfLayout();
             await downloadpdffunction();
             await sendReport();
             setupBrowserPrint();
@@ -1573,6 +1710,7 @@
             hideSkeleton();
             const dock = $('.download-pdf-div');
             if (dock) dock.classList.add('is-ready');
+            layoutSaveStarted = true;
         } catch (error) {
             console.error('Boot failed:', error);
             showFatalError(error && error.message ? error.message : 'Unable to load the report.');
