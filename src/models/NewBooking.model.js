@@ -103,7 +103,7 @@ const TestBookingSchema = new Schema({
     },
     status: {
         type: String,
-        default: 'On Hold'
+        default: 'booked'
     },
     statusHistory: [{
         previousStatus: { type: String, required: true },

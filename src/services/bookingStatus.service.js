@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { NotificationDelivery } from "../models/notificationDelivery.model.js";
 
 export const BOOKING_STATUSES = Object.freeze({
+  BOOKED: "booked",
   HOLD: "Hold",
   CLINICAL: "Clinical",
   CANCELLED: "Cancelled",
@@ -13,6 +14,7 @@ export const BOOKING_STATUSES = Object.freeze({
 });
 
 const STATUS_ALIASES = new Map([
+  ["booked", BOOKING_STATUSES.BOOKED],
   ["hold", BOOKING_STATUSES.HOLD],
   ["on hold", BOOKING_STATUSES.HOLD],
   ["clinical", BOOKING_STATUSES.CLINICAL],

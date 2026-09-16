@@ -622,7 +622,9 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
             discountunit: issinglelayeradmin ? Number(discountunit) : 0,
             createdBy: userId,
             tenantId: tenantId._id,
-            createdbyuser: createdbyuser
+            createdbyuser: createdbyuser,
+            // ✅ Har nayi booking ka pehla status (pehle 'On Hold' tha) — ab 'booked'
+            status: "booked"
         };
 
         // ============================================================
@@ -775,7 +777,8 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 }
             }
 
-            object.status = "pending";
+            // ✅ Admin/staff booking ke liye status pehle "pending" set hota tha,
+            //    ab har nayi booking "booked" hi rahegi (object me already set hai)
         }
 
         // ============================================================
