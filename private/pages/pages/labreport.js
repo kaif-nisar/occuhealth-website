@@ -2629,7 +2629,10 @@ async function loadfunction() {
                 throw new Error(result?.message || "Failed to save report data");
             }
 
-            if (result?.bookingStatus) {
+            /* Final save must not mark the booking as completed/partial.
+               Booking completion is gated to the report-format sign-off flow.
+               We still allow saveOnly updates to local status when that mode is used. */
+            if (!isFinalAction && result?.bookingStatus) {
                 syncBookingStatusLocally(result.bookingStatus);
             }
 

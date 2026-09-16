@@ -2875,8 +2875,15 @@ const CompleteBookingcontroller = async (req, res) => {
     const { bookingid, reason = "Report completed" } = req.body;
 
     const reportDoc = await reports.findOne({ bookingId: bookingid })
-        .select("completionMeta CategoryAndTest status")
+        .select("completionMeta CategoryAndTest status signOff")
         .lean();
+
+    if (!reportDoc || reportDoc.signOff !== true) {
+        return res.status(400).json({
+            message: "Booking completion is allowed only after the report is signed off.",
+            signOffRequired: true
+        });
+    }
 
     const bookingStatus = isReportPartialFromStoredData(reportDoc)
         ? PARTIALLY_COMPLETED_STATUS

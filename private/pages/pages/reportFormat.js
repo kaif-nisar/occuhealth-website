@@ -409,10 +409,10 @@
         if (!icon) return;
         icon.addEventListener('click', () => {
             const current = icon.closest('tr');
+            if (!current) return;
             let next = current.nextElementSibling;
             if (next && $('.remark-row', next)) { next.remove(); next = current.nextElementSibling; }
             if (next && $('.details-row', next)) next.remove();
-            removeFromCanonical(current.closest('.section'));
             current.remove();
             onContentMutated();
         });
@@ -458,9 +458,7 @@
                 }
                 deleteH3Button.addEventListener('click', () => {
                     if (titleHeading) titleHeading.remove();
-                    const parentTable = $('table', section);
-                    if (parentTable) parentTable.remove();
-                    removeFromCanonical(section);
+                    tableWrap.remove();
                     onContentMutated();
                 });
             }
@@ -1117,11 +1115,9 @@
                 if (state.report) state.report.signOff = signoff;
                 toast(signoff ? 'Report signed off successfully.' : 'Sign-off removed.', 'success');
 
-                /* Fire-and-forget: mark the booking report-ready in the
-                   background so the UI stays responsive. The server-side
-                   status transition + notification pipeline runs
-                   independently and must never block sign-off. */
-                if (state.report && state.report.bookingId) {
+                /* Only mark the booking ready after a real sign-off. Final-save
+                   alone must never trigger completion; sign-off is the gate. */
+                if (signoff && state.report && state.report.bookingId) {
                     updatebookingisreportreadyfield(state.report.bookingId)
                         .catch((error) => console.warn('Background booking status update failed:', error));
                 }

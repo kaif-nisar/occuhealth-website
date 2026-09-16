@@ -110,10 +110,12 @@ const SaveReportController = asyncHandler(async (req, res) => {
     const isPartialReport = shouldMarkReportPartial(reportData, reportMeta);
     const normalizedCurrentStatus = String(currentBookingStatus || "").toLowerCase();
 
-    if (saveMode === "final") {
-        bookingStatus = isPartialReport ? PARTIALLY_COMPLETED_STATUS : "completed";
-    } else if (saveMode === "saveOnly" && normalizedCurrentStatus !== "completed" && isPartialReport) {
-        bookingStatus = PARTIALLY_COMPLETED_STATUS;
+    /* Booking completion must be sign-off only. Report save flows may persist the
+       report data, but they must never advance booking status on their own. */
+    bookingStatus = currentBookingStatus;
+
+    if (saveMode === "saveOnly" && normalizedCurrentStatus !== "completed" && isPartialReport) {
+        bookingStatus = currentBookingStatus;
     }
 
     const savedREport = await reports.findOneAndUpdate(
