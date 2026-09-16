@@ -3358,21 +3358,14 @@ const getTestNameController = async (req, res) => {
     const tid = req.user.tenantId._id;
 
     try {
-        // acceptedBarcode is a derived snapshot. Some legacy bookings have
-        // only the expanded test ids there, so also load the original booking
-        // selection (which retains the Package id) as the source of truth.
-        const [barcodes, booking] = await Promise.all([
-            acceptedBarcode.findOne({
-                tenantId: tid,
-                bookingId
-            }).select("bookingId createdAt barcodes").lean(),
-            newBooking.findOne({
-                tenantId: tid,
-                bookingId
-            }).select("bookingId createdAt tableData").lean()
-        ]);
+        // Only received samples are valid report inputs. Never fall back to
+        // newBooking.tableData because it also contains samples not received.
+        const barcodes = await acceptedBarcode.findOne({
+            tenantId: tid,
+            bookingId
+        }).select("bookingId createdAt barcodes").lean();
 
-        if (!barcodes && !booking) {
+        if (!barcodes) {
             return res.status(404).json({ message: "No test and panels found for this booking ID." });
         }
 
@@ -3452,63 +3445,8 @@ const getTestNameController = async (req, res) => {
             }));
         };
 
-        const mergeTestIds = (...lists) => {
-            const seen = new Set();
-
-            return lists.flat()
-                .filter((item) => item?.id && item?.collectionName)
-                .filter((item) => {
-                    const key = `${item.id.toString()}__${item.collectionName}`;
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
-        };
-
         const normalizedBarcode = (value) => String(value || "").trim();
-        const acceptedEntries = Array.isArray(barcodes?.barcodes) ? barcodes.barcodes : [];
-        const bookingEntries = Array.isArray(booking?.tableData) ? booking.tableData : [];
-        const bookingEntryByBarcode = new Map(
-            bookingEntries
-                .filter((entry) => normalizedBarcode(entry?.barcodeId))
-                .map((entry) => [normalizedBarcode(entry.barcodeId), entry])
-        );
-
-        // Merge original booking ids into the accepted snapshot. This restores
-        // package ids for old rows where acceptedBarcode saved only tests.
-        const barcodeEntries = acceptedEntries.map((entry) => {
-            const bookingEntry = bookingEntryByBarcode.get(normalizedBarcode(entry?.barcode));
-
-            if (!bookingEntry) return entry;
-
-            return {
-                ...entry,
-                typeOfSample: entry?.typeOfSample || bookingEntry.typeOfSample,
-                testIds: mergeTestIds(entry?.testIds || [], bookingEntry.ids || []),
-                testandpannelArray: (entry?.testandpannelArray || []).length
-                    ? entry.testandpannelArray
-                    : String(bookingEntry.testName || "").split(",").map((name) => name.trim()).filter(Boolean)
-            };
-        });
-
-        // A few historic bookings have no acceptedBarcode document at all.
-        // They can still produce a correct report from the booked table rows.
-        bookingEntries.forEach((bookingEntry) => {
-            const barcode = normalizedBarcode(bookingEntry?.barcodeId);
-            if (!barcode || barcodeEntries.some((entry) => normalizedBarcode(entry?.barcode) === barcode)) {
-                return;
-            }
-
-            barcodeEntries.push({
-                barcode,
-                typeOfSample: bookingEntry.typeOfSample,
-                testIds: mergeTestIds(bookingEntry.ids || []),
-                testandpannelArray: String(bookingEntry.testName || "")
-                    .split(",")
-                    .map((name) => name.trim())
-                    .filter(Boolean)
-            });
-        });
+        const barcodeEntries = Array.isArray(barcodes.barcodes) ? barcodes.barcodes : [];
 
         const directTestIds = [];
         const directPanelIds = [];
@@ -3657,8 +3595,8 @@ const getTestNameController = async (req, res) => {
             // for its investigation and sample-barcode display.
             barcodes: {
                 ...(barcodes || {}),
-                bookingId: barcodes?.bookingId || booking?.bookingId || bookingId,
-                createdAt: barcodes?.createdAt || booking?.createdAt,
+                bookingId: barcodes.bookingId || bookingId,
+                createdAt: barcodes.createdAt,
                 barcodes: barcodeEntries
             },
             singleTests: singleTestsWithCategory,

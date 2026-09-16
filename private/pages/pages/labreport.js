@@ -11,6 +11,7 @@ async function loadfunction() {
     //Array for filtering tests, pannels, package 
     let testArray2 = [];
     let testpanels;
+    let receivedBarcodeIds = [];
     const loadedTemplateEditors = new Set();
     // for sample receiving time 
     let recievedOn;
@@ -41,12 +42,7 @@ async function loadfunction() {
     }
 
     function getBookingBarcodeList() {
-        const acceptedbarcode = Array.isArray(booking.acceptedbarcode) ? booking.acceptedbarcode.filter(Boolean) : [];
-        const tableBarcodes = Array.isArray(booking.tableData)
-            ? booking.tableData.map((item) => item?.barcodeId).filter(Boolean)
-            : [];
-
-        return [...new Set([...acceptedbarcode, ...tableBarcodes])];
+        return [...receivedBarcodeIds];
     }
 
     function normalizeShortName(value) {
@@ -119,8 +115,8 @@ async function loadfunction() {
     function buildInvestigationHeaderList(singleTests = []) {
         const bookedNames = [];
 
-        (booking.tableData || []).forEach((row) => {
-            ((row.testName || "").split(","))
+        acceptedSampleIndex.forEach((row) => {
+            row.testNames
                 .map((item) => item.trim())
                 .filter(Boolean)
                 .forEach((item) => {
@@ -151,13 +147,7 @@ async function loadfunction() {
             .filter(Boolean);
     }
 
-    const bookingSampleIndex = (booking.tableData || [])
-        .map((item) => ({
-            barcodeId: normalizeShortName(item?.barcodeId),
-            sampleType: normalizeShortName(item?.typeOfSample),
-            testNames: splitBookingTestNames(item?.testName)
-        }))
-        .filter((item) => item.barcodeId || item.sampleType || item.testNames.length > 0);
+    const acceptedSampleIndex = [];
 
     function buildSampleDetailsForTable(tableData = []) {
         const tableTestNames = new Set();
@@ -172,7 +162,7 @@ async function loadfunction() {
         const sampleDetails = [];
         const seen = new Set();
 
-        bookingSampleIndex.forEach((entry) => {
+        acceptedSampleIndex.forEach((entry) => {
             const isMatchingEntry = entry.testNames.length === 0
                 ? false
                 : entry.testNames.some((testName) => tableTestNames.has(testName));
@@ -198,7 +188,7 @@ async function loadfunction() {
             const fallbackDetails = [];
             const fallbackSeen = new Set();
 
-            bookingSampleIndex.forEach((entry) => {
+            acceptedSampleIndex.forEach((entry) => {
                 const key = `${entry.barcodeId}__${entry.sampleType}`;
                 if (fallbackSeen.has(key)) {
                     return;
@@ -244,6 +234,14 @@ async function loadfunction() {
         console.log("my data:", data);
         testpanels = data[0];
         const barcodeEntries = data?.[0]?.barcodes?.barcodes || [];
+        receivedBarcodeIds = [...new Set(
+            barcodeEntries.map((entry) => normalizeShortName(entry?.barcode)).filter(Boolean)
+        )];
+        acceptedSampleIndex.push(...barcodeEntries.map((entry) => ({
+            barcodeId: normalizeShortName(entry?.barcode),
+            sampleType: normalizeShortName(entry?.sampleType),
+            testNames: splitBookingTestNames((entry?.testandpannelArray || []).join(","))
+        })).filter((entry) => entry.barcodeId || entry.sampleType || entry.testNames.length > 0));
         barcodeEntries.forEach((element) => {
             testArray.push(...(element.testandpannelArray || []));
         });
@@ -256,18 +254,8 @@ async function loadfunction() {
     }
 
     function getallpptfromrelatedbarcode(barcodes) {
-        const barcodeSet = new Set(
-            (barcodes || []).map((item) => item?.barcode?.trim()).filter(Boolean)
-        );
-
-        (booking.tableData || []).forEach((bookingtableData) => {
-            const barcodeId = bookingtableData?.barcodeId?.trim();
-
-            if (!barcodeId || !barcodeSet.has(barcodeId)) {
-                return;
-            }
-
-            testArray2.push(...((bookingtableData.testName || "").split(',')));
+        (barcodes || []).forEach((barcodeEntry) => {
+            testArray2.push(...(barcodeEntry.testandpannelArray || []));
         });
     }
 
