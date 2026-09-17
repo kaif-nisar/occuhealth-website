@@ -112,7 +112,59 @@ async function loadfunction() {
         return matchedTest?.Short_name || entryName;
     }
 
+    // ✅ Investigations ke liye booked naam (booking.tableData.testName) use hote hain —
+    //    jaisa book hua waisa hi. Package book hua ho to sirf package ka naam aata hai,
+    //    uske andar ke test/panel spread ho kar nahi aate. Sirf wahi barcode count hote hain
+    //    jo receive (accept) ho chuke hain.
+    function getBookedInvestigationNames() {
+        const tableRows = Array.isArray(booking?.tableData) ? booking.tableData : [];
+        const receivedSet = new Set(
+            receivedBarcodeIds
+                .map((id) => normalizeShortName(id))
+                .filter(Boolean)
+        );
+
+        if (tableRows.length === 0 || receivedSet.size === 0) {
+            return [];
+        }
+
+        const bookedNames = [];
+
+        tableRows.forEach((row) => {
+            const rowBarcodes = [row?.barcodeId, row?.confirmBarcodeId]
+                .map((value) => normalizeShortName(value))
+                .filter(Boolean);
+            const isReceivedRow = rowBarcodes.some((rowBarcode) => receivedSet.has(rowBarcode));
+
+            if (!isReceivedRow) {
+                return;
+            }
+
+            String(row?.testName ?? "")
+                .split(",")
+                .map((name) => name.trim())
+                .filter(Boolean)
+                .forEach((name) => {
+                    if (!bookedNames.includes(name)) {
+                        bookedNames.push(name);
+                    }
+                });
+        });
+
+        return bookedNames;
+    }
+
     function buildInvestigationHeaderList(singleTests = []) {
+        // ✅ Pehla aur sahi source: booking.tableData se booked naam. Isse package
+        //    book hone par sirf package ka naam dikhta hai (Andar ke tests/panels
+        //    alag-alag spread ho kar nahi dikhte).
+        const bookedInvestigationNames = getBookedInvestigationNames();
+
+        if (bookedInvestigationNames.length > 0) {
+            return bookedInvestigationNames.map((name) => getInvestigationDisplayName(name, singleTests));
+        }
+
+        // Fallback: agar booking.tableData available na ho to purana behaviour.
         const bookedNames = [];
 
         acceptedSampleIndex.forEach((row) => {
