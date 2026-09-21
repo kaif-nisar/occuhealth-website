@@ -4,11 +4,21 @@ import { doctorsign } from '../models/labinchargesign.model.js';
 // Image Upload Controller
 const uploadDoctorsSign = async (req, res) => {
     const { showlab, showdoctorfirst, showdoctorsecond, labinchargeinfo, leftdoctorinfo, rightdoctorinfo } = req.body;
-    const { labsign, firstdoctorsign, seconddoctorsign } = req.files;
+    const { labsign, firstdoctorsign, seconddoctorsign } = req.files || {};
     const userId = req.user._id;
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
     try {
+
+        if (!tenantId || !userId) {
+            return res.status(401).json({ message: 'Unauthorized or missing user info' });
+        }
+
+        const toBoolean = (value, fallback = false) => {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'string') return value.toLowerCase() === 'true';
+            return fallback;
+        };
 
         // Upload to Cloudinary using the helper function
         let labsignresult = labsign ? await uploadOnCloudinary(labsign?.[0]?.path) : null;
@@ -16,13 +26,13 @@ const uploadDoctorsSign = async (req, res) => {
         let seconddoctorsignresult = seconddoctorsign ? await uploadOnCloudinary(seconddoctorsign?.[0]?.path) : null;
 
         const updatedata = {
-            tenantId: tenantId._id,
+            tenantId,
             createdBy: userId,
-            showlabinchargesign: showlab,
+            showlabinchargesign: toBoolean(showlab),
             labinchargeinfo: labinchargeinfo,
-            showfirstdoctorsign: showdoctorfirst,
+            showfirstdoctorsign: toBoolean(showdoctorfirst),
             firstdoctorsigninfo: leftdoctorinfo,
-            showseconddoctorsign: showdoctorsecond,
+            showseconddoctorsign: toBoolean(showdoctorsecond),
             seconddoctorsigninfo: rightdoctorinfo
         }
 
@@ -68,11 +78,13 @@ const uploadDoctorsSign = async (req, res) => {
 };
 
 const getDoctorsSign = async (req, res) => {
-    const tenantId = req.user.tenantId._id;
+    const tenantId = req.user.tenantId?._id || req.user.tenantId;
+    const userId = req.user._id;
 
     try {
         const labsigndata = await doctorsign.findOne({
             tenantId: tenantId,
+            createdBy: userId
         });
 
         if (!labsigndata) {

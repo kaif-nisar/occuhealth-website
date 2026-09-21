@@ -15,7 +15,7 @@ const doctorsignSchema = new mongoose.Schema({
     },
     labinchargesign: {
         type: String,
-        required: true,
+        default: "",
     },
     labinchargesignpublicid: String,
     labinchargeinfo: {
@@ -27,7 +27,7 @@ const doctorsignSchema = new mongoose.Schema({
     },
     firstdoctorsign: {
         type: String,
-        required: true,
+        default: "",
     },
     firstdoctorsignpublicid: String,
     firstdoctorsigninfo: {
@@ -39,7 +39,7 @@ const doctorsignSchema = new mongoose.Schema({
     },
     seconddoctorsign: {
         type: String,
-        required: true,
+        default: "",
     },
     seconddoctorsignpublicid: String,
     seconddoctorsigninfo: {

@@ -411,7 +411,7 @@ function toggleAccordion(button) {
     document.getElementById('uploadTemplate')?.addEventListener('click', async function () {
         const fileInput = document.getElementById('fileInput');
         const messageElement = document.getElementById('message');
-        let selectedImage = document.querySelector('.image.selected');
+                        throw new Error(result.message || 'Failed to save signatures');
         let imageUrlToSend = null;
         let layout;
         try {
@@ -539,26 +539,26 @@ function toggleAccordion(button) {
             });
 
             const result = await response.json();
-            if (response.ok) {
-                await fetchLabSignAndSetInputs();
-                await imagedeletion();
-                fileInputLab1.value = "";
-                fileInputDoctorleft1.value = "";
-                fileInputDoctorright1.value = "";
-
-                const fileInputLab = document.getElementById('labinchargesign')?.src || "";
-                const fileInputDoctorleft = document.getElementById('firstdoctorsign')?.src || "";
-                const fileInputDoctorright = document.getElementById('seconddoctorsign')?.src || "";
-
-                autogeneratingpdf({
-                    value1: localStorage.getItem('myKey'),
-                    showlab, showdoctorfirst, showdoctorsecond,
-                    fileInputLab, fileInputDoctorleft, fileInputDoctorright,
-                    fileInputLabtext, fileInputDoctorlefttext, fileInputDoctorrighttext
-                });
-            } else {
-                alert("Error: " + result.message);
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to save signatures');
             }
+
+            await fetchLabSignAndSetInputs();
+            await imagedeletion();
+            fileInputLab1.value = "";
+            fileInputDoctorleft1.value = "";
+            fileInputDoctorright1.value = "";
+
+            const fileInputLab = document.getElementById('labinchargesign')?.src || "";
+            const fileInputDoctorleft = document.getElementById('firstdoctorsign')?.src || "";
+            const fileInputDoctorright = document.getElementById('seconddoctorsign')?.src || "";
+
+            await autogeneratingpdf({
+                value1: localStorage.getItem('myKey'),
+                showlab, showdoctorfirst, showdoctorsecond,
+                fileInputLab, fileInputDoctorleft, fileInputDoctorright,
+                fileInputLabtext, fileInputDoctorlefttext, fileInputDoctorrighttext
+            });
         } catch (error) {
             console.error('Upload error:', error.message);
             alert(error.message);
