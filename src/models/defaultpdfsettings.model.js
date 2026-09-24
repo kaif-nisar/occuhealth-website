@@ -56,6 +56,10 @@ const customizationSchema = new mongoose.Schema(
       type: Number,
       default: 10,
     },
+    headerContentGap: {
+      type: Number,
+      default: 1,
+    },
   },
   {
     timestamps: true,

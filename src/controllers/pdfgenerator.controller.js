@@ -654,9 +654,9 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
-    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
+    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap, res }) => {
 
-    // investigationmargin is the measured header height. Keep the body exactly 1 cm below it.
+    // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
@@ -675,8 +675,10 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     }
 
     headermarginPx = cmToPx(finitePdfNumber(headermargin, 2.8, { max: 10 }));
+    headermarginPx = cmToPx(finitePdfNumber(headermargin, 2.8, { max: 10 }));
     footermarginPx = cmToPx(finitePdfNumber(footermargin, 1, { max: 10 }));
-    const mainContentTopPx = headermarginPx + investigationmargin + cmToPx(1);
+    // Safe gap range: min 0.1 cm (strict restriction against 0 or negative overlap), max 10 cm, default 1 cm
+    const safeHeaderContentGapCm = finitePdfNumber(headerContentGap, 1, { min: 0.1, max: 10 });
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
@@ -702,16 +704,48 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                                 box-sizing: border-box;
                             }
                         ${cssContent}
+                        #measure-header-box {
+                            position: absolute;
+                            left: -9999px;
+                            top: 0;
+                            width: 100%;
+                            visibility: hidden;
+                            pointer-events: none;
+                        }
+                        #measure-header-box .pdf-header-div {
+                            width: ${format3 ? "100%" : "95%"}; 
+                            margin: 0 auto;
+                            border: ${(format3) ? "none" : "1px solid black"};
+                        }
+                        #measure-header-box .report-details {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        #measure-header-box .report-details-innerDiv2 {
+                            width: ${format3 ? "95%" : "100%"} !important;
+                            font-size: 12px;
+                            border: none !important;
+                        }
+                        #measure-header-box #investDiv {
+                            display: ${showInvest ? 'flex' : 'none'} !important;
+                        }
+                        #measure-header-box .time-div {
+                            width: 40% !important;
+                        }
+                        html, body {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        .middle, .container2, .table-div, table, .section, .headings {
+                            margin-top: 0 !important;
+                            padding-top: 0 !important;
+                        }
+                        .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6, .headings p,
+                        h1, h2, h3, h4, h5, h6 {
+                            margin-top: 0 !important;
+                        }
                         .wrong i, .delete-btn i {
                             display: none;
-                        }
-                        h2 {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        }
-                        .headings {
-                        margin-top: 0 !important;
-                        margin-bottom: 0px !important;
                         }
                         tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
@@ -746,6 +780,11 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                     </style>
                 </head>
                 <body>
+                    <div id="measure-header-box">
+                        <div class="pdf-header-div">
+                            ${header}
+                        </div>
+                    </div>
                     <div class="middle">
                     ${htmlContent}
                     </div>
@@ -754,6 +793,19 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
             await page.setContent(contentWithCssAndImage, { waitUntil: 'domcontentloaded', timeout: pdfContentLoadTimeout });
             await waitForPdfDocumentReady(page);
+
+            // Measure actual rendered header height in the A4 viewport
+            const measuredHeaderHeightPx = await page.evaluate(() => {
+                const el = document.querySelector('#measure-header-box .pdf-header-div');
+                if (!el) return 0;
+                return Math.ceil(el.getBoundingClientRect().height || el.offsetHeight || 0);
+            });
+            const effectiveHeaderHeight = measuredHeaderHeightPx > 0
+                ? measuredHeaderHeightPx
+                : finitePdfNumber(investigationmargin, 135, { min: 40, max: 500 });
+            // Dynamic two-box formula: Header bottom is at (headermarginPx + effectiveHeaderHeight).
+            // Main content starts exactly safeHeaderContentGapCm below Header bottom.
+            const computedMainContentTopPx = Math.ceil(headermarginPx + effectiveHeaderHeight + cmToPx(safeHeaderContentGapCm));
 
             const renderStart = Date.now();
             const renderedPdf = await renderPdfWithFallback(page, {
@@ -781,6 +833,10 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                                 margin:  0 auto;
                                 border: ${(format3) ? "none" : "1px solid black"};
                                 margin-top: ${format3 ? "0" : headermargin}cm !important;
+                            }
+                            .report-details {
+                                margin: 0 !important;
+                                padding: 0 !important;
                             }
                             .report-details-innerDiv2 {
                             width: ${format3 ? "95%" : "100%"} !important;
@@ -848,7 +904,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                 <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
-                margin: { top: `${mainContentTopPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
+                margin: { top: `${computedMainContentTopPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -904,6 +960,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             footermargin: footermargin,
             marginRight: marginRight,
             marginLeft: marginLeft,
+            headerContentGap: safeHeaderContentGapCm,
             investigationmargin: investigationmargin,
             showlab: showlab,
             showdoctorfirst: showdoctorfirst,
@@ -949,9 +1006,9 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, res }) => {
+    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap, res }) => {
 
-    // investigationmargin is the measured header height. Keep the body exactly 1 cm below it.
+    // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
@@ -971,7 +1028,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
     headermarginPx = cmToPx(parseFloat(headermargin));
     footermarginPx = cmToPx(parseFloat(footermargin));
-    const mainContentTopPx = headermarginPx + investigationmargin + cmToPx(1);
+    // Safe gap range: min 0.1 cm (strict restriction against 0 or negative overlap), max 10 cm, default 1 cm
+    const safeHeaderContentGapCm3 = finitePdfNumber(headerContentGap, 1, { min: 0.1, max: 10 });
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
@@ -997,16 +1055,43 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                                 box-sizing: border-box;
                             }
                         ${cssContent}
+                        #measure-header-box-3 {
+                            position: absolute;
+                            left: -9999px;
+                            top: 0;
+                            width: 100%;
+                            visibility: hidden;
+                            pointer-events: none;
+                        }
+                        #measure-header-box-3 .pdf-header-div {
+                            width: 95%; 
+                            margin: 0 auto;
+                        }
+                        #measure-header-box-3 .report-details {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        #measure-header-box-3 .report-details-innerDiv2 {
+                            width: 100%;
+                            font-size: 12px;
+                        }
+                        #measure-header-box-3 #investDiv {
+                            display: ${showInvest ? 'flex' : 'none'} !important;
+                        }
+                        html, body {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        .middle, .container2, .table-div, table, .section, .headings {
+                            margin-top: 0 !important;
+                            padding-top: 0 !important;
+                        }
+                        .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6, .headings p,
+                        h1, h2, h3, h4, h5, h6 {
+                            margin-top: 0 !important;
+                        }
                         .wrong i, .delete-btn i {
                             display: none;
-                        }
-                        h2 {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        }
-                        .headings {
-                        margin-top: 0 !important;
-                        margin-bottom: 0px !important;
                         }
                         tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
@@ -1045,6 +1130,11 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                     </style>
                 </head>
                 <body>
+                    <div id="measure-header-box-3">
+                        <div class="pdf-header-div">
+                            ${header}
+                        </div>
+                    </div>
                     <div class="middle">
                     ${htmlContent}
                     </div>
@@ -1053,6 +1143,19 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
             await page.setContent(contentWithCssAndImage, { waitUntil: 'domcontentloaded', timeout: pdfContentLoadTimeout });
             await waitForPdfDocumentReady(page);
+
+            // Measure actual rendered header height in the A4 viewport
+            const measuredHeaderHeightPx = await page.evaluate(() => {
+                const el = document.querySelector('#measure-header-box-3 .pdf-header-div');
+                if (!el) return 0;
+                return Math.ceil(el.getBoundingClientRect().height || el.offsetHeight || 0);
+            });
+            const effectiveHeaderHeight = measuredHeaderHeightPx > 0
+                ? measuredHeaderHeightPx
+                : finitePdfNumber(investigationmargin, 135, { min: 40, max: 500 });
+            // Dynamic two-box formula: Header bottom is at (headermarginPx + effectiveHeaderHeight).
+            // Main content starts exactly safeHeaderContentGapCm3 below Header bottom.
+            const computedMainContentTopPx3 = Math.ceil(headermarginPx + effectiveHeaderHeight + cmToPx(safeHeaderContentGapCm3));
 
             const renderStart = Date.now();
             const renderedPdf = await renderPdfWithFallback(page, {
@@ -1079,6 +1182,10 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                                 width: 95%; 
                                 margin:  0 auto;
                                 margin-top: ${format3 ? "0" : headermargin}cm !important;
+                            }
+                            .report-details {
+                                margin: 0 !important;
+                                padding: 0 !important;
                             }
                             .report-details-innerDiv2 {
                             width: 100%;
@@ -1141,7 +1248,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                 <div class="pdf-page-count">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                     </body>
                 </html>`,
-                margin: { top: `${mainContentTopPx}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
+                margin: { top: `${computedMainContentTopPx3}px`, bottom: '175px', left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`, right: `${marginRightPx > 0 ? marginRightPx : 10}px` },
             });
             updatePdfMetrics({ lastRenderMs: Date.now() - renderStart, lastPdfSizeBytes: renderedPdf.length });
             return renderedPdf;
@@ -1189,6 +1296,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             footermargin: footermargin,
             marginRight: marginRight,
             marginLeft: marginLeft,
+            headerContentGap: safeHeaderContentGapCm3,
             investigationmargin: investigationmargin,
             showlab: showlab,
             showdoctorfirst: showdoctorfirst,
@@ -1245,7 +1353,7 @@ const getpdfcontroller = async (req, res) => {
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format, headerContentGap } = req.body;
 
     let pdfformat;
     const tid = req.user.tenantId._id;
@@ -1297,11 +1405,18 @@ const getpdfcontroller = async (req, res) => {
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
-                backgroundImageUrl: "",
-                headermargin: defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
-                footermargin: defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1",
-                marginRight: defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0",
-                marginLeft: defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                headermargin: (headermargin !== undefined && headermargin !== null && headermargin !== "")
+                    ? String(headermargin)
+                    : (defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8"),
+                footermargin: (footermargin !== undefined && footermargin !== null && footermargin !== "")
+                    ? String(footermargin)
+                    : (defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1"),
+                marginRight: (marginRight !== undefined && marginRight !== null && marginRight !== "")
+                    ? String(marginRight)
+                    : (defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0"),
+                marginLeft: (marginLeft !== undefined && marginLeft !== null && marginLeft !== "")
+                    ? String(marginLeft)
+                    : (defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0"),
                 investigationmargin: investigationmargin || gettingcustomization?.investigationmargin || defaultSettings?.investigationmargin || 135,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
@@ -1312,6 +1427,9 @@ const getpdfcontroller = async (req, res) => {
                 fileInputLabtext: fileInputLabtext || gettingcustomization?.fileInputLabtext || "",
                 fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
                 fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
+                headerContentGap: headerContentGap !== undefined && headerContentGap !== null && headerContentGap !== ""
+                    ? Number(headerContentGap)
+                    : (defaultSettings?.headerContentGap ?? gettingcustomization?.headerContentGap ?? 1),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
                 res
@@ -1334,10 +1452,18 @@ const getpdfcontroller = async (req, res) => {
                 header: header || gettingcustomization?.header || "",
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
-                headermargin: defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8",
-                footermargin: defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1",
-                marginRight: defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0",
-                marginLeft: defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0",
+                headermargin: (headermargin !== undefined && headermargin !== null && headermargin !== "")
+                    ? String(headermargin)
+                    : (defaultSettings?.headermargin ?? gettingcustomization?.headermargin ?? "2.8"),
+                footermargin: (footermargin !== undefined && footermargin !== null && footermargin !== "")
+                    ? String(footermargin)
+                    : (defaultSettings?.footermargin ?? gettingcustomization?.footermargin ?? "1"),
+                marginRight: (marginRight !== undefined && marginRight !== null && marginRight !== "")
+                    ? String(marginRight)
+                    : (defaultSettings?.marginRight ?? gettingcustomization?.marginRight ?? "0"),
+                marginLeft: (marginLeft !== undefined && marginLeft !== null && marginLeft !== "")
+                    ? String(marginLeft)
+                    : (defaultSettings?.marginLeft ?? gettingcustomization?.marginLeft ?? "0"),
                 investigationmargin: investigationmargin || gettingcustomization?.investigationmargin || defaultSettings?.investigationmargin || 135,
                 showlab: showlab ?? gettingcustomization?.showlab ?? false,
                 showdoctorfirst: showdoctorfirst ?? gettingcustomization?.showdoctorfirst ?? true,
@@ -1348,6 +1474,9 @@ const getpdfcontroller = async (req, res) => {
                 fileInputLabtext: fileInputLabtext || gettingcustomization?.fileInputLabtext || "",
                 fileInputDoctorlefttext: fileInputDoctorlefttext || gettingcustomization?.fileInputDoctorlefttext || "",
                 fileInputDoctorrighttext: fileInputDoctorrighttext || gettingcustomization?.fileInputDoctorrighttext || "",
+                headerContentGap: headerContentGap !== undefined && headerContentGap !== null && headerContentGap !== ""
+                    ? Number(headerContentGap)
+                    : (defaultSettings?.headerContentGap ?? gettingcustomization?.headerContentGap ?? 1),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
                 res
@@ -1387,6 +1516,7 @@ const saveOrUpdatePdfSetting = async ({
     HighLow,
     RowSpacing,
     selectedFontSize,
+    headerContentGap,
 }) => {
     try {
         // tenantId के आधार पर रिकॉर्ड खोजें
@@ -1408,6 +1538,7 @@ const saveOrUpdatePdfSetting = async ({
                 HighLow,
                 RowSpacing,
                 selectedFontSize,
+                headerContentGap,
             });
 
             return newSetting;
@@ -1427,6 +1558,7 @@ const saveOrUpdatePdfSetting = async ({
                 HighLow,
                 RowSpacing,
                 selectedFontSize,
+                headerContentGap,
             };
 
             for (let key in fields) {
@@ -1569,6 +1701,8 @@ async function generateSinglePdfBuffer(mergedValues, user) {
        Puppeteer margin.top — prevents mobile-inflated DB values from
        collapsing or inverting the header/content gap. */
     mergedValues.investigationmargin = finitePdfNumber(mergedValues.investigationmargin, 135, { min: 60, max: 280 });
+    // Safe gap range: min 0.1 cm (strict restriction against 0 or negative overlap), max 10 cm, default 1 cm
+    const headerContentGapCmMerge = finitePdfNumber(mergedValues.headerContentGap, 1, { min: 0.1, max: 10 });
 
     const inlinedSegments = await inlinePdfHtmlSegments({
         htmlContent: mergedValues.htmlContent,
@@ -1594,16 +1728,48 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                         box-sizing: border-box;
                     }
                     ${mergedValues.cssContent}
-                    .wrong i, .delete-btn i {
-                        display: none;
+                    #measure-header-box-merge {
+                        position: absolute;
+                        left: -9999px;
+                        top: 0;
+                        width: 100%;
+                        visibility: hidden;
+                        pointer-events: none;
                     }
-                    h2 {
+                    #measure-header-box-merge .pdf-header-div {
+                        width: ${format3 ? "100%" : "95%"}; 
+                        margin: 0 auto;
+                        border: ${format3 ? "none" : "1px solid black"};
+                    }
+                    #measure-header-box-merge .report-details {
                         margin: 0 !important;
                         padding: 0 !important;
                     }
-                    .headings {
+                    #measure-header-box-merge .report-details-innerDiv2 {
+                        width: ${format3 ? "95%" : "100%"} !important;
+                        font-size: 12px;
+                        border: none !important;
+                    }
+                    #measure-header-box-merge #investDiv {
+                        display: ${mergedValues.showInvest ? 'flex' : 'none'};
+                    }
+                    #measure-header-box-merge .time-div {
+                        width: 40% !important;
+                    }
+                    html, body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .middle, .container2, .table-div, table, .section, .headings {
                         margin-top: 0 !important;
-                        margin-bottom: 0px !important;
+                        padding-top: 0 !important;
+                    }
+                    .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6, .headings p,
+                    h1, h2, h3, h4, h5, h6 {
+                        margin-top: 0 !important;
+                    }
+                    .wrong i, .delete-btn i {
+                        display: none;
                     }
                     tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                         font-size: ${mergedValues.selectedFontSize}px !important;
@@ -1638,6 +1804,11 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                 </style>
             </head>
             <body>
+                <div id="measure-header-box-merge">
+                    <div class="pdf-header-div">
+                        ${inlinedSegments.header}
+                    </div>
+                </div>
                 <div class="middle">
                 ${inlinedSegments.htmlContent}
                 </div>
@@ -1646,6 +1817,17 @@ async function generateSinglePdfBuffer(mergedValues, user) {
 
         await page.setContent(contentWithCssAndImage, { waitUntil: 'domcontentloaded', timeout: pdfContentLoadTimeout });
         await waitForPdfDocumentReady(page);
+
+        // Measure actual rendered header height in the A4 viewport
+        const measuredHeaderHeightPx = await page.evaluate(() => {
+            const el = document.querySelector('#measure-header-box-merge .pdf-header-div');
+            if (!el) return 0;
+            return Math.ceil(el.getBoundingClientRect().height || el.offsetHeight || 0);
+        });
+        const effectiveHeaderHeight = measuredHeaderHeightPx > 0
+            ? measuredHeaderHeightPx
+            : finitePdfNumber(mergedValues.investigationmargin, 135, { min: 40, max: 500 });
+        const computedMarginTopMerge = Math.ceil(headermarginPx + effectiveHeaderHeight + cmToPx(headerContentGapCmMerge));
 
         const renderStart = Date.now();
         const renderedPdf = await renderPdfWithFallback(page, {
@@ -1673,6 +1855,10 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                             margin: 0 auto;
                             border: ${format3 ? "none" : "1px solid black"};
                             margin-top: ${format3 ? "0" : mergedValues.headermargin}cm !important;
+                        }
+                        .report-details {
+                            margin: 0 !important;
+                            padding: 0 !important;
                         }
                         .report-details-innerDiv2 {
                             width: ${format3 ? "95%" : "100%"} !important;
@@ -1730,7 +1916,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                 </body>
             </html>`,
             margin: {
-                top: `${headermarginPx + mergedValues.investigationmargin + cmToPx(1)}px`,
+                top: `${computedMarginTopMerge}px`,
                 bottom: '175px',
                 left: `${marginLeftPx > 0 ? marginLeftPx : 10}px`,
                 right: `${marginRightPx > 0 ? marginRightPx : 10}px`
@@ -1766,7 +1952,8 @@ const getpdfcontrolleruser = async (req, res) => {
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId,
+        headerContentGap } = req.body;
 
     try {
         const resolvePdfValue = (...values) => {
@@ -1845,6 +2032,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 fileInputLabtext: resolvePdfValue(fileInputLabtext, gettingcustomization?.fileInputLabtext, defaultsetting?.fileInputLabtext, "") || "",
                 fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
                 fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
+                headerContentGap: resolvePdfValue(headerContentGap, gettingcustomization?.headerContentGap, defaultsetting?.headerContentGap, 1) ?? 1,
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
@@ -1880,6 +2068,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 fileInputLabtext: resolvePdfValue(fileInputLabtext, gettingcustomization?.fileInputLabtext, defaultsetting?.fileInputLabtext, "") || "",
                 fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
                 fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
+                headerContentGap: resolvePdfValue(headerContentGap, gettingcustomization?.headerContentGap, defaultsetting?.headerContentGap, 1) ?? 1,
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
@@ -1917,7 +2106,7 @@ const savingPdfDatacontroller = async (req, res) => {
     const { reportId, htmlContent, cssContent, header, footer, backgroundImageUrl,
         headermargin, footermargin, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, headerContentGap } = req.body;
 
     // console.log("header", header, "footer", footer, "htmlcontent:", htmlContent );
 
@@ -1928,7 +2117,7 @@ const savingPdfDatacontroller = async (req, res) => {
         reportId, htmlContent, cssContent, header, footer, backgroundImageUrl,
         headermargin, footermargin, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId
+        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, headerContentGap
     };
 
     if (!hasPdfMarkup(htmlContent)) {
@@ -1940,6 +2129,10 @@ const savingPdfDatacontroller = async (req, res) => {
     const updateFields = {};
     for (const key in vars) {
         if (vars[key] != null) updateFields[key] = vars[key];
+    }
+
+    if (updateFields.headerContentGap != null) {
+        updateFields.headerContentGap = finitePdfNumber(updateFields.headerContentGap, 1, { min: 0.1, max: 10 });
     }
 
     /* Clamp investigationmargin to A4-valid range before persisting.
@@ -1979,7 +2172,7 @@ const savingPdfDatacontroller = async (req, res) => {
         }
     );
 
-    const hasDefaultSettingValues = [headermargin, footermargin, investigationmargin]
+    const hasDefaultSettingValues = [headermargin, footermargin, investigationmargin, headerContentGap]
         .some((value) => value !== undefined && value !== null && value !== "");
 
     if (hasDefaultSettingValues) {
@@ -1989,6 +2182,7 @@ const savingPdfDatacontroller = async (req, res) => {
             headermargin,
             footermargin,
             investigationmargin,
+            headerContentGap: updateFields.headerContentGap,
         });
     }
 
@@ -2001,7 +2195,7 @@ const savePdfSettingsController = async (req, res) => {
         const createdBy = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
         const {
             selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
-            headermargin, footermargin, marginRight, marginLeft
+            headermargin, footermargin, marginRight, marginLeft, headerContentGap
         } = req.body;
 
         const fontSize = Number(selectedFontSize);
@@ -2011,6 +2205,7 @@ const savePdfSettingsController = async (req, res) => {
             footermargin: Number(footermargin),
             marginRight: Number(marginRight),
             marginLeft: Number(marginLeft),
+            headerContentGap: Number(headerContentGap ?? 1),
         };
 
         if (!Number.isFinite(fontSize) || fontSize < 7 || fontSize > 22 ||
@@ -2018,7 +2213,8 @@ const savePdfSettingsController = async (req, res) => {
             !Number.isFinite(layoutValues.headermargin) || layoutValues.headermargin < 0 || layoutValues.headermargin > 10 ||
             !Number.isFinite(layoutValues.footermargin) || layoutValues.footermargin < 0 || layoutValues.footermargin > 6 ||
             !Number.isFinite(layoutValues.marginRight) || layoutValues.marginRight < 0 || layoutValues.marginRight > 4 ||
-            !Number.isFinite(layoutValues.marginLeft) || layoutValues.marginLeft < 0 || layoutValues.marginLeft > 4) {
+            !Number.isFinite(layoutValues.marginLeft) || layoutValues.marginLeft < 0 || layoutValues.marginLeft > 4 ||
+            !Number.isFinite(layoutValues.headerContentGap) || layoutValues.headerContentGap < 0.1 || layoutValues.headerContentGap > 10) {
             return res.status(400).json({ message: 'Invalid print layout, font size, or spacing value' });
         }
 
@@ -2035,6 +2231,7 @@ const savePdfSettingsController = async (req, res) => {
             footermargin: String(layoutValues.footermargin),
             marginRight: String(layoutValues.marginRight),
             marginLeft: String(layoutValues.marginLeft),
+            headerContentGap: layoutValues.headerContentGap,
         });
 
         return res.status(200).json(settings);

@@ -14,16 +14,18 @@ function toggleAccordion(button) {
 (async function () {
     const pageloader = document.querySelector(".printspinnerbox");
     const value1 = localStorage.getItem('myKey');
-    const layoutFieldIds = ['header', 'footer', 'margin-right', 'margin-left'];
+    const layoutFieldIds = ['header', 'footer', 'margin-right', 'margin-left', 'header-content-gap'];
+    let selectedImage = null;
 
     const readLayoutSettings = () => {
         const values = {
             headermargin: Number(document.getElementById('header').value),
             footermargin: Number(document.getElementById('footer').value),
             marginRight: Number(document.getElementById('margin-right').value),
-            marginLeft: Number(document.getElementById('margin-left').value)
+            marginLeft: Number(document.getElementById('margin-left').value),
+            headerContentGap: Number(document.getElementById('header-content-gap').value)
         };
-        const limits = { headermargin: [0, 10], footermargin: [0, 6], marginRight: [0, 4], marginLeft: [0, 4] };
+        const limits = { headermargin: [0, 10], footermargin: [0, 6], marginRight: [0, 4], marginLeft: [0, 4], headerContentGap: [0.1, 10] };
         for (const [name, value] of Object.entries(values)) {
             const [min, max] = limits[name];
             if (!Number.isFinite(value) || value < min || value > max) {
@@ -80,7 +82,8 @@ function toggleAccordion(button) {
         const TOTAL_A4_CM = 18.0;
         const HEADER_CONTENT_CM = 3.2;
         const FOOTER_CONTENT_CM = 1.8;
-        const HEADER_TO_MAIN_GAP_CM = 1;
+        const rawGapInput = Number(document.getElementById('header-content-gap')?.value);
+        const HEADER_TO_MAIN_GAP_CM = (Number.isFinite(rawGapInput) && rawGapInput >= 0.1 && rawGapInput <= 10) ? rawGapInput : 1;
         const headerTotalCm = layout.headermargin + HEADER_CONTENT_CM;
         const footerTotalCm = layout.footermargin + FOOTER_CONTENT_CM;
         const mainContentCm = Math.max(0, TOTAL_A4_CM - (headerTotalCm + HEADER_TO_MAIN_GAP_CM + footerTotalCm));
@@ -149,6 +152,7 @@ function toggleAccordion(button) {
             document.getElementById('footer').value = data.footermargin ?? '';
             document.getElementById('margin-right').value = data.marginRight ?? '';
             document.getElementById('margin-left').value = data.marginLeft ?? '';
+            document.getElementById('header-content-gap').value = data.headerContentGap ?? 1;
             document.getElementById('show-lab').checked = data.labinchargesign || false;
             document.getElementById('pdf-font-size').value = data.selectedFontSize ?? 10;
             document.getElementById('spacing').value = data.RowSpacing ?? 3;
@@ -272,6 +276,7 @@ function toggleAccordion(button) {
             container.querySelector('img').addEventListener('click', (e) => {
                 document.querySelectorAll('.image.selected').forEach(el => el.classList.remove('selected'));
                 e.target.classList.add('selected');
+                selectedImage = e.target;
             });
         });
     }
@@ -341,12 +346,16 @@ function toggleAccordion(button) {
     }
 
     async function autogeneratingpdf({ value1: argVal1, checkBox = false, showlab, showdoctorfirst, showdoctorsecond,
-        backgroundImageUrl = null, headermargin, footermargin, marginRight, marginLeft,
+        backgroundImageUrl = null, headermargin, footermargin, marginRight, marginLeft, headerContentGap,
         selectedFontSize, RowSpacing, HighLow, HLinred,
         BoldRow, showInvest, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext } = {}) {
         const loader = document.querySelector('.loaderDiv');
         const value2 = localStorage.getItem('myKey');
+        const rawGap = headerContentGap !== undefined && headerContentGap !== null
+            ? Number(headerContentGap)
+            : Number(document.getElementById('header-content-gap')?.value || 1);
+        const resolvedGap = (Number.isFinite(rawGap) && rawGap >= 0.1 && rawGap <= 10) ? rawGap : 1;
 
         try {
             if (loader) {
@@ -358,7 +367,8 @@ function toggleAccordion(button) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     value1: value2, checkBox, backgroundImageUrl,
-                    headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing,
+                    headermargin, footermargin, marginRight, marginLeft, headerContentGap: resolvedGap,
+                    selectedFontSize, RowSpacing,
                     HighLow, HLinred, BoldRow, showInvest, showlab, showdoctorfirst, showdoctorsecond,
                     fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
                     fileInputDoctorlefttext, fileInputDoctorrighttext
@@ -410,90 +420,94 @@ function toggleAccordion(button) {
 
     document.getElementById('uploadTemplate')?.addEventListener('click', async function () {
         const fileInput = document.getElementById('fileInput');
-        const messageElement = document.getElementById('message');
-                        throw new Error(result.message || 'Failed to save signatures');
-        let imageUrlToSend = null;
-        let layout;
+        const showMsg = (text, isErr = false) => {
+            const targets = [document.getElementById('message'), document.getElementById('file-message')];
+            targets.forEach((el) => {
+                if (el) {
+                    el.style.color = isErr ? '#dc2626' : '#166534';
+                    el.textContent = text;
+                }
+            });
+        };
+
+        if (pageloader) pageloader.style.display = "flex";
+
         try {
-            layout = readLayoutSettings();
-            if (pageloader) pageloader.style.display = "flex";
+            const layout = readLayoutSettings();
             await savePrintSettings(layout);
             refreshLayoutGuide();
-        } catch (error) {
-            if (messageElement) messageElement.textContent = error.message;
-            return;
-        } finally {
-            if (pageloader) pageloader.style.display = "none";
-        }
-        const { headermargin, footermargin, marginRight, marginLeft } = layout;
 
-        if (!selectedImage) {
-            selectedImage = document.querySelector('.image');
-            if (selectedImage) {
-                selectedImage.classList.add('selected');
-            }
-        }
+            const { headermargin, footermargin, marginRight, marginLeft, headerContentGap } = layout;
 
-        if (fileInput && fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-
-            if (!file.type.startsWith('image/')) {
-                if (messageElement) messageElement.textContent = 'Only image files are allowed.';
-                return;
+            const activeSelected = document.querySelector('.image.selected');
+            if (activeSelected) {
+                selectedImage = activeSelected;
+            } else if (!selectedImage) {
+                selectedImage = document.querySelector('.image');
+                if (selectedImage) {
+                    selectedImage.classList.add('selected');
+                }
             }
 
-            const formData = new FormData();
-            formData.append('template', file);
-            if (pageloader) pageloader.style.display = "flex";
+            let imageUrlToSend = null;
 
-            try {
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+
+                if (!file.type.startsWith('image/')) {
+                    showMsg('Only image files are allowed.', true);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('template', file);
+
                 const response = await fetch(`${BASE_URL}/api/v1/user/template`, {
                     method: 'POST',
                     body: formData
                 });
 
-                if (response.ok) {
-                    fileInput.value = "";
-                    const result = await response.json();
-                    if (messageElement) messageElement.textContent = 'File uploaded successfully!';
-                    imageUrlToSend = result.url;
-                    await fetchTemplateImages();
-                    await selectionimage();
-                    await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft });
-                    fetchDataAndSetInputs();
-                    return;
-                } else {
-                    const errorResult = await response.json();
-                    if (messageElement) messageElement.textContent = `Error: ${errorResult.message}`;
+                if (!response.ok) {
+                    const errorResult = await response.json().catch(() => ({}));
+                    showMsg(`Error: ${errorResult.message || 'Failed to upload template image'}`, true);
                     return;
                 }
-            } catch (error) {
-                if (messageElement) messageElement.textContent = 'An error occurred while uploading the file.';
-                console.error('Upload error:', error);
+
+                fileInput.value = "";
+                const result = await response.json();
+                imageUrlToSend = result.url;
+                await fetchTemplateImages();
+                await selectionimage();
+                await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft, headerContentGap });
+                await fetchDataAndSetInputs();
+                showMsg('Template uploaded and layout saved successfully!');
                 return;
-            } finally {
-                if (pageloader) pageloader.style.display = "none";
             }
-        }
 
-        if (selectedImage) {
-            imageUrlToSend = selectedImage.src;
-        }
-
-        if (!imageUrlToSend) {
-            const firstImage = document.querySelector('.image');
-            if (firstImage) {
-                imageUrlToSend = firstImage.src;
+            if (selectedImage) {
+                imageUrlToSend = selectedImage.src;
             }
-        }
 
-        if (imageUrlToSend) {
-            await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft });
-            if (messageElement) messageElement.textContent = 'PDF generated successfully with the selected image!';
-            fetchDataAndSetInputs();
-        } else {
-            await autogeneratingpdf({ headermargin, footermargin, marginRight, marginLeft });
-            if (messageElement) messageElement.textContent = 'Layout saved and preview refreshed.';
+            if (!imageUrlToSend) {
+                const firstImage = document.querySelector('.image');
+                if (firstImage) {
+                    imageUrlToSend = firstImage.src;
+                }
+            }
+
+            if (imageUrlToSend) {
+                await autogeneratingpdf({ backgroundImageUrl: imageUrlToSend, headermargin, footermargin, marginRight, marginLeft, headerContentGap });
+                showMsg('Layout saved and PDF preview refreshed with selected image!');
+                await fetchDataAndSetInputs();
+            } else {
+                await autogeneratingpdf({ headermargin, footermargin, marginRight, marginLeft, headerContentGap });
+                showMsg('Layout saved and PDF preview refreshed.');
+            }
+        } catch (error) {
+            console.error('Save template/layout error:', error);
+            showMsg(error.message || 'An error occurred while saving print settings.', true);
+        } finally {
+            if (pageloader) pageloader.style.display = "none";
         }
     });
 
@@ -601,7 +615,7 @@ function toggleAccordion(button) {
     }
 
     function updateButtonState() {
-        const fields = ['header', 'footer', 'margin-right', 'margin-left'];
+        const fields = ['header', 'footer', 'margin-right', 'margin-left', 'header-content-gap'];
         let isValid = true;
 
         fields.forEach(fieldId => {
@@ -621,7 +635,7 @@ function toggleAccordion(button) {
         }
     }
 
-    const layoutValidation = { header: [0, 10], footer: [0, 6], 'margin-right': [0, 4], 'margin-left': [0, 4] };
+    const layoutValidation = { header: [0, 10], footer: [0, 6], 'margin-right': [0, 4], 'margin-left': [0, 4], 'header-content-gap': [0.1, 10] };
     layoutFieldIds.forEach((id) => {
         const input = document.getElementById(id);
         if (input) {

@@ -69,6 +69,10 @@ const customizationSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    headerContentGap: {
+        type: Number,
+        default: 1
+    },
     showlab:{
         type: Boolean,
         default: false

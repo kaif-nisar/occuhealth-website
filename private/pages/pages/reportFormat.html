@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -64,8 +64,16 @@
         }
 
         .left2 {
-            width: 40%;
             display: inline-block;
+        }
+        .investigationDiv {
+            display: flex;
+            width: 100%;
+            word-wrap: break-word;
+        }
+
+        .infordivs {
+            width: 40%;
         }
 
         .right2 {
@@ -321,7 +329,7 @@
 
         .tags {
             display: table-cell;
-            min-width: 110px;
+            width: 100px;
             /* FIXED FOREVER */
             vertical-align: top;
             box-sizing: border-box;
@@ -461,6 +469,19 @@
 
         #investDiv {
             display: flex;
+        }
+
+        /* The Investigations row is the ONLY .infor-div that switches to
+           flex. Flex items shrink by default (flex-shrink: 1), so the
+           "FIXED FOREVER" 100px .tags column was treated as a mere
+           flex-basis and collapsed to the label's min-content width
+           ("Investigations:"), pulling the value text into the label
+           column. Pin the same 100px gutter the table rows use. */
+        #investDiv > .tags,
+        .investigationDiv > .tags {
+            flex: 0 0 100px;
+            width: 100px;
+            min-width: 100px;
         }
 
         /* Full-screen overlay */

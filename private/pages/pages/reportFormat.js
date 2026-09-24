@@ -191,12 +191,12 @@
         details.className = 'report-details-innerDiv2';
         details.innerHTML =
             '<div class="left2">' +
-                '<div class="infor-div"><div class="tags">Patient Name:</div><div class="value" data-field="patientName">' + (state.report.patientName || '') + '</div></div>' +
-                '<div class="infor-div"><div class="tags">Age / Sex:</div><div class="value" data-field="ageSex">' + (state.report.year || '') + ' / ' + (state.report.gender || '') + '</div></div>' +
-                '<div class="infor-div"><div class="tags">Referred By:</div><div class="value" data-field="doctorName">' + (state.report.doctorName || '') + '</div></div>' +
-                '<div class="infor-div"><div class="tags">Reg. no:</div><div class="value" data-field="bookingId">' + (state.report.bookingId || '') + '</div></div>' +
-                '<div class="infor-div forhide"><div class="tags">Lab Name:</div><div class="value" data-field="labName">' + (state.report.labName || '') + '</div></div>' +
-                '<div class="infor-div forhide" id="investDiv"><div class="tags">Investigations:</div><div class="value">' + (state.report.uniquetestArray || '') + '</div></div>' +
+                '<div class="infor-div infordivs"><div class="tags">Patient Name:</div><div class="value" data-field="patientName">' + (state.report.patientName || '') + '</div></div>' +
+                '<div class="infor-div infordivs"><div class="tags">Age / Sex:</div><div class="value" data-field="ageSex">' + (state.report.year || '') + ' / ' + (state.report.gender || '') + '</div></div>' +
+                '<div class="infor-div infordivs"><div class="tags">Referred By:</div><div class="value" data-field="doctorName">' + (state.report.doctorName || '') + '</div></div>' +
+                '<div class="infor-div infordivs"><div class="tags">Reg. no:</div><div class="value" data-field="bookingId">' + (state.report.bookingId || '') + '</div></div>' +
+                '<div class="infor-div infordivs forhide"><div class="tags">Lab Name:</div><div class="value" data-field="labName">' + (state.report.labName || '') + '</div></div>' +
+                '<div class="infor-div investigationDiv forhide" id="investDiv"><div class="tags">Investigations:</div><div class="value">' + (state.report.uniquetestArray || '') + '</div></div>' +
             '</div>' +
             '<div class="right2"><div>' +
                 '<div class="registered-div2"><div class="registeration-tag2">Registered on:</div>' +
@@ -1342,6 +1342,7 @@
                         backgroundImageUrl: state.backgroundImageUrl,
                         headermargin: o.headermargin, footermargin: o.footermargin,
                         marginRight: o.marginRight, marginLeft: o.marginLeft,
+                        headerContentGap: o.headerContentGap,
                         labinchargeinfo: state.signInfo.labinchargeinfo,
                         labinchargesignurl: state.signInfo.sign,
                         selectedFontSize: o.selectedFontSize, RowSpacing: o.RowSpacing,
