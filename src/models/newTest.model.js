@@ -147,6 +147,8 @@ TestSchema.index({ Name: 1, tenantId: 1 }, { unique: true });
 TestSchema.index({ Name: 1, sampleType: 1 });
 TestSchema.index({ createdBy: 1, order: -1 });
 TestSchema.index({ tenantId: 1, order: -1 });
+TestSchema.index({ tenantId: 1, "assignedPrices.userId": 1 });
+TestSchema.index({ "assignedPrices.userId": 1, "assignedPrices.assignedBy": 1 });
 
 // Create the model
 const testSchema =

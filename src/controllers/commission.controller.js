@@ -408,107 +408,177 @@ const assignSingleTestPrice = asyncHandler(async (req, res) => {
 
 const getAssignedTests = async (req, res) => {
   try {
-    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query;
     const role = req.user.role;
-    const parentRole = req.user.parentRole
+    const parentRole = req.user.parentRole;
     const actorId = role === "staff" ? req.user.parentUser : req.user._id;
     const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
       ? requestedUserId
       : String(actorId);
+
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
+    const rawTenantId = req.user?.tenantId?._id || req.user?.tenantId;
+    const tenantId = Types.ObjectId.isValid(rawTenantId) ? new Types.ObjectId(rawTenantId) : rawTenantId;
+
+    const oldObjectId = oldId && Types.ObjectId.isValid(oldId) ? new Types.ObjectId(oldId) : null;
+    const oldIdStr = oldId ? String(oldId) : null;
+
     if (role === "admin" || (role === "staff" && parentRole === "admin")) {
-      // If the role is admin, fetch all tests
-      console.log("Admin role detected. Fetching all tests with appropriate prices.");
+      const pipeline = [
+        { $match: { tenantId } },
+        {
+          $project: {
+            testId: "$_id",
+            testName: "$Name",
+            basePrice: { $ifNull: ["$Price", 0] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$sampleType", "N/A"] },
+            Short_name: "$Short_name",
+            createdAt: "$createdAt",
+            ...(oldIdStr ? {
+              matchedPrice: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $or: [
+                        ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                        { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            testId: 1,
+            testName: 1,
+            basePrice: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            Short_name: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            myPrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            assignedPriceToUser: oldIdStr ? { $ifNull: ["$matchedPrice.price", null] } : { $literal: null },
+            commissionToUser: oldIdStr ? { $ifNull: ["$matchedPrice.commission", null] } : { $literal: null },
+            isAssigned: oldIdStr ? { $ne: ["$matchedPrice", null] } : { $literal: false }
+          }
+        }
+      ];
 
-      // Get all tests
-      const allTests = await testSchema.find({ tenantId: req.user.tenantId })
-      // .select("Name Price final_price assignedPrices sampleType Short");
-
-      // Map all tests with either assigned price to the franchisee or default price
-      const result = allTests.map((test) => {
-        // Check if the test has an assigned price for the specified franchisee (oldId)
-        const assignedToFranchisee = test.assignedPrices?.find(
-          (ap) => ap.userId.toString() === oldId
-        );
-
-        return {
-          testId: test._id,
-          testName: test.Name,
-          basePrice: test.Price || 0,
-          // If there's an assigned price for the franchisee, use it; otherwise use default
-          franchiseePrice: assignedToFranchisee ? assignedToFranchisee.price : test.Price || 0,
-          myPrice: assignedToFranchisee ? assignedToFranchisee.price : test.Price || 0,
-          mrpPrice: test.final_price || 0,
-          sampleType: test.sampleType || "N/A",
-          assignedPriceToUser: assignedToFranchisee ? assignedToFranchisee.price : null,
-          commissionToUser: assignedToFranchisee ? assignedToFranchisee.commission : null,
-          // Flag to indicate if this test has been assigned to the franchisee
-          isAssigned: !!assignedToFranchisee,
-          Short_name: test.Short_name,
-          createdAt: test.createdAt
-        };
-      });
-
+      const result = await testSchema.aggregate(pipeline);
       return res.status(200).json(result);
     } else {
-      // For non-admin users, fetch only tests that have been assigned to them or by them
-      const tests = await testSchema
-        .find({
-          $or: [
-            {
-              // Prices assigned to the selected franchisee (oldId) by the current user (userId)
-              "assignedPrices.userId": oldId,
-              "assignedPrices.assignedBy": userId,
+      const userObjectId = Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
+      const userIdStr = String(userId);
+
+      const orConditions = [
+        ...(userObjectId ? [{ "assignedPrices.userId": userObjectId }] : []),
+        { "assignedPrices.userId": userIdStr }
+      ];
+
+      if (oldId) {
+        if (oldObjectId && userObjectId) {
+          orConditions.push({
+            "assignedPrices.userId": oldObjectId,
+            "assignedPrices.assignedBy": userObjectId
+          });
+        }
+        orConditions.push({
+          "assignedPrices.userId": oldIdStr,
+          "assignedPrices.assignedBy": userIdStr
+        });
+      }
+
+      const pipeline = [
+        {
+          $match: {
+            $and: [
+              { tenantId },
+              { $or: orConditions }
+            ]
+          }
+        },
+        {
+          $project: {
+            testId: "$_id",
+            testName: "$Name",
+            basePrice: { $ifNull: ["$Price", 0] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$sampleType", "N/A"] },
+            Short_name: "$Short_name",
+            createdAt: "$createdAt",
+            assignedToUser: {
+              $first: {
+                $filter: {
+                  input: { $ifNull: ["$assignedPrices", []] },
+                  as: "ap",
+                  cond: {
+                    $or: [
+                      ...(userObjectId ? [{ $eq: ["$$ap.userId", userObjectId] }] : []),
+                      { $eq: [{ $toString: "$$ap.userId" }, userIdStr] }
+                    ]
+                  }
+                }
+              }
             },
-            {
-              // Prices assigned to the current user (userId)
-              "assignedPrices.userId": userId,
-            },
-          ],
-        })
-      // .select("Name Price final_price assignedPrices sampleType");
+            ...(oldIdStr ? {
+              assignedToFranchisee: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $and: [
+                        {
+                          $or: [
+                            ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                          ]
+                        },
+                        {
+                          $or: [
+                            ...(userObjectId ? [{ $eq: ["$$ap.assignedBy", userObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.assignedBy" }, userIdStr] }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            testId: 1,
+            testName: 1,
+            basePrice: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            Short_name: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", "$basePrice"] } : "$basePrice",
+            assignedPriceToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", null] } : { $literal: null },
+            commissionToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.commission", null] } : { $literal: null },
+            myPrice: { $ifNull: ["$assignedToUser.price", "$basePrice"] },
+            assignedPriceToUser: { $ifNull: ["$assignedToUser.price", null] },
+            commissionToUser: { $ifNull: ["$assignedToUser.commission", null] },
+            isAssigned: oldIdStr ? { $ne: ["$assignedToFranchisee", null] } : { $literal: false }
+          }
+        }
+      ];
 
-      // Map the tests with appropriate prices
-      const result = tests.map((test) => {
-        // Find assignment to the franchisee by the current user
-        const assignedToFranchisee = test.assignedPrices?.find(
-          (ap) =>
-            ap.userId.toString() === oldId && ap.assignedBy.toString() === userId
-        );
-
-        // Find assignment to the current user (regardless of who assigned it)
-        const assignedToUser = test.assignedPrices?.find(
-          (ap) => ap.userId.toString() === userId
-        );
-
-        return {
-          testId: test._id,
-          testName: test.Name,
-          basePrice: test.Price || 0,
-          mrpPrice: test.final_price || 0,
-          sampleType: test.sampleType || "N/A",
-
-          // Price assigned to the selected franchisee
-          franchiseePrice: assignedToFranchisee ? assignedToFranchisee.price : test.Price || 0,
-          assignedPriceToFranchisee: assignedToFranchisee ? assignedToFranchisee.price : null,
-          commissionToFranchisee: assignedToFranchisee ? assignedToFranchisee.commission : null,
-
-          // Price assigned to the current user
-          myPrice: assignedToUser ? assignedToUser.price : test.Price || 0,
-          assignedPriceToUser: assignedToUser ? assignedToUser.price : null,
-          commissionToUser: assignedToUser ? assignedToUser.commission : null,
-
-          // Flag to indicate if this test has been assigned to the franchisee
-          isAssigned: !!assignedToFranchisee,
-          Short_name: test.Short_name,
-          createdAt: test.createdAt
-
-        };
-      });
-
+      const result = await testSchema.aggregate(pipeline);
       return res.status(200).json(result);
     }
   } catch (error) {
@@ -519,221 +589,368 @@ const getAssignedTests = async (req, res) => {
 
 const getAssignedPanels = async (req, res) => {
   try {
-    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query;
     const role = req.user.role;
-    const parentRole = req.user.parentRole
+    const parentRole = req.user.parentRole;
     const actorId = role === "staff" ? req.user.parentUser : req.user._id;
     const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
       ? requestedUserId
       : String(actorId);
+
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    let panels;
+    const rawTenantId = req.user?.tenantId?._id || req.user?.tenantId;
+    const tenantId = Types.ObjectId.isValid(rawTenantId) ? new Types.ObjectId(rawTenantId) : rawTenantId;
+
+    const oldObjectId = oldId && Types.ObjectId.isValid(oldId) ? new Types.ObjectId(oldId) : null;
+    const oldIdStr = oldId ? String(oldId) : null;
 
     if (role === "admin" || (role === "staff" && parentRole === "admin")) {
-      // If the role is admin, fetch all tests
-      console.log("Admin role detected. Fetching all tests with appropriate prices.");
+      const pipeline = [
+        { $match: { tenantId } },
+        {
+          $project: {
+            panelId: "$_id",
+            panelName: "$name",
+            basePrice: { $ifNull: ["$price", 0] },
+            tests: { $ifNull: ["$tests", []] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$sample_types", "N/A"] },
+            createdAt: "$createdAt",
+            ...(oldIdStr ? {
+              matchedPrice: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $or: [
+                        ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                        { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            panelId: 1,
+            panelName: 1,
+            basePrice: 1,
+            tests: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            myPrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            assignedPriceToUser: oldIdStr ? { $ifNull: ["$matchedPrice.price", null] } : { $literal: null },
+            commissionToUser: oldIdStr ? { $ifNull: ["$matchedPrice.commission", null] } : { $literal: null },
+            isAssigned: oldIdStr ? { $ne: ["$matchedPrice", null] } : { $literal: false }
+          }
+        }
+      ];
 
-      // Get all tests
-      const panels = await addPannel
-        .find({ tenantId: req.user.tenantId })
-        .select("name price final_price assignedPrices sample_types createdAt");
-      // Map all tests with either assigned price to the franchisee or default price
-      const result = panels.map((panel) => {
-        // Check if the panel has an assigned price for the specified franchisee (oldId)
-        const assignedToFranchisee = panel.assignedPrices?.find(
-          (ap) => ap?.userId?.toString() === oldId
-        );
-
-        return {
-          panelId: panel._id,
-          panelName: panel.name,
-          basePrice: panel.price || 0,
-          tests: panel.tests,
-          // If there's an assigned price for the franchisee, use it; otherwise use default
-          franchiseePrice: assignedToFranchisee ? assignedToFranchisee.price : panel.price || 0,
-          myPrice: assignedToFranchisee ? assignedToFranchisee.price : panel.price || 0,
-          mrpPrice: panel.final_price || 0,
-          sampleType: panel.sample_types || "N/A",
-          assignedPriceToUser: assignedToFranchisee ? assignedToFranchisee.price : null,
-          commissionToUser: assignedToFranchisee ? assignedToFranchisee.commission : null,
-          // Flag to indicate if this test has been assigned to the franchisee
-          isAssigned: !!assignedToFranchisee,
-          createdAt: panel.createdAt
-        };
-      });
-
+      const result = await addPannel.aggregate(pipeline);
       return res.status(200).json(result);
     } else {
-      // Fetch panels where assignedPrices match either Condition 1 or Condition 2
-      panels = await addPannel
-        .find({
-          $or: [
-            {
-              // Condition 1: Prices assigned to the selected franchisee (oldId) by the current user (userId)
-              "assignedPrices.userId": oldId,
-              "assignedPrices.assignedBy": userId,
+      const userObjectId = Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
+      const userIdStr = String(userId);
+
+      const orConditions = [
+        ...(userObjectId ? [{ "assignedPrices.userId": userObjectId }] : []),
+        { "assignedPrices.userId": userIdStr }
+      ];
+
+      if (oldId) {
+        if (oldObjectId && userObjectId) {
+          orConditions.push({
+            "assignedPrices.userId": oldObjectId,
+            "assignedPrices.assignedBy": userObjectId
+          });
+        }
+        orConditions.push({
+          "assignedPrices.userId": oldIdStr,
+          "assignedPrices.assignedBy": userIdStr
+        });
+      }
+
+      const pipeline = [
+        {
+          $match: {
+            $and: [
+              { tenantId },
+              { $or: orConditions }
+            ]
+          }
+        },
+        {
+          $project: {
+            panelId: "$_id",
+            panelName: "$name",
+            basePrice: { $ifNull: ["$price", 0] },
+            tests: { $ifNull: ["$tests", []] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$sample_types", "N/A"] },
+            createdAt: "$createdAt",
+            assignedToUser: {
+              $first: {
+                $filter: {
+                  input: { $ifNull: ["$assignedPrices", []] },
+                  as: "ap",
+                  cond: {
+                    $or: [
+                      ...(userObjectId ? [{ $eq: ["$$ap.userId", userObjectId] }] : []),
+                      { $eq: [{ $toString: "$$ap.userId" }, userIdStr] }
+                    ]
+                  }
+                }
+              }
             },
-            {
-              // Condition 2: Prices assigned to the current user (userId)
-              "assignedPrices.userId": userId,
-            },
-          ],
-        })
-        .select("name tests price final_price assignedPrices sample_types createdAt");
+            ...(oldIdStr ? {
+              assignedToFranchisee: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $and: [
+                        {
+                          $or: [
+                            ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                          ]
+                        },
+                        {
+                          $or: [
+                            ...(userObjectId ? [{ $eq: ["$$ap.assignedBy", userObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.assignedBy" }, userIdStr] }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            panelId: 1,
+            panelName: 1,
+            basePrice: 1,
+            tests: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", 0] } : { $literal: 0 },
+            assignedPriceToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", null] } : { $literal: null },
+            commissionToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.commission", null] } : { $literal: null },
+            myPrice: { $ifNull: ["$assignedToUser.price", 0] },
+            assignedPriceToUser: { $ifNull: ["$assignedToUser.price", null] },
+            commissionToUser: { $ifNull: ["$assignedToUser.commission", null] },
+            isAssigned: oldIdStr ? { $ne: ["$assignedToFranchisee", null] } : { $literal: false }
+          }
+        }
+      ];
+
+      const result = await addPannel.aggregate(pipeline);
+      return res.status(200).json(result);
     }
-
-    // Filter assignedPrices for the specific franchisee and include necessary fields
-    const result = panels.map((panel) => {
-      // Find the price assigned to the selected franchisee (oldId) by the current user (userId)
-      const assignedToFranchisee = panel.assignedPrices.find(
-        (ap) =>
-          ap?.userId?.toString() === oldId &&
-          ap?.assignedBy?.toString() === userId
-      );
-
-      // Find the price assigned to the current user (userId)
-      const assignedToUser = panel.assignedPrices.find(
-        (ap) => ap?.userId?.toString() === userId
-      );
-
-      return {
-        panelId: panel._id, // From pannelSchema
-        panelName: panel.name, // From pannelSchema
-        tests: panel.tests, // From pannelSchema
-        basePrice: panel.price, // From pannelSchema
-        mrpPrice: panel.final_price,
-        sampleType: panel.sample_types,
-
-        // Price assigned to the selected franchisee
-        franchiseePrice: assignedToFranchisee?.price || 0,
-        assignedPriceToFranchisee: assignedToFranchisee
-          ? assignedToFranchisee.price
-          : null,
-        commissionToFranchisee: assignedToFranchisee
-          ? assignedToFranchisee.commission
-          : null,
-
-        // Price assigned to the current user
-        myPrice: assignedToUser?.price || 0,
-        assignedPriceToUser: assignedToUser ? assignedToUser.price : null,
-        commissionToUser: assignedToUser ? assignedToUser.commission : null,
-        createdAt: panel.createdAt
-
-      };
-    });
-
-    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching assigned panels:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 const getAssignedPackages = async (req, res) => {
   try {
-    const { userId: requestedUserId, oldId } = req.query; // Franchisee ID passed in the query parameters
+    const { userId: requestedUserId, oldId } = req.query;
     const role = req.user.role;
-    const parentRole = req.user.parentRole
+    const parentRole = req.user.parentRole;
     const actorId = role === "staff" ? req.user.parentUser : req.user._id;
     const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
       ? requestedUserId
       : String(actorId);
+
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
-    let packages;
-    if (role === "admin" || (role === "staff" && parentRole === "admin")) {
-      // If the role is admin, fetch all tests
-      console.log("Admin role detected. Fetching all tests with appropriate prices.");
-      // Get all tests
-      const packages = await Package
-        .find({ tenantId: req.user.tenantId })
-        .select("packageName packageFee final_price assignedPrices testSample pannelSample createdAt");
-      // Map all tests with either assigned price to the franchisee or default price
-      const result = packages.map((packageList) => {
-        // Check if the panel has an assigned price for the specified franchisee (oldId)
-        const assignedToFranchisee = packageList.assignedPrices?.find(
-          (ap) => ap.userId.toString() === oldId
-        );
-        return {
-          packageId: packageList._id, // From packageSchema
-          packageName: packageList.packageName, // From packageSchema
-          testNames: packageList.testname, // From packageSchema
-          panelNames: packageList.pannelname, // From packageSchema
-          basePrice: packageList.packageFee, // From packageSchema
-          mrpPrice: packageList.final_price,
-          sampleType: packageList.testSample,
-          sample_types: packageList.pannelSample,
-          // If there's an assigned price for the franchisee, use it; otherwise use default
-          franchiseePrice: assignedToFranchisee ? assignedToFranchisee.price : packageList.packageFee || 0,
-          myPrice: assignedToFranchisee ? assignedToFranchisee.price : packageList.packageFee || 0,
-          mrpPrice: packageList.final_price || 0,
-          assignedPriceToUser: assignedToFranchisee ? assignedToFranchisee.price : null,
-          commissionToUser: assignedToFranchisee ? assignedToFranchisee.commission : null,
-          // Flag to indicate if this test has been assigned to the franchisee
-          isAssigned: !!assignedToFranchisee,
-          createdAt: packageList.createdAt
-        };
-      });
 
+    const rawTenantId = req.user?.tenantId?._id || req.user?.tenantId;
+    const tenantId = Types.ObjectId.isValid(rawTenantId) ? new Types.ObjectId(rawTenantId) : rawTenantId;
+
+    const oldObjectId = oldId && Types.ObjectId.isValid(oldId) ? new Types.ObjectId(oldId) : null;
+    const oldIdStr = oldId ? String(oldId) : null;
+
+    if (role === "admin" || (role === "staff" && parentRole === "admin")) {
+      const pipeline = [
+        { $match: { tenantId } },
+        {
+          $project: {
+            packageId: "$_id",
+            packageName: "$packageName",
+            testNames: { $ifNull: ["$testname", []] },
+            panelNames: { $ifNull: ["$pannelname", []] },
+            basePrice: { $ifNull: ["$packageFee", 0] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$testSample", []] },
+            sample_types: { $ifNull: ["$pannelSample", []] },
+            createdAt: "$createdAt",
+            ...(oldIdStr ? {
+              matchedPrice: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $or: [
+                        ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                        { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            packageId: 1,
+            packageName: 1,
+            testNames: 1,
+            panelNames: 1,
+            basePrice: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            sample_types: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            myPrice: oldIdStr ? { $ifNull: ["$matchedPrice.price", "$basePrice"] } : "$basePrice",
+            assignedPriceToUser: oldIdStr ? { $ifNull: ["$matchedPrice.price", null] } : { $literal: null },
+            commissionToUser: oldIdStr ? { $ifNull: ["$matchedPrice.commission", null] } : { $literal: null },
+            isAssigned: oldIdStr ? { $ne: ["$matchedPrice", null] } : { $literal: false }
+          }
+        }
+      ];
+
+      const result = await Package.aggregate(pipeline);
       return res.status(200).json(result);
     } else {
-      // Fetch packages where assignedPrices match either Condition 1 or Condition 2
-      packages = await Package.find({
-        $or: [
+      const userObjectId = Types.ObjectId.isValid(userId) ? new Types.ObjectId(userId) : null;
+      const userIdStr = String(userId);
 
-          {
-            // Condition 2: Prices assigned to the current user (userId)
-            "assignedPrices.userId": userId,
-          },
-        ],
-      }).select(
-        "packageName testname pannelname packageFee final_price assignedPrices testSample pannelSample createdAt"
-      );
+      const orConditions = [
+        ...(userObjectId ? [{ "assignedPrices.userId": userObjectId }] : []),
+        { "assignedPrices.userId": userIdStr }
+      ];
+
+      if (oldId) {
+        if (oldObjectId && userObjectId) {
+          orConditions.push({
+            "assignedPrices.userId": oldObjectId,
+            "assignedPrices.assignedBy": userObjectId
+          });
+        }
+        orConditions.push({
+          "assignedPrices.userId": oldIdStr,
+          "assignedPrices.assignedBy": userIdStr
+        });
+      }
+
+      const pipeline = [
+        {
+          $match: {
+            $and: [
+              { tenantId },
+              { $or: orConditions }
+            ]
+          }
+        },
+        {
+          $project: {
+            packageId: "$_id",
+            packageName: "$packageName",
+            testNames: { $ifNull: ["$testname", []] },
+            panelNames: { $ifNull: ["$pannelname", []] },
+            basePrice: { $ifNull: ["$packageFee", 0] },
+            mrpPrice: { $ifNull: ["$final_price", 0] },
+            sampleType: { $ifNull: ["$testSample", []] },
+            sample_types: { $ifNull: ["$pannelSample", []] },
+            createdAt: "$createdAt",
+            assignedToUser: {
+              $first: {
+                $filter: {
+                  input: { $ifNull: ["$assignedPrices", []] },
+                  as: "ap",
+                  cond: {
+                    $or: [
+                      ...(userObjectId ? [{ $eq: ["$$ap.userId", userObjectId] }] : []),
+                      { $eq: [{ $toString: "$$ap.userId" }, userIdStr] }
+                    ]
+                  }
+                }
+              }
+            },
+            ...(oldIdStr ? {
+              assignedToFranchisee: {
+                $first: {
+                  $filter: {
+                    input: { $ifNull: ["$assignedPrices", []] },
+                    as: "ap",
+                    cond: {
+                      $and: [
+                        {
+                          $or: [
+                            ...(oldObjectId ? [{ $eq: ["$$ap.userId", oldObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.userId" }, oldIdStr] }
+                          ]
+                        },
+                        {
+                          $or: [
+                            ...(userObjectId ? [{ $eq: ["$$ap.assignedBy", userObjectId] }] : []),
+                            { $eq: [{ $toString: "$$ap.assignedBy" }, userIdStr] }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            } : {})
+          }
+        },
+        {
+          $project: {
+            packageId: 1,
+            packageName: 1,
+            testNames: 1,
+            panelNames: 1,
+            basePrice: 1,
+            mrpPrice: 1,
+            sampleType: 1,
+            sample_types: 1,
+            createdAt: 1,
+            franchiseePrice: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", 0] } : { $literal: 0 },
+            assignedPriceToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.price", null] } : { $literal: null },
+            commissionToFranchisee: oldIdStr ? { $ifNull: ["$assignedToFranchisee.commission", null] } : { $literal: null },
+            myPrice: { $ifNull: ["$assignedToUser.price", 0] },
+            assignedPriceToUser: { $ifNull: ["$assignedToUser.price", null] },
+            commissionToUser: { $ifNull: ["$assignedToUser.commission", null] },
+            isAssigned: oldIdStr ? { $ne: ["$assignedToFranchisee", null] } : { $literal: false }
+          }
+        }
+      ];
+
+      const result = await Package.aggregate(pipeline);
+      return res.status(200).json(result);
     }
-    // Filter assignedPrices for the specific franchisee and include necessary fields
-    const result = packages.map((packageList) => {
-      // Find the price assigned to the selected franchisee (oldId) by the current user (userId)
-      const assignedToFranchisee = packageList.assignedPrices.find(
-        (ap) =>
-          ap.userId.toString() === oldId &&
-          ap.assignedBy.toString() === userId
-      );
-
-      // Find the price assigned to the current user (userId)
-      const assignedToUser = packageList.assignedPrices.find(
-        (ap) => ap.userId.toString() === userId
-      );
-
-      return {
-        packageId: packageList._id, // From packageSchema
-        packageName: packageList.packageName, // From packageSchema
-        testNames: packageList.testname, // From packageSchema
-        panelNames: packageList.pannelname, // From packageSchema
-        basePrice: packageList.packageFee, // From packageSchema
-        mrpPrice: packageList.final_price,
-        sampleType: packageList.testSample,
-        sample_types: packageList.pannelSample,
-
-        // Price assigned to the selected franchisee
-        franchiseePrice: assignedToFranchisee?.price || 0,
-        assignedPriceToFranchisee: assignedToFranchisee
-          ? assignedToFranchisee.price
-          : null,
-        commissionToFranchisee: assignedToFranchisee
-          ? assignedToFranchisee.commission
-          : null,
-
-        // Price assigned to the current user
-        myPrice: assignedToUser?.price || 0,
-        assignedPriceToUser: assignedToUser ? assignedToUser.price : null,
-        commissionToUser: assignedToUser ? assignedToUser.commission : null,
-        createdAt: packageList.createdAt
-      };
-    });
-    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching assigned packages:", error);
     res.status(500).json({ message: "Internal Server Error" });

@@ -1,6 +1,18 @@
 async function bookingload() {
-    // Load SheetJS library for Excel/CSV parsing
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    let sheetJSPromise = null;
+    function ensureSheetJSLoaded() {
+        if (window.XLSX) return Promise.resolve();
+        if (!sheetJSPromise) {
+            sheetJSPromise = loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').catch(err => {
+                sheetJSPromise = null;
+                console.warn('SheetJS load error:', err);
+            });
+        }
+        return sheetJSPromise;
+    }
+    // Load SheetJS non-blocking in background for bulk operations
+    ensureSheetJSLoaded();
+
     const userfallback = userId;
     // Cache DOM elements - ek baar select karo, baar baar nahi
     const DOM = {
@@ -198,6 +210,7 @@ async function bookingload() {
 
         DOM.testSelection.innerHTML = '';
         DOM.testSelection.appendChild(fragment);
+        updateTestOptionsCache();
     }
 
     // Helper: Create test element efficiently
@@ -449,14 +462,30 @@ async function bookingload() {
         }
     }
 
+    let testOptionsCache = [];
+    function updateTestOptionsCache() {
+        testOptionsCache = [];
+        if (!DOM.testSelection) return;
+        const children = DOM.testSelection.children;
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            testOptionsCache.push({
+                element: child,
+                text: child.textContent.toLowerCase(),
+                shortname: (child.getAttribute('shortname') || '').toLowerCase()
+            });
+        }
+    }
+
     function filterTests(query) {
-        document.querySelectorAll(".tests-name-option").forEach(option => {
-            const text = option.textContent.toLowerCase();
-            const shortname = (option.getAttribute('shortname') || '').toLowerCase();
-            // FIX: Don't show hidden/selected tests in search
-            if (option.classList.contains('selected')) return;
-            option.style.display = (text.includes(query) || shortname.includes(query)) ? '' : 'none';
-        });
+        if (!testOptionsCache || testOptionsCache.length === 0) {
+            updateTestOptionsCache();
+        }
+        for (let i = 0; i < testOptionsCache.length; i++) {
+            const item = testOptionsCache[i];
+            if (item.element.classList.contains('selected')) continue;
+            item.element.style.display = (!query || item.text.includes(query) || item.shortname.includes(query)) ? '' : 'none';
+        }
     }
 
     function filterSelectedTests(query) {
@@ -1004,7 +1033,12 @@ async function bookingload() {
     let bulkBookingsData = []; // Stores parsed and validated data from file
 
     // Download template
-    document.getElementById('download-bulk-template-btn')?.addEventListener('click', () => {
+    document.getElementById('download-bulk-template-btn')?.addEventListener('click', async () => {
+        await ensureSheetJSLoaded();
+        if (typeof XLSX === 'undefined') {
+            alert("Excel library is loading, please try again in a moment.");
+            return;
+        }
         const headers = [
             "Patient Name", "Age Value", "Age Unit", "Gender", "Patient Phone",
             "Doctor Name", "Lab Name", "Clinical History", "Test Names",
@@ -1035,6 +1069,12 @@ async function bookingload() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
+                await ensureSheetJSLoaded();
+                if (typeof XLSX === 'undefined') {
+                    alert("Excel library is loading, please try again in a moment.");
+                    DOM.bulkProgress.style.display = 'none';
+                    return;
+                }
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
@@ -1335,8 +1375,23 @@ async function bookingload() {
             setDateTime();
             hideContentForSingleLayer();
 
-            // Populate dropdowns first
-            await populateDropdowns();
+            // Setup UI elements that don't need data immediately
+            setupModals();
+            setupSearch();
+            setupInputHandlers();
+            setupFormSubmissions();
+            setupBookingSubmit();
+
+            // Start all data fetches concurrently for fast loading
+            const dropdownsPromise = populateDropdowns();
+            const allDataPromise = fetchAllData();
+            const lastBookingPromise = loadLastBooking();
+
+            // Await dropdowns and test catalog in parallel
+            const [dropdownResult, dataResult] = await Promise.allSettled([
+                dropdownsPromise,
+                allDataPromise
+            ]);
 
             // After dropdowns are populated, get the initially selected franchisee and fetch wallet amount
             const franchiseeSelect = document.getElementById('franchisee-select');
@@ -1351,30 +1406,18 @@ async function bookingload() {
                 fetchWalletAmount(userfallback);
             }
 
-            // Setup UI elements that don't need data
-            setupModals();
-            setupSearch();
-            setupInputHandlers();
-            setupFormSubmissions();
-            setupBookingSubmit();
-            
-            // Now fetch other data
-            const [dataResult] = await Promise.allSettled([
-                Promise.all([
-                    fetchAllData(),
-                    loadLastBooking()
-                ])
-            ]);
-
+            // Render test data
             if (dataResult.status === 'fulfilled') {
-                const [allData] = dataResult.value;
+                const allData = dataResult.value;
                 renderTests(allData.tests, allData.panels, allData.packages);
                 setupTestSelection();
             } else {
-                // ✅ Fix: Explicitly log and alert if initial data fetching fails
                 console.error("Initial data fetching failed:", dataResult.reason);
                 alert("Failed to load initial test data. Please refresh the page.");
             }
+
+            // Ensure last booking resolves in background
+            await lastBookingPromise.catch(err => console.warn("Last booking error:", err));
 
         } catch (error) {
             console.error("Initialization error:", error);

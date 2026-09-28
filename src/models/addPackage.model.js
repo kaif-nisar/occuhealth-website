@@ -122,6 +122,8 @@ const packageSchema = new Schema(
 packageSchema.index({ packageName: 1 });
 packageSchema.index({ tenantId: 1, packageName: 1 });
 packageSchema.index({ createdBy: 1, createdAt: -1 });
+packageSchema.index({ tenantId: 1, "assignedPrices.userId": 1 });
+packageSchema.index({ "assignedPrices.userId": 1, "assignedPrices.assignedBy": 1 });
 
 const Package = mongoose.model("Package", packageSchema);
 

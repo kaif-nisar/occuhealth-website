@@ -122,6 +122,8 @@ pannelSchema.index({ name: 1, tenantId: 1 }, { unique: true });
 pannelSchema.index({ name: 1, sample_types: 1 });
 pannelSchema.index({ createdBy: 1, order: -1 });
 pannelSchema.index({ tenantId: 1, order: -1 });
+pannelSchema.index({ tenantId: 1, "assignedPrices.userId": 1 });
+pannelSchema.index({ "assignedPrices.userId": 1, "assignedPrices.assignedBy": 1 });
 
 const addPannel = mongoose.model("pannel", pannelSchema);
 

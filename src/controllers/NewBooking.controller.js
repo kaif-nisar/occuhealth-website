@@ -30,7 +30,9 @@ function getBookingActorId(user) {
 }
 
 function isAdminActor(user) {
-    return user?.role === "admin" || (user?.role === "staff" && user?.parentRole === "admin");
+    const role = user?.role?.toLowerCase();
+    const parentRole = user?.parentRole?.toLowerCase();
+    return role === "admin" || role === "superadmin" || (role === "staff" && (parentRole === "admin" || parentRole === "superadmin"));
 }
 
 function sameObjectId(left, right) {
@@ -301,8 +303,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
             savedLabId === "null" ||
             savedLabId === "undefined") ? undefined : savedLabId;
 
-        const issinglelayeradmin = tenantId.modelType === "1layer" &&
-            (req.user.role === "admin" || (req.user.role === "staff" && req.user.parentRole === "admin"));
+        const issinglelayeradmin = tenantId.modelType === "1layer" && isAdminActor(req.user);
 
         const parsedTotal = Number(total);
 
@@ -401,7 +402,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         // ============================================================
         // Non-admin users: Handle wallet and commission
         // ============================================================
-        if (req.user.role !== "admin" && !(req.user.role === "staff" && req.user.parentRole === "admin")) {
+        if (!isAdminActor(req.user)) {
             const bookingUser = await User.findById(userId).session(session);
             if (!bookingUser) {
                 await session.abortTransaction();
@@ -648,7 +649,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         // ============================================================
         // Admin/staff booking creation
         // ============================================================
-        if (req.user.role === "admin" || (req.user.role === 'staff' && req.user.parentRole === "admin")) {
+        if (isAdminActor(req.user)) {
             const bookingUser = await User.findById(user).session(session);
             if (!bookingUser) {
                 await session.abortTransaction();
@@ -795,8 +796,16 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 }
             }
 
-            // ✅ Admin/staff booking ke liye status pehle "pending" set hota tha,
-            //    ab har nayi booking "booked" hi rahegi (object me already set hai)
+            // ✅ Admin/staff booking: Barcodes auto-accepted, set status to pending and track history
+            object.status = "pending";
+            object.statusHistory = [{
+                previousStatus: "booked",
+                newStatus: "pending",
+                changedAt: new Date(),
+                changedBy: req.user._id,
+                changedByRole: req.user.role,
+                reason: "Auto-accepted by admin booking"
+            }];
         }
 
         // ============================================================
@@ -854,7 +863,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
 
         // Update target achievement
         const currentMonth = new Date().toISOString().slice(0, 7);
-        if (req.user.role !== "admin" && !(req.user.role === "staff" && req.user.parentRole === "admin")) {
+        if (!isAdminActor(req.user)) {
             const currentTarget = await Target.findOne({
                 franchiseeId: user,
                 month: currentMonth,
@@ -968,7 +977,7 @@ const cancelBookingController = asyncHandler(async (req, res) => {
         }
 
         let issinglelayeradmin = false;
-        issinglelayeradmin = tenantId.modelType === "1layer" && (req.user.role === "admin" || (req.user.role === "staff" && req.user.parentRole === "admin"));
+        issinglelayeradmin = tenantId.modelType === "1layer" && isAdminActor(req.user);
 
         // Validate required fields
         if (!bookingId) {
@@ -1012,10 +1021,7 @@ const cancelBookingController = asyncHandler(async (req, res) => {
         // Extract sampleBarcodeId from existing booking
         const sampleBarcodeId = existingBooking.tableData.map(entry => entry.barcodeId || entry.confirmBarcodeId).filter(id => id != null);
 
-        if (
-            req.user.role !== "admin" &&
-            !(req.user.role === "staff" && req.user.parentRole === "admin")
-        ) {
+        if (!isAdminActor(req.user)) {
             // Process reversal for non-admin users
 
             // Find the booking user's debit entry (original booking entry)
@@ -1104,7 +1110,7 @@ const cancelBookingController = asyncHandler(async (req, res) => {
             }
         }
 
-        if (req.user.role === "admin" || (req.user.role === 'staff' && req.user.parentRole === "admin")) {
+        if (isAdminActor(req.user)) {
             // For admin users, just create a reversal entry without wallet changes
 
             // Find the booking user's debit entry (original booking entry)
@@ -1373,9 +1379,7 @@ const editbookingbookedtests = async (req, res) => {
             userId = req.user._id;
         }
         const tenantId = req.user.tenantId;
-        let issinglelayeradmin = false;
-        issinglelayeradmin = tenantId.modelType === "1layer" &&
-            (req.user.role === "admin" || (req.user.role === "staff" && req.user.parentRole === "admin"));
+        issinglelayeradmin = tenantId.modelType === "1layer" && isAdminActor(req.user);
 
         const parsedSubFranchiseeId = subFranchiseeId === "null" ? null : subFranchiseeId;
         const parsedSavedDoctorId = savedDoctorId === "null" ? null : savedDoctorId;
@@ -2757,16 +2761,17 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
     const { barcode, status, bookingId } = req.body;
     const tenantId = req.user.tenantId._id;
 
-    // Check if barcode already exists
+    // Check if barcode already exists in another booking
     const existingBarcode = await acceptedBarcode.findOne({
         tenantId,
-        "barcodes.barcode": barcode.barcode, // Check if barcode exists in any document
+        bookingId: { $ne: bookingId },
+        "barcodes.barcode": barcode.barcode,
         status: { $ne: "cancelled" }
     }).select("_id").lean();
 
     if (existingBarcode) {
-        console.log("booking already present");
-        return res.status(400).json({ message: "This barcode is already accepted." });
+        console.log("booking already present in another booking");
+        return res.status(400).json({ message: "This barcode is already accepted in another booking." });
     }
 
 
@@ -2787,15 +2792,27 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
 
     let updatedStatus;
 
-    if (status == "pending") {
+    if (status && status.toLowerCase() == "pending") {
         updatedStatus = await newBooking.findOneAndUpdate(
             {
                 tenantId,
                 bookingId
             },
-            { status },
+            {
+                status: "pending",
+                $push: {
+                    statusHistory: {
+                        previousStatus: "booked",
+                        newStatus: "pending",
+                        reason: "Barcode sample accepted",
+                        changedBy: req.user._id,
+                        changedByRole: req.user.role,
+                        changedAt: new Date()
+                    }
+                }
+            },
             { new: true }
-        ).select("patientName bookingId")
+        ).select("patientName bookingId status");
     }
 
     if (!updatedStatus) {
