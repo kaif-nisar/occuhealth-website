@@ -2678,8 +2678,8 @@ async function loadfunction() {
 
             if (isFinalAction) {
                 console.log("savedReportdata:", result);
-                const barcodeId = result?._id;
-                const url = `${BASE_URL}/${user.role === "staff" ? "admin" : "admin"}/admin.html?page=${user.role === "staff" ? user.tenantId.adminDetails.userId.pdfFormat : user.pdfFormat}&value1=${barcodeId}`;
+                const effectiveFormat = user.role === "staff" ? (user.createdBy?.pdfFormat || user.pdfFormat) : user.pdfFormat;
+                const url = `${BASE_URL}/admin/admin.html?page=${effectiveFormat}&value1=${barcodeId}`;
                 window.location.href = url;
             }
         } catch (error) {

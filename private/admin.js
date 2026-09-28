@@ -500,10 +500,14 @@ async function verifyAccessToken() {
     if (data.user.role === "staff") {
       userId = data.user.parentUser;
       username = data.user.username;
-      role = data.user.createdBy.role;
+      role = data.user.createdBy?.role || data.user.role;
       userRole = data.user.role;
       user = data.user;
-        showVerificationBanner(user);
+      // ✅ Staff should inherit parent user's PDF format
+      if (data.user.createdBy?.pdfFormat) {
+        user.pdfFormat = data.user.createdBy.pdfFormat;
+      }
+      showVerificationBanner(user);
       document.getElementById('logo').src = user.tenantId.logo;
       console.log("Staff user role:");
       usericon(user);

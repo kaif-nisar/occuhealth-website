@@ -1294,10 +1294,10 @@
     /* Tenant-driven visibility tweaks (guarded — legacy crashed on null id) */
     function hidecontent() {
         if (typeof user === 'undefined' || !user) return;
-        if (user.showprintsetting === false) {
-            const btn = document.getElementById('PDFsettinganchr');
-            if (btn) btn.style.display = 'none';
-        }
+        // if (user.showprintsetting === false) {
+        //     const btn = document.getElementById('PDFsettinganchr');
+        //     if (btn) btn.style.display = 'none';
+        // }
         if (user.tenantId && user.tenantId.modelType === '1layer') {
             const style = document.getElementById('stying');
             style.textContent += '@media print { .barcode-div2 { top: 6%; } }';

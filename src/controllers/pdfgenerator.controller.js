@@ -1380,8 +1380,10 @@ const getpdfcontroller = async (req, res) => {
 
     if (req.user.role === "admin") {
         pdfformat = req.user.pdfFormat;
+    } else if (req.user.role === "staff") {
+        pdfformat = req.user.createdBy?.pdfFormat || req.user.pdfFormat;
     } else {
-        pdfformat = req.user.createdBy.pdfFormat;
+        pdfformat = req.user.pdfFormat || req.user.createdBy?.pdfFormat;
     }
 
     try {

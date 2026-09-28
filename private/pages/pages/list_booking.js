@@ -170,7 +170,7 @@
 
     function getReportPageName() {
         return user.role === "staff"
-            ? user.tenantId.adminDetails.userId.pdfFormat
+            ? (user.createdBy?.pdfFormat || user.pdfFormat)
             : user.pdfFormat;
     }
 

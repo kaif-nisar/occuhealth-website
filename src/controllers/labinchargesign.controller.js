@@ -1,11 +1,37 @@
 import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 import { doctorsign } from '../models/labinchargesign.model.js';
+import { User } from '../models/user.model.js';
+
+// Helper to resolve the owner ID of doctor signatures.
+// If the user is a staff member, signatures and print settings belong to the parent user who created them.
+const resolveEffectiveSignUserId = async (user) => {
+    if (!user) return null;
+    if (user.role !== 'staff') {
+        return user._id;
+    }
+    let currentId = user.parentUser || user.createdBy?._id || user.createdBy;
+    const visited = new Set();
+    while (currentId && !visited.has(String(currentId))) {
+        visited.add(String(currentId));
+        const signExists = await doctorsign.exists({ createdBy: currentId });
+        if (signExists) {
+            return currentId;
+        }
+        const parentDoc = await User.findById(currentId).select('role parentUser createdBy').lean();
+        if (parentDoc?.role === 'staff') {
+            currentId = parentDoc.parentUser || parentDoc.createdBy;
+        } else {
+            return currentId;
+        }
+    }
+    return user.parentUser || user.createdBy?._id || user.createdBy || user._id;
+};
 
 // Image Upload Controller
 const uploadDoctorsSign = async (req, res) => {
     const { showlab, showdoctorfirst, showdoctorsecond, labinchargeinfo, leftdoctorinfo, rightdoctorinfo } = req.body;
     const { labsign, firstdoctorsign, seconddoctorsign } = req.files || {};
-    const userId = req.user._id;
+    const userId = await resolveEffectiveSignUserId(req.user);
     const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
     try {
@@ -79,13 +105,24 @@ const uploadDoctorsSign = async (req, res) => {
 
 const getDoctorsSign = async (req, res) => {
     const tenantId = req.user.tenantId?._id || req.user.tenantId;
-    const userId = req.user._id;
+    const userId = await resolveEffectiveSignUserId(req.user);
 
     try {
-        const labsigndata = await doctorsign.findOne({
+        let labsigndata = await doctorsign.findOne({
             tenantId: tenantId,
             createdBy: userId
         });
+
+        // Fallback: If not found under target parent, check tenant admin or any signature in this tenant for staff
+        if (!labsigndata && req.user.role === 'staff') {
+            const tenantAdminId = req.user.tenantId?.adminDetails?.userId?._id || req.user.tenantId?.adminDetails?.userId;
+            if (tenantAdminId && String(tenantAdminId) !== String(userId)) {
+                labsigndata = await doctorsign.findOne({ tenantId, createdBy: tenantAdminId });
+            }
+            if (!labsigndata) {
+                labsigndata = await doctorsign.findOne({ tenantId });
+            }
+        }
 
         if (!labsigndata) {
             // Missing signatures are normal in some setups, especially during bulk finalize.
@@ -113,8 +150,8 @@ const getDoctorsSign = async (req, res) => {
 const editdoctorsvisibility = async (req, res) => {
     try {
         const { showlab, showfirstdoctor, showseconddoctor } = req.body;
-        const tenantId = req.user?.tenantId?._id;
-        const userId = req.user?._id;
+        const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
+        const userId = await resolveEffectiveSignUserId(req.user);
 
         // 1️⃣ Input validation
         if (
@@ -160,8 +197,8 @@ const editdoctorsvisibility = async (req, res) => {
 const deleteLabInchargeSign = async (req, res) => {
     try {
         const { publicId, publicIdfield, urlfield } = req.body; // The image URL is passed in the request body
-        const tenantId = req.user.tenantId._id;
-        const userId = req.user._id;
+        const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
+        const userId = await resolveEffectiveSignUserId(req.user);
         console.log("this is a url of image:", publicId);
 
         // Delete the image from Cloudinary

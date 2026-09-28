@@ -843,8 +843,8 @@ async function allcases() {
             else if (target.classList.contains("edit-report")) {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
-                saveBookingToLocalStorage(booking, row);
-                const url = `${BASE_URL}/admin/admin.html?page=${user.role === "staff" ? user.tenantId.adminDetails.userId.pdfFormat : user.pdfFormat}&value1=${booking.bookingId}`;
+                const effectiveFormat = user.role === "staff" ? (user.createdBy?.pdfFormat || user.pdfFormat) : user.pdfFormat;
+                const url = `${BASE_URL}/admin/admin.html?page=${effectiveFormat}&value1=${booking.bookingId}`;
                 window.location.href = url;
             }
             else if (target.classList.contains("download-report")) {

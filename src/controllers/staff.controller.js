@@ -53,6 +53,7 @@ const createStaff = asyncHandler(async (req, res) => {
         createdBy: req.user._id,
         parentUser: req.user._id,
         tenantId: req.user.tenantId?._id, // safe optional chaining
+        pdfFormat: req.user.pdfFormat || "reportFormat",
         permissions: permissions || {}
     });
 
