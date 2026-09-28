@@ -91,7 +91,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
     const { reportData, reportMeta, reg_id, booking, collectedOn, receivedOn, reportedOn, categorized,
         moredetails, uniquetestArray, isdocumented, saveMode } = req.body;
 
-    const tenantId = req.user.tenantId._id;
+    const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
 
     if (!reportData || !reg_id || !booking) {
@@ -264,7 +264,7 @@ const editReportsignofffieldController = asyncHandler(async (req, res) => {
 
 const getReportController = asyncHandler(async (req, res) => {
     const { value1, bookingId } = req.body;
-    const tenantId = req.user.tenantId._id;
+    const tenantId = req.user.tenantId?._id || req.user.tenantId;
     const [user, usertenant] = await Promise.all([
         User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
         Tenant.findById(tenantId).select("modelType").lean(),

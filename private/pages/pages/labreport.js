@@ -2678,13 +2678,23 @@ async function loadfunction() {
 
             if (isFinalAction) {
                 console.log("savedReportdata:", result);
-                const effectiveFormat = user.role === "staff" ? (user.createdBy?.pdfFormat || user.pdfFormat) : user.pdfFormat;
+                const currentUser = (typeof user !== "undefined" && user) ? user : (() => {
+                    try {
+                        return JSON.parse(localStorage.getItem("user") || "{}");
+                    } catch {
+                        return {};
+                    }
+                })();
+                const effectiveFormat = (currentUser?.role === "staff"
+                    ? (currentUser?.createdBy?.pdfFormat || currentUser?.pdfFormat)
+                    : currentUser?.pdfFormat) || "reportFormat1";
+                const barcodeId = result?._id || booking?.bookingId || result?.bookingId;
                 const url = `${BASE_URL}/admin/admin.html?page=${effectiveFormat}&value1=${barcodeId}`;
                 window.location.href = url;
             }
         } catch (error) {
             console.error("Error saving tables to database:", error);
-            alert("An error occurred while saving the tables. Please try again.");
+            alert(error?.message || "An error occurred while saving the tables. Please try again.");
         }
     }
 
