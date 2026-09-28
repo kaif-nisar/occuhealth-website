@@ -15,17 +15,43 @@ function printAuditBadge(booking) {
 
 // ============= Utility Functions =============
 
+function formatBookingDate(dateVal) {
+  if (!dateVal) return 'N/A';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return String(dateVal);
+  return d.toLocaleDateString('en-GB'); // DD/MM/YYYY
+}
+
+function formatBookingTime(timeVal, createdAtVal) {
+  if (timeVal && typeof timeVal === 'string' && timeVal.trim()) {
+    return timeVal.trim();
+  }
+  if (createdAtVal) {
+    const d = new Date(createdAtVal);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+  }
+  return '';
+}
+
+function getLocalDateString(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Get date 24 hours ago
 function getLast24HoursDate() {
-  const now = new Date();
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return yesterday.toISOString().split('T')[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return getLocalDateString(yesterday);
 }
 
 // Get today's date
 function getTodayDate() {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  return getLocalDateString(new Date());
 }
 
 // Set default dates (last 24 hours)
@@ -43,7 +69,7 @@ function toggleLoader(show) {
   if (show) {
     tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="9">
+            <td class="p-4 border text-center" colspan="10">
               <div class="flex items-center justify-center gap-3 py-6">
                 <div class="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full loader-spin"></div>
                 <span class="text-gray-600 font-medium">Loading bookings...</span>
@@ -69,10 +95,30 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
   // Show loader
   toggleLoader(true);
 
+  let processedEndDate = endDate;
+  if (endDate) {
+      const todayStr = getTodayDate();
+      if (endDate === todayStr) {
+          // Latest current timestamp with exact seconds and milliseconds
+          processedEndDate = new Date().toISOString();
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+          const endD = new Date(endDate);
+          endD.setHours(23, 59, 59, 999);
+          processedEndDate = endD.toISOString();
+      }
+  }
+
+  let processedStartDate = startDate;
+  if (startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      const startD = new Date(startDate);
+      startD.setHours(0, 0, 0, 0);
+      processedStartDate = startD.toISOString();
+  }
+
   // Construct the query parameters
-  let query = `?startDate=${startDate}&endDate=${endDate}`;
+  let query = `?startDate=${encodeURIComponent(processedStartDate)}&endDate=${encodeURIComponent(processedEndDate)}`;
   if (franchiseeId) {
-    query += `&franchiseeId=${franchiseeId}`;
+    query += `&franchiseeId=${encodeURIComponent(franchiseeId)}`;
   }
 
   try {
@@ -88,7 +134,7 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
     if (!bookings.data || bookings.data.length === 0) {
       tableBody.innerHTML = `
             <tr>
-              <td class="p-4 border text-center" colspan="9">
+              <td class="p-4 border text-center" colspan="10">
                 <div class="flex flex-col items-center justify-center gap-2 py-6">
                   <i class="fas fa-inbox text-4xl text-gray-400"></i>
                   <span class="text-gray-600 font-medium">No bookings found</span>
@@ -141,6 +187,10 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
       row.innerHTML = `
             <td class="p-3 border">${index + 1}</td>
             <td class="p-3 border"><a href="#" class="text-blue-600 hover:underline font-medium">${booking.bookingId}</a></td>
+            <td class="p-3 border whitespace-nowrap">
+              <div class="font-medium text-gray-800">${formatBookingDate(booking.date || booking.createdAt)}</div>
+              <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><i class="fa-regular fa-clock text-[10px]"></i>${formatBookingTime(booking.time, booking.createdAt)}</div>
+            </td>
             <td class="p-3 border">${booking.patientName}</td>
             <td class="p-3 border">${booking.gender} (${booking.year})</td>
             <td class="p-3 border text-sm">${tests}</td>
@@ -165,7 +215,7 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
     console.error('Error fetching bookings:', error);
     tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="9">
+            <td class="p-4 border text-center" colspan="10">
               <div class="flex flex-col items-center justify-center gap-2 py-6">
                 <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
                 <span class="text-red-600 font-medium">Failed to load bookings</span>

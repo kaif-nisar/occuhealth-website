@@ -3938,37 +3938,41 @@ const loadBooking = asyncHandler(async (req, res) => {
         // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Add tenant filter
         query.tenantId = req.user.tenantId._id;
 
-        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Handle date range filter
+        // Handle date range filter
         if (startDate || endDate) {
             query.createdAt = {};
 
             if (startDate) {
                 const parsedStartDate = new Date(startDate);
-                if (isNaN(parsedStartDate)) {
+                if (isNaN(parsedStartDate.getTime())) {
                     return res.status(400).json({
                         success: false,
                         error: 'Invalid start date format'
                     });
                 }
-                // Set to start of day (00:00:00)
-                parsedStartDate.setHours(0, 0, 0, 0);
+                // If date-only string (YYYY-MM-DD), set to start of day
+                if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate.trim())) {
+                    parsedStartDate.setHours(0, 0, 0, 0);
+                }
                 query.createdAt.$gte = parsedStartDate;
             }
 
             if (endDate) {
                 const parsedEndDate = new Date(endDate);
-                if (isNaN(parsedEndDate)) {
+                if (isNaN(parsedEndDate.getTime())) {
                     return res.status(400).json({
                         success: false,
                         error: 'Invalid end date format'
                     });
                 }
-                // Set to end of day (23:59:59.999)
-                parsedEndDate.setHours(23, 59, 59, 999);
+                // If date-only string (YYYY-MM-DD), include up to end of that day (23:59:59.999)
+                if (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate.trim())) {
+                    parsedEndDate.setHours(23, 59, 59, 999);
+                }
                 query.createdAt.$lte = parsedEndDate;
             }
         } else {
-            // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Default to last 24 hours if no dates provided
+            // Default to last 24 hours if no dates provided
             const now = new Date();
             const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             query.createdAt = {
@@ -4026,21 +4030,35 @@ const loadAllBooking = asyncHandler(async (req, res) => {
 
         query.tenantId = req.user.tenantId._id;
 
-        // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Add date filter
+        // Add date filter
         if (startDate || endDate) {
             query.createdAt = {};
 
             if (startDate) {
-                // Start of the day (00:00:00)
                 const start = new Date(startDate);
-                start.setHours(0, 0, 0, 0);
+                if (isNaN(start.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid start date format'
+                    });
+                }
+                if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate.trim())) {
+                    start.setHours(0, 0, 0, 0);
+                }
                 query.createdAt.$gte = start;
             }
 
             if (endDate) {
-                // End of the day (23:59:59)
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999);
+                let end = new Date(endDate);
+                if (isNaN(end.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid end date format'
+                    });
+                }
+                if (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate.trim())) {
+                    end.setHours(23, 59, 59, 999);
+                }
                 query.createdAt.$lte = end;
             }
         }

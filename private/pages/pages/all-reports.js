@@ -200,6 +200,7 @@
             tr.innerHTML = `
                 <td class="skeleton-cell"><span class="skeleton skeleton-checkbox"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-badge"></span></td>
+                <td class="skeleton-cell"><span class="skeleton skeleton-short"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-medium"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-short"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-short"></span></td>
@@ -218,7 +219,7 @@
         if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8">
+                <td colspan="9">
                     <div class="state-container">
                         <div class="state-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -240,7 +241,7 @@
         if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8">
+                <td colspan="9">
                     <div class="state-container">
                         <div class="state-icon state-icon-error">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -279,7 +280,7 @@
         const tr = document.createElement('tr');
         tr.id = 'no-results-row';
         tr.innerHTML = `
-            <td colspan="8">
+            <td colspan="9">
                 <div class="no-results-cell">
                     <i class="fas fa-search text-2xl opacity-40 mb-3 block"></i>
                     <div class="font-semibold text-gray-600">No results found</div>
@@ -424,7 +425,27 @@
         // Store params for pagination re-fetch
         lastFetchParams = { startDate, endDate, franchiseeId };
 
-        let query = `?status=completed,pending,hold,partial,clinical&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&page=${currentPage}&limit=${pageSize}`;
+        let processedEndDate = endDate;
+        if (endDate) {
+            const todayStr = getTodayDate();
+            if (endDate === todayStr) {
+                // Latest current timestamp with exact seconds and milliseconds
+                processedEndDate = new Date().toISOString();
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+                const endD = new Date(endDate);
+                endD.setHours(23, 59, 59, 999);
+                processedEndDate = endD.toISOString();
+            }
+        }
+
+        let processedStartDate = startDate;
+        if (startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+            const startD = new Date(startDate);
+            startD.setHours(0, 0, 0, 0);
+            processedStartDate = startD.toISOString();
+        }
+
+        let query = `?status=completed,pending,hold,partial,clinical&startDate=${encodeURIComponent(processedStartDate)}&endDate=${encodeURIComponent(processedEndDate)}&page=${currentPage}&limit=${pageSize}`;
         if (franchiseeId) {
             query += `&franchiseeId=${encodeURIComponent(franchiseeId)}`;
         }
@@ -497,6 +518,12 @@
                             ${booking.bookingId || 'N/A'}
                             ${eligible ? '' : '<span class="not-ready-tooltip" title="Only Completed and Partially Completed reports can be downloaded"><i class="fas fa-circle-info"></i></span>'}
                         </span>
+                    </td>
+                    <td style="white-space:nowrap;">
+                        <div style="font-weight:500;color:#1e293b;">${formatBookingDate(booking.date || booking.createdAt)}</div>
+                        <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                            <i class="fa-regular fa-clock" style="margin-right:3px;"></i>${formatBookingTime(booking.time, booking.createdAt)}
+                        </div>
                     </td>
                     <td class="font-medium text-gray-800">${booking.patientName || 'N/A'}</td>
                     <td>${sampleId}</td>
@@ -579,15 +606,43 @@
     }
 
     // ============================================================
-    // DATE UTILITIES
+    // DATE / TIME UTILITIES
     // ============================================================
+    function formatBookingDate(dateVal) {
+        if (!dateVal) return 'N/A';
+        const d = new Date(dateVal);
+        if (isNaN(d.getTime())) return String(dateVal);
+        return d.toLocaleDateString('en-GB'); // DD/MM/YYYY
+    }
+
+    function formatBookingTime(timeVal, createdAtVal) {
+        if (timeVal && typeof timeVal === 'string' && timeVal.trim()) {
+            return timeVal.trim();
+        }
+        if (createdAtVal) {
+            const d = new Date(createdAtVal);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+        }
+        return '';
+    }
+
+    function getLocalDateString(d = new Date()) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     function getLast24HoursDate() {
-        const now = new Date();
-        return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return getLocalDateString(yesterday);
     }
 
     function getTodayDate() {
-        return new Date().toISOString().split('T')[0];
+        return getLocalDateString(new Date());
     }
 
     function setDefaultDates() {
