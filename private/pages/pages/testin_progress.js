@@ -1,3 +1,17 @@
+    // ============= Report Print / Download Audit Badge =============
+    // Compact audit badge rendered from `booking.printAudit` via the shared
+    // component loaded by the portal shell (fails soft for legacy bookings).
+    function printAuditBadge(booking) {
+      try {
+        if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
+          return window.ReportPrintAudit.badge(booking);
+        }
+      } catch (error) {
+        console.warn('Print audit badge unavailable:', error);
+      }
+      return '<span style="color:#64748b;font-weight:600;font-size:12px;">&mdash;</span>';
+    }
+
     // ============= Utility Functions =============
     
     // Get date 24 hours ago
@@ -28,7 +42,7 @@
       if (show) {
         tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="8">
+            <td class="p-4 border text-center" colspan="9">
               <div class="flex items-center justify-center gap-3 py-6">
                 <div class="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full loader-spin"></div>
                 <span class="text-gray-600 font-medium">Loading tests in progress...</span>
@@ -99,7 +113,7 @@
         if (!bookings || bookings.length === 0) {
           tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="8">
+            <td class="p-4 border text-center" colspan="9">
               <div class="flex flex-col items-center justify-center gap-2 py-6">
                 <i class="fas fa-inbox text-4xl text-gray-400"></i>
                 <span class="text-gray-600 font-medium">No completed tests found</span>
@@ -147,6 +161,7 @@
                 ${booking.status}
               </span>
             </td>
+            <td class="p-3 border" style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
             <td class="p-3 border">
               <button onclick='editpage("${booking.bookingId}")' 
                       class="edit-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer border-0">
@@ -166,7 +181,7 @@
         console.error('Error fetching bookings:', error);
         tableBody.innerHTML = `
           <tr>
-            <td class="p-4 border text-center" colspan="8">
+            <td class="p-4 border text-center" colspan="9">
               <div class="flex flex-col items-center justify-center gap-2 py-6">
                 <i class="fas fa-exclamation-triangle text-4xl text-red-500"></i>
                 <span class="text-red-600 font-medium">Failed to load completed tests</span>
@@ -259,7 +274,8 @@
             value1, labinchargesign, checkBox, backgroundImageUrl,
             headermargin, footermargin, marginRight, marginLeft,
             labinchargeinfo, labinchargesignurl, selectedFontSize,
-            RowSpacing, HighLow, HLinred, BoldRow, showInvest
+            RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+            auditAction: 'DOWNLOAD'
           })
         });
 
@@ -275,6 +291,12 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(pdfUrl);
+
+        try {
+          if (bookingId && window.ReportPrintAudit && typeof window.ReportPrintAudit.updateBadges === 'function') {
+            window.ReportPrintAudit.updateBadges(bookingId, { isPrinted: true });
+          }
+        } catch (e) { /* ignore */ }
 
       } catch (error) {
         console.error('Error generating PDF:', error);

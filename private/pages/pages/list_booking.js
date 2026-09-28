@@ -34,6 +34,19 @@
         summaryAttention: document.getElementById("lbSummaryAttention")
     };
 
+    // Report print / download audit badge (shared component from the shell).
+    // Safe for legacy bookings that have no printAudit object yet.
+    function printAuditBadge(booking) {
+        try {
+            if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
+                return window.ReportPrintAudit.badge(booking);
+            }
+        } catch (error) {
+            console.warn('Print audit badge unavailable:', error);
+        }
+        return '<span>—</span>';
+    }
+
     function getStatusMeta(status) {
         const normalized = (status || "").trim().toLowerCase();
 
@@ -138,7 +151,7 @@
     function setLoadingState(message) {
         selectors.tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="lb-table-state">${message}</td>
+                <td colspan="10" class="lb-table-state">${message}</td>
             </tr>
         `;
     }
@@ -233,6 +246,9 @@
                 </td>
                 <td>
                     <span class="lb-status-badge" style="background:${statusMeta.badgeBg}; color:${statusMeta.badgeColor};">${booking.status || "N/A"}</span>
+                </td>
+                <td style="text-align:center;white-space:nowrap;">
+                    ${printAuditBadge(booking)}
                 </td>
                 <td>
                     <div class="lb-action-stack">

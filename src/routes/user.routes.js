@@ -294,6 +294,10 @@ import {
   getAllInvoices, getpdfcontrolleruser, mergePdfsController, certificatepdfgenerator
 } from "../controllers/pdfgenerator.controller.js";
 import {
+  getReportPrintAuditController,
+  recordReportPrintAuditController
+} from "../controllers/printAudit.controller.js";
+import {
   deleteBookingAttachment,
   getBookingAttachments,
   uploadBookingAttachments,
@@ -1031,6 +1035,13 @@ router.route("/get-pdf").post(verifyJWT, getpdfcontroller)
 
 // // getting template
 router.route("/merge-pdfs").post(verifyJWT, mergePdfsController)
+
+// // report print / download audit trail (read full history + explicit record)
+router.route("/print-audit/:bookingId").get(verifyJWT, checkStaffPermission("canViewReports"), getReportPrintAuditController)
+
+router.route("/print-audit").get(verifyJWT, checkStaffPermission("canViewReports"), getReportPrintAuditController)
+
+router.route("/print-audit").post(verifyJWT, checkStaffPermission("canViewReports"), recordReportPrintAuditController)
 
 // getting user pdf
 router.route("/get-pdf-user").post(getpdfcontrolleruser)

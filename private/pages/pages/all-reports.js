@@ -150,6 +150,23 @@
     }
 
     // ============================================================
+    // REPORT PRINT / DOWNLOAD AUDIT BADGE
+    // ============================================================
+    // Compact audit badge rendered from `booking.printAudit` (shared UI
+    // component loaded by the portal shell). Safe for legacy bookings that
+    // have no audit object yet and when the component is unavailable.
+    function printAuditBadge(booking) {
+        try {
+            if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
+                return window.ReportPrintAudit.badge(booking);
+            }
+        } catch (error) {
+            console.warn('Print audit badge unavailable:', error);
+        }
+        return '<span class="text-gray-400" style="font-size:12px;">&mdash;</span>';
+    }
+
+    // ============================================================
     // STATUS COLOR MAPPING (soft pastel SaaS tokens)
     // ============================================================
     function getStatusColor(status) {
@@ -188,6 +205,7 @@
                 <td class="skeleton-cell"><span class="skeleton skeleton-short"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-long"></span></td>
                 <td class="skeleton-cell"><span class="skeleton skeleton-badge"></span></td>
+                <td class="skeleton-cell"><span class="skeleton skeleton-badge"></span></td>
             `;
             fragment.appendChild(tr);
         }
@@ -200,7 +218,7 @@
         if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7">
+                <td colspan="8">
                     <div class="state-container">
                         <div class="state-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -222,7 +240,7 @@
         if (paginationContainer) paginationContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7">
+                <td colspan="8">
                     <div class="state-container">
                         <div class="state-icon state-icon-error">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -261,7 +279,7 @@
         const tr = document.createElement('tr');
         tr.id = 'no-results-row';
         tr.innerHTML = `
-            <td colspan="7">
+            <td colspan="8">
                 <div class="no-results-cell">
                     <i class="fas fa-search text-2xl opacity-40 mb-3 block"></i>
                     <div class="font-semibold text-gray-600">No results found</div>
@@ -489,6 +507,9 @@
                             ${statusInfo.label}
                         </span>
                     </td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        ${printAuditBadge(booking)}
+                    </td>
                 `;
                 fragment.appendChild(row);
             });
@@ -592,7 +613,7 @@
         }
     }
 
-    async function autogeneratingpdf({ value1 = '', startDate = '', patientname, hideLoader = false, labinchargesign = null,
+    async function autogeneratingpdf({ value1 = '', startDate = '', patientname, bookingId = '', hideLoader = false, labinchargesign = null,
         checkBox = false, labinchargeinfo = '', backgroundImageUrl = null, headermargin, footermargin,
         marginRight, marginLeft, labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest } = {}) {
@@ -606,7 +627,8 @@
                 body: JSON.stringify({
                     value1, labinchargesign, checkBox: startDate === 'with' ? false : true, labinchargeinfo,
                     backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
-                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest
+                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+                    bookingId, auditAction: 'DOWNLOAD'
                 })
             });
 
@@ -622,6 +644,12 @@
             link.click();
             document.body.removeChild(link);
             setTimeout(() => URL.revokeObjectURL(pdfUrl), 500);
+
+            try {
+                if (bookingId && window.ReportPrintAudit && typeof window.ReportPrintAudit.updateBadges === 'function') {
+                    window.ReportPrintAudit.updateBadges(bookingId, { isPrinted: true });
+                }
+            } catch (e) { /* ignore */ }
 
             return true;
         } catch (error) {
@@ -668,6 +696,7 @@
             const letterPadOption = getLetterheadPreference();
             const success = await autogeneratingpdf({
                 value1: patientDetails._id,
+                bookingId: bookingId,
                 startDate: letterPadOption,
                 patientname: patientName,
                 labinchargesign: null,
@@ -783,6 +812,7 @@
 
             await autogeneratingpdf({
                 value1: patientDetails._id,
+                bookingId: bookingId,
                 startDate: letterPadOption,
                 patientname: patientName,
                 hideLoader: hideLoader,

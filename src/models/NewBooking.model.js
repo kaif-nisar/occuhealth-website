@@ -21,6 +21,36 @@ const tableSchema = new Schema({
     ]
 })
 
+// Report print / download audit trail.
+// NOTE: This is an embedded (sub-document) audit log so that every booking
+// keeps its own report access history. Older bookings will not have this
+// field at all, so every consumer must treat it as optional.
+const printAuditHistorySchema = new Schema({
+    action: {
+        type: String,
+        enum: ['PRINT', 'DOWNLOAD'],
+        default: 'DOWNLOAD'
+    },
+    user: { type: String },                              // Username / full name of the actor
+    userId: { type: Schema.Types.ObjectId, ref: 'User' }, // User id of the actor
+    role: { type: String },                              // Role of the actor (admin, staff, ...)
+    reportId: { type: String },                          // Report document that was generated
+    bookingId: { type: String },                         // Booking the report belongs to
+    timestamp: { type: Date, default: Date.now }
+}, { _id: true });
+
+const printAuditSchema = new Schema({
+    isPrinted: { type: Boolean, default: false },
+    printedBy: { type: String, default: null },           // Username / User ID / Role
+    printedById: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    printedByRole: { type: String, default: null },
+    printedAt: { type: Date, default: null },
+    lastAction: { type: String, default: null },          // PRINT | DOWNLOAD
+    lastReportId: { type: String, default: null },
+    printCount: { type: Number, default: 0 },
+    history: [printAuditHistorySchema]
+}, { _id: false });
+
 const TestBookingSchema = new Schema({
     bookingId: {
         type: String,
@@ -117,6 +147,11 @@ const TestBookingSchema = new Schema({
     cancelledAt: Date,
     cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     cancellationReason: { type: String, trim: true },
+    // Report print / download audit trail (optional for legacy bookings).
+    printAudit: {
+        type: printAuditSchema,
+        default: undefined
+    },
     isreportready: {
         type: Boolean,
         default: false

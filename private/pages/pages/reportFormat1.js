@@ -1207,6 +1207,23 @@
             return;
         }
 
+        // Record print audit log
+        var auditBid = (typeof report !== 'undefined' && report && report.bookingId) || localStorage.getItem('bookingId') || '';
+        if (auditBid) {
+            try {
+                if (window.ReportPrintAudit && typeof window.ReportPrintAudit.record === 'function') {
+                    window.ReportPrintAudit.record(auditBid, 'PRINT', { reportId: typeof value1 !== 'undefined' ? value1 : null });
+                } else {
+                    fetch((window.BASE_URL || '') + '/api/v1/user/print-audit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ bookingId: auditBid, action: 'PRINT', reportId: typeof value1 !== 'undefined' ? value1 : null })
+                    }).catch(function () {});
+                }
+            } catch (auditErr) { /* ignore */ }
+        }
+
         printWindow.document.open();
         printWindow.document.write(`
             <!doctype html>

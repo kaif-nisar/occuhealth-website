@@ -1561,6 +1561,23 @@
                 return;
             }
 
+            // Record print audit log
+            const auditBookingId = state.bookingId || regNo;
+            if (auditBookingId) {
+                try {
+                    if (window.ReportPrintAudit && typeof window.ReportPrintAudit.record === 'function') {
+                        window.ReportPrintAudit.record(auditBookingId, 'PRINT', { reportId: state.reportId });
+                    } else {
+                        fetch((window.BASE_URL || '') + '/api/v1/user/print-audit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ bookingId: auditBookingId, action: 'PRINT', reportId: state.reportId })
+                        }).catch(() => {});
+                    }
+                } catch (auditErr) { /* ignore */ }
+            }
+
             printWindow.document.open();
             printWindow.document.write(`
             <!doctype html>

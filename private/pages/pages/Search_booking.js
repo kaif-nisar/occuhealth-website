@@ -155,7 +155,7 @@ function fetchBookings() {
 // ===== RENDER TABLE =====
 function renderTable(bookings) {
   if (!bookings || bookings.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:50px 20px;background:#ffffff;"><div class="es"><div class="ei"><i class="fas fa-inbox"></i></div>' +
+    tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:50px 20px;background:#ffffff;"><div class="es"><div class="ei"><i class="fas fa-inbox"></i></div>' +
       '<div class="et" style="color:#0f172a;font-weight:800;font-size:18px;">No Bookings Found</div><div class="es2" style="color:#334155;font-weight:600;font-size:14px;margin-top:6px;">' +
       (currentSearch
         ? 'No results for &ldquo;<strong style="color:#0f172a;">' + escH(currentSearch) + '</strong>&rdquo;. Try different keywords or adjust filters.'
@@ -199,6 +199,7 @@ function renderTable(bookings) {
       '<td style="font-weight:700;color:#0f172a;">' + hlM(doc) + '</td>' +
       '<td>' + tHtml + '</td>' +
       '<td>' + getStatusBadge(booking.status) + '</td>' +
+      '<td style="text-align:center;white-space:nowrap;">' + printAuditBadge(booking) + '</td>' +
       '<td style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;">' + dt + '</td>' +
       '<td><div class="rax">' +
         '<button class="rbtn rbe" onclick="editBooking(\'' + bid + '\')" title="Edit Booking"><i class="fas fa-edit"></i> Edit</button>' +
@@ -277,12 +278,12 @@ function goToPage(page) {
 
 // ===== LOADING & ERROR STATES =====
 function showLoadingState() {
-  tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:60px 20px;background:#ffffff;"><div class="spin"></div>' +
+  tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:60px 20px;background:#ffffff;"><div class="spin"></div>' +
     '<div style="margin-top:14px;color:#0f172a;font-weight:800;font-size:15px;">Searching bookings...</div></td></tr>';
 }
 
 function renderErrorState() {
-  tableBody.innerHTML = '<tr><td colspan="9"><div class="es"><div class="ei" style="background:#fef2f2;">' +
+  tableBody.innerHTML = '<tr><td colspan="10"><div class="es"><div class="ei" style="background:#fef2f2;">' +
     '<i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i></div>' +
     '<div class="et">Search Failed</div>' +
     '<div class="es2">Could not connect to server. Please check your connection and try again.</div>' +
@@ -311,7 +312,7 @@ function downloadPdf(bookingId, patientName) {
     return fetch(BASE_URL + '/api/v1/user/get-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value1: pd._id })
+      body: JSON.stringify({ value1: pd._id, bookingId: bookingId, auditAction: 'DOWNLOAD' })
     });
   })
   .then(function (r) { if (!r || !r.ok) throw new Error('PDF generation failed'); return r.blob(); })
@@ -325,6 +326,11 @@ function downloadPdf(bookingId, patientName) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('PDF downloaded successfully!', 'success');
+    try {
+      if (window.ReportPrintAudit && typeof window.ReportPrintAudit.updateBadges === 'function') {
+        window.ReportPrintAudit.updateBadges(bookingId, { isPrinted: true });
+      }
+    } catch (e) { /* ignore */ }
   })
   .catch(function (err) {
     if (err !== 'no-data') { console.error(err); showToast('Error generating PDF. Please try again.', 'error'); }
@@ -347,6 +353,20 @@ function showToast(msg, type) {
   t.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i><span>' + escH(msg) + '</span>';
   c.appendChild(t);
   setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4000);
+}
+
+// ===== REPORT PRINT / DOWNLOAD AUDIT BADGE =====
+// Uses the shared component (loaded by the portal shell) to render a compact
+// audit badge. Falls back gracefully when the component is unavailable.
+function printAuditBadge(booking) {
+  try {
+    if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
+      return window.ReportPrintAudit.badge(booking);
+    }
+  } catch (e) {
+    console.warn('Print audit badge unavailable:', e);
+  }
+  return '<span style="color:#64748b;font-weight:600;font-size:12px;">&mdash;</span>';
 }
 
 // ===== UTILITIES =====

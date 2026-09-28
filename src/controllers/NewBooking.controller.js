@@ -20,7 +20,7 @@ import { Counter, categorydb } from "../models/category.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { transitionBookingStatus, enqueueStatusDeliveries } from "../services/bookingStatus.service.js";
 
-const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready";
+const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready printAudit";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
@@ -81,6 +81,24 @@ const BOOKING_STATUS_ALIAS_MAP = {
     cancelled: ["cancelled", "canceled"],
     canceled: ["cancelled", "canceled"],
 };
+
+// ✅ "All Cases" page par ye statuses kabhi nahi dikhne chahiye.
+// Regex case-insensitive hai aur aage-peeche extra spaces bhi allow karta hai,
+// isliye "booked", "Booked", "BOOKED", "cancelled", "Cancelled", "canceled"
+// jaisi har casing strictly hide ho jaayegi.
+const ALL_CASES_HIDDEN_STATUS_REGEX = /^\s*(?:booked|cancelled|canceled)\s*$/i;
+
+// Query condition (use inside $match) jo hidden statuses ko hamesha exclude karti hai.
+function buildAllCasesHiddenStatusExclusion() {
+    return {
+        status: {
+            $not: {
+                $regex: ALL_CASES_HIDDEN_STATUS_REGEX.source,
+                $options: "i",
+            },
+        },
+    };
+}
 
 const normalizeReportText = (value) => String(value ?? "").trim();
 
@@ -2071,8 +2089,12 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
 
     let query = {
         tenantId: req.user.tenantId._id,
-        status: { $nin: ["cancelled", "canceled"] }
     };
+
+    // ✅ "All Cases" me booked / cancelled (canceled) bookings strictly nahi
+    // aani chahiye. Ye condition hamesha lagti hai — koi bhi search, barcode ya
+    // status filter ise bypass nahi kar sakta.
+    const hiddenStatusExclusion = buildAllCasesHiddenStatusExclusion();
 
     // Apply basic filters
     if (regNo) query.bookingId = { $regex: regNo, $options: 'i' };
@@ -2102,9 +2124,18 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
     }
     const statusQuery = buildBookingStatusQuery(status);
     if (statusQuery) {
-        query.status = statusQuery;
+        // ✅ Selected status ko hidden-status exclusion ke saath AND karo, taaki
+        // "booked"/"cancelled" filter select karne par bhi wo bookings list me
+        // wapas na aayein. Baaki sabhi statuses (pending, completed, clinical,
+        // hold, partially completed, etc.) normally dikhte rahenge.
+        query.$and = [
+            { status: statusQuery },
+            hiddenStatusExclusion,
+        ];
     } else {
-        query.status = { $nin: ["cancelled", "canceled", "Hold", "On Hold", "hold", "on hold"] };
+        // Koi status filter nahi chuna gaya to sirf hidden statuses (booked /
+        // cancelled) hataye jayenge — Hold / On Hold bhi ab yahan dikhega.
+        query.$and = [hiddenStatusExclusion];
     }
     if (franchisee) query.createdbyuser = { $regex: franchisee, $options: 'i' };
 
@@ -2174,7 +2205,8 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
                             "tableData.barcodeId": 1,
                             savedDoctor: 1,
                             savedLab: 1,
-                            isreportready: 1
+                            isreportready: 1,
+                            printAudit: 1
                         }
                     }
                 ]
@@ -2518,6 +2550,7 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
                             savedDoctor: 1,
                             savedLab: 1,
                             isreportready: 1,
+                            printAudit: 1,
                             createdBy: {
                                 $cond: [
                                     { $ifNull: ["$createdBy._id", false] },
@@ -4402,7 +4435,8 @@ const searchit = asyncHandler(async (req, res) => {
                     createdBy: 1,
                     createdbyuser: 1,
                     createdAt: 1,
-                    updatedAt: 1
+                    updatedAt: 1,
+                    printAudit: 1
                 }
             }
         ];

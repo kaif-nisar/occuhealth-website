@@ -18,6 +18,7 @@ import { defaultpdfsetting } from '../models/defaultpdfsettings.model.js';
 import { reports } from '../models/reportData.model.js';
 import { Template } from '../models/template.model.js';
 import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js';
+import { recordReportPrintAudit, recordReportPrintAuditForMany } from '../services/reportPrintAudit.service.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1353,7 +1354,20 @@ const getpdfcontroller = async (req, res) => {
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format, headerContentGap } = req.body;
+        fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format, headerContentGap,
+        auditAction, printAction } = req.body;
+
+    // ------------------------------------------------------------------
+    // Report print / download audit trail.
+    // Only an explicit download/print request is audited (a bare preview
+    // render must never mark a report as downloaded). `auditAction` is sent
+    // by the listing pages, `DownloadPdf` is the legacy download flag.
+    // ------------------------------------------------------------------
+    const requestedAuditAction = (() => {
+        const raw = String(auditAction ?? printAction ?? "").trim().toUpperCase();
+        if (raw === "PRINT" || raw === "DOWNLOAD") return raw;
+        return DownloadPdf ? "DOWNLOAD" : "";
+    })();
 
     let pdfformat;
     const tid = req.user.tenantId._id;
@@ -1488,13 +1502,30 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.layerone = true;
         }
 
+        // Audit helper: only records when the request was an explicit
+        // download/print AND the PDF was actually delivered (never on 4xx/5xx).
+        const recordAuditIfDelivered = async () => {
+            if (!requestedAuditAction || res.statusCode >= 400) {
+                return;
+            }
+            await recordReportPrintAudit({
+                tenantId: pdfContext.resolvedTenantId || tid,
+                bookingId: mergedValues.bookingId,
+                reportId: pdfContext.resolvedReportId,
+                user: req.user,
+                action: requestedAuditAction
+            });
+        };
+
         if (mergedValues.pdfformat === "reportFormat4") {
             await pdfgeneratorcontroller3(mergedValues);
+            await recordAuditIfDelivered();
             return;
         }
 
         // Generate the PDF with merged values
         await pdfgeneratorcontroller2(mergedValues);
+        await recordAuditIfDelivered();
 
     } catch (error) {
         console.error('Error fetching PDF:', error.message);
@@ -1663,6 +1694,27 @@ const mergePdfsController = async (req, res) => {
         res.setHeader('Content-Disposition', 'attachment; filename="merged_reports.pdf"');
         res.setHeader('Content-Length', mergedPdfBytes.length);
         res.end(Buffer.from(mergedPdfBytes));
+
+        // Audit trail: downloading a merged PDF counts as a download for every
+        // report (booking) that was part of the merge.
+        try {
+            const tenantId = req.user?.tenantId?._id;
+            const validReportIds = (reportIds || []).filter((id) => mongoose.Types.ObjectId.isValid(id));
+            if (tenantId && validReportIds.length > 0) {
+                const mergedReports = await reports
+                    .find({ _id: { $in: validReportIds }, tenantId }, { bookingId: 1 })
+                    .lean();
+                await recordReportPrintAuditForMany({
+                    tenantId,
+                    bookingIds: mergedReports.map((report) => report.bookingId),
+                    reportIds: mergedReports.map((report) => report._id),
+                    user: req.user,
+                    action: 'DOWNLOAD'
+                });
+            }
+        } catch (auditError) {
+            console.error('[print-audit] merge audit failed:', auditError?.message || auditError);
+        }
 
     } catch (error) {
         console.error('Error merging PDFs:', error);

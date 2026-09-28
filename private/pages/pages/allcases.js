@@ -258,6 +258,19 @@ async function allcases() {
         return status;
     }
 
+    // Report print / download audit badge (shared component from the shell).
+    // Safe for legacy bookings that have no printAudit object yet.
+    function printAuditBadge(booking) {
+        try {
+            if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
+                return window.ReportPrintAudit.badge(booking);
+            }
+        } catch (error) {
+            console.warn('Print audit badge unavailable:', error);
+        }
+        return '<span style="color:#64748b;font-weight:600;font-size:12px;">&mdash;</span>';
+    }
+
     function showAppToast(message, type = "success") {
         const toast = document.createElement("div");
         toast.className = `app-toast ${type}`;
@@ -334,13 +347,20 @@ async function allcases() {
         tableBody.innerHTML = "";
 
         if (!bookings.length) {
-            tableBody.innerHTML = `<tr><td colspan="7">No bookings found.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="9">No bookings found.</td></tr>`;
             return;
         }
 
         bookings.forEach((booking) => {
             const normalizedBookingStatus = (booking.status || "").trim().toLowerCase();
-            if (normalizedBookingStatus === "cancelled" || normalizedBookingStatus === "canceled") {
+            // ✅ Backend already BOOKED / CANCELLED (any casing) hata deta hai,
+            // ye client-side guard safety ke liye hai taaki list me kabhi
+            // booked ya cancelled booking render na ho.
+            if (
+                normalizedBookingStatus === "booked" ||
+                normalizedBookingStatus === "cancelled" ||
+                normalizedBookingStatus === "canceled"
+            ) {
                 return;
             }
 
@@ -408,6 +428,7 @@ async function allcases() {
                 <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
                 <td style="white-space: normal;">${barcodeHtml}</td>
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
+                <td style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
                 ${attachmentHtml}
                 <td class="actions">
                     <div class="actions-wrapper">
@@ -431,6 +452,7 @@ async function allcases() {
                 <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
                 <td style="white-space: normal;">${barcodeHtml}</td>
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
+                <td style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
                 ${attachmentHtml}
                 <td class="actions">
                     <div class="actions-wrapper">
