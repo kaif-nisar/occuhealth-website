@@ -1,6 +1,82 @@
 (function hort() {
     'use strict';
 
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function isValidPatientName(name) {
+        if (!name || typeof name !== 'string') return false;
+        const trimmed = name.trim();
+        if (!trimmed || trimmed === '-' || trimmed.toUpperCase() === 'N/A' || trimmed.toUpperCase() === 'UNDEFINED' || trimmed.toUpperCase() === 'NULL') {
+            return false;
+        }
+        // Reject accidental dates / timestamps (e.g. 01/10/2026, 2026-10-01, 15:30)
+        if (/^\d{1,4}[-/.]\d{1,2}[-/.]\d{2,4}/.test(trimmed) || /^\d{1,2}:\d{2}/.test(trimmed)) {
+            return false;
+        }
+        return true;
+    }
+
+    function getBookingPatientName(bookingId, row) {
+        if (bookingId && Array.isArray(bookings)) {
+            const booking = bookings.find(item => String(item.bookingId) === String(bookingId));
+            if (isValidPatientName(booking?.patientName)) {
+                return String(booking.patientName).trim();
+            }
+        }
+
+        if (row) {
+            const attrName = row.getAttribute('data-patient-name');
+            if (isValidPatientName(attrName)) return attrName.trim();
+
+            const badge = row.querySelector('.booking-id-badge');
+            const badgeAttrName = badge?.getAttribute('data-patient-name');
+            if (isValidPatientName(badgeAttrName)) return badgeAttrName.trim();
+
+            const patientCell = row.querySelector('.td-patient-name') || row.querySelector('td:nth-child(4)');
+            const cellText = patientCell?.textContent?.trim();
+            if (isValidPatientName(cellText)) return cellText;
+        }
+
+        return '';
+    }
+
+    function resolvePatientName({ reportData, bookingListPatientName, bookingId, row } = {}) {
+        // 1. Authoritative: from report details returned by API
+        const fromReport = reportData?.patientName || reportData?.PatientName || reportData?.name;
+        if (isValidPatientName(fromReport)) {
+            return String(fromReport).trim();
+        }
+
+        // 2. From booking list / row
+        if (isValidPatientName(bookingListPatientName)) {
+            return String(bookingListPatientName).trim();
+        }
+
+        // 3. From cached bookings array or DOM
+        return getBookingPatientName(bookingId, row);
+    }
+
+    // Keep downloaded filenames portable across browsers and operating systems.
+    function getReportFilename(patientName, bookingId) {
+        let cleanName = String(patientName || '')
+            .normalize('NFKC')
+            .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/[. ]+$/g, '');
+
+        if (!isValidPatientName(cleanName)) {
+            cleanName = bookingId ? `Report_${bookingId}` : 'Report';
+        }
+        return `${cleanName}.pdf`;
+    }
     // ============================================================
     // STATE
     // ============================================================
@@ -17,6 +93,8 @@
     let totalBookings = 0;
     let totalPages = 1;
     let lastFetchParams = { startDate: '', endDate: '', franchiseeId: '' };
+    // Preserve the instant at which today's end date was selected.
+    let endDateSelectedAt = null;
 
     // Download-eligible statuses (only these can be downloaded)
     const DOWNLOAD_ELIGIBLE_STATUSES = ['completed', 'partially completed', 'partial completed', 'partial'];
@@ -429,20 +507,17 @@
         if (endDate) {
             const todayStr = getTodayDate();
             if (endDate === todayStr) {
-                // Latest current timestamp with exact seconds and milliseconds
-                processedEndDate = new Date().toISOString();
+                processedEndDate = (endDateSelectedAt && endDateSelectedAt.date === endDate
+                    ? endDateSelectedAt.at
+                    : new Date()).toISOString();
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-                const endD = new Date(endDate);
-                endD.setHours(23, 59, 59, 999);
-                processedEndDate = endD.toISOString();
+                processedEndDate = localDateAtTime(endDate, 23, 59, 59, 999).toISOString();
             }
         }
 
         let processedStartDate = startDate;
         if (startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-            const startD = new Date(startDate);
-            startD.setHours(0, 0, 0, 0);
-            processedStartDate = startD.toISOString();
+            processedStartDate = localDateAtTime(startDate, 0, 0, 0, 0).toISOString();
         }
 
         let query = `?status=completed,pending,hold,partial,clinical&startDate=${encodeURIComponent(processedStartDate)}&endDate=${encodeURIComponent(processedEndDate)}&page=${currentPage}&limit=${pageSize}`;
@@ -503,19 +578,23 @@
 
                 const statusInfo = getStatusColor(booking.status);
                 const eligible = isDownloadEligible(booking.status);
+                const patientNameStr = String(booking.patientName || '').trim();
+                const displayPatientName = patientNameStr && patientNameStr.toUpperCase() !== 'N/A' ? patientNameStr : 'N/A';
                 const row = document.createElement('tr');
                 row.className = 'data-row';
                 row.setAttribute('data-booking-id', booking.bookingId || '');
+                row.setAttribute('data-patient-name', patientNameStr);
                 row.setAttribute('data-status', (booking.status || '').toLowerCase().trim());
                 row.innerHTML = `
-                    <td><input type="checkbox" class="report-checkbox" aria-label="Select booking ${booking.bookingId || ''}" ${eligible ? '' : 'disabled'}></td>
+                    <td><input type="checkbox" class="report-checkbox" aria-label="Select booking ${escapeHtml(booking.bookingId || '')}" ${eligible ? '' : 'disabled'}></td>
                     <td>
                         <span class="booking-id-badge${eligible ? '' : ' is-not-ready'}" role="button" tabindex="${eligible ? '0' : '-1'}"
                               title="${eligible ? 'Click to Download Report' : 'Report not ready for download'}"
-                              aria-label="${eligible ? 'Download report for booking ' + (booking.bookingId || '') : 'Report not ready for booking ' + (booking.bookingId || '')}"
-                              data-booking-id="${booking.bookingId || ''}">
+                              aria-label="${eligible ? 'Download report for booking ' + escapeHtml(booking.bookingId || '') : 'Report not ready for booking ' + escapeHtml(booking.bookingId || '')}"
+                              data-booking-id="${escapeHtml(booking.bookingId || '')}"
+                              data-patient-name="${escapeHtml(patientNameStr)}">
                             <i class="fas ${eligible ? 'fa-download' : 'fa-lock'} booking-id-icon" aria-hidden="true"></i>
-                            ${booking.bookingId || 'N/A'}
+                            ${escapeHtml(booking.bookingId || 'N/A')}
                             ${eligible ? '' : '<span class="not-ready-tooltip" title="Only Completed and Partially Completed reports can be downloaded"><i class="fas fa-circle-info"></i></span>'}
                         </span>
                     </td>
@@ -525,9 +604,9 @@
                             <i class="fa-regular fa-clock" style="margin-right:3px;"></i>${formatBookingTime(booking.time, booking.createdAt)}
                         </div>
                     </td>
-                    <td class="font-medium text-gray-800">${booking.patientName || 'N/A'}</td>
-                    <td>${sampleId}</td>
-                    <td>${booking.doctorName || 'N/A'}</td>
+                    <td class="font-medium text-gray-800 td-patient-name" data-patient-name="${escapeHtml(patientNameStr)}">${escapeHtml(displayPatientName)}</td>
+                    <td>${escapeHtml(sampleId)}</td>
+                    <td>${escapeHtml(booking.doctorName || 'N/A')}</td>
                     <td class="td-tests">${tests}</td>
                     <td>
                         <span class="status-badge${eligible ? '' : ' is-not-ready'}" style="background:${statusInfo.bg};color:${statusInfo.text};border-color:${statusInfo.border}">
@@ -645,6 +724,11 @@
         return getLocalDateString(new Date());
     }
 
+    function localDateAtTime(dateString, hours, minutes, seconds, milliseconds) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day, hours, minutes, seconds, milliseconds);
+    }
+
     function setDefaultDates() {
         if (startDateInput) startDateInput.value = getLast24HoursDate();
         if (endDateInput) endDateInput.value = getTodayDate();
@@ -694,7 +778,7 @@
 
             const link = document.createElement('a');
             link.href = pdfUrl;
-            link.download = `${patientname || 'Report'}.pdf`;
+            link.download = getReportFilename(patientname, bookingId);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -722,8 +806,8 @@
         if (!badgeElement || badgeElement.classList.contains('is-loading')) return;
 
         const row = badgeElement.closest('tr');
-        const bookingId = badgeElement.getAttribute('data-booking-id') || badgeElement.textContent.trim();
-        const patientName = row ? (row.querySelector('td:nth-child(3)') || {}).textContent?.trim() : '';
+        const bookingId = badgeElement.getAttribute('data-booking-id') || row?.getAttribute('data-booking-id') || badgeElement.textContent.trim();
+        const patientNameFromList = getBookingPatientName(bookingId, row);
 
         // Defense-in-depth: verify status is download-eligible
         const rowStatus = row ? row.getAttribute('data-status') : '';
@@ -748,12 +832,19 @@
                 throw new Error('No report data returned for this booking.');
             }
 
+            const resolvedPatientName = resolvePatientName({
+                reportData: patientDetails,
+                bookingListPatientName: patientNameFromList,
+                bookingId: bookingId,
+                row: row
+            });
+
             const letterPadOption = getLetterheadPreference();
             const success = await autogeneratingpdf({
                 value1: patientDetails._id,
                 bookingId: bookingId,
                 startDate: letterPadOption,
-                patientname: patientName,
+                patientname: resolvedPatientName,
                 labinchargesign: null,
                 checkBox: false,
                 labinchargeinfo: '',
@@ -773,7 +864,7 @@
 
             if (!success) throw new Error('PDF generation failed on the server.');
 
-            showToast('success', 'Report downloaded successfully!', `Report for booking ${bookingId} has been saved to your downloads.`);
+            showToast('success', 'Report downloaded successfully!', `Report for ${resolvedPatientName || ('booking ' + bookingId)} has been saved to your downloads.`);
         } catch (error) {
             console.error(`Error downloading report for Booking ID ${bookingId}:`, error);
             showToast('error', 'Download failed', `We couldn’t generate the report for booking ${bookingId}. Please try again.`);
@@ -818,7 +909,7 @@
             const badge = row ? row.querySelector('.booking-id-badge') : null;
             return {
                 bookingId: badge ? (badge.getAttribute('data-booking-id') || badge.textContent.trim()) : '',
-                patientName: row ? (row.querySelector('td:nth-child(3)') || {}).textContent?.trim() : '',
+                patientName: getBookingPatientName(badge ? badge.getAttribute('data-booking-id') : '', row),
                 status: row ? row.getAttribute('data-status') : ''
             };
         }).filter(item => item.bookingId && isDownloadEligible(item.status));
@@ -865,11 +956,17 @@
                 return;
             }
 
+            const resolvedPatientName = resolvePatientName({
+                reportData: patientDetails,
+                bookingListPatientName: patientName,
+                bookingId: bookingId
+            });
+
             await autogeneratingpdf({
                 value1: patientDetails._id,
                 bookingId: bookingId,
                 startDate: letterPadOption,
-                patientname: patientName,
+                patientname: resolvedPatientName,
                 hideLoader: hideLoader,
                 labinchargesign: null,
                 checkBox: false,
@@ -1030,12 +1127,11 @@
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - months);
 
-        // Adjust for local timezone
-        endDate.setMinutes(endDate.getMinutes() - endDate.getTimezoneOffset());
-        startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
-
-        if (endDateInput) endDateInput.value = endDate.toISOString().split('T')[0];
-        if (startDateInput) startDateInput.value = startDate.toISOString().split('T')[0];
+        if (endDateInput) {
+            endDateInput.value = getLocalDateString(endDate);
+            endDateSelectedAt = { date: endDateInput.value, at: new Date() };
+        }
+        if (startDateInput) startDateInput.value = getLocalDateString(startDate);
 
         if (searchButton) searchButton.click();
     }
@@ -1060,6 +1156,13 @@
     // ============================================================
     // EVENT LISTENERS
     // ============================================================
+
+    // Capture the precise selection instant for today's end-date filter.
+    if (endDateInput) {
+        endDateInput.addEventListener('change', function () {
+            endDateSelectedAt = { date: endDateInput.value, at: new Date() };
+        });
+    }
 
     // Search button
     if (searchButton) {
