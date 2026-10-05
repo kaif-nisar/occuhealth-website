@@ -60,6 +60,14 @@ const customizationSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    showCategory: {
+      type: Boolean,
+      default: true,
+    },
+    showTestHeading: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

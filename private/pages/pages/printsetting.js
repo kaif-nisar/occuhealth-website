@@ -16,6 +16,7 @@ function toggleAccordion(button) {
     const value1 = localStorage.getItem('myKey');
     const layoutFieldIds = ['header', 'footer', 'margin-right', 'margin-left', 'header-content-gap'];
     let selectedImage = null;
+    let savedHeadingSettings = { showCategory: true, showTestHeading: true };
 
     const readLayoutSettings = () => {
         const values = {
@@ -41,14 +42,16 @@ function toggleAccordion(button) {
         HighLow: document.getElementById('high-low-marker').checked,
         HLinred: document.getElementById('abnormal-results-red').checked,
         BoldRow: document.getElementById('abnormal-results-bold').checked,
-        showInvest: document.getElementById('show-investigations').checked
+        showInvest: document.getElementById('show-investigations').checked,
+        showCategory: document.getElementById('show-category-heading') ? document.getElementById('show-category-heading').checked : true,
+        showTestHeading: document.getElementById('show-test-heading') ? document.getElementById('show-test-heading').checked : true
     });
 
-    async function savePrintSettings(layout = readLayoutSettings()) {
+    async function savePrintSettings(layout = readLayoutSettings(), general = readGeneralSettings()) {
         const response = await fetch(BASE_URL + '/api/v1/user/save-pdf-settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...readGeneralSettings(), ...layout })
+            body: JSON.stringify({ ...general, ...layout })
         });
         if (!response.ok) {
             const result = await response.json().catch(() => ({}));
@@ -160,12 +163,26 @@ function toggleAccordion(button) {
             document.getElementById('abnormal-results-red').checked = data.HLinred ?? false;
             document.getElementById('abnormal-results-bold').checked = data.BoldRow ?? true;
             document.getElementById('show-investigations').checked = data.showInvest ?? true;
+            const categoryCheckbox = document.getElementById('show-category-heading');
+            if (categoryCheckbox) {
+                categoryCheckbox.checked = data.showCategory !== false;
+            }
+            const testCheckbox = document.getElementById('show-test-heading');
+            if (testCheckbox) {
+                testCheckbox.checked = data.showTestHeading !== false;
+            }
+            savedHeadingSettings = {
+                showCategory: data.showCategory !== false,
+                showTestHeading: data.showTestHeading !== false
+            };
 
             localStorage.setItem("printSettings", JSON.stringify({
                 HighLow: data.HighLow,
                 HLinred: data.HLinred,
                 BoldRow: data.BoldRow,
-                showInvest: data.showInvest
+                showInvest: data.showInvest,
+                showCategory: data.showCategory !== false,
+                showTestHeading: data.showTestHeading !== false
             }));
 
             refreshLayoutGuide();
@@ -345,10 +362,119 @@ function toggleAccordion(button) {
         }
     }
 
+    let currentPdfBlob = null;
+    let currentPdfUrl = null;
+    let patientReportData = { patientName: '', date: '', bookingId: '' };
+
+    async function fetchPatientDetails() {
+        const reportKey = localStorage.getItem('myKey');
+        if (!reportKey) return;
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value1: reportKey })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data) {
+                    patientReportData.patientName = data.patientName || '';
+                    patientReportData.date = data.date || data.reportedOn || data.createdAt || '';
+                    patientReportData.bookingId = data.bookingId || reportKey;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not fetch patient details for filename:', e);
+        }
+    }
+
+    function getFormattedPdfFileName() {
+        const pName = (patientReportData.patientName || 'Patient').trim();
+        const safe = pName.replace(/[\/\\?%*:|"<>]/g, '').replace(/\s+/g, '_') || 'Patient';
+        const dVal = patientReportData.date;
+        let dateStr = '';
+        if (dVal) {
+            const d = new Date(dVal);
+            if (!isNaN(d.getTime())) {
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                dateStr = `_${day}-${month}-${year}`;
+            }
+        }
+        if (!dateStr) {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            dateStr = `_${day}-${month}-${year}`;
+        }
+        const bId = patientReportData.bookingId ? `_${String(patientReportData.bookingId).replace(/[\/\\?%*:|"<>]/g, '').trim()}` : '';
+        return `${safe}${bId}${dateStr}.pdf`;
+    }
+
+    async function downloadPdf() {
+        const btns = [
+            document.getElementById('downloadPdfHeaderBtn'),
+            document.getElementById('downloadPdfPreviewBtn')
+        ];
+        btns.forEach(btn => {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+            }
+        });
+
+        try {
+            if (!currentPdfBlob) {
+                await autogeneratingpdf();
+            }
+
+            if (!currentPdfBlob) {
+                throw new Error('PDF is not ready yet. Please wait a moment and try again.');
+            }
+
+            const fileName = getFormattedPdfFileName();
+            const blobUrl = URL.createObjectURL(currentPdfBlob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+            // Audit log in background
+            fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    value1: localStorage.getItem('myKey'),
+                    auditAction: 'DOWNLOAD',
+                    DownloadPdf: true
+                })
+            }).catch(() => {});
+
+        } catch (err) {
+            console.error('Download error:', err);
+            alert(err.message || 'Error downloading PDF');
+        } finally {
+            btns.forEach(btn => {
+                if (btn) {
+                    btn.disabled = false;
+                }
+            });
+            const hBtn = document.getElementById('downloadPdfHeaderBtn');
+            if (hBtn) hBtn.innerHTML = '<i class="fas fa-download"></i> DOWNLOAD PDF';
+            const pBtn = document.getElementById('downloadPdfPreviewBtn');
+            if (pBtn) pBtn.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+        }
+    }
+
     async function autogeneratingpdf({ value1: argVal1, checkBox = false, showlab, showdoctorfirst, showdoctorsecond,
         backgroundImageUrl = null, headermargin, footermargin, marginRight, marginLeft, headerContentGap,
         selectedFontSize, RowSpacing, HighLow, HLinred,
-        BoldRow, showInvest, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
+        BoldRow, showInvest, showCategory, showTestHeading, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext } = {}) {
         const loader = document.querySelector('.loaderDiv');
         const value2 = localStorage.getItem('myKey');
@@ -356,6 +482,8 @@ function toggleAccordion(button) {
             ? Number(headerContentGap)
             : Number(document.getElementById('header-content-gap')?.value || 1);
         const resolvedGap = (Number.isFinite(rawGap) && rawGap >= 0.1 && rawGap <= 10) ? rawGap : 1;
+
+        const currentGeneral = readGeneralSettings();
 
         try {
             if (loader) {
@@ -368,8 +496,15 @@ function toggleAccordion(button) {
                 body: JSON.stringify({
                     value1: value2, checkBox, backgroundImageUrl,
                     headermargin, footermargin, marginRight, marginLeft, headerContentGap: resolvedGap,
-                    selectedFontSize, RowSpacing,
-                    HighLow, HLinred, BoldRow, showInvest, showlab, showdoctorfirst, showdoctorsecond,
+                    selectedFontSize: selectedFontSize ?? currentGeneral.selectedFontSize,
+                    RowSpacing: RowSpacing ?? currentGeneral.RowSpacing,
+                    HighLow: HighLow ?? currentGeneral.HighLow,
+                    HLinred: HLinred ?? currentGeneral.HLinred,
+                    BoldRow: BoldRow ?? currentGeneral.BoldRow,
+                    showInvest: showInvest ?? currentGeneral.showInvest,
+                    showCategory: showCategory !== undefined ? showCategory : currentGeneral.showCategory,
+                    showTestHeading: showTestHeading !== undefined ? showTestHeading : currentGeneral.showTestHeading,
+                    showlab, showdoctorfirst, showdoctorsecond,
                     fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
                     fileInputDoctorlefttext, fileInputDoctorrighttext
                 })
@@ -378,15 +513,19 @@ function toggleAccordion(button) {
             if (!response.ok) throw new Error('PDF generation failed');
 
             const pdfBlob = await response.blob();
-            const pdfUrl = URL.createObjectURL(pdfBlob);
+            currentPdfBlob = pdfBlob;
+            if (currentPdfUrl) {
+                URL.revokeObjectURL(currentPdfUrl);
+            }
+            currentPdfUrl = URL.createObjectURL(pdfBlob);
             const iframe = document.getElementById('pdf-preview');
             if (iframe) {
-                iframe.src = pdfUrl;
+                iframe.src = currentPdfUrl;
             }
             // Mobile fallback: set href on the open-button so user can tap to view PDF
             const mobilePdfBtn = document.getElementById('mobile-pdf-open-btn');
             if (mobilePdfBtn) {
-                mobilePdfBtn.href = pdfUrl;
+                mobilePdfBtn.href = currentPdfUrl;
                 mobilePdfBtn.classList.add('pdf-ready');
                 mobilePdfBtn.innerHTML = '<i class="fas fa-file-pdf"></i> Open PDF Preview';
             }
@@ -407,7 +546,29 @@ function toggleAccordion(button) {
         });
     }
 
+    document.getElementById('show-category-heading')?.addEventListener('change', async function () {
+        const currentGeneral = readGeneralSettings();
+        savedHeadingSettings.showCategory = this.checked;
+        await autogeneratingpdf({
+            showCategory: this.checked,
+            showTestHeading: currentGeneral.showTestHeading
+        });
+    });
+
+    document.getElementById('show-test-heading')?.addEventListener('change', async function () {
+        const currentGeneral = readGeneralSettings();
+        savedHeadingSettings.showTestHeading = this.checked;
+        await autogeneratingpdf({
+            showCategory: currentGeneral.showCategory,
+            showTestHeading: this.checked
+        });
+    });
+
+    document.getElementById('downloadPdfHeaderBtn')?.addEventListener('click', downloadPdf);
+    document.getElementById('downloadPdfPreviewBtn')?.addEventListener('click', downloadPdf);
+
     async function Initialization() {
+        await fetchPatientDetails();
         await fetchDataAndSetInputs();
         await fetchLabSignAndSetInputs();
         await fetchTemplateImages();
@@ -587,7 +748,11 @@ function toggleAccordion(button) {
 
         if (pageloader) pageloader.style.display = "flex";
         try {
-            await savePrintSettings(layout);
+            await savePrintSettings(layout, general);
+            savedHeadingSettings = {
+                showCategory: general.showCategory,
+                showTestHeading: general.showTestHeading
+            };
             localStorage.setItem("printSettings", JSON.stringify(general));
             await autogeneratingpdf({ ...general, ...layout });
         } catch (error) {

@@ -502,6 +502,7 @@
             deleteH2Button.setAttribute('aria-label', 'Delete category section');
 
             const categoryHeading = document.createElement('h2');
+            categoryHeading.className = 'category-heading';
             categoryHeading.textContent = categoryData.category;
             categoryHeading.appendChild(deleteH2Button);
             headings.appendChild(categoryHeading);
@@ -516,6 +517,7 @@
 
                 if (!String(categoryData.title).includes('Unknown Title')) {
                     titleHeading = document.createElement('h3');
+                    titleHeading.className = 'test-heading';
                     titleHeading.textContent = categoryData.title;
                     titleHeading.appendChild(deleteH3Button);
                     headings.appendChild(titleHeading);
@@ -1303,6 +1305,13 @@
             style.textContent += '@media print { .barcode-div2 { top: 6%; } }';
             $$('.forhide').forEach((elem) => { elem.style.display = 'none'; });
         }
+
+        // Older report snapshots may contain inline display:none from a previous
+        // heading setting. Keep heading visibility controlled by the PDF settings
+        // passed to the PDF generator, and restore those old snapshots here.
+        $$('.headings, .headings h2, .category-heading, .headings h3, .test-heading').forEach((elem) => {
+            elem.style.removeProperty('display');
+        });
     }
 
     /* ========================================================================
@@ -1347,7 +1356,10 @@
                         labinchargesignurl: state.signInfo.sign,
                         selectedFontSize: o.selectedFontSize, RowSpacing: o.RowSpacing,
                         HighLow: o.HighLow, HLinred: o.HLinred, BoldRow: o.BoldRow,
-                        showInvest: o.showInvest, DownloadPdf: true
+                        showInvest: o.showInvest,
+                        ...(typeof o.showCategory === 'boolean' ? { showCategory: o.showCategory } : (localStorage.getItem("printSettings") && typeof JSON.parse(localStorage.getItem("printSettings") || "{}").showCategory === "boolean" ? { showCategory: JSON.parse(localStorage.getItem("printSettings")).showCategory } : {})),
+                        ...(typeof o.showTestHeading === 'boolean' ? { showTestHeading: o.showTestHeading } : (localStorage.getItem("printSettings") && typeof JSON.parse(localStorage.getItem("printSettings") || "{}").showTestHeading === "boolean" ? { showTestHeading: JSON.parse(localStorage.getItem("printSettings")).showTestHeading } : {})),
+                        DownloadPdf: true
                     })
                 });
                 if (!response.ok) throw new Error('PDF generation failed');

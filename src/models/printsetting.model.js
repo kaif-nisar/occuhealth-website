@@ -33,6 +33,14 @@ const customizationSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    showCategory: {
+        type: Boolean,
+        default: true
+    },
+    showTestHeading: {
+        type: Boolean,
+        default: true
+    },
     RowSpacing: {
         // General settings are owned by defaultSettings, not a report customization.
         type: Number

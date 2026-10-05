@@ -105,6 +105,63 @@
             color: #fff;
         }
 
+        .download-pdf-btn {
+            background: #16a34a;
+            color: #fff;
+            border: 1px solid #15803d;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(22, 163, 74, 0.2);
+        }
+
+        .download-pdf-btn:hover {
+            background: #15803d;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
+        }
+
+        .download-pdf-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-pdf-btn[disabled] {
+            background: #94a3b8;
+            border-color: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .preview-toolbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .preview-toolbar .outerCheckBox {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .preview-toolbar .preview-dl-btn {
+            padding: 9px 18px;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         /* Loading Spinner & Notifications */
         .printspinnerbox {
             display: none;
@@ -743,6 +800,17 @@
                 height: 520px;
             }
 
+            .preview-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .preview-toolbar .preview-dl-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
             .outerCheckBox {
                 font-size: 12px;
                 padding: 8px 10px;
@@ -823,9 +891,14 @@
             </span>
             <span class="header-title">Print Settings</span>
         </div>
-        <a href="/admin/admin.html?page=addvideo" style="text-decoration: none;">
-            <button class="watch-video-btn"><i class="fas fa-play"></i> WATCH VIDEO</button>
-        </a>
+        <div class="header-right" style="display: flex; align-items: center; gap: 10px;">
+            <button class="download-pdf-btn" id="downloadPdfHeaderBtn" type="button" title="Download PDF with patient name">
+                <i class="fas fa-download"></i> DOWNLOAD PDF
+            </button>
+            <a href="/admin/admin.html?page=addvideo" style="text-decoration: none;">
+                <button class="watch-video-btn"><i class="fas fa-play"></i> WATCH VIDEO</button>
+            </a>
+        </div>
     </div>
     <div id="errormessage"></div>
 
@@ -1036,6 +1109,14 @@
                                 <input type="checkbox" id="show-investigations" checked>
                                 <label for="show-investigations">Show Investigations in Header</label>
                             </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="show-category-heading" checked>
+                                <label for="show-category-heading">Show Category Heading</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="show-test-heading" checked>
+                                <label for="show-test-heading">Show Test Heading</label>
+                            </div>
                             <button class="update-button general" id="updateGeneral" type="button">Save general settings</button>
                         </div>
                     </div>
@@ -1046,10 +1127,15 @@
         <div class="showChangesDiv">
             <div class="previewpdfcontainer">
                 <div class="iframe-withorwithout">
-                    <div class="outerCheckBox">
-                        <input type="checkbox" id="check1" name="check1">
-                        <label for="check1">without letterhead pdf</label>
-                        <i class="fa-solid fa-circle-info" title="This Field is for PDF only" style="margin-left: auto; color: var(--ps-muted);"></i>
+                    <div class="preview-toolbar">
+                        <div class="outerCheckBox">
+                            <input type="checkbox" id="check1" name="check1">
+                            <label for="check1">without letterhead pdf</label>
+                            <i class="fa-solid fa-circle-info" title="This Field is for PDF only" style="margin-left: auto; color: var(--ps-muted);"></i>
+                        </div>
+                        <button class="download-pdf-btn preview-dl-btn" id="downloadPdfPreviewBtn" type="button" title="Download PDF with patient name">
+                            <i class="fas fa-download"></i> Download PDF
+                        </button>
                     </div>
                     <div class="pdf-preview-stage">
                         <div class="measure-outer-div" id="outermeasurebox">
@@ -1116,7 +1202,7 @@
                 </div>
             </div>
         </div>
-    <script src="printsetting.js?v=2.2"></script>
+    <script src="printsetting.js?v=2.3"></script>
 </body>
 
 </html>

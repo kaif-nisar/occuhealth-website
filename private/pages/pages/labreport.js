@@ -380,15 +380,8 @@ async function loadfunction() {
         if (isAbnormal) {
             row.style.fontWeight = "bold";
             input.style.fontWeight = "bold";
-            
-            // Set color based on print settings
-            if (abnormalResultRed) {
-                row.style.color = abnormalResultColor;
-                input.style.color = abnormalResultColor;
-            } else {
-                row.style.color = "black";
-                input.style.color = "black";
-            }
+            // Color only the abnormal result value.
+            input.style.color = abnormalResultRed ? abnormalResultColor : "black";
 
             if (isLow) highLowSpan.textContent = "L";
             else if (isHigh) highLowSpan.textContent = "H";
@@ -396,7 +389,6 @@ async function loadfunction() {
         } else {
             row.style.fontWeight = "normal";
             input.style.fontWeight = "normal";
-            row.style.color = "black";
             input.style.color = "black";
             highLowSpan.textContent = "";
         }

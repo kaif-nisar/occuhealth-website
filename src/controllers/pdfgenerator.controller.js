@@ -151,6 +151,12 @@ const finitePdfNumber = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEG
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
 };
+const parseBooleanSetting = (val, fallback = true) => {
+    if (val === undefined || val === null || val === "") return fallback;
+    if (val === false || val === "false") return false;
+    if (val === true || val === "true") return true;
+    return fallback;
+};
 
 const closeBrowserSafely = async (browser) => {
     if (!browser) {
@@ -655,7 +661,8 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
-    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap, res }) => {
+    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
+    showCategory = true, showTestHeading = true, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -748,6 +755,26 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         .wrong i, .delete-btn i {
                             display: none;
                         }
+                        ${(showCategory === false || showCategory === 'false') ? `
+                        .headings h2, .section-heading-main, .category-heading {
+                            display: none !important;
+                        }
+                        ` : ''}
+                        ${(showTestHeading === false || showTestHeading === 'false') ? `
+                        .headings h3, .headings h4, .section-heading-sub, .test-heading {
+                            display: none !important;
+                        }
+                        ` : ''}
+                        ${((showCategory === false || showCategory === 'false') && (showTestHeading === false || showTestHeading === 'false')) ? `
+                        .headings {
+                            display: none !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        .section-heading-row, .section-heading-cell, .section-heading-wrap {
+                            display: none !important;
+                        }
+                        ` : ''}
                         tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
                         }
@@ -761,8 +788,11 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         td .HL span {
                         display: ${HighLow ? 'block' : 'none'};
                         }
-                        .high-low span{
+                        .high-low .HL span {
                         color: ${HLinred ? 'red' : 'black'} !important;
+                        }
+                        .BoldRow td.high-low, .BoldRow td.high-low .cell-edit {
+                        color: ${HLinred ? '#9b111e' : 'inherit'} !important;
                         }
                         .BoldRow {
                         font-weight: ${BoldRow ? 'bold' : '400'} !important; 
@@ -1015,7 +1045,8 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap, res }) => {
+    fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
+    showCategory = true, showTestHeading = true, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -1102,6 +1133,26 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         .wrong i, .delete-btn i {
                             display: none;
                         }
+                        ${(showCategory === false || showCategory === 'false') ? `
+                        .headings h2, .section-heading-main, .category-heading {
+                            display: none !important;
+                        }
+                        ` : ''}
+                        ${(showTestHeading === false || showTestHeading === 'false') ? `
+                        .headings h3, .headings h4, .section-heading-sub, .test-heading {
+                            display: none !important;
+                        }
+                        ` : ''}
+                        ${((showCategory === false || showCategory === 'false') && (showTestHeading === false || showTestHeading === 'false')) ? `
+                        .headings {
+                            display: none !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        .section-heading-row, .section-heading-cell, .section-heading-wrap {
+                            display: none !important;
+                        }
+                        ` : ''}
                         tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                             font-size: ${selectedFontSize}px !important;
                         }
@@ -1115,8 +1166,11 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         td .HL span {
                         display: ${HighLow ? 'block' : 'none'};
                         }
-                        .high-low span{
+                        .high-low .HL span {
                         color: ${HLinred ? 'red' : 'black'} !important;
+                        }
+                        .BoldRow td.high-low, .BoldRow td.high-low .cell-edit {
+                        color: ${HLinred ? '#9b111e' : 'inherit'} !important;
                         }
                         .BoldRow {
                         font-weight: ${BoldRow ? 'bold' : '400'} !important; 
@@ -1371,7 +1425,7 @@ const getpdfcontroller = async (req, res) => {
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format, headerContentGap,
-        auditAction, printAction } = req.body;
+        auditAction, printAction, showCategory, showTestHeading } = req.body;
 
     // ------------------------------------------------------------------
     // Report print / download audit trail.
@@ -1462,6 +1516,14 @@ const getpdfcontroller = async (req, res) => {
                 headerContentGap: headerContentGap !== undefined && headerContentGap !== null && headerContentGap !== ""
                     ? Number(headerContentGap)
                     : (defaultSettings?.headerContentGap ?? gettingcustomization?.headerContentGap ?? 1),
+                showCategory: parseBooleanSetting(
+                    showCategory !== undefined ? showCategory : (defaultSettings?.showCategory ?? gettingcustomization?.showCategory),
+                    true
+                ),
+                showTestHeading: parseBooleanSetting(
+                    showTestHeading !== undefined ? showTestHeading : (defaultSettings?.showTestHeading ?? gettingcustomization?.showTestHeading),
+                    true
+                ),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
                 res
@@ -1509,6 +1571,14 @@ const getpdfcontroller = async (req, res) => {
                 headerContentGap: headerContentGap !== undefined && headerContentGap !== null && headerContentGap !== ""
                     ? Number(headerContentGap)
                     : (defaultSettings?.headerContentGap ?? gettingcustomization?.headerContentGap ?? 1),
+                showCategory: parseBooleanSetting(
+                    showCategory !== undefined ? showCategory : (defaultSettings?.showCategory ?? gettingcustomization?.showCategory),
+                    true
+                ),
+                showTestHeading: parseBooleanSetting(
+                    showTestHeading !== undefined ? showTestHeading : (defaultSettings?.showTestHeading ?? gettingcustomization?.showTestHeading),
+                    true
+                ),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
                 res
@@ -1566,6 +1636,8 @@ const saveOrUpdatePdfSetting = async ({
     RowSpacing,
     selectedFontSize,
     headerContentGap,
+    showCategory,
+    showTestHeading,
 }) => {
     try {
         // tenantId के आधार पर रिकॉर्ड खोजें
@@ -1588,6 +1660,8 @@ const saveOrUpdatePdfSetting = async ({
                 RowSpacing,
                 selectedFontSize,
                 headerContentGap,
+                showCategory,
+                showTestHeading,
             });
 
             return newSetting;
@@ -1608,6 +1682,8 @@ const saveOrUpdatePdfSetting = async ({
                 RowSpacing,
                 selectedFontSize,
                 headerContentGap,
+                showCategory,
+                showTestHeading,
             };
 
             for (let key in fields) {
@@ -1684,6 +1760,8 @@ const mergePdfsController = async (req, res) => {
                     fileInputLabtext: gettingcustomization?.fileInputLabtext || "",
                     fileInputDoctorlefttext: gettingcustomization?.fileInputDoctorlefttext || "",
                     fileInputDoctorrighttext: gettingcustomization?.fileInputDoctorrighttext || "",
+                    showCategory: parseBooleanSetting(tenantDefaultSettings?.showCategory ?? gettingcustomization?.showCategory, true),
+                    showTestHeading: parseBooleanSetting(tenantDefaultSettings?.showTestHeading ?? gettingcustomization?.showTestHeading, true),
                 };
 
                 // Generate individual PDF buffer
@@ -1841,6 +1919,26 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                     .wrong i, .delete-btn i {
                         display: none;
                     }
+                    ${(mergedValues.showCategory === false || mergedValues.showCategory === 'false') ? `
+                    .headings h2, .section-heading-main, .category-heading {
+                        display: none !important;
+                    }
+                    ` : ''}
+                    ${(mergedValues.showTestHeading === false || mergedValues.showTestHeading === 'false') ? `
+                    .headings h3, .headings h4, .section-heading-sub, .test-heading {
+                        display: none !important;
+                    }
+                    ` : ''}
+                    ${((mergedValues.showCategory === false || mergedValues.showCategory === 'false') && (mergedValues.showTestHeading === false || mergedValues.showTestHeading === 'false')) ? `
+                    .headings {
+                        display: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .section-heading-row, .section-heading-cell, .section-heading-wrap {
+                        display: none !important;
+                    }
+                    ` : ''}
                     tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
                         font-size: ${mergedValues.selectedFontSize}px !important;
                     }
@@ -1854,8 +1952,11 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                     td .HL span {
                         display: ${mergedValues.HighLow ? 'block' : 'none'};
                     }
-                    .high-low span{
+                    .high-low .HL span {
                         color: ${mergedValues.HLinred ? 'red' : 'black'} !important;
+                    }
+                    .BoldRow td.high-low, .BoldRow td.high-low .cell-edit {
+                        color: ${mergedValues.HLinred ? '#9b111e' : 'inherit'} !important;
                     }
                     .BoldRow {
                         font-weight: ${mergedValues.BoldRow ? 'bold' : '400'} !important; 
@@ -2031,7 +2132,7 @@ const getpdfcontrolleruser = async (req, res) => {
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId,
-        headerContentGap } = req.body;
+        headerContentGap, showCategory, showTestHeading } = req.body;
 
     try {
         const resolvePdfValue = (...values) => {
@@ -2111,6 +2212,8 @@ const getpdfcontrolleruser = async (req, res) => {
                 fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
                 fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
                 headerContentGap: resolvePdfValue(headerContentGap, gettingcustomization?.headerContentGap, defaultsetting?.headerContentGap, 1) ?? 1,
+                showCategory: parseBooleanSetting(resolvePdfValue(showCategory, gettingcustomization?.showCategory, defaultsetting?.showCategory, true), true),
+                showTestHeading: parseBooleanSetting(resolvePdfValue(showTestHeading, gettingcustomization?.showTestHeading, defaultsetting?.showTestHeading, true), true),
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
@@ -2147,6 +2250,8 @@ const getpdfcontrolleruser = async (req, res) => {
                 fileInputDoctorlefttext: resolvePdfValue(fileInputDoctorlefttext, gettingcustomization?.fileInputDoctorlefttext, defaultsetting?.fileInputDoctorlefttext, "") || "",
                 fileInputDoctorrighttext: resolvePdfValue(fileInputDoctorrighttext, gettingcustomization?.fileInputDoctorrighttext, defaultsetting?.fileInputDoctorrighttext, "") || "",
                 headerContentGap: resolvePdfValue(headerContentGap, gettingcustomization?.headerContentGap, defaultsetting?.headerContentGap, 1) ?? 1,
+                showCategory: parseBooleanSetting(resolvePdfValue(showCategory, gettingcustomization?.showCategory, defaultsetting?.showCategory, true), true),
+                showTestHeading: parseBooleanSetting(resolvePdfValue(showTestHeading, gettingcustomization?.showTestHeading, defaultsetting?.showTestHeading, true), true),
                 DownloadPdf: Boolean(DownloadPdf),
                 res
             };
@@ -2273,6 +2378,7 @@ const savePdfSettingsController = async (req, res) => {
         const createdBy = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
         const {
             selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+            showCategory, showTestHeading,
             headermargin, footermargin, marginRight, marginLeft, headerContentGap
         } = req.body;
 
@@ -2305,6 +2411,8 @@ const savePdfSettingsController = async (req, res) => {
             HLinred: Boolean(HLinred),
             BoldRow: Boolean(BoldRow),
             showInvest: Boolean(showInvest),
+            showCategory: parseBooleanSetting(showCategory, true),
+            showTestHeading: parseBooleanSetting(showTestHeading, true),
             headermargin: String(layoutValues.headermargin),
             footermargin: String(layoutValues.footermargin),
             marginRight: String(layoutValues.marginRight),
@@ -2358,7 +2466,11 @@ const getCustomizationByReportId = async (req, res) => {
             for (const [key, value] of Object.entries(customizationObj)) {
                 // General settings are tenant defaults; report schema defaults
                 // must not overwrite a value saved from Print Settings.
-                if (key === 'selectedFontSize' || key === 'RowSpacing') continue;
+                if (key === 'selectedFontSize' || key === 'RowSpacing' || key === 'showCategory' || key === 'showTestHeading') {
+                    if (defaultSettings && defaultSettings[key] !== undefined && defaultSettings[key] !== null) {
+                        continue;
+                    }
+                }
                 if (value !== undefined && value !== null) {
                     result[key] = value;
                 }
