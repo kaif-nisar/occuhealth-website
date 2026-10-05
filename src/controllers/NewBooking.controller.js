@@ -2615,7 +2615,38 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
     const franchiseLimit = 5;
     const franchiseSkip = (franchisePage - 1) * franchiseLimit;
 
+    const startParam = req.query.startDate || req.query.from;
+    const endParam = req.query.endDate || req.query.to;
+
     const bookingMatch = { tenantId };
+
+    if (startParam || endParam) {
+        const dateQuery = {};
+        if (startParam) {
+            const parsedStart = new Date(startParam);
+            if (!isNaN(parsedStart.getTime())) {
+                dateQuery.$gte = parsedStart;
+            }
+        }
+        if (endParam) {
+            const parsedEnd = new Date(endParam);
+            if (!isNaN(parsedEnd.getTime())) {
+                dateQuery.$lte = parsedEnd;
+            }
+        }
+        if (Object.keys(dateQuery).length > 0) {
+            bookingMatch.$or = [
+                { createdAt: dateQuery },
+                {
+                    $and: [
+                        { createdAt: { $exists: false } },
+                        { date: dateQuery }
+                    ]
+                }
+            ];
+        }
+    }
+
     const franchiseeFilter = {
         tenantId,
         role: { $ne: 'staff' },
@@ -2653,23 +2684,35 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
                     }
                 ],
                 monthly: [
-                    { $match: { date: { $type: "date" } } },
+                    {
+                        $project: {
+                            chartDate: { $ifNull: ["$date", "$createdAt"] },
+                            total: 1
+                        }
+                    },
+                    { $match: { chartDate: { $type: "date" } } },
                     {
                         $group: {
-                            _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+                            _id: { year: { $year: "$chartDate" }, month: { $month: "$chartDate" } },
                             total: { $sum: { $ifNull: ["$total", 0] } }
                         }
                     },
                     { $sort: { "_id.year": 1, "_id.month": 1 } }
                 ],
                 daily: [
-                    { $match: { date: { $type: "date" } } },
+                    {
+                        $project: {
+                            chartDate: { $ifNull: ["$date", "$createdAt"] },
+                            total: 1
+                        }
+                    },
+                    { $match: { chartDate: { $type: "date" } } },
                     {
                         $group: {
                             _id: {
-                                year: { $year: "$date" },
-                                month: { $month: "$date" },
-                                day: { $dayOfMonth: "$date" }
+                                year: { $year: "$chartDate" },
+                                month: { $month: "$chartDate" },
+                                day: { $dayOfMonth: "$chartDate" }
                             },
                             total: { $sum: { $ifNull: ["$total", 0] } }
                         }

@@ -191,21 +191,21 @@
         details.className = 'report-details-innerDiv2';
         details.innerHTML =
             '<div class="left2">' +
-                '<div class="infor-div infordivs"><div class="tags">Patient Name:</div><div class="value" data-field="patientName">' + (state.report.patientName || '') + '</div></div>' +
-                '<div class="infor-div infordivs"><div class="tags">Age / Sex:</div><div class="value" data-field="ageSex">' + (state.report.year || '') + ' / ' + (state.report.gender || '') + '</div></div>' +
-                '<div class="infor-div infordivs"><div class="tags">Referred By:</div><div class="value" data-field="doctorName">' + (state.report.doctorName || '') + '</div></div>' +
-                '<div class="infor-div infordivs"><div class="tags">Reg. no:</div><div class="value" data-field="bookingId">' + (state.report.bookingId || '') + '</div></div>' +
-                '<div class="infor-div infordivs forhide"><div class="tags">Lab Name:</div><div class="value" data-field="labName">' + (state.report.labName || '') + '</div></div>' +
-                '<div class="infor-div investigationDiv forhide" id="investDiv"><div class="tags">Investigations:</div><div class="value">' + (state.report.uniquetestArray || '') + '</div></div>' +
+                '<div class="infor-div infordivs" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Patient Name:</div><div class="value" data-field="patientName">' + (state.report.patientName || '') + '</div></div>' +
+                '<div class="infor-div infordivs" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Age / Sex:</div><div class="value" data-field="ageSex">' + (state.report.year || '') + ' / ' + (state.report.gender || '') + '</div></div>' +
+                '<div class="infor-div infordivs" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Referred By:</div><div class="value" data-field="doctorName">' + (state.report.doctorName || '') + '</div></div>' +
+                '<div class="infor-div infordivs" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Reg. no:</div><div class="value" data-field="bookingId">' + (state.report.bookingId || '') + '</div></div>' +
+                '<div class="infor-div infordivs forhide" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Lab Name:</div><div class="value" data-field="labName">' + (state.report.labName || '') + '</div></div>' +
+                '<div class="infor-div investigationDiv forhide" id="investDiv" style="padding-top: 1px; padding-bottom: 1px;"><div class="tags">Investigations:</div><div class="value">' + (state.report.uniquetestArray || '') + '</div></div>' +
             '</div>' +
             '<div class="right2"><div>' +
-                '<div class="registered-div2"><div class="registeration-tag2">Registered on:</div>' +
+                '<div class="registered-div2" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Registered on:</div>' +
                     '<div class="time-div">' + formatDateTime(safeDateISO(state.report.date) + 'T' + (state.report.time || '')) + '</div></div>' +
-                '<div class="registered-div2 forhide"><div class="registeration-tag2">Collected on:</div>' +
+                '<div class="registered-div2 forhide" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Collected on:</div>' +
                     '<div class="time-div">' + formatDateTime(state.report.collectedOn) + '</div></div>' +
-                '<div class="registered-div2 forhide"><div class="registeration-tag2">Received on:</div>' +
+                '<div class="registered-div2 forhide" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Received on:</div>' +
                     '<div class="time-div">' + formatDateTime(state.report.receivedOn) + '</div></div>' +
-                '<div class="registered-div2"><div class="registeration-tag2">Reported on:</div>' +
+                '<div class="registered-div2" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Reported on:</div>' +
                     '<div class="time-div">' + formatDateTime(state.report.reportedOn) + '</div></div>' +
             '</div></div>' +
             '<div class="barcode-div2"><div class="barcode2"><div id="barcodeContainer2">' +

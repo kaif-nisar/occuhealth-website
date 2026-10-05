@@ -851,6 +851,14 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                             .time-div {
                                 width: 40% !important;
                             }
+                            .infor-div {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
+                            }
+                            .registered-div2 {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
+                            }
                         </style>
                     </head>
                     <body>
@@ -1194,6 +1202,14 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                             }
                             #investDiv {
                             display: ${showInvest ? 'flex' : 'none'} !important;
+                            }
+                            .infor-div {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
+                            }
+                            .registered-div2 {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
                             }
                         </style>
                     </head>
@@ -1925,6 +1941,14 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                             }
                         .time-div {
                             width: 40% !important;
+                        }
+                        .infor-div {
+                            padding-top: 1px !important;
+                            padding-bottom: 1px !important;
+                        }
+                        .registered-div2 {
+                            padding-top: 1px !important;
+                            padding-bottom: 1px !important;
                         }
                     </style>
                 </head>

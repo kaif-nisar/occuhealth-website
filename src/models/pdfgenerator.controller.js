@@ -351,6 +351,14 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, showInvest, BoldRow, HLinred
                             .time-div {
                                 width: 40% !important;
                             }
+                            .infor-div {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
+                            }
+                            .registered-div2 {
+                                padding-top: 1px !important;
+                                padding-bottom: 1px !important;
+                            }
                         </style>
                     </head>
                     <body>

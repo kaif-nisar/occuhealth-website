@@ -33,6 +33,7 @@
             border-radius: var(--radius);
             background: #fff;
             scrollbar-gutter: stable;
+            padding-bottom: 24px;
         }
         .container-allcases::-webkit-scrollbar {
             height: 8px;
@@ -311,10 +312,12 @@
 
         /* ============ ACTION BUTTONS ============ */
         /* --- Action column cell --- */
-        table td.actions {
-            position: relative;
+        /* ============ ACTION BUTTONS ============ */
+        /* --- Action column cell & header --- */
+        table td.actions,
+        table th.actions-th {
             white-space: nowrap;
-            min-width: 200px;
+            min-width: 220px;
         }
 
         /* --- Actions flex wrapper --- */
@@ -382,44 +385,59 @@
             color: #6b7280;
             font-size: 15px;
             transition: background 0.2s, color 0.2s;
-            margin-left: 10px;
+            margin-left: 4px;
             user-select: none;
             flex-shrink: 0;
+            border: none;
+            background: transparent;
+            padding: 0;
         }
-        .more-options:hover {
-            background: #f3f4f6;
-            color: #374151;
+        .more-options:hover,
+        .more-options.is-active,
+        .more-options:focus-visible {
+            background: #e5e7eb;
+            color: #111827;
+            outline: none;
         }
 
-        /* ---- Dropdown Menu ---- */
+        /* ---- Dropdown Menu (Fixed Popover outside scroll container) ---- */
         .allcases-dropdown-menu {
-            position: absolute;
-            top: calc(100% + 4px);
-            right: 4px;
+            position: fixed !important;
             background-color: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             padding: 6px 0;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-            z-index: 1000;
-            min-width: 170px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2), 0 3px 10px rgba(0, 0, 0, 0.08);
+            z-index: 2147483647 !important;
+            min-width: 190px;
+            max-height: calc(100vh - 20px);
+            overflow-y: auto;
             animation: dropdownFadeIn 0.15s ease-out;
+            margin: 0;
+            pointer-events: auto;
+        }
+        .allcases-dropdown-menu.dropup {
+            transform-origin: bottom left;
+        }
+        .allcases-dropdown-menu.dropdown {
+            transform-origin: top left;
         }
         @keyframes dropdownFadeIn {
-            from { opacity: 0; transform: translateY(-6px); }
+            from { opacity: 0; transform: translateY(-4px); }
             to   { opacity: 1; transform: translateY(0); }
         }
         .allcases-dropdown-menu a {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             padding: 9px 16px;
             text-decoration: none;
-            color: #333;
+            color: #374151;
             font-size: 13px;
             font-weight: 500;
             transition: background 0.15s, color 0.15s;
             white-space: nowrap;
+            cursor: pointer;
         }
         .allcases-dropdown-menu a i {
             width: 16px;
@@ -429,19 +447,23 @@
         }
         .allcases-dropdown-menu a:hover {
             background-color: #f3f4f6;
-            color: #111;
+            color: #111827;
         }
         .allcases-dropdown-menu a:hover i {
             color: #0d6efd;
         }
         .allcases-dropdown-menu a.danger-item {
-            color: #d9534f;
+            color: #dc2626;
         }
         .allcases-dropdown-menu a.danger-item i {
-            color: #d9534f;
+            color: #dc2626;
         }
         .allcases-dropdown-menu a.danger-item:hover {
             background-color: #fef2f2;
+            color: #b91c1c;
+        }
+        .allcases-dropdown-menu a.danger-item:hover i {
+            color: #b91c1c;
         }
 
         .ModifyCase i {
@@ -762,6 +784,7 @@
             <table id="bookings-table">
                 <thead>
                     <tr>
+                        <th class="actions-th">Actions</th>
                         <th>Booking No.</th>
                         <th>Date</th>
                         <th>Patient</th>
@@ -770,7 +793,6 @@
                         <th>Status</th>
                         <th>Print Status</th>
                         <th>Attachments</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="tbody"></tbody>

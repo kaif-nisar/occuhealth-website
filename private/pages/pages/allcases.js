@@ -373,7 +373,8 @@ async function allcases() {
             row.setAttribute("data-patient-phone", booking.patientPhone);
             row.setAttribute("data-lab-name", booking.labName);
             row.setAttribute("data-updated-at", booking.updatedAt);
-            row.setAttribute("data-created-by", booking.createdBy);
+            row.setAttribute("data-created-by", booking.createdBy || "");
+            row.setAttribute("data-report-ready", booking.isreportready ? "true" : "false");
             const statusStyles = getStatusStyles(booking.status);
             const baseColor = statusStyles.rowBackground;
 
@@ -419,33 +420,29 @@ async function allcases() {
                 </td>
             `;
 
-            // HTML for row - ✅ REMOVED onclick from three dots icon
-            if (booking.isreportready) {
-                row.innerHTML = `
-                <td class="reg-no">${booking.bookingId}</td>
-                <td>${new Date(booking.date).toLocaleDateString()}<br>${booking.time}</td>
-                <td>${booking.patientName}</td>
-                <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
-                <td style="white-space: normal;">${barcodeHtml}</td>
-                <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
-                <td style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
-                ${attachmentHtml}
-                <td class="actions">
+            // Action column HTML (1st column)
+            const actionsHtml = booking.isreportready
+                ? `<td class="actions">
                     <div class="actions-wrapper">
                         <a data-page="reportFormat" class="btn-action btn-primary edit-report"><i class="fa-solid fa-file-lines"></i> View report</a>
                         <a data-page="ModifyCase" class="btn-action btn-outline modify-case-direct"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <button type="button" class="more-options" title="More options" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
                     </div>
-                    <i class="fas fa-ellipsis-h more-options"></i>
-                    <div class="allcases-dropdown-menu" style="display: none;">
-                        <a data-page="labreport" class="download-report"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
-                        <a data-page="ModifyCase" class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
-                        <a class="action-btn generate-bill-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
-                        <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a> 
-                        <a class="action-btn clinical-btn"><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>                               
+                </td>`
+                : `<td class="actions">
+                    <div class="actions-wrapper">
+                        <a data-page="labreport" class="btn-action btn-primary view-bill"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
+                        <a data-page="ModifyCase" class="btn-action btn-outline modify-case-direct"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <button type="button" class="more-options" title="More options" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
                     </div>
                 </td>`;
-            } else {
-                row.innerHTML = `
+
+            row.innerHTML = `
+                ${actionsHtml}
                 <td class="reg-no">${booking.bookingId}</td>
                 <td>${new Date(booking.date).toLocaleDateString()}<br>${booking.time}</td>
                 <td>${booking.patientName}</td>
@@ -454,21 +451,7 @@ async function allcases() {
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
                 <td style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
                 ${attachmentHtml}
-                <td class="actions">
-                    <div class="actions-wrapper">
-                        <a data-page="labreport" class="btn-action btn-primary view-bill"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
-                        <a data-page="ModifyCase" class="btn-action btn-outline modify-case-direct"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                    </div>
-                    <i class="fas fa-ellipsis-h more-options"></i>
-                    <div class="allcases-dropdown-menu" style="display: none;">
-                        <a class="action-btn modify-case" ><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
-                        <a class="action-btn generate-bill-btn"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
-                        <a class="action-btn hold-btn"><i class="fa-solid fa-hands-holding"></i> Hold</a>
-                        <a class="action-btn clinical-btn" ><i class="fa-solid fa-house-chimney-medical"></i> clinical</a>
-                        <a class="action-btn cancel-btn danger-item"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
-                    </div>
-                </td>`;
-            }
+            `;
 
             tableBody.appendChild(row);
         });
@@ -774,65 +757,272 @@ async function allcases() {
         }
     }
 
+    // Dropdown popover management (outside scroll container so it never clips)
+    function closeDropdown() {
+        const existing = document.getElementById("allcases-dropdown-popover");
+        if (existing) {
+            if (existing._trigger) {
+                existing._trigger.classList.remove("is-active");
+                existing._trigger.setAttribute("aria-expanded", "false");
+            }
+            existing.remove();
+        }
+    }
+
+    function positionPopover(popover, triggerBtn, row) {
+        if (!popover || !triggerBtn) return;
+
+        const triggerRect = triggerBtn.getBoundingClientRect();
+        const menuWidth = popover.offsetWidth || 190;
+        const menuHeight = popover.offsetHeight || 220;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+        // Is this one of the bottom rows of the table?
+        const isLastRow = row ? !row.nextElementSibling : false;
+        const isSecondLastRow = row && row.nextElementSibling ? !row.nextElementSibling.nextElementSibling : false;
+
+        // Intelligent placement: flip upwards (dropup) for last rows or if space below is limited
+        let openUpwards = false;
+        if (spaceBelow < menuHeight + 10) {
+            openUpwards = spaceAbove >= menuHeight || spaceAbove > spaceBelow;
+        } else if ((isLastRow || isSecondLastRow) && spaceAbove >= menuHeight + 10) {
+            openUpwards = true;
+        }
+
+        let top;
+        let maxHeight = Math.min(380, viewportHeight - 20);
+
+        if (openUpwards) {
+            top = triggerRect.top - menuHeight - 6;
+            if (top < 10) {
+                top = 10;
+                maxHeight = Math.max(120, triggerRect.top - 16);
+            }
+            popover.classList.add("dropup");
+            popover.classList.remove("dropdown");
+        } else {
+            top = triggerRect.bottom + 6;
+            if (top + menuHeight > viewportHeight - 10) {
+                maxHeight = Math.max(120, viewportHeight - top - 10);
+            }
+            popover.classList.add("dropdown");
+            popover.classList.remove("dropup");
+        }
+
+        let left = triggerRect.left;
+        if (left + menuWidth > viewportWidth - 12) {
+            left = triggerRect.right - menuWidth;
+        }
+        if (left < 10) left = 10;
+        if (left + menuWidth > viewportWidth - 10) {
+            left = Math.max(10, viewportWidth - menuWidth - 10);
+        }
+
+        popover.style.maxHeight = `${Math.round(maxHeight)}px`;
+        popover.style.top = `${Math.round(top)}px`;
+        popover.style.left = `${Math.round(left)}px`;
+    }
+
+    function openDropdownMenu(triggerBtn, row) {
+        if (!triggerBtn || !row) return;
+
+        const currentPopover = document.getElementById("allcases-dropdown-popover");
+        if (currentPopover && currentPopover._trigger === triggerBtn) {
+            closeDropdown();
+            return;
+        }
+
+        closeDropdown();
+
+        triggerBtn.classList.add("is-active");
+        triggerBtn.setAttribute("aria-expanded", "true");
+
+        const bookingId = row.getAttribute("data-booking-id");
+        const createdBy = row.getAttribute("data-created-by") || "";
+        const isReportReady = row.getAttribute("data-report-ready") === "true";
+
+        const popover = document.createElement("div");
+        popover.id = "allcases-dropdown-popover";
+        popover.className = "allcases-dropdown-menu allcases-floating-popover";
+        popover._trigger = triggerBtn;
+        popover._row = row;
+        popover.dataset.bookingId = bookingId;
+        popover.dataset.createdBy = createdBy;
+
+        if (isReportReady) {
+            popover.innerHTML = `
+                <a href="javascript:void(0)" class="dropdown-item" data-action="download-report"><i class="fa-solid fa-pen-to-square"></i> Enter result</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="modify-case"><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="generate-bill"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="hold"><i class="fa-solid fa-hands-holding"></i> Hold</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="clinical"><i class="fa-solid fa-house-chimney-medical"></i> Clinical</a>
+            `;
+        } else {
+            popover.innerHTML = `
+                <a href="javascript:void(0)" class="dropdown-item" data-action="modify-case"><i class="fa-solid fa-pen-to-square"></i> Modify Case</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="generate-bill"><i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="hold"><i class="fa-solid fa-hands-holding"></i> Hold</a>
+                <a href="javascript:void(0)" class="dropdown-item" data-action="clinical"><i class="fa-solid fa-house-chimney-medical"></i> Clinical</a>
+                <a href="javascript:void(0)" class="dropdown-item danger-item" data-action="cancel"><i class="fa-solid fa-rectangle-xmark"></i> Cancel</a>
+            `;
+        }
+
+        document.body.appendChild(popover);
+
+        // Position popover intelligently
+        positionPopover(popover, triggerBtn, row);
+
+        // Direct action click handler on the floating menu
+        popover.addEventListener("click", async (ev) => {
+            const item = ev.target.closest("[data-action]");
+            if (!item) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            const action = item.getAttribute("data-action");
+            closeDropdown();
+            await handleAction(action, bookingId, createdBy, row);
+        });
+    }
+
+    async function handleAction(action, bookingId, createdBy, row) {
+        if (!bookingId) return;
+
+        if (action === "download-report") {
+            const booking = await getBookingDetails(bookingId);
+            if (!booking) return;
+            saveBookingToLocalStorage(booking, row);
+            window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
+        }
+        else if (action === "modify-case") {
+            const booking = await getBookingDetails(bookingId);
+            if (!booking) return;
+            saveBookingToLocalStorage(booking, row);
+            window.location.href = `${BASE_URL}/admin/admin.html?page=ModifyCase&value1=${booking.bookingId}`;
+        }
+        else if (action === "generate-bill") {
+            const booking = await getBookingDetails(bookingId);
+            if (!booking) return;
+            openBillModal(booking);
+        }
+        else if (action === "hold") {
+            const reason = window.prompt("Enter the reason for putting this booking on Hold:");
+            if (!reason || !reason.trim()) return alert("A Hold reason is required.");
+            const confirmation = window.confirm("Are you want to update the status as 'Hold'");
+            if (!confirmation) return;
+
+            await updatebookingStatus(bookingId, "Hold", reason);
+
+            if (user.tenantId.modelType !== "1layer") {
+                showPopup(bookingId, createdBy);
+                await fetchMessages(bookingId);
+            }
+
+            await fetchBookings(currentPage);
+        }
+        else if (action === "clinical") {
+            const reason = window.prompt("Enter the reason for marking this booking Clinical:");
+            if (!reason || !reason.trim()) return alert("A Clinical reason is required.");
+            const confirmation = window.confirm("Are you want to update the status as 'Clinical'");
+            if (!confirmation) return;
+
+            await updatebookingStatus(bookingId, "Clinical", reason);
+
+            if (user.tenantId.modelType !== "1layer") {
+                showPopup(bookingId, createdBy);
+                await fetchMessages(bookingId);
+            }
+
+            await fetchBookings(currentPage);
+        }
+        else if (action === "cancel") {
+            const reason = window.prompt("Enter the cancellation reason:");
+            if (!reason || !reason.trim()) return alert("A cancellation reason is required.");
+            const confirmation = window.confirm("Are you sure you want to cancel this booking?");
+            if (!confirmation) return;
+
+            const loadingMsg = document.createElement('div');
+            loadingMsg.textContent = 'Processing cancellation...';
+            loadingMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:5px;z-index:99999';
+            document.body.appendChild(loadingMsg);
+            try {
+                const response = await fetch(`${BASE_URL}/api/v1/user/bookings/cancel`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ bookingId, reason: reason.trim() })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const res = await response.json();
+
+                if (res.success || response.ok) {
+                    if (user.tenantId.modelType !== "1layer") {
+                        showPopup(bookingId, createdBy);
+                        await fetchMessages(bookingId);
+                    }
+                    alert(res.message || 'Booking cancelled successfully');
+                    await fetchBookings(currentPage);
+                } else {
+                    throw new Error(res.message || 'Failed to cancel booking');
+                }
+
+            } catch (error) {
+                console.error('Cancellation error:', error.message);
+
+                let errorMessage = 'Failed to cancel booking. ';
+
+                if (error.message.includes('Network')) {
+                    errorMessage += 'Please check your internet connection.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage += 'Request timed out. Please try again.';
+                } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                    errorMessage += 'Session expired. Please login again.';
+                } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                    errorMessage += 'You do not have permission to cancel this booking.';
+                } else if (error.message.includes('404')) {
+                    errorMessage += 'Booking not found.';
+                } else {
+                    errorMessage += error.message || 'Please try again later.';
+                }
+
+                alert(errorMessage);
+            } finally {
+                if (loadingMsg && loadingMsg.parentNode) {
+                    loadingMsg.parentNode.removeChild(loadingMsg);
+                }
+            }
+        }
+    }
+
     // Event delegation for table actions
     const tableBody = document.getElementById("tbody");
     if (tableBody) {
         tableBody.addEventListener("click", async function (e) {
-            e.preventDefault();
             const target = e.target.closest("a, .more-options");
             if (!target) return;
+            e.preventDefault();
 
-            // ✅ NEW: Handle three dots dropdown toggle
-            // The container uses overflow-x: auto which clips absolutely-
-            // positioned children vertically. To render cleanly above the
-            // table we re-host the open dropdown in document.body with a
-            // fixed position derived from the trigger's bounding rect.
-            if (target.classList.contains("more-options")) {
-                const row = target.closest("tr");
-                const dropdown = target.nextElementSibling;
-                if (dropdown && dropdown.classList.contains("allcases-dropdown-menu")) {
-                    // Close all other dropdowns first (and remove any body popover)
-                    document.querySelectorAll(".allcases-dropdown-menu").forEach(dd => {
-                        dd.style.display = "none";
-                    });
-                    const existingPopover = document.getElementById("allcases-dropdown-popover");
-                    if (existingPopover) existingPopover.remove();
-
-                    // If the dropdown is currently hidden, open it via body popover
-                    const wasHidden = dropdown.style.display === "none";
-                    if (wasHidden) {
-                        // Show the in-place dropdown just long enough to read its size
-                        dropdown.style.display = "block";
-                        const triggerRect = target.getBoundingClientRect();
-                        const dropdownRect = dropdown.getBoundingClientRect();
-
-                        // Build the body popover clone with fixed positioning
-                        const clone = dropdown.cloneNode(true);
-                        clone.id = "allcases-dropdown-popover";
-                        clone.style.display = "block";
-                        clone.style.position = "fixed";
-                        clone.style.top = Math.round(triggerRect.bottom + 4) + "px";
-                        clone.style.left = Math.round(triggerRect.right - dropdownRect.width) + "px";
-                        clone.style.zIndex = 9999;
-                        clone.style.margin = "0";
-                        // Store the booking id on the popover itself (the clone
-                        // has no parent <tr> once moved to document.body).
-                        const rowBookingId = row ? row.getAttribute("data-booking-id") : "";
-                        if (rowBookingId) clone.dataset.bookingId = rowBookingId;
-                        document.body.appendChild(clone);
-
-                        // Hide the in-table placeholder (it is clipped by the
-                        // container's overflow-x, so we render the real menu
-                        // above everything on the body).
-                        dropdown.style.display = "none";
-                    }
-                }
+            // Handle three dots dropdown toggle
+            if (target.closest(".more-options")) {
+                const triggerBtn = target.closest(".more-options");
+                const row = triggerBtn.closest("tr");
+                openDropdownMenu(triggerBtn, row);
                 return;
             }
 
             const row = target.closest("tr");
-            const bookingId = row.getAttribute("data-booking-id");
-            const createdBy = row.getAttribute("data-created-by");
+            const bookingId = row ? row.getAttribute("data-booking-id") : null;
+            if (!bookingId) return;
 
             if (target.classList.contains("view-bill")) {
                 const booking = await getBookingDetails(bookingId);
@@ -847,172 +1037,80 @@ async function allcases() {
                 const url = `${BASE_URL}/admin/admin.html?page=${effectiveFormat}&value1=${booking.bookingId}`;
                 window.location.href = url;
             }
-            else if (target.classList.contains("download-report")) {
-                const booking = await getBookingDetails(bookingId);
-                if (!booking) return;
-                saveBookingToLocalStorage(booking, row);
-                window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
-            }
-            else if (target.classList.contains("modify-case")) {
-                const booking = await getBookingDetails(bookingId);
-                if (!booking) return;
-                saveBookingToLocalStorage(booking, row);
-                window.location.href = `${BASE_URL}/admin/admin.html?page=ModifyCase&value1=${booking.bookingId}`;
-            }
             else if (target.classList.contains("modify-case-direct")) {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
                 saveBookingToLocalStorage(booking, row);
                 window.location.href = `${BASE_URL}/admin/admin.html?page=ModifyCase&value1=${booking.bookingId}`;
             }
-            else if (target.classList.contains("generate-bill-btn")) {
-                // Close the dropdown once the action is picked
-                const dropdown = target.closest(".allcases-dropdown-menu");
-                if (dropdown) dropdown.style.display = "none";
-
-                const booking = await getBookingDetails(bookingId);
-                if (!booking) return;
-                openBillModal(booking);
-            }
-            else if (target.classList.contains("hold-btn")) {
-                const reason = window.prompt("Enter the reason for putting this booking on Hold:");
-                if (!reason || !reason.trim()) return alert("A Hold reason is required.");
-                const confirmation = window.confirm("Are you want to update the status as 'Hold'");
-                if (!confirmation) return;
-
-                await updatebookingStatus(bookingId, "Hold", reason);
-
-                if (user.tenantId.modelType !== "1layer") {
-                    showPopup(bookingId, createdBy);
-                    await fetchMessages(bookingId);
-                }
-
-                await fetchBookings(currentPage);
-            }
-            else if (target.classList.contains("clinical-btn")) {
-                const reason = window.prompt("Enter the reason for marking this booking Clinical:");
-                if (!reason || !reason.trim()) return alert("A Clinical reason is required.");
-                const confirmation = window.confirm("Are you want to update the status as 'Clinical'");
-                if (!confirmation) return;
-
-                await updatebookingStatus(bookingId, "Clinical", reason);
-
-                if (user.tenantId.modelType !== "1layer") {
-                    showPopup(bookingId, createdBy);
-                    await fetchMessages(bookingId);
-                }
-
-                await fetchBookings(currentPage);
-            }
-            else if (target.classList.contains("cancel-btn")) {
-                const reason = window.prompt("Enter the cancellation reason:");
-                if (!reason || !reason.trim()) return alert("A cancellation reason is required.");
-                const confirmation = window.confirm("Are you sure you want to cancel this booking?");
-                if (!confirmation) return;
-
-                const loadingMsg = document.createElement('div');
-                loadingMsg.textContent = 'Processing cancellation...';
-                loadingMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:5px;z-index:9999';
-                document.body.appendChild(loadingMsg);
-                try {
-                    const response = await fetch(`${BASE_URL}/api/v1/user/bookings/cancel`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ bookingId, reason: reason.trim() })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
-                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                    }
-
-                    const res = await response.json();
-
-                    if (res.success || response.ok) {
-                        if (user.tenantId.modelType !== "1layer") {
-                            showPopup(bookingId, createdBy);
-                            await fetchMessages(bookingId);
-                        }
-                        alert(res.message || 'Booking cancelled successfully');
-                        await fetchBookings(currentPage);
-                    } else {
-                        throw new Error(res.message || 'Failed to cancel booking');
-                    }
-
-                } catch (error) {
-                    console.error('Cancellation error:', error.message);
-
-                    let errorMessage = 'Failed to cancel booking. ';
-
-                    if (error.message.includes('Network')) {
-                        errorMessage += 'Please check your internet connection.';
-                    } else if (error.message.includes('timeout')) {
-                        errorMessage += 'Request timed out. Please try again.';
-                    } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-                        errorMessage += 'Session expired. Please login again.';
-                    } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
-                        errorMessage += 'You do not have permission to cancel this booking.';
-                    } else if (error.message.includes('404')) {
-                        errorMessage += 'Booking not found.';
-                    } else {
-                        errorMessage += error.message || 'Please try again later.';
-                    }
-
-                    alert(errorMessage);
-                } finally {
-                    if (loadingMsg && loadingMsg.parentNode) {
-                        loadingMsg.parentNode.removeChild(loadingMsg);
-                    }
-                }
-            }
         });
 
-        // ✅ NEW: Close dropdowns when clicking outside
-        document.addEventListener("click", (event) => {
-            if (!event.target.closest(".more-options") && !event.target.closest(".allcases-dropdown-menu")) {
-                document.querySelectorAll(".allcases-dropdown-menu").forEach((dropdown) => {
-                    dropdown.style.display = "none";
-                });
-                const existingPopover = document.getElementById("allcases-dropdown-popover");
-                if (existingPopover) existingPopover.remove();
-            }
-        });
+        // Clean up previous event listeners if re-entering this page
+        if (window._allcasesCleanupDropdown) {
+            window._allcasesCleanupDropdown();
+        }
 
-        // ✅ NEW: Handle clicks on the body-level dropdown popover (cloned
-        // from the in-table menu to avoid overflow clipping). The popover
-        // lives outside #tbody, so the tableBody delegation above cannot
-        // see it — we delegate on document instead.
-        document.addEventListener("click", async function (e) {
+        const handleDocClick = (event) => {
             const popover = document.getElementById("allcases-dropdown-popover");
             if (!popover) return;
-            const item = e.target.closest("a");
-            if (!item || !popover.contains(item)) return;
+            // If click inside popover or on the trigger button, keep it open
+            if (popover.contains(event.target) || (popover._trigger && popover._trigger.contains(event.target))) {
+                return;
+            }
+            closeDropdown();
+        };
 
-            e.preventDefault();
-            e.stopPropagation();
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                closeDropdown();
+            }
+        };
 
-            // Remove the popover immediately
-            popover.remove();
+        let scrollRafId = null;
+        const handleScrollOrResize = (event) => {
+            const popover = document.getElementById("allcases-dropdown-popover");
+            if (!popover) return;
 
-            const bookingId = popover.dataset.bookingId || null;
-            if (!bookingId) return;
-
-            if (item.classList.contains("generate-bill-btn")) {
-                const booking = await getBookingDetails(bookingId);
-                if (!booking) return;
-                openBillModal(booking);
+            // If scrolling inside the popover itself, keep it open
+            if (event && event.target && (event.target === popover || popover.contains(event.target))) {
                 return;
             }
 
-            // Re-dispatch other actions (modify, hold, clinical, cancel, etc.)
-            // by simulating a click on the matching in-table element.
-            const inTableItem = document.querySelector(`#tbody tr[data-booking-id="${CSS.escape(bookingId)}"] .allcases-dropdown-menu a.${item.className.split(" ").join(".")}`);
-            if (inTableItem) {
-                inTableItem.click();
-            }
-        });
+            if (scrollRafId) cancelAnimationFrame(scrollRafId);
+            scrollRafId = requestAnimationFrame(() => {
+                const current = document.getElementById("allcases-dropdown-popover");
+                if (!current || !current._trigger) return;
+
+                const triggerRect = current._trigger.getBoundingClientRect();
+                // If the trigger button scrolled completely offscreen, close dropdown
+                if (
+                    triggerRect.bottom < 0 ||
+                    triggerRect.top > window.innerHeight ||
+                    triggerRect.right < 0 ||
+                    triggerRect.left > window.innerWidth
+                ) {
+                    closeDropdown();
+                    return;
+                }
+
+                // Smoothly reposition as the table or window scrolls
+                positionPopover(current, current._trigger, current._row);
+            });
+        };
+
+        document.addEventListener("click", handleDocClick, true);
+        document.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("scroll", handleScrollOrResize, { capture: true, passive: true });
+        window.addEventListener("resize", handleScrollOrResize, { passive: true });
+
+        window._allcasesCleanupDropdown = () => {
+            document.removeEventListener("click", handleDocClick, true);
+            document.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("scroll", handleScrollOrResize, { capture: true });
+            window.removeEventListener("resize", handleScrollOrResize);
+            if (scrollRafId) cancelAnimationFrame(scrollRafId);
+            closeDropdown();
+        };
     }
 
     function showPopup(bookingId, createdBy) {
@@ -1204,7 +1302,7 @@ async function allcases() {
     }
 
     function saveBookingToLocalStorage(booking, row) {
-        const regId = row.cells[0].innerText;
+        const regId = (row && row.querySelector(".reg-no")) ? row.querySelector(".reg-no").innerText.trim() : (booking ? booking.bookingId : "");
         localStorage.setItem("booking", JSON.stringify(booking));
         localStorage.setItem("regId", JSON.stringify(regId));
     }
@@ -1607,15 +1705,6 @@ async function allcases() {
     const fromDateInput = document.getElementById("from-date");
     const toDateInput = document.getElementById("to-date");
     await fetchBookings(1);
-
-    // Close all dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.more-options') && !e.target.closest('.allcases-dropdown-menu')) {
-            document.querySelectorAll('.allcases-dropdown-menu').forEach(dd => {
-                dd.style.display = 'none';
-            });
-        }
-    });
 }
 
 async function initialization() {
