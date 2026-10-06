@@ -95,6 +95,7 @@
                 testEl.id = "tests-name-div";
                 testEl.setAttribute('sampletype', test.sampleType);
                 testEl.setAttribute('data-id', test._id);
+                if (test.Short_name) testEl.setAttribute('shortname', test.Short_name);
                 testEl.textContent = test.Name;
 
                 testEl.addEventListener("click", () => toggleTestSelection(testEl));
@@ -176,7 +177,8 @@
             let found = false;
 
             tests.forEach(test => {
-                if (test.textContent.toLowerCase().includes(value)) {
+                const shortname = (test.getAttribute('shortname') || '').toLowerCase();
+                if (test.textContent.toLowerCase().includes(value) || (shortname && shortname.includes(value))) {
                     test.style.display = 'block';
                     found = true;
                 } else {
@@ -194,6 +196,8 @@
     function savePanel() {
         document.querySelector('.save').addEventListener('click', async () => {
             const nameField = document.getElementById('name');
+            const shortNameField = document.getElementById('short-name');
+            const shortName = shortNameField ? shortNameField.value.trim() : "";
             const price = document.getElementById("price").value;
             const finalPrice = document.getElementById("final-price").value;
             const interpretation = editor.getData();
@@ -225,6 +229,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         pannelname: nameField.value.trim(),
+                        Short_name: shortName,
                         rawPrice: price,
                         final_price: finalPrice,
                         category,

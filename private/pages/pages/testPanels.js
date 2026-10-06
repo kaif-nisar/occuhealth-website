@@ -26,7 +26,7 @@
 
 //         row.innerHTML = `
 //         <td>${orderId}</td>
-//         <td>${pannel.name}</td>
+//         <td>${pannel.name}${pannel.Short_name ? ` <span style="color:#6c757d;font-size:0.85em;font-weight:normal;">(${pannel.Short_name})</span>` : ''}</td>
 //         <td>${pannel.category}</td>
 //         <td>${pannel.price}</td>
 //         <td>${pannel.tests}</td>
@@ -94,7 +94,7 @@ async function populatePannelsTable(pannels) {
 
         row.innerHTML = `
             <td class="order"><i class="fa-solid fa-up-down"></i>${pannel.order}</td>
-            <td>${pannel.name}</td>
+            <td>${pannel.name}${pannel.Short_name ? ` <span style="color:#6c757d;font-size:0.85em;font-weight:normal;">(${pannel.Short_name})</span>` : ''}</td>
             <td>${pannel.category.category}</td>
             <td>${pannel.price}</td>
             <td class="pannelTests">${pannel.tests}</td>

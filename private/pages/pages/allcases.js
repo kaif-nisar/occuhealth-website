@@ -1028,7 +1028,7 @@ async function allcases() {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
                 saveBookingToLocalStorage(booking, row);
-                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, "_blank");
+                window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
             }
             else if (target.classList.contains("edit-report")) {
                 const booking = await getBookingDetails(bookingId);

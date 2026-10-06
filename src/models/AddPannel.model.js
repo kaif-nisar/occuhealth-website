@@ -10,6 +10,10 @@ const pannelSchema = new Schema(
       type: String,
       required: true,
     },
+    Short_name: {
+      type: String,
+      default: "",
+    },
     category: {
       type: Object,
     },

@@ -19,7 +19,9 @@ const addpannelcontroller = asyncHandler(async (req, res) => {
     hideInterpretation,
     hideMethodInstrument,
     final_price,
-    testsId
+    testsId,
+    Short_name,
+    short_name
   } = req.body;
 
   let userId
@@ -58,6 +60,7 @@ const addpannelcontroller = asyncHandler(async (req, res) => {
   const createPannel = {
     order: nextOrder,
     name: pannelname,
+    Short_name: typeof Short_name === "string" ? Short_name.trim() : (typeof short_name === "string" ? short_name.trim() : ""),
     category,
     price,
     tests: inputarray,
@@ -123,7 +126,9 @@ const addpannelcontrollerforadmin = asyncHandler(async (req, res) => {
     hideInterpretation,
     hideMethodInstrument,
     final_price,
-    testsId
+    testsId,
+    Short_name,
+    short_name
   } = req.body;
 
 
@@ -172,6 +177,7 @@ const addpannelcontrollerforadmin = asyncHandler(async (req, res) => {
     hideInterpretation,
     hideMethodInstrument,
     final_price,
+    Short_name: typeof Short_name === "string" ? Short_name.trim() : (typeof short_name === "string" ? short_name.trim() : ""),
     createdBy: userId, // add the super admin id to the test
     originalPanelId: null,
     isBasePanel: true, // Set to true if this is a base test
@@ -271,12 +277,16 @@ const editPannelController = asyncHandler(async (req, res) => {
     interpretation,
     hideInterpretation,
     hideMethodInstrument,
-    testsId
+    testsId,
+    Short_name,
+    short_name
   } = req.body;
 
   if (!final_price || !pannelname || !category || !price) {
     return res.status(401).json({ message: "missing required feilds", status: "error" })
   }
+
+  const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : (typeof short_name === "string" ? short_name.trim() : undefined);
 
   const editedPannel = await addPannel.findOneAndUpdate(
     {
@@ -284,6 +294,7 @@ const editPannelController = asyncHandler(async (req, res) => {
     },
     {
       name: pannelname,
+      ...(normalizedShortName !== undefined ? { Short_name: normalizedShortName } : {}),
       category,
       price,
       tests: inputarray,
@@ -342,12 +353,16 @@ const adminEditPannelController = asyncHandler(async (req, res) => {
     interpretation,
     hideInterpretation,
     hideMethodInstrument,
-    testsId
+    testsId,
+    Short_name,
+    short_name
   } = req.body;
 
   if (!final_price || !pannelname || !category || !price) {
     return res.status(401).json({ message: "missing required feilds", status: "error" })
   }
+
+  const normalizedShortName = typeof Short_name === "string" ? Short_name.trim() : (typeof short_name === "string" ? short_name.trim() : undefined);
 
   const editedPannel = await addPannel.findOneAndUpdate(
     {
@@ -355,6 +370,7 @@ const adminEditPannelController = asyncHandler(async (req, res) => {
     },
     {
       name: pannelname,
+      ...(normalizedShortName !== undefined ? { Short_name: normalizedShortName } : {}),
       category,
       price,
       tests: inputarray,

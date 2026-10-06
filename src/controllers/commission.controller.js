@@ -614,6 +614,7 @@ const getAssignedPanels = async (req, res) => {
           $project: {
             panelId: "$_id",
             panelName: "$name",
+            Short_name: "$Short_name",
             basePrice: { $ifNull: ["$price", 0] },
             tests: { $ifNull: ["$tests", []] },
             mrpPrice: { $ifNull: ["$final_price", 0] },
@@ -641,6 +642,7 @@ const getAssignedPanels = async (req, res) => {
           $project: {
             panelId: 1,
             panelName: 1,
+            Short_name: 1,
             basePrice: 1,
             tests: 1,
             mrpPrice: 1,
@@ -692,6 +694,7 @@ const getAssignedPanels = async (req, res) => {
           $project: {
             panelId: "$_id",
             panelName: "$name",
+            Short_name: "$Short_name",
             basePrice: { $ifNull: ["$price", 0] },
             tests: { $ifNull: ["$tests", []] },
             mrpPrice: { $ifNull: ["$final_price", 0] },
@@ -743,6 +746,7 @@ const getAssignedPanels = async (req, res) => {
           $project: {
             panelId: 1,
             panelName: 1,
+            Short_name: 1,
             basePrice: 1,
             tests: 1,
             mrpPrice: 1,

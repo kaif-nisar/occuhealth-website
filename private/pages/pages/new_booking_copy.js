@@ -51,7 +51,8 @@ async function bookingload() {
                 testElement.setAttribute('sample-Type', panel.sampleType);
                 testElement.setAttribute('data-id', panel.panelId)
                 testElement.setAttribute('data-collection', "addPannel")
-
+                const panelShortName = panel.Short_name || panel.short_name || panel.shortName || '';
+                if (panelShortName) testElement.setAttribute('shortname', panelShortName);
                 testElement.innerText = `${panel.panelName}`;
                 testSelection.appendChild(testElement);
             });
@@ -304,18 +305,64 @@ async function bookingload() {
         });
     }
 
-    function filterTests() {
-        const searchQuery = document.getElementById('selectTestDivforSearch').value.toLowerCase();
-        let allOptions = document.querySelectorAll(".tests-name-option");
+    function getNbcSearchScore(s, t, q) {
+        const shortExact = s && s === q;
+        const shortStartsWith = s && s.startsWith(q);
+        const shortIncludes = s && s.includes(q);
+        const textExact = t === q;
+        const textStartsWith = t.startsWith(q);
+        const textWordStartsWith = t.split(/\s+/).some(w => w.startsWith(q));
+        const textIncludes = t.includes(q);
 
-        allOptions.forEach(option => {
-            // Check if the option text includes the search query
-            if (option.innerText.toLowerCase().includes(searchQuery) || option.getAttribute('shortname')?.toLowerCase()?.includes(searchQuery)) {
-                option.style.display = "";  // Show the option
+        if (!shortIncludes && !textIncludes) return 0;
+        if (shortExact) return 10000;
+        if (shortStartsWith) return 5000;
+        if (shortIncludes) return 2000;
+        if (textExact) return 1000;
+        if (textStartsWith) return 800;
+        if (textWordStartsWith) return 500;
+        if (textIncludes) return 100;
+        return 0;
+    }
+
+    let nbcOptionsCache = [];
+    function filterTests() {
+        const searchQuery = (document.getElementById('selectTestDivforSearch')?.value || '').trim().toLowerCase();
+        const testSelection = document.getElementById('test-selection');
+        if (!testSelection) return;
+        if (nbcOptionsCache.length !== testSelection.children.length) {
+            nbcOptionsCache = Array.from(testSelection.querySelectorAll(".tests-name-option")).map((el, i) => ({
+                element: el,
+                text: (el.innerText || el.textContent || '').trim().toLowerCase(),
+                shortname: (el.getAttribute('shortname') || '').trim().toLowerCase(),
+                initialIndex: i
+            }));
+        }
+
+        if (!searchQuery) {
+            nbcOptionsCache.slice().sort((a, b) => a.initialIndex - b.initialIndex).forEach(item => {
+                testSelection.appendChild(item.element);
+                item.element.style.display = "";
+            });
+            return;
+        }
+
+        const scored = [];
+        nbcOptionsCache.forEach(item => {
+            const score = getNbcSearchScore(item.shortname, item.text, searchQuery);
+            if (score > 0) {
+                item.element.style.display = "";
+                scored.push({ item, score });
             } else {
-                option.style.display = "none";  // Hide the option
+                item.element.style.display = "none";
             }
         });
+
+        scored.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.item.initialIndex - b.item.initialIndex;
+        });
+        scored.forEach(entry => testSelection.appendChild(entry.item.element));
     }
 
     // Attach search event listener

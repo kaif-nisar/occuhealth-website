@@ -188,7 +188,8 @@ async function bookingload() {
             panelData.forEach(panel => {
                 const span = createTestElement(panel, 'addPannel', {
                     price: panel.myPrice || panel.finalPrice || panel.basePrice || 0,
-                    name: panel.panelName
+                    name: panel.panelName,
+                    shortname: panel.Short_name || panel.short_name || panel.shortName || ''
                 });
                 fragment.appendChild(span);
             });
@@ -309,6 +310,9 @@ async function bookingload() {
         selectedTag.setAttribute('data-price', testPrice);
         selectedTag.setAttribute('data-id', testId);
         selectedTag.setAttribute('data-collection', collectionName);
+        if (test.getAttribute('shortname')) {
+            selectedTag.setAttribute('shortname', test.getAttribute('shortname'));
+        }
 
         // FIX: Mark as selected and hide immediately
         test.classList.add('selected');
@@ -462,6 +466,37 @@ async function bookingload() {
         }
     }
 
+    function getSearchScore(item, q) {
+        const s = item.shortname;
+        const t = item.text;
+
+        const shortExact = s && s === q;
+        const shortStartsWith = s && s.startsWith(q);
+        const shortIncludes = s && s.includes(q);
+
+        const textExact = t === q;
+        const textStartsWith = t.startsWith(q);
+        const textWordStartsWith = t.split(/\s+/).some(w => w.startsWith(q));
+        const textIncludes = t.includes(q);
+
+        if (!shortIncludes && !textIncludes) {
+            return 0;
+        }
+
+        // Priority 1: Short Name match
+        if (shortExact) return 10000;
+        if (shortStartsWith) return 5000;
+        if (shortIncludes) return 2000;
+
+        // Priority 2: Full Name match
+        if (textExact) return 1000;
+        if (textStartsWith) return 800;
+        if (textWordStartsWith) return 500;
+        if (textIncludes) return 100;
+
+        return 0;
+    }
+
     let testOptionsCache = [];
     function updateTestOptionsCache() {
         testOptionsCache = [];
@@ -471,8 +506,9 @@ async function bookingload() {
             const child = children[i];
             testOptionsCache.push({
                 element: child,
-                text: child.textContent.toLowerCase(),
-                shortname: (child.getAttribute('shortname') || '').toLowerCase()
+                text: (child.textContent || '').trim().toLowerCase(),
+                shortname: (child.getAttribute('shortname') || '').trim().toLowerCase(),
+                initialIndex: i
             });
         }
     }
@@ -481,11 +517,44 @@ async function bookingload() {
         if (!testOptionsCache || testOptionsCache.length === 0) {
             updateTestOptionsCache();
         }
+        const q = (query || '').trim().toLowerCase();
+
+        if (!q) {
+            testOptionsCache
+                .slice()
+                .sort((a, b) => a.initialIndex - b.initialIndex)
+                .forEach(item => {
+                    DOM.testSelection.appendChild(item.element);
+                    if (!item.element.classList.contains('selected')) {
+                        item.element.style.display = '';
+                    }
+                });
+            return;
+        }
+
+        const scoredItems = [];
         for (let i = 0; i < testOptionsCache.length; i++) {
             const item = testOptionsCache[i];
             if (item.element.classList.contains('selected')) continue;
-            item.element.style.display = (!query || item.text.includes(query) || item.shortname.includes(query)) ? '' : 'none';
+            const score = getSearchScore(item, q);
+            if (score > 0) {
+                item.element.style.display = '';
+                scoredItems.push({ item, score });
+            } else {
+                item.element.style.display = 'none';
+            }
         }
+
+        scoredItems.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            return a.item.initialIndex - b.item.initialIndex;
+        });
+
+        scoredItems.forEach(entry => {
+            DOM.testSelection.appendChild(entry.item.element);
+        });
     }
 
     function filterSelectedTests(query) {
