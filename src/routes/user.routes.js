@@ -298,6 +298,10 @@ import {
   recordReportPrintAuditController
 } from "../controllers/printAudit.controller.js";
 import {
+  recordActionAuditController,
+  getActionAuditController
+} from "../controllers/reportActionAudit.controller.js";
+import {
   deleteBookingAttachment,
   getBookingAttachments,
   uploadBookingAttachments,
@@ -1283,5 +1287,9 @@ router.delete("/virtual-accounts/:userId", verifySuperAdmin, authorizeRoles(["su
 router.route("/certificatepdfgenerator").post(verifyJWT, certificatepdfgenerator);
 
 router.route("/updateOrder/:id").put(verifyJWT, updateOrder);
+
+// Button Action and Sign-off Audit routes
+router.route("/record-action-audit").post(verifyJWT, recordActionAuditController);
+router.route("/action-audit/:bookingId").get(verifyJWT, getActionAuditController);
 
 export default router;

@@ -3,30 +3,169 @@
 (function () {
 'use strict';
 
+var BASE_URL = window.BASE_URL || window.location.origin;
+var LETTERHEAD_STORAGE_KEY = 'allReportsLetterheadPreference';
+
 var currentPage = 1, totalPages = 1, totalResults = 0;
 var currentSearch = '', currentField = '', currentStatus = '';
 var currentFromDate = '', currentToDate = '', currentLimit = 10;
 var sortOrder = 'desc', isLoading = false;
+var isDownloading = false, cancelDownload = false;
 
-var searchInput    = document.getElementById('search-input');
-var searchFieldSel = document.getElementById('search-field');
-var searchBtn      = document.getElementById('search-button');
-var clearBtnEl     = document.getElementById('clear-btn');
-var fromDateInput  = document.getElementById('from-date');
-var toDateInput    = document.getElementById('to-date');
-var statusFilterEl = document.getElementById('status-filter');
-var pageSizeSel    = document.getElementById('page-size');
-var tableBody      = document.getElementById('table-body');
-var resultsBar     = document.getElementById('results-bar');
-var resultsInfo    = document.getElementById('results-info');
-var paginationBar  = document.getElementById('pagination-bar');
-var paginationInfo = document.getElementById('pagination-info');
-var paginationBtns = document.getElementById('pagination-btns');
-var statsRow       = document.getElementById('stats-row');
-var sortToggleBtn  = document.getElementById('sort-toggle');
-var sortLabelEl    = document.getElementById('sort-label');
-var sortIconEl     = document.getElementById('sort-icon');
-var resetFiltersBtn = document.getElementById('reset-filters');
+var searchInput         = document.getElementById('search-input');
+var searchFieldSel      = document.getElementById('search-field');
+var searchBtn           = document.getElementById('search-button');
+var clearBtnEl          = document.getElementById('clear-btn');
+var fromDateInput       = document.getElementById('from-date');
+var toDateInput         = document.getElementById('to-date');
+var statusFilterEl      = document.getElementById('status-filter');
+var pageSizeSel         = document.getElementById('page-size');
+var tableBody           = document.getElementById('table-body');
+var resultsBar          = document.getElementById('results-bar');
+var resultsInfo         = document.getElementById('results-info');
+var paginationBar       = document.getElementById('pagination-bar');
+var paginationInfo      = document.getElementById('pagination-info');
+var paginationBtns      = document.getElementById('pagination-btns');
+var statsRow            = document.getElementById('stats-row');
+var sortToggleBtn       = document.getElementById('sort-toggle');
+var sortLabelEl         = document.getElementById('sort-label');
+var sortIconEl          = document.getElementById('sort-icon');
+var resetFiltersBtn     = document.getElementById('reset-filters');
+var selectAllCheckbox   = document.getElementById('selectAllCheckbox');
+var downloadSelectedBtn = document.getElementById('download-selected-reports');
+var mergeSelectedBtn    = document.getElementById('merge-selected-reports');
+var letterheadSeg       = document.getElementById('letterhead-seg');
+var selectedCountEl     = document.getElementById('selected-count');
+var selectionSummary    = document.getElementById('selection-summary');
+
+// ===== LETTERHEAD PREFERENCE (persisted across sessions and pages) =====
+function getLetterheadPreference() {
+  try {
+    var saved = localStorage.getItem(LETTERHEAD_STORAGE_KEY);
+    if (saved === 'with' || saved === 'without') return saved;
+  } catch (e) {}
+  return 'without';
+}
+
+function setLetterheadPreference(value) {
+  var safeValue = value === 'with' ? 'with' : 'without';
+  try {
+    localStorage.setItem(LETTERHEAD_STORAGE_KEY, safeValue);
+  } catch (e) {}
+  syncLetterheadUI(safeValue);
+}
+
+function syncLetterheadUI(value) {
+  var safeValue = value === 'with' ? 'with' : 'without';
+  if (letterheadSeg) {
+    letterheadSeg.querySelectorAll('.seg-option').forEach(function (btn) {
+      var active = btn.getAttribute('data-value') === safeValue;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+}
+
+function initLetterhead() {
+  if (!letterheadSeg) return;
+  letterheadSeg.querySelectorAll('.seg-option').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var val = this.getAttribute('data-value');
+      setLetterheadPreference(val);
+    });
+  });
+  syncLetterheadUI(getLetterheadPreference());
+}
+
+// ===== PATIENT NAME & FILE HELPERS =====
+function isValidPatientName(name) {
+  if (!name || typeof name !== 'string') return false;
+  var trimmed = name.trim();
+  if (!trimmed || trimmed === '-' || trimmed.toUpperCase() === 'N/A' || trimmed.toUpperCase() === 'UNDEFINED' || trimmed.toUpperCase() === 'NULL') {
+    return false;
+  }
+  if (/^\d{1,4}[-/.]\d{1,2}[-/.]\d{2,4}/.test(trimmed) || /^\d{1,2}:\d{2}/.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+function getReportFilename(patientName, bookingId) {
+  var cleanName = String(patientName || '')
+    .normalize('NFKC')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/g, '');
+
+  if (!isValidPatientName(cleanName)) {
+    cleanName = bookingId ? ('Report_' + bookingId) : 'Report';
+  }
+  return cleanName + '.pdf';
+}
+
+// ===== MULTIPLE SELECTION MANAGEMENT =====
+function updateSelectedState() {
+  if (!tableBody) return;
+  var allCheckboxes = tableBody.querySelectorAll('.report-checkbox');
+  var checkedCheckboxes = tableBody.querySelectorAll('.report-checkbox:checked');
+  var total = allCheckboxes.length;
+  var count = checkedCheckboxes.length;
+
+  if (selectAllCheckbox) {
+    if (total === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (count === total) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else if (count > 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    }
+  }
+
+  if (selectedCountEl) selectedCountEl.textContent = count;
+  if (selectionSummary) {
+    selectionSummary.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  if (downloadSelectedBtn) {
+    downloadSelectedBtn.disabled = count === 0;
+    var label = downloadSelectedBtn.querySelector('.btn-label');
+    if (label && !isDownloading) {
+      label.textContent = count > 0 ? ('Download Selected (' + count + ')') : 'Download Selected';
+    }
+  }
+  if (mergeSelectedBtn) {
+    mergeSelectedBtn.style.display = count >= 2 ? 'inline-flex' : 'none';
+  }
+}
+
+if (selectAllCheckbox) {
+  selectAllCheckbox.addEventListener('change', function () {
+    var checked = this.checked;
+    var checkboxes = tableBody.querySelectorAll('.report-checkbox');
+    checkboxes.forEach(function (cb) {
+      cb.checked = checked;
+      var tr = cb.closest('tr');
+      if (tr) tr.classList.toggle('row-selected', checked);
+    });
+    updateSelectedState();
+  });
+}
+
+if (tableBody) {
+  tableBody.addEventListener('change', function (e) {
+    if (e.target && e.target.classList.contains('report-checkbox')) {
+      var tr = e.target.closest('tr');
+      if (tr) tr.classList.toggle('row-selected', e.target.checked);
+      updateSelectedState();
+    }
+  });
+}
 
 // ===== SEARCH TRIGGER =====
 function triggerSearch(page) {
@@ -152,15 +291,24 @@ function fetchBookings() {
     });
 }
 
+// Download-eligible statuses (only completed or partially completed bookings have report documents)
+var DOWNLOAD_ELIGIBLE_STATUSES = ['completed', 'partially completed', 'partial completed', 'partial'];
+
+function isDownloadEligible(status) {
+  var s = (status || '').toLowerCase().trim();
+  return DOWNLOAD_ELIGIBLE_STATUSES.indexOf(s) >= 0;
+}
+
 // ===== RENDER TABLE =====
 function renderTable(bookings) {
   if (!bookings || bookings.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:50px 20px;background:#ffffff;"><div class="es"><div class="ei"><i class="fas fa-inbox"></i></div>' +
+    tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:50px 20px;background:#ffffff;"><div class="es"><div class="ei"><i class="fas fa-inbox"></i></div>' +
       '<div class="et" style="color:#0f172a;font-weight:800;font-size:18px;">No Bookings Found</div><div class="es2" style="color:#334155;font-weight:600;font-size:14px;margin-top:6px;">' +
       (currentSearch
         ? 'No results for &ldquo;<strong style="color:#0f172a;">' + escH(currentSearch) + '</strong>&rdquo;. Try different keywords or adjust filters.'
         : 'No bookings match the selected filters.') +
       '</div></div></td></tr>';
+    updateSelectedState();
     return;
   }
   var offset = (currentPage - 1) * currentLimit;
@@ -182,12 +330,34 @@ function renderTable(bookings) {
 
     var pn  = escH(booking.patientName || '');
     var bid = escH(booking.bookingId || '');
+    var bStatus = (booking.status || '').trim();
+    var eligible = isDownloadEligible(bStatus);
+
+    var bookingIdBtn = eligible
+      ? '<button class="bil" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',null,\'' + escH(bStatus) + '\')" title="Download PDF report">' +
+          '<i class="fas fa-file-pdf" style="font-size:13px;color:#2563eb;"></i> ' + hlM(booking.bookingId || '') +
+        '</button>'
+      : '<button class="bil is-not-ready" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',null,\'' + escH(bStatus) + '\')" title="Report not ready: booking status is ' + escH(bStatus || 'Pending') + '" style="opacity:0.65;background:#f1f5f9;border-color:#cbd5e1;color:#64748b;">' +
+          '<i class="fas fa-lock" style="font-size:11px;color:#94a3b8;"></i> ' + hlM(booking.bookingId || '') +
+        '</button>';
+
+    var actionPdfBtn = eligible
+      ? '<div class="pdf-dropdown-wrap">' +
+          '<button class="rbtn rbp" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',null,\'' + escH(bStatus) + '\')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>' +
+          '<button class="rbtn rbp rbp-drop" onclick="togglePdfDropdown(event,\'' + bid + '\')" title="Format options"><i class="fas fa-caret-down"></i></button>' +
+          '<div class="pdf-dropdown-menu" id="pdf-menu-' + bid + '">' +
+            '<button type="button" class="pdf-dropdown-item" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',\'without\',\'' + escH(bStatus) + '\')"><i class="fas fa-file" style="color:#2563eb;"></i> Without Letterhead</button>' +
+            '<button type="button" class="pdf-dropdown-item" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',\'with\',\'' + escH(bStatus) + '\')"><i class="fas fa-file-signature" style="color:#9333ea;"></i> With Letterhead</button>' +
+          '</div>' +
+        '</div>'
+      : '<button class="rbtn rbp" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\',null,\'' + escH(bStatus) + '\')" title="Report not ready: booking status is ' + escH(bStatus || 'Pending') + '" style="opacity:0.6;cursor:pointer;"><i class="fas fa-lock"></i> PDF</button>';
 
     rows += '<tr>' +
+      '<td style="text-align:center;">' +
+        '<input type="checkbox" class="report-checkbox" data-booking-id="' + bid + '" data-patient-name="' + pn + '" data-status="' + escH(bStatus) + '" aria-label="Select booking ' + bid + '" ' + (eligible ? '' : 'disabled title="Only completed reports can be selected"') + '>' +
+      '</td>' +
       '<td style="font-weight:800;color:#0f172a;font-size:13px;text-align:center;">' + (offset + idx + 1) + '</td>' +
-      '<td><button class="bil" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\')" title="Download PDF report">' +
-        '<i class="fas fa-file-pdf" style="font-size:13px;color:#2563eb;"></i> ' + hlM(booking.bookingId || '') +
-      '</button></td>' +
+      '<td>' + bookingIdBtn + '</td>' +
       '<td>' +
         '<div style="font-weight:800;color:#0f172a;font-size:14.5px;">' + hlM(booking.patientName || '&mdash;') + '</div>' +
         (booking.gender
@@ -203,11 +373,12 @@ function renderTable(bookings) {
       '<td style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;">' + dt + '</td>' +
       '<td><div class="rax">' +
         '<button class="rbtn rbe" onclick="editBooking(\'' + bid + '\')" title="Edit Booking"><i class="fas fa-edit"></i> Edit</button>' +
-        '<button class="rbtn rbp" onclick="downloadPdf(\'' + bid + '\',\'' + pn + '\')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>' +
+        actionPdfBtn +
       '</div></td>' +
       '</tr>';
   });
   tableBody.innerHTML = rows;
+  updateSelectedState();
 }
 
 // ===== STATUS BADGE =====
@@ -264,7 +435,7 @@ function getPageNums(cur, tot) {
   if (tot <= 7) { var a = []; for (var i = 1; i <= tot; i++) a.push(i); return a; }
   var p = [];
   if (cur <= 4) { for (var i = 1; i <= 5; i++) p.push(i); p.push('...'); p.push(tot); }
-  else if (cur >= tot - 3) { p.push(1); p.push('...'); for (var i = total - 4; i <= total; i++) p.push(i); }
+  else if (cur >= tot - 3) { p.push(1); p.push('...'); for (var i = tot - 4; i <= tot; i++) p.push(i); }
   else { p.push(1); p.push('...'); for (var i = cur - 1; i <= cur + 1; i++) p.push(i); p.push('...'); p.push(tot); }
   return p;
 }
@@ -278,12 +449,12 @@ function goToPage(page) {
 
 // ===== LOADING & ERROR STATES =====
 function showLoadingState() {
-  tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:60px 20px;background:#ffffff;"><div class="spin"></div>' +
+  tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:60px 20px;background:#ffffff;"><div class="spin"></div>' +
     '<div style="margin-top:14px;color:#0f172a;font-weight:800;font-size:15px;">Searching bookings...</div></td></tr>';
 }
 
 function renderErrorState() {
-  tableBody.innerHTML = '<tr><td colspan="10"><div class="es"><div class="ei" style="background:#fef2f2;">' +
+  tableBody.innerHTML = '<tr><td colspan="11"><div class="es"><div class="ei" style="background:#fef2f2;">' +
     '<i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i></div>' +
     '<div class="et">Search Failed</div>' +
     '<div class="es2">Could not connect to server. Please check your connection and try again.</div>' +
@@ -292,27 +463,79 @@ function renderErrorState() {
 
 // ===== EDIT BOOKING =====
 function editBooking(id) {
+  var role = (window.user && window.user.role) || window.currentRole || 'admin';
   window.open(
-    BASE_URL + '/' + user.role + '/' + user.role + '.html?page=editbooking&id=' + encodeURIComponent(id),
+    BASE_URL + '/' + role + '/' + role + '.html?page=editbooking&id=' + encodeURIComponent(id),
     '_blank'
   );
 }
 
-// ===== PDF DOWNLOAD =====
-function downloadPdf(bookingId, patientName) {
+// ===== PDF DROPDOWN MENU FOR INDIVIDUAL ROWS =====
+function togglePdfDropdown(event, bookingId) {
+  if (event) event.stopPropagation();
+  var targetMenu = document.getElementById('pdf-menu-' + bookingId);
+  var wasOpen = targetMenu && targetMenu.classList.contains('show');
+  document.querySelectorAll('.pdf-dropdown-menu.show').forEach(function (m) {
+    m.classList.remove('show');
+  });
+  if (targetMenu && !wasOpen) {
+    targetMenu.classList.add('show');
+  }
+}
+
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.pdf-dropdown-wrap')) {
+    document.querySelectorAll('.pdf-dropdown-menu.show').forEach(function (m) {
+      m.classList.remove('show');
+    });
+  }
+});
+
+// ===== PDF DOWNLOAD (SINGLE BOOKING) =====
+function downloadPdf(bookingId, patientName, formatOverride, bookingStatus) {
+  if (bookingStatus && !isDownloadEligible(bookingStatus)) {
+    showToast('Report not ready: Current status is "' + bookingStatus + '". Reports are only available once tests are Completed or Partially Completed.', 'warning');
+    return;
+  }
+
+  var format = formatOverride || getLetterheadPreference();
+  var isWith = (format === 'with');
+  var formatLabel = isWith ? 'With Letterhead' : 'Without Letterhead';
+
   showLoader();
+  showToast('Preparing PDF (' + formatLabel + ')...', 'info');
+
   fetch(BASE_URL + '/api/v1/user/ReportData', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value1: bookingId })
+    body: JSON.stringify({ value1: bookingId, bookingId: bookingId })
   })
-  .then(function (r) { if (!r.ok) throw new Error('Report fetch failed'); return r.json(); })
+  .then(function (r) {
+    if (!r.ok) {
+      return r.json().then(function (errData) {
+        var msg = (errData && errData.message) || 'Report not found for this booking.';
+        throw new Error(msg);
+      }).catch(function (e) {
+        throw new Error(e.message || 'Report not found for this booking.');
+      });
+    }
+    return r.json();
+  })
   .then(function (pd) {
-    if (!pd || !pd._id) { hideLoader(); showToast('Report not found for this booking.', 'error'); return Promise.reject('no-data'); }
+    if (!pd || !pd._id) {
+      hideLoader();
+      showToast('Report not found for this booking. Please ensure test report is saved.', 'error');
+      return Promise.reject('no-data');
+    }
     return fetch(BASE_URL + '/api/v1/user/get-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value1: pd._id, bookingId: bookingId, auditAction: 'DOWNLOAD' })
+      body: JSON.stringify({
+        value1: pd._id,
+        bookingId: bookingId,
+        checkBox: isWith ? false : true,
+        auditAction: 'DOWNLOAD'
+      })
     });
   })
   .then(function (r) { if (!r || !r.ok) throw new Error('PDF generation failed'); return r.blob(); })
@@ -320,12 +543,12 @@ function downloadPdf(bookingId, patientName) {
     var url = URL.createObjectURL(blob);
     var a   = document.createElement('a');
     a.href  = url;
-    a.download = (patientName || 'report') + '.pdf';
+    a.download = getReportFilename(patientName, bookingId);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('PDF downloaded successfully!', 'success');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+    showToast('PDF downloaded successfully! (' + formatLabel + ')', 'success');
     try {
       if (window.ReportPrintAudit && typeof window.ReportPrintAudit.updateBadges === 'function') {
         window.ReportPrintAudit.updateBadges(bookingId, { isPrinted: true });
@@ -333,9 +556,216 @@ function downloadPdf(bookingId, patientName) {
     } catch (e) { /* ignore */ }
   })
   .catch(function (err) {
-    if (err !== 'no-data') { console.error(err); showToast('Error generating PDF. Please try again.', 'error'); }
+    if (err !== 'no-data') {
+      console.warn('PDF download info:', err);
+      var msg = (err && err.message) || 'Report not found for this booking. Please ensure tests have been saved.';
+      showToast(msg, 'warning');
+    }
   })
   .finally(function () { hideLoader(); });
+}
+
+// ===== BULK DOWNLOAD (MULTIPLE SELECTED REPORTS) =====
+function setDownloadBtnState(iconClass, labelText) {
+  if (!downloadSelectedBtn) return;
+  var icon = downloadSelectedBtn.querySelector('i');
+  if (icon) icon.className = iconClass;
+  var label = downloadSelectedBtn.querySelector('.btn-label');
+  if (label) label.textContent = labelText;
+}
+
+async function downloadSelectedReports() {
+  if (!downloadSelectedBtn) return;
+
+  if (isDownloading) {
+    cancelDownload = true;
+    setDownloadBtnState('fas fa-spinner fa-spin', 'Stopping...');
+    return;
+  }
+
+  var checkboxes = tableBody.querySelectorAll('.report-checkbox:checked');
+  if (checkboxes.length === 0) {
+    showToast('Please select at least one booking to download.', 'warning');
+    return;
+  }
+
+  var items = Array.from(checkboxes).map(function (cb) {
+    return {
+      bookingId: cb.getAttribute('data-booking-id') || '',
+      patientName: cb.getAttribute('data-patient-name') || '',
+      status: cb.getAttribute('data-status') || ''
+    };
+  }).filter(function (it) { return it.bookingId && isDownloadEligible(it.status); });
+
+  if (items.length === 0) {
+    showToast('No eligible completed reports selected.', 'warning');
+    return;
+  }
+
+  isDownloading = true;
+  cancelDownload = false;
+  downloadSelectedBtn.classList.add('is-downloading');
+  setDownloadBtnState('fas fa-stop', 'Stop Download');
+
+  var format = getLetterheadPreference();
+  var formatLabel = format === 'with' ? 'With Letterhead' : 'Without Letterhead';
+  showToast('Downloading ' + items.length + ' report' + (items.length === 1 ? '' : 's') + ' (' + formatLabel + ')...', 'info');
+
+  try {
+    for (var i = 0; i < items.length; i++) {
+      if (cancelDownload) {
+        showToast('Download stopped by user.', 'info');
+        break;
+      }
+
+      setDownloadBtnState('fas fa-spinner fa-spin', 'Downloading (' + (i + 1) + '/' + items.length + ')... Stop');
+
+      await downloadSingleReportAsync(items[i].bookingId, items[i].patientName, format);
+
+      if (i < items.length - 1) {
+        await new Promise(function (resolve) { setTimeout(resolve, 350); });
+      }
+    }
+
+    if (!cancelDownload) {
+      showToast('All ' + items.length + ' reports downloaded successfully! (' + formatLabel + ')', 'success');
+    }
+  } catch (err) {
+    console.error('Bulk download error:', err);
+    showToast('Some reports failed to download.', 'error');
+  } finally {
+    isDownloading = false;
+    cancelDownload = false;
+    downloadSelectedBtn.classList.remove('is-downloading');
+    setDownloadBtnState('fas fa-download', 'Download Selected (' + items.length + ')');
+    updateSelectedState();
+  }
+}
+
+async function downloadSingleReportAsync(bookingId, patientName, format) {
+  try {
+    var isWith = (format === 'with');
+    var r = await fetch(BASE_URL + '/api/v1/user/ReportData', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value1: bookingId, bookingId: bookingId })
+    });
+    if (!r.ok) return false;
+    var pd = await r.json();
+    if (!pd || !pd._id) return false;
+
+    var pdfRes = await fetch(BASE_URL + '/api/v1/user/get-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        value1: pd._id,
+        bookingId: bookingId,
+        checkBox: isWith ? false : true,
+        auditAction: 'DOWNLOAD'
+      })
+    });
+    if (!pdfRes.ok) throw new Error('PDF generation failed');
+
+    var blob = await pdfRes.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = getReportFilename(patientName, bookingId);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+
+    try {
+      if (window.ReportPrintAudit && typeof window.ReportPrintAudit.updateBadges === 'function') {
+        window.ReportPrintAudit.updateBadges(bookingId, { isPrinted: true });
+      }
+    } catch (e) { /* ignore */ }
+
+    return true;
+  } catch (err) {
+    console.error('Error downloading booking ' + bookingId + ':', err);
+    return false;
+  }
+}
+
+// ===== MERGE REPORTS (2+ SELECTED BOOKINGS) =====
+async function mergeSelectedReports() {
+  var checkboxes = tableBody.querySelectorAll('.report-checkbox:checked');
+  if (checkboxes.length < 2) {
+    showToast('Please select at least 2 bookings to merge.', 'warning');
+    return;
+  }
+
+  var items = Array.from(checkboxes).map(function (cb) {
+    return {
+      bookingId: cb.getAttribute('data-booking-id') || '',
+      patientName: cb.getAttribute('data-patient-name') || ''
+    };
+  }).filter(function (it) { return it.bookingId; });
+
+  showLoader();
+  var format = getLetterheadPreference();
+  var formatLabel = format === 'with' ? 'With Letterhead' : 'Without Letterhead';
+  showToast('Merging ' + items.length + ' reports (' + formatLabel + ')... Please wait.', 'info');
+
+  try {
+    var reportIds = [];
+    for (var i = 0; i < items.length; i++) {
+      var res = await fetch(BASE_URL + '/api/v1/user/ReportData', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value1: items[i].bookingId, bookingId: items[i].bookingId })
+      });
+      if (res.ok) {
+        var pd = await res.json();
+        if (pd && pd._id) reportIds.push(pd._id);
+      }
+    }
+
+    if (reportIds.length < 2) {
+      hideLoader();
+      showToast('Could not find enough valid report data to merge.', 'error');
+      return;
+    }
+
+    var isWith = (format === 'with');
+    var mergeRes = await fetch(BASE_URL + '/api/v1/user/merge-pdfs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reportIds: reportIds,
+        checkBox: isWith ? false : true
+      })
+    });
+
+    if (!mergeRes.ok) throw new Error('PDF merge failed');
+
+    var blob = await mergeRes.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Merged_Reports_' + new Date().toISOString().slice(0, 10) + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 500);
+
+    showToast('Merged PDF downloaded successfully!', 'success');
+  } catch (err) {
+    console.error('Merge error:', err);
+    showToast('Failed to merge reports. Please try again.', 'error');
+  } finally {
+    hideLoader();
+  }
+}
+
+// Action button event listeners
+if (downloadSelectedBtn) {
+  downloadSelectedBtn.addEventListener('click', downloadSelectedReports);
+}
+if (mergeSelectedBtn) {
+  mergeSelectedBtn.addEventListener('click', mergeSelectedReports);
 }
 
 // ===== LOADER =====
@@ -356,8 +786,6 @@ function showToast(msg, type) {
 }
 
 // ===== REPORT PRINT / DOWNLOAD AUDIT BADGE =====
-// Uses the shared component (loaded by the portal shell) to render a compact
-// audit badge. Falls back gracefully when the component is unavailable.
 function printAuditBadge(booking) {
   try {
     if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
@@ -402,6 +830,7 @@ function fmtDateInput(d) {
 
 // ===== AUTO LOAD ON PAGE OPEN / AJAX INSERTION =====
 function initSearchPage() {
+  initLetterhead();
   triggerSearch(1);
   if (searchInput) {
     try { searchInput.focus(); } catch (e) {}
@@ -414,10 +843,12 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   window.addEventListener('load', initSearchPage);
 }
 
-// ===== EXPOSE onClick HANDLERS TO GLOBAL SCOPE =====
-// Required because HTML onclick="" attributes need global functions
-window.downloadPdf  = downloadPdf;
-window.editBooking  = editBooking;
-window.goToPage     = goToPage;
+// ===== EXPOSE HANDLERS TO GLOBAL SCOPE =====
+window.downloadPdf            = downloadPdf;
+window.editBooking            = editBooking;
+window.goToPage               = goToPage;
+window.togglePdfDropdown      = togglePdfDropdown;
+window.downloadSelectedReports = downloadSelectedReports;
+window.mergeSelectedReports   = mergeSelectedReports;
 
 })(); // end IIFE

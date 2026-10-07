@@ -20,7 +20,7 @@ import { Counter, categorydb } from "../models/category.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { transitionBookingStatus, enqueueStatusDeliveries } from "../services/bookingStatus.service.js";
 
-const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready printAudit";
+const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready printAudit actionAudit signOffAudit signedBy signedAt isSignedOff";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";
@@ -962,228 +962,216 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
 });
 
 const cancelBookingController = asyncHandler(async (req, res) => {
-    const session = await mongoose.startSession(); // Start a session for the transaction
-    session.startTransaction(); // Start the transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-        const { bookingId, reason } = req.body; // bookingId to cancel
-        const tenantId = req.user.tenantId;
+        const { bookingId, reason } = req.body;
+        const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
-        let user;
-        if (req.user.role === "staff") {
-            user = req.user.parentUser
-        } else {
-            user = req.user._id
-        }
+        // Default reason if not provided so cancellation is never blocked
+        const cancellationReason = String(reason || "").trim() || "Booking cancelled from portal";
 
-        let issinglelayeradmin = false;
-        issinglelayeradmin = tenantId.modelType === "1layer" && isAdminActor(req.user);
-
-        // Validate required fields
         if (!bookingId) {
-            return res.status(400).json("Booking ID is required");
-        }
-        if (!String(reason || "").trim()) {
-            return res.status(400).json({ message: "Cancellation reason is required" });
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "Booking ID is required" });
         }
 
-        // Find the booking to cancel
+        // Find the booking to cancel within this tenant
         const existingBooking = await newBooking.findOne({
-            tenantId: tenantId._id,
+            tenantId: tenantId,
             bookingId: bookingId
         }).session(session);
 
         if (!existingBooking) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({ message: 'Booking not found' });
         }
 
-        if (existingBooking.isreportready) {
-            return res.status(400).json({ message: 'Booking not canceled because report has been processed' });
-        }
-
-        // Check if booking is already cancelled
         if (existingBooking.status === "cancelled") {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({ message: 'Booking is already cancelled' });
         }
 
-        // Generate cancellation transaction ID
-        const cancellationTransactionId = `#CNL${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        if (existingBooking.isreportready) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: 'Booking cannot be cancelled because report has already been processed' });
+        }
 
-        // Find all ledger entries related to this booking
-        const relatedLedgerEntries = await Ledger.find({
+        // Permission check: Admins can cancel any booking in their tenant; non-admins only bookings they created
+        if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, existingBooking)) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ message: "You are not authorized to cancel this booking" });
+        }
+
+        const cancellationTransactionId = `#CNL${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const sampleBarcodeId = (existingBooking.tableData || [])
+            .map(entry => entry.barcodeId || entry.confirmBarcodeId)
+            .filter(Boolean);
+
+        const issinglelayeradmin = req.user.tenantId?.modelType === "1layer" && isAdminActor(req.user);
+
+        // Find all ledger entries related to this booking (by caseId first, fallback by description/barcode)
+        let relatedLedgerEntries = await Ledger.find({
             caseId: existingBooking._id
         }).session(session);
 
         if (relatedLedgerEntries.length === 0) {
-            return res.status(404).json({ message: 'No ledger entries found for this booking' });
+            relatedLedgerEntries = await Ledger.find({
+                $or: [
+                    { description: { $regex: existingBooking.bookingId, $options: 'i' } },
+                    { sampleBarcodeId: { $in: sampleBarcodeId } }
+                ]
+            }).session(session);
         }
 
-        // Extract sampleBarcodeId from existing booking
-        const sampleBarcodeId = existingBooking.tableData.map(entry => entry.barcodeId || entry.confirmBarcodeId).filter(id => id != null);
+        // Identify the debit entry (the original booking payment entry)
+        const bookingDebitEntry = relatedLedgerEntries.find(entry => entry.type === "debit");
 
-        if (!isAdminActor(req.user)) {
-            // Process reversal for non-admin users
+        // The user whose wallet was debited
+        const debitedUserId = bookingDebitEntry?.userId || existingBooking.createdBy;
+        const bookingUser = debitedUserId ? await User.findById(debitedUserId).session(session) : null;
+        const refundAmount = Number(bookingDebitEntry?.amount ?? existingBooking.total ?? 0);
 
-            // Find the booking user's debit entry (original booking entry)
-            const bookingDebitEntry = relatedLedgerEntries.find(entry =>
-                entry.type === "debit" && entry.userId.toString() === user.toString()
-            );
+        if (bookingUser) {
+            const isBookingCreatorAdmin = isAdminActor(bookingUser);
 
-            if (!bookingDebitEntry) {
-                throw new ApiError(404, "Original booking entry not found");
-            }
+            if (!isBookingCreatorAdmin) {
+                // Non-admin booking creator (Franchisee / SuperFranchisee / SubFranchisee):
+                // Refund money directly to their booking wallet!
+                const newBalanceForBookingUser = Number(bookingUser.bookingWallet || 0) + refundAmount;
+                bookingUser.bookingWallet = newBalanceForBookingUser;
+                await bookingUser.save({ session });
 
-            // Fetch booking user
-            const bookingUser = await User.findById(user).session(session);
-            if (!bookingUser) {
-                throw new ApiError(404, "Booking user not found");
-            }
-
-            // Credit back the amount to booking user
-            const refundAmount = bookingDebitEntry.amount;
-            const newBalanceForBookingUser = bookingUser.bookingWallet + refundAmount;
-
-            // Create reversal ledger entry for booking user (credit back)
-            const bookingCreditEntry = new Ledger({
-                userId: bookingUser._id,
-                username: bookingUser.username,
-                amount: refundAmount,
-                patientName: existingBooking.patientName,
-                sampleBarcodeId: sampleBarcodeId,
-                type: "credit",
-                transactionId: cancellationTransactionId,
-                description: `Booking cancellation refund for ${bookingId}`,
-                balanceAfterTransaction: newBalanceForBookingUser,
-                testDetails: bookingDebitEntry.testDetails,
-                discountamount: issinglelayeradmin ? bookingDebitEntry.discountamount : 0,
-                discountunit: issinglelayeradmin ? bookingDebitEntry.discountunit : 0,
-                caseId: existingBooking._id
-            });
-
-            await bookingCreditEntry.save({ session });
-
-            // Update booking user wallet
-            bookingUser.bookingWallet = newBalanceForBookingUser;
-            await bookingUser.save({ session });
-
-            // Process commission reversals for all parent users
-            const commissionEntries = relatedLedgerEntries.filter(entry =>
-                entry.type === "credit" && entry.userId.toString() !== user.toString()
-            );
-
-            for (const commissionEntry of commissionEntries) {
-                // Find the parent user
-                const parentUser = await User.findById(commissionEntry.userId).session(session);
-                if (!parentUser) {
-                    console.warn(`Parent user ${commissionEntry.userId} not found. Skipping commission reversal.`);
-                    continue;
-                }
-
-                // Debit the commission amount from parent user
-                const commissionAmount = commissionEntry.amount;
-                const newBalanceForParent = parentUser.bookingWallet - commissionAmount;
-
-                // Create reversal ledger entry for parent (debit back)
-                const parentDebitEntry = new Ledger({
-                    userId: parentUser._id,
-                    username: parentUser.username,
-                    amount: commissionAmount,
-                    type: "debit",
-                    transactionId: cancellationTransactionId,
-                    description: `Commission reversal for cancelled booking ${bookingId}`,
-                    balanceAfterTransaction: newBalanceForParent,
-                    receivedFrom: commissionEntry.receivedFrom,
-                    myAmount: commissionEntry.myAmount,
-                    testDetails: commissionEntry.testDetails,
+                // Create reversal ledger entry for booking user (credit back)
+                const bookingCreditEntry = new Ledger({
+                    userId: bookingUser._id,
+                    username: bookingUser.username,
+                    role: bookingUser.role,
+                    amount: refundAmount,
                     patientName: existingBooking.patientName,
-                    barcodeId: sampleBarcodeId,
-                    discountamount: issinglelayeradmin ? commissionEntry.discountamount : 0,
-                    discountunit: issinglelayeradmin ? commissionEntry.discountunit : 0,
+                    sampleBarcodeId: sampleBarcodeId,
+                    type: "credit",
+                    transactionId: cancellationTransactionId,
+                    description: `Booking cancellation refund for ${bookingId} (${cancellationReason})`,
+                    balanceAfterTransaction: newBalanceForBookingUser,
+                    testDetails: bookingDebitEntry?.testDetails || [],
+                    discountamount: issinglelayeradmin ? (bookingDebitEntry?.discountamount || 0) : 0,
+                    discountunit: issinglelayeradmin ? (bookingDebitEntry?.discountunit || 0) : 0,
                     caseId: existingBooking._id
                 });
+                await bookingCreditEntry.save({ session });
 
-                await parentDebitEntry.save({ session });
-
-                // Update parent user wallet
-                parentUser.bookingWallet = newBalanceForParent;
-                await parentUser.save({ session });
-            }
-        }
-
-        if (isAdminActor(req.user)) {
-            // For admin users, just create a reversal entry without wallet changes
-
-            // Find the booking user's debit entry (original booking entry)
-            const bookingDebitEntry = relatedLedgerEntries.find(entry =>
-                entry.type === "debit" && entry.userId.toString() === user.toString()
-            );
-
-            if (bookingDebitEntry) {
-                // Fetch booking user
-                const bookingUser = await User.findById(user).session(session);
-                if (bookingUser) {
-                    // Create reversal ledger entry for admin booking cancellation
-                    const adminCancellationEntry = new Ledger({
-                        userId: bookingUser._id,
-                        username: bookingUser.username,
-                        amount: bookingDebitEntry.amount,
-                        patientName: existingBooking.patientName,
-                        sampleBarcodeId: sampleBarcodeId,
-                        type: "credit",
-                        transactionId: cancellationTransactionId,
-                        description: `Admin booking cancellation for ${bookingId}`,
-                        discountamount: issinglelayeradmin ? bookingDebitEntry.discountamount : 0,
-                        discountunit: issinglelayeradmin ? bookingDebitEntry.discountunit : 0,
-                        caseId: existingBooking._id
-                    });
-
-                    await adminCancellationEntry.save({ session });
-                }
-            }
-
-            // Remove from acceptedBarcode collection
-            for (const tableEntry of existingBooking.tableData) {
-                const barcodeToRemove = tableEntry.barcodeId || tableEntry.confirmBarcodeId;
-
-                if (barcodeToRemove) {
-                    // Remove the specific barcode from the barcodes array
-                    await acceptedBarcode.updateOne(
-                        {
-                            tenantId: tenantId._id,
-                            bookingId: bookingId
-                        },
-                        {
-                            $pull: {
-                                barcodes: { barcode: barcodeToRemove }
-                            }
-                        },
-                        { session }
-                    );
-
-                    // If no barcodes left, remove the entire document
-                    const remainingBarcodes = await acceptedBarcode.findOne({
-                        tenantId: tenantId._id,
-                        bookingId: bookingId
+                // Reverse monthly target achievement if target exists
+                try {
+                    const bookingMonth = (existingBooking.createdAt ? new Date(existingBooking.createdAt) : new Date()).toISOString().slice(0, 7);
+                    const currentTarget = await Target.findOne({
+                        franchiseeId: bookingUser._id,
+                        month: bookingMonth,
+                        tenantId: tenantId
                     }).session(session);
 
-                    if (remainingBarcodes && remainingBarcodes.barcodes.length === 0) {
-                        await acceptedBarcode.deleteOne({
-                            tenantId: tenantId._id,
-                            bookingId: bookingId
-                        }, { session });
+                    if (currentTarget) {
+                        currentTarget.achieved = Math.max(0, currentTarget.achieved - refundAmount);
+                        currentTarget.history.push({
+                            amount: -refundAmount,
+                            bookingId: existingBooking._id,
+                            description: `Booking cancelled refund (${bookingId})`
+                        });
+                        if (currentTarget.achieved < currentTarget.amount) {
+                            currentTarget.status = 'pending';
+                        }
+                        currentTarget.lastUpdated = new Date();
+                        await currentTarget.save({ session });
                     }
+                } catch (targetErr) {
+                    console.warn("Target reversal warning:", targetErr.message);
                 }
+            } else {
+                // Admin created this booking directly:
+                // No wallet was debited on booking creation, but create balancing credit ledger entry
+                const adminCreditEntry = new Ledger({
+                    userId: bookingUser._id,
+                    username: bookingUser.username,
+                    role: bookingUser.role,
+                    amount: refundAmount,
+                    patientName: existingBooking.patientName,
+                    sampleBarcodeId: sampleBarcodeId,
+                    type: "credit",
+                    transactionId: cancellationTransactionId,
+                    description: `Admin booking cancellation reversal for ${bookingId} (${cancellationReason})`,
+                    discountamount: issinglelayeradmin ? (bookingDebitEntry?.discountamount || 0) : 0,
+                    discountunit: issinglelayeradmin ? (bookingDebitEntry?.discountunit || 0) : 0,
+                    caseId: existingBooking._id
+                });
+                await adminCreditEntry.save({ session });
             }
         }
+
+        // Process commission reversals for all parent users who received credit commissions
+        const commissionEntries = relatedLedgerEntries.filter(entry =>
+            entry.type === "credit" &&
+            debitedUserId &&
+            entry.userId.toString() !== debitedUserId.toString()
+        );
+
+        for (const commissionEntry of commissionEntries) {
+            const parentUser = await User.findById(commissionEntry.userId).session(session);
+            if (!parentUser) {
+                console.warn(`Parent user ${commissionEntry.userId} not found during commission reversal`);
+                continue;
+            }
+
+            const commissionAmount = Number(commissionEntry.amount || 0);
+            if (commissionAmount <= 0) continue;
+
+            // Deduct commission from parent user's booking wallet
+            const newBalanceForParent = Number(parentUser.bookingWallet || 0) - commissionAmount;
+            parentUser.bookingWallet = newBalanceForParent;
+            await parentUser.save({ session });
+
+            // Create reversal ledger entry for parent (debit back)
+            const parentDebitEntry = new Ledger({
+                userId: parentUser._id,
+                username: parentUser.username,
+                role: parentUser.role,
+                amount: commissionAmount,
+                type: "debit",
+                transactionId: cancellationTransactionId,
+                description: `Commission reversal for cancelled booking ${bookingId}`,
+                balanceAfterTransaction: newBalanceForParent,
+                receivedFrom: commissionEntry.receivedFrom,
+                myAmount: commissionEntry.myAmount,
+                testDetails: commissionEntry.testDetails,
+                patientName: existingBooking.patientName,
+                sampleBarcodeId: sampleBarcodeId,
+                discountamount: issinglelayeradmin ? (commissionEntry.discountamount || 0) : 0,
+                discountunit: issinglelayeradmin ? (commissionEntry.discountunit || 0) : 0,
+                caseId: existingBooking._id
+            });
+            await parentDebitEntry.save({ session });
+        }
+
+        // Clean up acceptedBarcode collection regardless of who cancelled
+        await acceptedBarcode.deleteMany(
+            { tenantId: tenantId, bookingId: bookingId },
+            { session }
+        );
 
         // Update booking status to cancelled
         const cancellationDate = new Date();
         const previousStatus = existingBooking.status;
         existingBooking.status = "cancelled";
+        if (!existingBooking.statusHistory) existingBooking.statusHistory = [];
         existingBooking.statusHistory.push({
             previousStatus,
-            newStatus: "Cancelled",
-            reason: String(reason).trim(),
+            newStatus: "cancelled",
+            reason: cancellationReason,
             changedBy: req.user._id,
             changedByRole: req.user.role,
             changedAt: cancellationDate,
@@ -1191,10 +1179,10 @@ const cancelBookingController = asyncHandler(async (req, res) => {
         });
         existingBooking.cancelledAt = cancellationDate;
         existingBooking.cancelledBy = req.user._id;
-        existingBooking.cancellationReason = String(reason).trim();
+        existingBooking.cancellationReason = cancellationReason;
         await existingBooking.save({ session });
 
-        // Add activity for staff cancellation
+        // Add activity log for staff cancellation
         if (req.user.role === 'staff') {
             await User.findByIdAndUpdate(req.user._id, {
                 $push: {
@@ -1203,7 +1191,7 @@ const cancelBookingController = asyncHandler(async (req, res) => {
                         details: {
                             staffId: req.user._id,
                             staffName: req.user.fullName,
-                            action: `${req.user.fullName} cancelled a booking`,
+                            action: `${req.user.fullName} cancelled booking ${bookingId}`,
                             patientName: existingBooking.patientName,
                             patientBookingId: existingBooking._id
                         },
@@ -1217,22 +1205,23 @@ const cancelBookingController = asyncHandler(async (req, res) => {
             }, { session });
         }
 
-        // Commit the transaction if everything is successful
+        // Commit transaction
         await session.commitTransaction();
-        session.endSession(); // End the session
+        session.endSession();
+
         try {
             await enqueueStatusDeliveries(existingBooking, existingBooking.statusHistory[existingBooking.statusHistory.length - 1]);
         } catch (notificationError) {
             console.error("Cancellation notification enqueue failed:", notificationError.message);
         }
-        return res.status(200).json(new ApiResponse(200, existingBooking, "Booking cancelled successfully and all transactions reversed"));
+
+        return res.status(200).json(new ApiResponse(200, existingBooking, "Booking cancelled successfully, wallet refunded, and all commissions reversed."));
 
     } catch (err) {
-        // Rollback the transaction if anything goes wrong
         await session.abortTransaction();
         session.endSession();
         console.error("Cancellation transaction failed:", err);
-        throw err; // Rethrow error to handle it further
+        throw err;
     }
 });
 
@@ -1931,44 +1920,68 @@ const editBookingBarcodes = async (req, res) => {
         const { tableData, id } = req.body;
         let userId;
         if (req.user.role === 'staff') {
-            userId = req.user.parentUser
+            userId = req.user.parentUser;
         } else {
-            userId = req.user._id
+            userId = req.user._id;
         }
 
-        // Validate
-        if (!id || !Array.isArray(tableData)) {
-            return res.status(400).json({ message: "Invalid input" });
+        // Validate input
+        if (!id || !Array.isArray(tableData) || tableData.length === 0) {
+            return res.status(400).json({ message: "Invalid input or empty tableData" });
         }
+
+        const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
         // Fetch the document
         const booking = await newBooking.findOne({
             _id: id,
-            tenantId: req.user.tenantId._id,
+            tenantId: tenantId,
         });
 
         if (!booking) {
             return res.status(404).json({ message: "Booking not found" });
         }
 
+        if (booking.status === "cancelled") {
+            return res.status(400).json({ message: "Cannot edit barcodes of a cancelled booking" });
+        }
+
+        if (booking.isreportready) {
+            return res.status(400).json({ message: "Cannot edit barcodes because report has already been generated" });
+        }
+
         if (!isAdminActor(req.user) && !canEditBookingCompletely(req.user, booking)) {
             return res.status(403).json({ message: "You cannot change barcodes in another portal's booking" });
         }
 
+        // Validate incoming barcodes: non-empty, and unique across different sample types
+        const seenBarcodes = new Map();
         for (const element of tableData) {
+            const barcodeVal = String(element.barcodeId || "").trim();
+            const sampleType = String(element.typeOfSample || "").trim().toLowerCase();
+
+            if (!barcodeVal) {
+                return res.status(400).json({ message: `Barcode ID is required for sample "${element.typeOfSample || 'Sample'}"` });
+            }
+
+            if (seenBarcodes.has(barcodeVal) && seenBarcodes.get(barcodeVal) !== sampleType) {
+                return res.status(400).json({ message: `Duplicate barcode "${barcodeVal}" entered for different sample types` });
+            }
+            seenBarcodes.set(barcodeVal, sampleType);
+
+            // Check if barcode is used in another booking in the same tenant
             const barcodepresent = await newBooking.findOne({
-                tenantId: req.user.tenantId._id,
-                "tableData.barcodeId": element.barcodeId,
+                tenantId: tenantId,
+                "tableData.barcodeId": barcodeVal,
                 _id: { $ne: id }
             });
 
             if (barcodepresent) {
-                return res.status(402).json({ message: `${element.barcodeId} already present` });
+                return res.status(402).json({ message: `Barcode "${barcodeVal}" is already present in another booking (${barcodepresent.bookingId})` });
             }
         }
 
-        // Capture old barcodes so the acceptedBarcode collection can be
-        // matched reliably when the barcode value itself is changing.
+        // Capture old barcodes for acceptedBarcode sync
         const oldBarcodeBySample = new Map();
         (booking.tableData || []).forEach((entry) => {
             if (entry.typeOfSample && entry.barcodeId) {
@@ -1979,23 +1992,33 @@ const editBookingBarcodes = async (req, res) => {
             }
         });
 
-        // Update barcodeIds in tableData
-        booking.tableData = tableData;
-        booking.status = "pending";
-        booking.isreportready = false;
+        // Safely update barcodeIds in existing booking tableData
+        tableData.forEach((element, index) => {
+            const newBarcode = String(element.barcodeId || "").trim();
+            if (booking.tableData[index]) {
+                booking.tableData[index].barcodeId = newBarcode;
+            } else {
+                const match = booking.tableData.find(t =>
+                    String(t._id || '') === String(element._id || '') ||
+                    String(t.typeOfSample || '').trim().toLowerCase() === String(element.typeOfSample || '').trim().toLowerCase()
+                );
+                if (match) {
+                    match.barcodeId = newBarcode;
+                }
+            }
+        });
 
-        // Save the document
+        booking.markModified('tableData');
         await booking.save();
 
-        // Sync the acceptedBarcode collection so the changed barcodes are
-        // also reflected where accepted samples are stored.
+        // Sync the acceptedBarcode collection
         const acceptedBarcodeDoc = await acceptedBarcode.findOne({
-            tenantId: req.user.tenantId._id,
+            tenantId: tenantId,
             bookingId: booking.bookingId
         });
 
         if (acceptedBarcodeDoc) {
-            for (const element of tableData) {
+            for (const element of booking.tableData) {
                 const sampleType = String(element.typeOfSample || "").trim().toLowerCase();
                 const newBarcode = String(element.barcodeId || "").trim();
                 if (!sampleType || !newBarcode) continue;
@@ -2003,7 +2026,6 @@ const editBookingBarcodes = async (req, res) => {
                 const barcodeEntry = (acceptedBarcodeDoc.barcodes || []).find((entry) => {
                     const entrySample = String(entry.sampleType || "").trim().toLowerCase();
                     if (entrySample === sampleType) return true;
-                    // Fallback: match by the old barcode value for this sample
                     return String(entry.barcode || "") === oldBarcodeBySample.get(sampleType);
                 });
 
@@ -2011,10 +2033,10 @@ const editBookingBarcodes = async (req, res) => {
                     barcodeEntry.barcode = newBarcode;
                 }
             }
+            acceptedBarcodeDoc.markModified('barcodes');
             await acceptedBarcodeDoc.save();
         }
 
-        // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
         if (req.user.role === 'staff') {
             await User.findByIdAndUpdate(req.user._id, {
                 $push: {
@@ -2023,10 +2045,9 @@ const editBookingBarcodes = async (req, res) => {
                         details: {
                             staffId: req.user._id,
                             staffName: req.user.fullName,
-                            action: `${req.user.fullName} updated barcodes in a booking`,
+                            action: `${req.user.fullName} updated barcodes in booking ${booking.bookingId}`,
                             bookingName: booking.patientName,
                             bookingId: booking.bookingId,
-
                         },
                         reference: {
                             model: "Booking",
@@ -2210,7 +2231,12 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
                             savedDoctor: 1,
                             savedLab: 1,
                             isreportready: 1,
-                            printAudit: 1
+                            printAudit: 1,
+                            actionAudit: 1,
+                            signOffAudit: 1,
+                            signedBy: 1,
+                            signedAt: 1,
+                            isSignedOff: 1
                         }
                     }
                 ]
@@ -2222,7 +2248,7 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
     const total = resultFacet.totalCount?.[0]?.total || 0;
     let bookings = resultFacet.bookings || [];
 
-    // Process barcodes and LIS data for current page bookings
+    // Process barcodes, LIS data, and sign-off audit for current page bookings
     if (bookings.length > 0) {
         const bookingIds = bookings.map(b => b.bookingId);
 
@@ -2234,6 +2260,24 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
             },
             { bookingId: 1, barcodes: 1 }
         ).lean();
+
+        // Fetch reports for sign-off status and audit trail fallback (handling string/number types)
+        const allPossibleBookingIds = Array.from(new Set([
+            ...bookingIds,
+            ...bookingIds.map(id => String(id)),
+            ...bookingIds.map(id => Number(id)).filter(n => !isNaN(n))
+        ]));
+        const reportDocs = await reports.find(
+            { bookingId: { $in: allPossibleBookingIds } },
+            { bookingId: 1, signOff: 1, signedBy: 1, signedAt: 1, isSignedOff: 1, signOffAudit: 1, actionAudit: 1 }
+        ).lean();
+
+        const reportMap = new Map();
+        reportDocs.forEach(r => {
+            if (r.bookingId) {
+                reportMap.set(String(r.bookingId).trim().toLowerCase(), r);
+            }
+        });
 
         // Create barcode map
         const barcodeMap = new Map();
@@ -2268,7 +2312,7 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
             });
         }
 
-        // Attach barcodes and LIS status to each booking
+        // Attach barcodes, LIS status, and sign-off audit to each booking
         bookings.forEach(booking => {
             const bookingBarcodes = barcodeMap.get(booking.bookingId) || [];
 
@@ -2296,6 +2340,53 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
                 withLis: barcodeDetails.filter(d => d.isLisPresent).length,
                 withoutLis: barcodeDetails.filter(d => !d.isLisPresent).length
             };
+
+            // Sign-off audit synthesis from newBooking or reports collection
+            const rep = reportMap.get(String(booking.bookingId || "").trim().toLowerCase());
+            const signOffAuditObj = booking.signOffAudit || rep?.signOffAudit;
+            const isSigned = Boolean(
+                booking.isSignedOff ||
+                booking.signedBy ||
+                signOffAuditObj?.isSignedOff ||
+                rep?.isSignedOff ||
+                rep?.signOff === true ||
+                rep?.signOff === "true" ||
+                rep?.signedBy
+            );
+
+            const signedBy =
+                booking.signedBy ||
+                signOffAuditObj?.signedBy ||
+                rep?.signedBy ||
+                rep?.signOffAudit?.signedBy ||
+                null;
+
+            const signedAt =
+                booking.signedAt ||
+                signOffAuditObj?.signedAt ||
+                rep?.signedAt ||
+                rep?.signOffAudit?.signedAt ||
+                null;
+
+            const signOffRole =
+                signOffAuditObj?.role ||
+                rep?.signOffAudit?.role ||
+                null;
+
+            booking.isSignedOff = isSigned;
+            booking.signedBy = signedBy;
+            booking.signedAt = signedAt;
+            booking.signOffDetails = {
+                isSignedOff: isSigned,
+                signedBy: signedBy,
+                signedAt: signedAt,
+                role: signOffRole
+            };
+
+            // Merge actionAudit if present in reports but not in newBooking
+            if (!booking.actionAudit && rep?.actionAudit) {
+                booking.actionAudit = rep.actionAudit;
+            }
         });
     }
 
@@ -2615,10 +2706,20 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
     const franchiseLimit = 5;
     const franchiseSkip = (franchisePage - 1) * franchiseLimit;
 
+    const scope = String(req.query.scope || 'all').toLowerCase().trim();
+    const isSelf = scope === 'self';
+
     const startParam = req.query.startDate || req.query.from;
     const endParam = req.query.endDate || req.query.to;
 
     const bookingMatch = { tenantId };
+
+    if (isSelf) {
+        const userObjectId = mongoose.Types.ObjectId.isValid(req.user._id)
+            ? new mongoose.Types.ObjectId(req.user._id)
+            : req.user._id;
+        bookingMatch.createdBy = { $in: [userObjectId, String(req.user._id)] };
+    }
 
     if (startParam || endParam) {
         const dateQuery = {};
@@ -2652,6 +2753,12 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
         role: { $ne: 'staff' },
         isActive: true
     };
+    if (isSelf) {
+        const userObjectId = mongoose.Types.ObjectId.isValid(req.user._id)
+            ? new mongoose.Types.ObjectId(req.user._id)
+            : req.user._id;
+        franchiseeFilter.createdBy = { $in: [userObjectId, String(req.user._id)] };
+    }
     const canViewFranchisees = permissions.canManageUsers || userRole !== 'staff';
     const franchiseeQuery = canViewFranchisees
         ? User.find({
@@ -2745,6 +2852,7 @@ const getDashboardDataController = asyncHandler(async (req, res) => {
 
     // Initialize response structure
     const response = {
+        scope: isSelf ? "self" : "all",
         stats: {
             totalBookings: 0,
             totalRevenue: 0,
@@ -4140,12 +4248,11 @@ const getBookingcontroller = async (req, res) => {
 
     const booking = await newBooking.findOne({
         tenantId: tid,
-        status: { $ne: "cancelled" },
         bookingId: value1
     }).lean();
 
     if (!booking) {
-        return res.status(404).json({ message: "booking not found or cancelled" })
+        return res.status(404).json({ message: "Booking not found" });
     }
 
     // Admins may inspect any booking in their tenant. Other portals may only
@@ -4163,11 +4270,10 @@ const getBookingcontroller = async (req, res) => {
         .map((item) => item?.barcode)
         .filter(Boolean);
 
-    // Admins may change tests AND barcodes for any booking in their tenant ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â
-    // including bookings created by franchisees or other portals. Non-admin
-    // portals may only edit tests/barcodes on bookings they created.
-    booking.canEditTests = isAdminActor(req.user) || canEditBookingCompletely(req.user, booking);
-    booking.canEditBarcodes = isAdminActor(req.user) || canEditBookingCompletely(req.user, booking);
+    // Bookings can only have barcodes or tests edited if not cancelled and report not ready
+    const isModifiable = booking.status !== "cancelled" && !booking.isreportready;
+    booking.canEditTests = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
+    booking.canEditBarcodes = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
 
     return res.status(200).json(booking);
 }

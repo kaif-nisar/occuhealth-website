@@ -1242,9 +1242,14 @@
                 const anyButtonHasSign = targetButtons.some((b) => b.classList.contains('sign'));
                 const signoff = !anyButtonHasSign;
 
+                const token = localStorage.getItem('accessToken');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
                 const response = await fetch(BASE_URL + '/api/v1/user/editReportsignofffield', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
+                    credentials: 'include',
                     body: JSON.stringify({ value1: state.reportId, signoff })
                 });
                 if (!response.ok) throw new Error('signoff field not updated');
@@ -1253,10 +1258,23 @@
                 if (state.report) state.report.signOff = signoff;
                 toast(signoff ? 'Report signed off successfully.' : 'Sign-off removed.', 'success');
 
+                const targetBId = state.bookingId || state.report?.bookingId || state.report?.booking_id || state.report?.reg_id || (new URLSearchParams(window.location.search).get('value1'));
+                const auditHelper = window.ReportActionAudit || (window.parent && window.parent.ReportActionAudit);
+                if (auditHelper && targetBId) {
+                    auditHelper.record({
+                        bookingId: targetBId,
+                        reportId: state.reportId,
+                        buttonId: 'signOff',
+                        buttonLabel: 'Sign Off',
+                        action: 'SIGN_OFF',
+                        details: { signoff: signoff }
+                    });
+                }
+
                 /* Only mark the booking ready after a real sign-off. Final-save
                    alone must never trigger completion; sign-off is the gate. */
-                if (signoff && state.report && state.report.bookingId) {
-                    updatebookingisreportreadyfield(state.report.bookingId)
+                if (signoff && targetBId) {
+                    updatebookingisreportreadyfield(targetBId)
                         .catch((error) => console.warn('Background booking status update failed:', error));
                 }
             } catch (error) {
@@ -1271,6 +1289,75 @@
     }
 
     /* Enter key (outside inputs/buttons) triggers Sign off — legacy parity */
+    async function ensureAuditHelper() {
+        if (window.ReportActionAudit && window.ReportActionAudit.__initialized) return window.ReportActionAudit;
+        if (window.parent && window.parent.ReportActionAudit && window.parent.ReportActionAudit.__initialized) return window.parent.ReportActionAudit;
+        return new Promise((resolve) => {
+            const s = document.createElement('script');
+            s.src = 'pages/pages/report_action_audit.js?v=' + Date.now();
+            s.onload = () => resolve(window.ReportActionAudit);
+            s.onerror = () => {
+                const s2 = document.createElement('script');
+                s2.src = 'report_action_audit.js?v=' + Date.now();
+                s2.onload = () => resolve(window.ReportActionAudit);
+                s2.onerror = () => resolve(null);
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s);
+        });
+    }
+
+    async function setupActionAuditBadges() {
+        const auditHelper = await ensureAuditHelper();
+        if (!auditHelper) return;
+
+        const bookingId = state.bookingId || state.report?.bookingId || state.report?.booking_id || state.report?.reg_id || (new URLSearchParams(window.location.search).get('value1'));
+
+        const trackedButtons = [
+            { id: 'signOff', label: 'Sign Off', action: 'SIGN_OFF' },
+            { id: 'enterResult', label: 'Enter Result', action: 'ENTER_RESULT' },
+            { id: 'savePDF', label: 'Save PDF', action: 'SAVE_PDF' },
+            { id: 'downloadPDF', label: 'Download', action: 'DOWNLOAD_PDF' },
+            { id: 'sendReport', label: 'Send', action: 'SEND_REPORT' },
+            { id: 'BrowserPrint', label: 'Print', action: 'BROWSER_PRINT' },
+            { id: 'PDFsetting', label: 'Settings', action: 'PRINT_SETTINGS' }
+        ];
+
+        trackedButtons.forEach(function (btnInfo) {
+            const btn = document.getElementById(btnInfo.id);
+            if (!btn) return;
+
+            auditHelper.attachBadge(btn, {
+                buttonId: btnInfo.id,
+                buttonLabel: btnInfo.label,
+                bookingId: bookingId
+            });
+
+            if (btnInfo.id !== 'signOff') {
+                btn.addEventListener('click', function () {
+                    const bId = state.bookingId || state.report?.bookingId || state.report?.booking_id || state.report?.reg_id || (new URLSearchParams(window.location.search).get('value1'));
+                    if (bId) {
+                        auditHelper.record({
+                            bookingId: bId,
+                            reportId: state.reportId,
+                            buttonId: btnInfo.id,
+                            buttonLabel: btnInfo.label,
+                            action: btnInfo.action
+                        });
+                    }
+                });
+            }
+        });
+
+        if (bookingId) {
+            auditHelper.get(bookingId).then(function (auditData) {
+                if (auditData) {
+                    auditHelper.updateBadges(bookingId, auditData);
+                }
+            });
+        }
+    }
+
     function setupReportFormatKeyboardFlow() {
         const signOffButton = document.getElementById('signOff');
         if (!signOffButton) return;
@@ -1734,6 +1821,7 @@
             setupBrowserPrint();
             setupPrintSettingsNavigation();
             setupReportFormatKeyboardFlow();
+            setupActionAuditBadges();
             hidecontent();
 
             /* 5 · Reveal (zero CLS: geometry reserved by skeleton) */

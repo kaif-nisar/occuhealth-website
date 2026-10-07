@@ -142,6 +142,31 @@ const reportData = new Schema({
         type: Boolean,
         default: false
     },
+    isSignedOff: {
+        type: Boolean,
+        default: false
+    },
+    signedAt: {
+        type: Date,
+        default: null
+    },
+    signedById: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    signedByRole: {
+        type: String,
+        default: null
+    },
+    actionAudit: {
+        type: Schema.Types.Mixed,
+        default: undefined
+    },
+    signOffAudit: {
+        type: Schema.Types.Mixed,
+        default: undefined
+    },
     isdocumented : {
         type: Boolean,
         default: false

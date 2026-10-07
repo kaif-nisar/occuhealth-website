@@ -1202,9 +1202,45 @@ const getLedgerSummary = asyncHandler(async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+// Helper function to parse date range accurately including seconds/milliseconds
+function parseDateRange(startDate, endDate) {
+  let start;
+  let end;
+
+  if (startDate) {
+    if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      start = new Date(`${startDate}T00:00:00.000`);
+    } else {
+      start = new Date(startDate);
+    }
+  } else {
+    start = new Date(0);
+  }
+
+  if (endDate) {
+    if (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      if (endDate >= todayStr) {
+        // If end date is today or later, use the exact current moment down to milliseconds
+        end = now;
+      } else {
+        // If end date is in the past, include the entire day up to 23:59:59.999
+        end = new Date(`${endDate}T23:59:59.999`);
+      }
+    } else {
+      end = new Date(endDate);
+    }
+  } else {
+    end = new Date();
+  }
+
+  return { start, end };
+}
+
 async function getAccountSummary(userId, startDate, endDate, doctorId, labId) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const { start, end } = parseDateRange(startDate, endDate);
 
   const baseQuery = {
     userId,
@@ -1353,8 +1389,7 @@ const accountSummary = asyncHandler(async (req, res) => {
 const getLedgerEntries = async (req, res) => {
   try {
     const { userId, startDate, endDate, doctorId, labId } = req.query;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const { start, end } = parseDateRange(startDate, endDate);
 
     // Build base query
     const query = {

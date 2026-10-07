@@ -4,6 +4,7 @@
   let franchiseRequestId = 0;
   let opsRequestId = 0;
   let currentPeriod = "1month";
+  let currentScope = "all";
   let activeRange = null;
   let listenersBound = false;
 
@@ -470,13 +471,40 @@
     }
   }
 
+    function updateScopeUI(scope) {
+    const btnAll = byId("btnScopeAll");
+    const btnSelf = byId("btnScopeSelf");
+    if (btnAll) btnAll.classList.toggle("active", scope === "all");
+    if (btnSelf) btnSelf.classList.toggle("active", scope === "self");
+
+    const dashSubtitle = byId("dashSubtitle");
+    if (dashSubtitle) {
+      dashSubtitle.textContent = scope === "self"
+        ? "Showing your self-created bookings & users under this tenant (Self)."
+        : "Welcome lab flow lis. Tenant operations and subscription health in one view (All Data).";
+    }
+
+    const tenantChip = document.querySelector(".tenant-isolated-chip span");
+    if (tenantChip) {
+      tenantChip.textContent = scope === "self" ? "Self Data (Created By You)" : "Tenant Isolated Data";
+    }
+  }
+
+  function setScope(scope) {
+    if (currentScope === scope) return;
+    currentScope = scope;
+    updateScopeUI(scope);
+    fetchDashboardOpsData(activeRange, true);
+  }
+
   function updateSyncUI(syncDate, rangeLabel) {
     const timeStr = formatTime12h(syncDate);
     const lastSyncEl = byId("dashLastSync");
     if (lastSyncEl) lastSyncEl.textContent = `Last sync: ${timeStr}`;
 
     const activeTextEl = byId("activePeriodText");
-    if (activeTextEl) activeTextEl.textContent = `${rangeLabel} (${timeStr})`;
+    const scopeLabel = currentScope === "self" ? "Self" : "All Data";
+    if (activeTextEl) activeTextEl.textContent = `${rangeLabel} • ${scopeLabel} (${timeStr})`;
 
     const lastUpdatedEl = byId("dashLastUpdated");
     if (lastUpdatedEl) lastUpdatedEl.textContent = `Last update: ${syncDate.toLocaleString("en-IN")}`;
@@ -492,6 +520,7 @@
     const baseUrl = typeof BASE_URL !== "undefined" ? BASE_URL : window.location.origin;
 
     const params = [];
+    params.push(`scope=${encodeURIComponent(currentScope)}`);
     if (range && range.start) {
       params.push(`startDate=${encodeURIComponent(range.start.toISOString())}`);
     }
@@ -526,7 +555,7 @@
   async function loadFranchisePage(page) {
     const requestId = ++franchiseRequestId;
     const baseUrl = typeof BASE_URL !== "undefined" ? BASE_URL : window.location.origin;
-    let url = `${baseUrl}/api/v1/user/get-booking-for-dashboard?franchisePage=${page}`;
+    let url = `${baseUrl}/api/v1/user/get-booking-for-dashboard?franchisePage=${page}&scope=${encodeURIComponent(currentScope)}`;
     if (activeRange) {
       if (activeRange.start) url += `&startDate=${encodeURIComponent(activeRange.start.toISOString())}`;
       if (activeRange.end) url += `&endDate=${encodeURIComponent(activeRange.end.toISOString())}`;
@@ -553,6 +582,16 @@
     const btnApply = byId("btnApplyFilter");
     const btnToday = byId("btnTodayFilter");
     const btnRefresh = byId("btnRefreshFilter");
+
+    const btnScopeAll = byId("btnScopeAll");
+    const btnScopeSelf = byId("btnScopeSelf");
+    if (btnScopeAll) {
+      btnScopeAll.addEventListener("click", () => setScope("all"));
+    }
+    if (btnScopeSelf) {
+      btnScopeSelf.addEventListener("click", () => setScope("self"));
+    }
+
 
     if (periodSelect) {
       periodSelect.addEventListener("change", (e) => {

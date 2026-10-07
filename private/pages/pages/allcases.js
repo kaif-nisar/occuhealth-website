@@ -258,8 +258,42 @@ async function allcases() {
         return status;
     }
 
+    function ensureAuditHelper() {
+        if (window.ReportActionAudit && window.ReportActionAudit.__initialized) return;
+        if (window.parent && window.parent.ReportActionAudit && window.parent.ReportActionAudit.__initialized) {
+            window.ReportActionAudit = window.parent.ReportActionAudit;
+            return;
+        }
+        var s = document.createElement('script');
+        s.src = 'pages/pages/report_action_audit.js?v=' + Date.now();
+        s.onerror = function() {
+            var s2 = document.createElement('script');
+            s2.src = 'report_action_audit.js?v=' + Date.now();
+            document.head.appendChild(s2);
+        };
+        document.head.appendChild(s);
+    }
+    ensureAuditHelper();
+
     // Report print / download audit badge (shared component from the shell).
     // Safe for legacy bookings that have no printAudit object yet.
+        function renderSignOffBadge(booking) {
+        try {
+            const auditHelper = window.ReportActionAudit || (window.parent && window.parent.ReportActionAudit);
+            if (auditHelper && typeof auditHelper.renderSignOffCell === 'function') {
+                return auditHelper.renderSignOffCell(booking);
+            }
+        } catch (error) {
+            console.warn('Sign-off audit badge unavailable:', error);
+        }
+        const isSigned = Boolean(booking?.isSignedOff || booking?.signedBy);
+        if (isSigned) {
+            const user = booking?.signedBy || 'Signed';
+            return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:#ecfdf5;color:#065f46;font-size:11px;font-weight:700;"><i class="fas fa-file-signature"></i> ' + user + '</span>';
+        }
+        return '<span style="color:#64748b;font-size:11px;font-weight:600;"><i class="fas fa-clock"></i> Pending</span>';
+    }
+
     function printAuditBadge(booking) {
         try {
             if (window.ReportPrintAudit && typeof window.ReportPrintAudit.badge === 'function') {
@@ -347,7 +381,7 @@ async function allcases() {
         tableBody.innerHTML = "";
 
         if (!bookings.length) {
-            tableBody.innerHTML = `<tr><td colspan="9">No bookings found.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="10">No bookings found.</td></tr>`;
             return;
         }
 
@@ -449,6 +483,7 @@ async function allcases() {
                 <td>${islayerone ? (booking.doctorName || "") : (booking.createdbyuser || "")}</td>
                 <td style="white-space: normal;">${barcodeHtml}</td>
                 <td><button class="status-btn" style="background-color: ${statusStyles.badgeBackground}; color: ${statusStyles.badgeColor};">${booking.status}</button></td>
+                <td style="text-align:center;white-space:nowrap;">${renderSignOffBadge(booking)}</td>
                 <td style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
                 ${attachmentHtml}
             `;
@@ -1747,3 +1782,5 @@ function clearFields() {
         rows.forEach((row) => (row.style.display = ""));
     }
 }
+
+

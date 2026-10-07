@@ -807,6 +807,163 @@
       text-transform: uppercase;
     }
 
+    /* Letterhead Segmented Control */
+    .seg-control {
+      display: inline-flex;
+      background: #ffffff;
+      border: 2px solid #94a3b8;
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .seg-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .seg-option:hover {
+      color: #0f172a;
+      background: #f1f5f9;
+    }
+    .seg-option.active {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    }
+    .toolbar-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toolbar-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .btn-download-selected {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 8px rgba(37, 99, 235, 0.3);
+    }
+    .btn-download-selected:hover:not(:disabled) {
+      background: #1d4ed8 !important;
+      transform: translateY(-1px);
+    }
+    .btn-download-selected:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-download-selected.is-downloading {
+      background: #dc2626 !important;
+      box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
+    }
+    .btn-download-selected.is-downloading:hover {
+      background: #b91c1c !important;
+    }
+    .btn-merge-selected {
+      background: #16a34a !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 8px rgba(22, 163, 74, 0.3);
+    }
+    .btn-merge-selected:hover {
+      background: #15803d !important;
+      transform: translateY(-1px);
+    }
+    .ri-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #1d4ed8;
+      background: #eff6ff;
+      border: 1.5px solid #93c5fd;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .report-checkbox,
+    #selectAllCheckbox {
+      width: 17px;
+      height: 17px;
+      accent-color: #2563eb;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    tbody tr.row-selected {
+      background-color: #eff6ff !important;
+    }
+    .pdf-dropdown-wrap {
+      position: relative;
+      display: inline-flex;
+    }
+    .rbp-drop {
+      padding: 6px 8px !important;
+      margin-left: 2px;
+      border-radius: 6px !important;
+    }
+    .pdf-dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+      z-index: 1000;
+      min-width: 195px;
+      overflow: hidden;
+    }
+    .pdf-dropdown-menu.show {
+      display: block;
+    }
+    .pdf-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      font-family: inherit;
+    }
+    .pdf-dropdown-item:hover {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    .pdf-dropdown-item i {
+      font-size: 13px;
+      width: 16px;
+      text-align: center;
+    }
+
     @media (max-width: 640px) {
       .pw { padding: 10px 8px 30px; }
       .msr { flex-direction: column; }
@@ -904,8 +1061,39 @@
       </div>
     </div>
     <div class="rb" id="results-bar" style="display:none;">
-      <div class="ri" id="results-info"></div>
+      <div class="ri-wrap">
+        <div class="ri" id="results-info"></div>
+        <span id="selection-summary" class="sel-badge" style="display:none;">
+          <i class="fas fa-check-circle"></i> <span id="selected-count">0</span> selected
+        </span>
+      </div>
       <div class="ra">
+        <!-- Letterhead format toggle -->
+        <div class="toolbar-group">
+          <span class="toolbar-label">Format:</span>
+          <div class="seg-control" id="letterhead-seg" role="group" aria-label="Report format">
+            <button type="button" class="seg-option active" data-value="without" aria-pressed="true" title="Download report without letterhead">
+              <i class="fas fa-file"></i> Without Letterhead
+            </button>
+            <button type="button" class="seg-option" data-value="with" aria-pressed="false" title="Download report with letterhead">
+              <i class="fas fa-file-signature"></i> With Letterhead
+            </button>
+          </div>
+        </div>
+
+        <!-- Download Selected Reports Button -->
+        <button class="btn btn-sm btn-download-selected" id="download-selected-reports" type="button" disabled title="Download all selected reports">
+          <i class="fas fa-download"></i>
+          <span class="btn-label">Download Selected</span>
+        </button>
+
+        <!-- Merge Selected Reports Button -->
+        <button class="btn btn-sm btn-merge-selected" id="merge-selected-reports" type="button" style="display:none;" title="Merge selected reports into a single PDF">
+          <i class="fas fa-file-pdf"></i>
+          <span class="btn-label">Merge PDF</span>
+        </button>
+
+        <!-- Sort toggle -->
         <button class="btn btn-s btn-sm" id="sort-toggle"><i class="fas fa-sort-amount-down" id="sort-icon"></i> <span id="sort-label">Latest First</span></button>
       </div>
     </div>
@@ -914,6 +1102,9 @@
         <table>
           <thead style="background-color: #0f172a !important;">
             <tr style="background-color: #0f172a !important;">
+              <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important; text-align: center; width: 44px;">
+                <input type="checkbox" id="selectAllCheckbox" title="Select All" aria-label="Select all bookings" />
+              </th>
               <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important; text-align: center;">#</th>
               <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Booking ID</th>
               <th style="background-color: #0f172a !important; color: #ffffff !important; font-weight: 800 !important;">Patient Details</th>
@@ -927,7 +1118,7 @@
             </tr>
           </thead>
           <tbody id="table-body">
-            <tr><td colspan="10"><div class="es"><div class="ei"><i class="fas fa-search"></i></div><div class="et">Search Your Bookings</div><div class="es2">Enter a Booking ID, Barcode, Patient Name, Test Name, or any other detail to find bookings instantly.</div></div></td></tr>
+            <tr><td colspan="11"><div class="es"><div class="ei"><i class="fas fa-search"></i></div><div class="et">Search Your Bookings</div><div class="es2">Enter a Booking ID, Barcode, Patient Name, Test Name, or any other detail to find bookings instantly.</div></div></td></tr>
           </tbody>
         </table>
       </div>

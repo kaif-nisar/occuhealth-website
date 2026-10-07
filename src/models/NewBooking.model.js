@@ -152,6 +152,27 @@ const TestBookingSchema = new Schema({
         type: printAuditSchema,
         default: undefined
     },
+    // Action tracking & Sign-off audit
+    actionAudit: {
+        type: Schema.Types.Mixed,
+        default: undefined
+    },
+    signOffAudit: {
+        type: Schema.Types.Mixed,
+        default: undefined
+    },
+    isSignedOff: {
+        type: Boolean,
+        default: false
+    },
+    signedBy: {
+        type: String,
+        default: null
+    },
+    signedAt: {
+        type: Date,
+        default: null
+    },
     isreportready: {
         type: Boolean,
         default: false

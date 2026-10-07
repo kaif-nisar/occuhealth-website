@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -162,57 +162,7 @@
             justify-content: center;
         }
 
-        .download-pdf-div {
-            display: flex;
-            margin-top: 1rem;
-            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3);
-            position: fixed;
-            z-index: 100;
-            bottom: 0px;
-            width: 100%;
-            background-color: white;
-        }
-
-        #downloadPDF,
-        #signOff,
-        #PDFsetting,
-        #BrowserPrint,
-        #sendReport {
-            padding: 0.5rem 1rem;
-            font-weight: bolder;
-            font-size: 1rem;
-            box-shadow: 1px 1px 10px 1px rgba(46, 46, 46, 0.329);
-            border: none;
-            border-radius: 5px;
-        }
-
-        #downloadPDF i,
-        #signOff i,
-        #PDFsetting i,
-        #BrowserPrint i,
-        #sendReport i {
-            margin-right: 8px;
-            font-size: 1.5rem;
-            color: rgba(255, 0, 0, 0.703);
-        }
-
-        #sendReport {
-            background-color: #2bff0066;
-            border: none;
-        }
-
-        #sendReport i {
-            color: #20b801;
-        }
-
-        #signOff {
-            background-color: #00b7ffb0;
-            border-radius: 5px;
-        }
-
-        #signOff i {
-            color: rgb(48, 48, 48);
-        }
+        /* Legacy dock styles removed in favor of modern action dock */
 
         h3 {
             text-align: center;
@@ -1135,60 +1085,61 @@ body.editing .cell-edit:focus {
 .qr-div { flex: 0 0 auto; width: 64px; }
 .qr-div img { width: 100%; height: auto; }
 
-/* ---------- ACTION DOCK Â· BUG#1 FIX ----------
-   Centered floating pill that WRAPS instead of overflowing.
-   width:max-content up to 96vw â†’ never bleeds off-screen. */
+/* ---------- COMPACT CENTERED ACTION DOCK ---------- */
 .download-pdf-div {
-    position: fixed; z-index: 950;
-    left: 59%; transform: translateX(-50%);
-    bottom: calc(14px + var(--safe-b));
+    position: fixed !important; z-index: 950 !important;
+    left: 50% !important; transform: translateX(-34%) !important;
+    bottom: calc(10px + var(--safe-b)) !important;
     display: none;
-    flex-wrap: nowrap; justify-content: center; align-items: center;
-    gap: 2px; padding: 4px;
-    width: max-content; max-width: calc(100vw - 24px);
-    background: rgba(15,23,42,.93);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 16px;
-    box-shadow: 0 18px 40px -12px rgba(15,23,42,.55);
+    flex-wrap: nowrap !important; justify-content: center !important; align-items: center !important;
+    gap: 2px !important; padding: 3px 5px !important;
+    width: max-content !important; max-width: calc(100vw - 16px) !important;
+    background: rgba(15,23,42,.96) !important;
+    backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 16px 36px -10px rgba(15,23,42,.6) !important;
+    box-sizing: border-box !important;
 }
-.download-pdf-div.is-ready { display: flex; animation: ohDockUp .35s ease both; }
-.downloadDiv { position: relative; border-radius: 10px; }
+.download-pdf-div.is-ready { display: flex !important; animation: ohDockUp .35s ease both; }
+.downloadDiv { position: relative !important; border-radius: 999px !important; display: inline-flex !important; align-items: center !important; }
 #downloadPDF, #savePDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 7px 10px; font-weight: 600; font-size: 12px;
-    border: 0; border-radius: 10px; cursor: pointer;
-    color: #e2e8f0; background: transparent; white-space: nowrap;
-    transition: background-color .18s ease, transform .12s ease;
+    display: inline-flex !important; align-items: center !important; gap: 3px !important;
+    padding: 5px 7px !important; font-weight: 600 !important; font-size: 11px !important;
+    border: 0 !important; border-radius: 999px !important; cursor: pointer !important;
+    color: #e2e8f0 !important; background: transparent !important; white-space: nowrap !important;
+    transition: background-color .15s ease, transform .12s ease !important;
+    line-height: 1.2 !important;
 }
 #enterResult {
-    color: #fcd34d;
-    background: rgba(180, 83, 9, .76);
+    color: #fcd34d !important;
+    background: rgba(180, 83, 9, .76) !important;
 }
-#enterResult i { color: #fde68a; }
+#enterResult i { color: #fde68a !important; }
 #downloadPDF:hover, #savePDF:hover, #signOff:hover, #PDFsetting:hover,
 #BrowserPrint:hover, #sendReport:hover, #enterResult:hover {
-    background: rgba(255,255,255,.14); transform: translateY(-1px);
+    background: rgba(255,255,255,.15) !important; transform: translateY(-1px) !important;
 }
-#downloadPDF i, #savePDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i { font-size: 15px; }
-#enterResult i { font-size: 15px; }
-#downloadPDF { background: linear-gradient(135deg, var(--brand), var(--teal)); color: #fff; box-shadow: 0 6px 16px -6px rgba(14,116,144,.7); }
-#downloadPDF:hover { background: linear-gradient(135deg, var(--brand-dark), #0f766e); }
-#downloadPDF i { color: #fff; }
-#savePDF { color: #fcd34d; background: rgba(180, 83, 9, .76); }
-#savePDF i { color: #fde68a; }
-#sendReport { color: #6ee7b7; } #sendReport i { color: #34d399; }
-#signOff { color: #93c5fd; }   #signOff i { color: #60a5fa; }
+#downloadPDF i, #savePDF i, #signOff i, #PDFsetting i, #BrowserPrint i, #sendReport i, #enterResult i {
+    font-size: 11px !important; margin: 0 !important;
+}
+#downloadPDF { background: linear-gradient(135deg, var(--brand), var(--teal)) !important; color: #fff !important; box-shadow: 0 4px 12px -4px rgba(14,116,144,.7) !important; }
+#downloadPDF:hover { background: linear-gradient(135deg, var(--brand-dark), #0f766e) !important; }
+#downloadPDF i { color: #fff !important; }
+#savePDF { color: #fcd34d !important; background: rgba(180, 83, 9, .76) !important; }
+#savePDF i { color: #fde68a !important; }
+#sendReport { color: #6ee7b7 !important; } #sendReport i { color: #34d399 !important; }
+#signOff { color: #93c5fd !important; }   #signOff i { color: #60a5fa !important; }
 .loading-overlay {
     position: absolute; inset: 0; z-index: 5;
     display: none; align-items: center; justify-content: center;
-    background: rgba(15,23,42,.65); border-radius: 10px;
+    background: rgba(15,23,42,.65); border-radius: 999px;
 }
-.lo { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; animation: ohSpin 1s linear infinite; }
+.lo { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: ohSpin 1s linear infinite; }
 @media (max-width: 900px) {
     #downloadPDF span, #savePDF span, #signOff span, #PDFsetting span,
     #BrowserPrint span, #sendReport span, #enterResult span { display: none; }
-    #downloadPDF, #savePDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 9px 11px; }
+    #downloadPDF, #savePDF, #signOff, #PDFsetting, #BrowserPrint, #sendReport, #enterResult { padding: 7px 9px; }
 }
 
 /* ---------- TOASTS ---------- */
@@ -1355,31 +1306,31 @@ body.editing .cell-edit:focus {
     <!-- ================= ACTION DOCK ================= -->
     <div class="download-pdf-div no-print" role="toolbar" aria-label="Report actions">
         <div class="downloadDiv">
-            <button id="signOff"><i class="fas fa-signature"></i><span>Sign off</span></button>
+            <button id="signOff"><i class="fas fa-signature"></i><span>Sign Off</span></button>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
             <button id="enterResult" type="button"><i class="fas fa-pen-to-square"></i><span>Enter Result</span></button>
         </div>
         <div class="downloadDiv">
-            <button id="savePDF" type="button"><i class="fas fa-save"></i><span>Save PDF</span></button>
+            <button id="savePDF" type="button"><i class="fas fa-save"></i><span>Save</span></button>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
-            <button id="downloadPDF" class="sign click"><i class="fas fa-file-pdf"></i><span>Download PDF</span></button>
+            <button id="downloadPDF" class="sign click"><i class="fas fa-file-pdf"></i><span>Download</span></button>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
-            <button id="sendReport" class="sign click"><i class="fas fa-paper-plane"></i><span>Send Report</span></button>
+            <button id="sendReport" class="sign click"><i class="fas fa-paper-plane"></i><span>Send</span></button>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
-            <button id="BrowserPrint" class="sign click"><i class="fas fa-print"></i><span>Browser print</span></button>
+            <button id="BrowserPrint" class="sign click"><i class="fas fa-print"></i><span>Print</span></button>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
         <div class="downloadDiv">
             <a href="pages/pages/printsetting.html" id="PDFsettinganchr" style="text-decoration:none;">
-                <button id="PDFsetting" class="sign click"><i class="fas fa-gear"></i><span>Print settings</span></button>
+                <button id="PDFsetting" class="sign click"><i class="fas fa-gear"></i><span>Settings</span></button>
             </a>
             <div class="loading-overlay"><div class="lo"></div></div>
         </div>
@@ -1412,6 +1363,7 @@ body.editing .cell-edit:focus {
         <p style="text-align:center;padding:20px;">This report viewer requires JavaScript.</p>
     </noscript>
 
+    <script src="report_action_audit.js"></script>
     <script src="reportFormat.js"></script>
 </body>
 

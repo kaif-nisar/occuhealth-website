@@ -8,6 +8,7 @@ import { Tenant } from "../models/tenant.model.js";
 import { newBooking } from "../models/NewBooking.model.js";
 import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
 import { customization } from "../models/printsetting.model.js";
+import { recordButtonActionAudit } from "../services/reportActionAudit.service.js";
 
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
@@ -235,23 +236,31 @@ const editReportsignofffieldController = asyncHandler(async (req, res) => {
         throw new ApiError(500, "value1 is not recieved for edit report sign off field");
     }
 
+    const signerName = signoff ? (req.user?.fullName || req.user?.username || "Doctor") : null;
+    const signedAtTime = signoff ? new Date() : null;
+
+    const reportUpdateFields = {
+        signOff: Boolean(signoff),
+        isSignedOff: Boolean(signoff),
+        signedBy: signerName,
+        signedAt: signedAtTime,
+        signedById: signoff ? req.user?._id : null,
+        signedByRole: signoff ? req.user?.role : null
+    };
+
     let savedREport;
     if (mongoose.Types.ObjectId.isValid(value1)) {
         savedREport = await reports.findOneAndUpdate(
             { _id: value1 },
-            {
-                signOff: signoff
-            },
+            reportUpdateFields,
             { new: true }
-        )
+        );
     } else {
         savedREport = await reports.findOneAndUpdate(
             { bookingId: value1 },
-            {
-                signOff: signoff
-            },
+            reportUpdateFields,
             { new: true }
-        )
+        );
     }
 
     if (!savedREport) {
@@ -259,29 +268,93 @@ const editReportsignofffieldController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "please try again after sometime, report not saved");
     }
 
+    const bId = savedREport.bookingId || (!mongoose.Types.ObjectId.isValid(value1) ? value1 : null);
+    if (bId) {
+        try {
+            await newBooking.findOneAndUpdate(
+                { bookingId: bId },
+                {
+                    isSignedOff: Boolean(signoff),
+                    signedBy: signerName,
+                    signedAt: signedAtTime,
+                    "signOffAudit.isSignedOff": Boolean(signoff),
+                    "signOffAudit.signedBy": signerName,
+                    "signOffAudit.signedAt": signedAtTime,
+                    "signOffAudit.signedById": signoff ? req.user?._id : null,
+                    "signOffAudit.role": signoff ? req.user?.role : null
+                }
+            );
+        } catch (nbErr) {
+            console.warn("Failed to update newBooking sign-off status:", nbErr);
+        }
+    }
+
+    try {
+        const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
+        const bookingId = savedREport.bookingId || (mongoose.Types.ObjectId.isValid(value1) ? null : value1);
+        if (bookingId) {
+            await recordButtonActionAudit({
+                tenantId,
+                bookingId,
+                reportId: savedREport._id,
+                user: req.user,
+                action: "SIGN_OFF",
+                buttonId: "signOff",
+                buttonLabel: "Sign off",
+                details: { signoff }
+            });
+        }
+    } catch (auditErr) {
+        console.warn("Auto-audit failed in editReportsignofffieldController:", auditErr);
+    }
+
     return res.status(200).json(savedREport);
 })
 
 const getReportController = asyncHandler(async (req, res) => {
     const { value1, bookingId } = req.body;
-    const tenantId = req.user.tenantId?._id || req.user.tenantId;
-    const [user, usertenant] = await Promise.all([
-        User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
-        Tenant.findById(tenantId).select("modelType").lean(),
-    ]);
-    // console.log( typeof bookingId)
-    // console.log(typeof value1)
-    // Pehle bookingId ke basis par report dhundho
-    let Report = await reports.findOne({
-        bookingId: value1,
-        tenantId: tenantId
-    }).lean();
+    const searchKey = String(value1 || bookingId || "").trim();
+    if (!searchKey) {
+        throw new ApiError(400, "Booking ID or Report ID is required");
+    }
 
-    // Agar bookingId se report na mile aur value1 ek valid ObjectId hai to _id se dhundho
-    if (Report == null && mongoose.Types.ObjectId.isValid(value1)) {
+    const tenantId = req.user.tenantId?._id || req.user.tenantId;
+
+    // 1. Pehle bookingId ke basis par report dhundho (tenant scoped)
+    let Report = null;
+    if (tenantId) {
         Report = await reports.findOne({
-            _id: value1,
+            bookingId: searchKey,
             tenantId: tenantId
+        }).lean();
+    }
+
+    // 2. Agar bookingId se report na mile aur searchKey ek valid ObjectId hai to _id se dhundho (tenant scoped)
+    if (!Report && tenantId && mongoose.Types.ObjectId.isValid(searchKey)) {
+        Report = await reports.findOne({
+            _id: searchKey,
+            tenantId: tenantId
+        }).lean();
+    }
+
+    // 3. Fallback: bookingId ke basis par bina tenantId filter dhundho (for admin, staff, or cross-tenant/sub-franchisee bookings)
+    if (!Report) {
+        Report = await reports.findOne({
+            bookingId: searchKey
+        }).lean();
+    }
+
+    // 4. Fallback: _id ke basis par bina tenantId filter dhundho
+    if (!Report && mongoose.Types.ObjectId.isValid(searchKey)) {
+        Report = await reports.findOne({
+            _id: searchKey
+        }).lean();
+    }
+
+    // 5. Fallback: Case-insensitive bookingId match
+    if (!Report) {
+        Report = await reports.findOne({
+            bookingId: { $regex: new RegExp(`^${searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
         }).lean();
     }
 
@@ -290,10 +363,14 @@ const getReportController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    const [reportCustomization, tenantDefaults] = await Promise.all([
-        customization.findOne({ reportId: Report._id, tenantId }).lean(),
-        defaultpdfsetting.findOne({ tenantId }).lean(),
+    const resolvedTenantId = Report.tenantId || tenantId;
+    const [user, usertenant, reportCustomization, tenantDefaults] = await Promise.all([
+        User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
+        Tenant.findById(resolvedTenantId).select("modelType").lean(),
+        customization.findOne({ reportId: Report._id, tenantId: resolvedTenantId }).lean(),
+        defaultpdfsetting.findOne({ tenantId: resolvedTenantId }).lean(),
     ]);
+
     const printSettings = {
         ...(reportCustomization || {}),
         ...(tenantDefaults || {}),

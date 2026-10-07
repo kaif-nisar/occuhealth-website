@@ -55,8 +55,11 @@ async function populateFranchisees() {
 
 function setDefaultDates() {
     var n = new Date();
-    document.getElementById('start-date').value = new Date(n.getFullYear(), n.getMonth(), 1).toISOString().split('T')[0];
-    document.getElementById('end-date').value = new Date(n.getFullYear(), n.getMonth()+1, 0).toISOString().split('T')[0];
+    var pad = function(num) { return String(num).padStart(2, '0'); };
+    var startStr = n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-01';
+    var todayStr = n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate());
+    document.getElementById('start-date').value = startStr;
+    document.getElementById('end-date').value = todayStr;
 }
 
 // ---- EVENT BINDING ----
@@ -171,9 +174,25 @@ async function fetchLedger() {
     showLoading();
 
     try {
+        // Construct accurate ISO date strings
+        // Start date: beginning of the selected day (00:00:00.000 local time)
+        var startIso = new Date(sDate + 'T00:00:00.000').toISOString();
+
+        // End date: if today or in future, capture exact current click moment with milliseconds; else end of day (23:59:59.999 local time)
+        var now = new Date();
+        var pad = function(num) { return String(num).padStart(2, '0'); };
+        var todayStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+        var endIso;
+        if (eDate >= todayStr) {
+            endIso = now.toISOString();
+        } else {
+            endIso = new Date(eDate + 'T23:59:59.999').toISOString();
+        }
+
         // Build URLs — both summary and ledger now support doctorId/labId
-        var summaryUrl = BASE_URL + '/api/v1/user/account-summary?userId=' + fid + '&startDate=' + sDate + '&endDate=' + eDate;
-        var ledgerUrl = BASE_URL + '/api/v1/user/ledgerEntries?userId=' + fid + '&startDate=' + sDate + '&endDate=' + eDate;
+        var summaryUrl = BASE_URL + '/api/v1/user/account-summary?userId=' + fid + '&startDate=' + encodeURIComponent(startIso) + '&endDate=' + encodeURIComponent(endIso);
+        var ledgerUrl = BASE_URL + '/api/v1/user/ledgerEntries?userId=' + fid + '&startDate=' + encodeURIComponent(startIso) + '&endDate=' + encodeURIComponent(endIso);
 
         if (docId && docId !== 'all') {
             summaryUrl += '&doctorId=' + encodeURIComponent(docId);

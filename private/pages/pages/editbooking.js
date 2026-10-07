@@ -40,41 +40,60 @@ async function bookingload() {
                 return;
             }
 
-            if (data.status !== "On Hold") {
-                document.querySelector('.container-new-booking').style.display = "none";
-                document.querySelector('.editbarcodebutton').style.display = "none";
-                document.getElementById("noteContainer").style.display = "flex";
+            const statusBadge = document.getElementById("bookingStatusBadge");
+            const noteContainer = document.getElementById("noteContainer");
+            const noteText = document.getElementById("noteText");
+            const editBarcodeContainer = document.querySelector('.editbarcodebutton');
+            const openEditPopupBtn = document.getElementById("openEditPopup");
+            const cancelBookingBtn = document.getElementById("cancelbooking");
+            const containerNewBooking = document.querySelector('.container-new-booking');
+
+            const currentStatus = String(data.status || "").trim().toLowerCase();
+            const isCancelled = currentStatus === "cancelled";
+            const isReportReady = Boolean(data.isreportready);
+
+            if (statusBadge) {
+                statusBadge.textContent = isCancelled ? "Cancelled" : (isReportReady ? "Report Ready" : (data.status || "Booked"));
+                if (isCancelled) {
+                    statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-red-100 text-red-800 border border-red-300";
+                } else if (isReportReady) {
+                    statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-emerald-100 text-emerald-800 border border-emerald-300";
+                } else if (currentStatus === "pending") {
+                    statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-amber-100 text-amber-800 border border-amber-300";
+                } else {
+                    statusBadge.className = "px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-blue-100 text-blue-800 border border-blue-300";
+                }
             }
-            // 3️⃣ TableData से फील्ड बनाओ
-            const form = document.getElementById("editForm");
-            form.innerHTML = ""; // पुराना क्लियर कर दो
 
-            if (Array.isArray(data.tableData)) {
-                data.tableData.forEach((entry, index) => {
-                    const div = document.createElement("div");
-                    div.classList.add(
-                        "flex",
-                        "flex-col",
-                        "sm:flex-row",
-                        "sm:items-center",
-                        "gap-2",
-                        "mb-3"
-                    );
-
-                    div.innerHTML = `
-      <span class="text-sm text-gray-600 w-32">${entry.typeOfSample || "Sample Type"}</span>
-      <input
-        type="text"
-        id="${entry._id}"
-        name="barcodeId-${index}"
-        value="${entry.barcodeId || ""}"
-        class="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-200"
-      />
-    `;
-
-                    form.appendChild(div);
-                });
+            if (isCancelled) {
+                if (noteContainer) {
+                    noteContainer.style.display = "flex";
+                    if (noteText) noteText.textContent = `This booking is CANCELLED. Reason: ${data.cancellationReason || "No reason specified"}. All transactions and commissions have been reversed.`;
+                }
+                if (openEditPopupBtn) openEditPopupBtn.style.display = "none";
+                if (cancelBookingBtn) {
+                    cancelBookingBtn.disabled = true;
+                    cancelBookingBtn.innerHTML = '<i class="fa-solid fa-ban"></i><span>Cancelled</span>';
+                    cancelBookingBtn.className = "px-4 py-2 rounded-md bg-gray-400 text-white cursor-not-allowed font-medium text-sm";
+                }
+                if (containerNewBooking) containerNewBooking.style.display = "none";
+            } else if (isReportReady) {
+                if (noteContainer) {
+                    noteContainer.style.display = "flex";
+                    if (noteText) noteText.textContent = "Report has already been generated for this booking. Barcode editing and cancellation are locked.";
+                }
+                if (openEditPopupBtn) openEditPopupBtn.style.display = "none";
+                if (cancelBookingBtn) cancelBookingBtn.style.display = "none";
+                if (containerNewBooking) containerNewBooking.style.display = "none";
+            } else {
+                if (noteContainer) noteContainer.style.display = "none";
+                if (editBarcodeContainer) editBarcodeContainer.style.display = "flex";
+                if (openEditPopupBtn) openEditPopupBtn.style.display = "inline-flex";
+                if (cancelBookingBtn) cancelBookingBtn.style.display = "inline-flex";
+                if (containerNewBooking) containerNewBooking.style.display = "block";
             }
+
+            renderPageTable(data);
             barcodeupdate(data);
 
             // Populate random ID
@@ -1259,94 +1278,228 @@ async function bookingload() {
             addingdoctortodatabase,
             addDoctorpage,
             testSelectionfunction,
-            submitNewBooking,
-            barcodeupdate
+            submitNewBooking
         ];
 
         for (const func of functions) {
             try {
                 await func(); // Execute each function
-            } catch {
-                // Ignore the error and continue with the next function
+            } catch (err) {
+                console.warn("Initialization function error:", err);
             }
         }
     }
-    await initialization();
-    function barcodeupdate(data) {
-        const array = data.tableData;
 
-        document.getElementById("cancelbooking").addEventListener("click", async () => {
-            const confirmCancel = confirm("Are you sure you want to cancel this booking? This action cannot be undone.");
-            if (!confirmCancel) {
-                return; // User clicked 'Cancel'
-            }
+    function renderPageTable(data) {
+        const tableBody = document.getElementById("tableBody");
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/bookings/cancel`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ bookingId: data.bookingId })
-                });
-
-                const datafromresponse = await response.json();
-                if (response.ok) {
-                    alert(datafromresponse.message);
-                    location.reload();
-                } else {
-                    alert(datafromresponse.message);
-                }
-            } catch (error) {
-                console.error("Error updating booking status:", error);
-                alert("An error occurred. Please try again.");
-            }
-        });
-
-        document.getElementById("openEditPopup").addEventListener("click", () => {
-            document.getElementById("editPopup").classList.remove("hidden");
-        });
-
-        document.getElementById("closeEditPopup").addEventListener("click", () => {
-            document.getElementById("editPopup").classList.add("hidden");
-        });
-
-        document.getElementById("saveEditForm").addEventListener("click", async () => {
-            const inputs = document.querySelectorAll("#editForm input");
-
-            // Update array barcodeIds
-            inputs.forEach((element) => {
-                const objid = element.id;
-                array.forEach((obj) => {
-                    if (obj._id.toString() === objid.toString()) {
-                        obj.barcodeId = element.value.trim();
-                    }
-                });
+        if (Array.isArray(data?.tableData) && data.tableData.length > 0) {
+            data.tableData.forEach((entry, index) => {
+                const tr = document.createElement("tr");
+                tr.setAttribute("data-test-data", JSON.stringify(entry.ids || []));
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.typeOfSample || "Sample"}</td>
+                    <td>
+                        <input type="text" name="barcodeId" value="${entry.barcodeId || ''}" readonly class="p-1 border rounded bg-gray-50 text-sm font-mono w-36" />
+                        <input type="hidden" name="confirmBarcodeId" value="${entry.barcodeId || ''}" />
+                    </td>
+                    <td>${entry.testName || ""}</td>
+                `;
+                tableBody.appendChild(tr);
             });
+        }
+    }
 
-            console.log("array:", array);
+    await initialization();
 
-            try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/editBookingBarcodes`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ id: data._id, tableData: array }),
-                });
+    function barcodeupdate(data) {
+        if (!data || !data._id) return;
 
-                const responsedata = await response.json();
-                if (response.ok) {
-                    alert(responsedata.message || "Barcodes updated successfully.");
-                    document.getElementById("editPopup").classList.add("hidden");
-                } else {
-                    alert(responsedata.message || "Failed to update barcodes.");
-                }
-            } catch (error) {
-                console.error("Error:", error);
-                alert("An error occurred while updating barcodes.");
+        const openPopupBtn = document.getElementById("openEditPopup");
+        const closePopupBtn = document.getElementById("closeEditPopup");
+        const cancelModalBtn = document.getElementById("cancelEditModalBtn");
+        const editPopup = document.getElementById("editPopup");
+        const saveFormBtn = document.getElementById("saveEditForm");
+        const cancelBookingBtn = document.getElementById("cancelbooking");
+
+        function populateForm() {
+            const form = document.getElementById("editForm");
+            if (!form) return;
+            form.innerHTML = "";
+
+            if (!Array.isArray(data.tableData) || data.tableData.length === 0) {
+                form.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">No samples found in this booking.</p>';
+                return;
             }
-        });
+
+            data.tableData.forEach((entry, index) => {
+                const div = document.createElement("div");
+                div.className = "flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-md";
+                div.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-medium text-sm text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-vial text-purple-500"></i>
+                            ${entry.typeOfSample || "Sample Type"}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-0.5 truncate max-w-xs" title="${entry.testName || ''}">
+                            ${entry.testName || ""}
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-48">
+                        <input
+                            type="text"
+                            data-barcode-index="${index}"
+                            data-sample-type="${entry.typeOfSample || ''}"
+                            value="${entry.barcodeId || ''}"
+                            placeholder="Enter Barcode ID"
+                            class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        />
+                    </div>
+                `;
+                form.appendChild(div);
+            });
+        }
+
+        if (openPopupBtn) {
+            openPopupBtn.onclick = () => {
+                populateForm();
+                if (editPopup) {
+                    editPopup.classList.remove("hidden");
+                    editPopup.style.display = "flex";
+                }
+            };
+        }
+
+        const closeModal = () => {
+            if (editPopup) {
+                editPopup.classList.add("hidden");
+                editPopup.style.display = "none";
+            }
+        };
+
+        if (closePopupBtn) closePopupBtn.onclick = closeModal;
+        if (cancelModalBtn) cancelModalBtn.onclick = closeModal;
+
+        if (saveFormBtn) {
+            saveFormBtn.onclick = async () => {
+                const inputs = document.querySelectorAll("#editForm input[data-barcode-index]");
+                if (!inputs.length) {
+                    alert("No samples to update.");
+                    return;
+                }
+
+                const updatedTableData = JSON.parse(JSON.stringify(data.tableData || []));
+                const seenBarcodes = new Map();
+
+                for (const input of inputs) {
+                    const idx = parseInt(input.getAttribute("data-barcode-index"), 10);
+                    const val = input.value.trim();
+                    const sType = (input.getAttribute("data-sample-type") || "").trim().toLowerCase();
+
+                    if (!val) {
+                        alert(`Barcode ID is required for sample "${input.getAttribute("data-sample-type") || 'Sample'}"`);
+                        input.focus();
+                        return;
+                    }
+
+                    if (seenBarcodes.has(val.toLowerCase()) && seenBarcodes.get(val.toLowerCase()) !== sType) {
+                        alert(`! Same barcode "${val}" is not allowed for different sample types.`);
+                        input.focus();
+                        return;
+                    }
+                    seenBarcodes.set(val.toLowerCase(), sType);
+
+                    if (updatedTableData[idx]) {
+                        updatedTableData[idx].barcodeId = val;
+                    }
+                }
+
+                try {
+                    saveFormBtn.disabled = true;
+                    saveFormBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+                    const response = await fetch(`${BASE_URL}/api/v1/user/editBookingBarcodes`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id: data._id, tableData: updatedTableData }),
+                    });
+
+                    const responsedata = await response.json();
+                    if (response.ok) {
+                        alert(responsedata.message || "Barcodes updated successfully.");
+                        data.tableData = updatedTableData;
+                        if (booking) booking.tableData = updatedTableData;
+                        closeModal();
+                        renderPageTable(data);
+                    } else {
+                        alert(responsedata.message || "Failed to update barcodes.");
+                    }
+                } catch (error) {
+                    console.error("Error updating barcodes:", error);
+                    alert("An error occurred while updating barcodes.");
+                } finally {
+                    saveFormBtn.disabled = false;
+                    saveFormBtn.innerHTML = '<i class="fa-solid fa-check"></i> Save';
+                }
+            };
+        }
+
+        if (cancelBookingBtn) {
+            cancelBookingBtn.onclick = async () => {
+                if (data.status === "cancelled") {
+                    alert("This booking is already cancelled.");
+                    return;
+                }
+                if (data.isreportready) {
+                    alert("Booking cannot be cancelled because the report has already been processed.");
+                    return;
+                }
+
+                const reason = window.prompt("Are you sure you want to cancel this booking?\n\nThis will refund the amount to wallet, reverse all commissions, and create ledger entries.\n\nPlease enter the cancellation reason:");
+                if (reason === null) {
+                    return; // User clicked 'Cancel' in prompt
+                }
+
+                const cleanReason = reason.trim() || "Cancelled from Edit Booking portal";
+
+                const originalBtnHtml = cancelBookingBtn.innerHTML;
+                try {
+                    cancelBookingBtn.disabled = true;
+                    cancelBookingBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cancelling...';
+
+                    const response = await fetch(`${BASE_URL}/api/v1/user/bookings/cancel`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            bookingId: data.bookingId,
+                            reason: cleanReason
+                        })
+                    });
+
+                    const datafromresponse = await response.json();
+                    if (response.ok) {
+                        alert(datafromresponse.message || "Booking cancelled successfully! Wallet refunded and transactions reversed.");
+                        location.reload();
+                    } else {
+                        alert(datafromresponse.message || "Failed to cancel booking.");
+                        cancelBookingBtn.disabled = false;
+                        cancelBookingBtn.innerHTML = originalBtnHtml;
+                    }
+                } catch (error) {
+                    console.error("Error cancelling booking:", error);
+                    alert("An error occurred while cancelling booking. Please try again.");
+                    cancelBookingBtn.disabled = false;
+                    cancelBookingBtn.innerHTML = originalBtnHtml;
+                }
+            };
+        }
     }
 }
 bookingload();

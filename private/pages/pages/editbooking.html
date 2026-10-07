@@ -772,47 +772,64 @@
 <body>
 
     <div class="container">
-        <!-- Note Container -->
+        <!-- Header & Top Action Bar -->
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-4 pb-2 border-b border-gray-200">
+            <div>
+                <div class="header" style="font-size: 24px; font-weight: 600; margin-bottom: 4px;">Edit Booking</div>
+                <div class="breadcrumb" style="margin: 0;">
+                    <a href="#"><i class="fa-solid fa-house"></i></a> &gt; <a href="#">Dashboard</a> &gt; <a href="#">Edit Booking</a>
+                </div>
+            </div>
+            <div class="editbarcodebutton flex items-center gap-3 flex-wrap">
+                <span id="bookingStatusBadge" class="px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase bg-blue-100 text-blue-800"></span>
+                <button id="openEditPopup" type="button"
+                    class="px-4 py-2 rounded-md bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 shadow flex items-center gap-2 transition duration-200 cursor-pointer font-medium text-sm">
+                    <i class="fa-solid fa-barcode"></i>
+                    <span>Edit Barcode</span>
+                </button>
+                <button id="cancelbooking" type="button"
+                    class="px-4 py-2 rounded-md bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 shadow flex items-center gap-2 transition duration-200 cursor-pointer font-medium text-sm">
+                    <i class="fa-solid fa-rectangle-xmark"></i>
+                    <span>Cancel Booking</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Note Container (Hidden by default, shown for alerts) -->
         <div id="noteContainer"
-            class="flex items-center absolute z-9999 justify-between gap-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 rounded-lg shadow-lg mt-4 mx-auto max-w-3xl animate-fadeIn">
+            class="items-center justify-between gap-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 rounded-lg shadow-lg mb-4 max-w-3xl animate-fadeIn" style="display: none;">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-circle-info text-xl"></i>
-                <p class="text-sm md:text-base">
-                    This is an important notice. Once the booking status moves away from 'On Hold', you will no longer
-                    be able to edit barcodes or add new tests. and if you cancel a booking it will auto delete after 2 months from Database </p>
+                <p id="noteText" class="text-sm md:text-base m-0">
+                    Important notice regarding this booking.
+                </p>
             </div>
-            <button id="closeNote" class="text-white hover:text-gray-300 transition">
+            <button id="closeNote" type="button" class="text-white hover:text-gray-200 transition bg-transparent border-0 cursor-pointer">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 
-        <!-- Button (already in your code) -->
-        <div class="editbarcodebutton flex gap-5 w-full justify-end absolute top-[25%] right-[8%]">
-            <button id="openEditPopup"
-                class="px-4 py-2 rounded-md bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 shadow-md flex items-center gap-2 transition duration-200">
-                <i class="fa-solid fa-file-pen"></i>
-                <span>Barcode</span>
-            </button>
-            <button id="cancelbooking"
-                class="px-4 py-2 rounded-md bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-pink-600 hover:to-purple-600 shadow-md flex items-center gap-2 transition duration-200">
-                <i class="fa-solid fa-rectangle-xmark"></i>
-                <span>Cancel</span>
-            </button>
-        </div>
-
-        <!-- Popup Modal -->
-        <div id="editPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+        <!-- Popup Modal for Editing Barcodes -->
+        <div id="editPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[99999]" style="display: none;">
+            <div class="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 relative max-h-[85vh] overflow-y-auto">
                 <!-- Close Button -->
-                <button id="closeEditPopup" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+                <button id="closeEditPopup" type="button" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 bg-transparent border-0 cursor-pointer text-lg">
                     <i class="fa-solid fa-times"></i>
                 </button>
-                <h2 class="text-xl font-semibold mb-4">Edit Barcode Data</h2>
-                <form id="editForm" class="space-y-4">
+                <h2 class="text-lg font-bold mb-1 flex items-center gap-2 text-gray-800">
+                    <i class="fa-solid fa-barcode text-purple-600"></i>
+                    Edit Barcode Data
+                </h2>
+                <p class="text-xs text-gray-500 mb-4">Update the sample barcodes below. Barcodes must be unique across different sample types.</p>
+                <form id="editForm" class="space-y-3" onsubmit="return false;">
                     <!-- Dynamic Fields will go here -->
                 </form>
-                <div class="mt-4 flex justify-end">
-                    <button id="saveEditForm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                <div class="mt-5 flex justify-end gap-2">
+                    <button id="cancelEditModalBtn" type="button" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-medium text-sm cursor-pointer border-0">
+                        Cancel
+                    </button>
+                    <button id="saveEditForm" type="button" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm shadow cursor-pointer border-0 flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i>
                         Save
                     </button>
                 </div>
@@ -820,12 +837,6 @@
         </div>
 
         <div id="successMessage"></div>
-        <br><br>
-        <div class="header">Edit Booking</div>
-        <div class="breadcrumb" style="margin: 1rem 0.5rem;">
-            <a href="#"><i class="fa-solid fa-house"></i></a> &gt; <a href="#">Dashboard</a> &gt; <a href="#">Edit
-                Booking</a>
-        </div>
         <div class="section">
             <div class="section-header">
                 <div class="count-booking">1</div>

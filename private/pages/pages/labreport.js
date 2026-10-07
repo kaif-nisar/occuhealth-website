@@ -2892,7 +2892,80 @@ async function loadfunction() {
             console.log(error.message);
         }
     }
+    async function ensureAuditHelper() {
+        if (window.ReportActionAudit && window.ReportActionAudit.__initialized) return window.ReportActionAudit;
+        if (window.parent && window.parent.ReportActionAudit && window.parent.ReportActionAudit.__initialized) return window.parent.ReportActionAudit;
+        return new Promise((resolve) => {
+            const s = document.createElement('script');
+            s.src = 'pages/pages/report_action_audit.js?v=' + Date.now();
+            s.onload = () => resolve(window.ReportActionAudit);
+            s.onerror = () => {
+                const s2 = document.createElement('script');
+                s2.src = 'report_action_audit.js?v=' + Date.now();
+                s2.onload = () => resolve(window.ReportActionAudit);
+                s2.onerror = () => resolve(null);
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s);
+        });
+    }
+
+    async function setupLabReportActionAudit(bookingObj) {
+        const auditHelper = await ensureAuditHelper();
+        if (!auditHelper) return;
+
+        const bId = bookingObj?.bookingId || (function () {
+            try {
+                const regId = localStorage.getItem('regId');
+                return regId ? JSON.parse(regId) : '';
+            } catch (e) { return ''; }
+        })();
+
+        const trackedButtons = [
+            { id: 'finalBtn', label: 'Final', action: 'FINAL' },
+            { id: 'saveBtn', label: 'Save only', action: 'SAVE_ONLY' },
+            { id: 'getresult', label: 'Get LIS', action: 'GET_LIS' },
+            { id: 'modifycase', label: 'Edit Case', action: 'EDIT_CASE' },
+            { id: 'randomresult', label: 'Get Result', action: 'RANDOM_RESULT' },
+            { id: 'reorder-tables', label: 'Reorder Tables', action: 'REORDER_TABLES' },
+            { id: 'reorder-categories', label: 'Reorder Categories', action: 'REORDER_CATEGORIES' },
+            { id: 'reorder-pannels', label: 'Reorder Pannels', action: 'REORDER_PANNELS' }
+        ];
+
+        trackedButtons.forEach(function (btnInfo) {
+            const btn = document.getElementById(btnInfo.id);
+            if (!btn) return;
+
+            auditHelper.attachBadge(btn, {
+                buttonId: btnInfo.id,
+                buttonLabel: btnInfo.label,
+                bookingId: bId
+            });
+
+            btn.addEventListener('click', function () {
+                const currentBookingId = (typeof booking !== 'undefined' && booking?.bookingId) || bId;
+                if (currentBookingId) {
+                    auditHelper.record({
+                        bookingId: currentBookingId,
+                        buttonId: btnInfo.id,
+                        buttonLabel: btnInfo.label,
+                        action: btnInfo.action
+                    });
+                }
+            });
+        });
+
+        if (bId) {
+            auditHelper.get(bId).then(function (auditData) {
+                if (auditData) {
+                    auditHelper.updateBadges(bId, auditData);
+                }
+            });
+        }
+    }
+
     populatedoctorvisibility();
+    setupLabReportActionAudit(booking);
 
     // Bulk finalize waits on this instead of assuming the buttons are wired already.
     window.__bulkFinalizeLabreportReady = true;
@@ -3235,3 +3308,4 @@ function sortRowsByDataOrder(tbody) {
     });
 }
 sortTests(); // Ensure sortTests is asynchronou
+
