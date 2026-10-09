@@ -19,6 +19,7 @@ import { Target } from "../models/target.model.js";
 import { Counter, categorydb } from "../models/category.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { transitionBookingStatus, enqueueStatusDeliveries } from "../services/bookingStatus.service.js";
+import { processBookingFinancials, completeBookingFinancials } from "../services/bookingFinance.service.js";
 
 const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready printAudit actionAudit signOffAudit signedBy signedAt isSignedOff";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
@@ -910,8 +911,8 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
  */
 const bulkBookingsController = asyncHandler(async (req, res) => {
     const bookingsData = req.body;
-    const tenantId = req.user.tenantId._id;
-    const createdBy = req.user._id;
+    const tenantId = req.user.tenantId._id || req.user.tenantId;
+    const fallbackCreatedBy = req.user._id;
     const createdbyuser = req.user.username;
 
     if (!Array.isArray(bookingsData) || bookingsData.length === 0) {
@@ -920,14 +921,35 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
 
     const successfulBookings = [];
     const failedBookings = [];
+    const parentUserCache = new Map();
 
     for (const booking of bookingsData) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
         try {
-            // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â® ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚ÂªÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â²ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¼ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¨ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ (Capitalize Patient Name)
             const capitalizedName = String(booking.PatientName || booking.patientName || "").toUpperCase();
+            const bookingId = booking.barcodeId || "OH" + Math.floor(Math.random() * 10000000000);
+
+            // 1. Process Financials: Wallet deduction, commissions, ledger entries
+            const financialResult = await processBookingFinancials({
+                bookingInput: {
+                    ...booking,
+                    barcodeId: bookingId,
+                    bookingId,
+                    patientName: capitalizedName,
+                    total: Number(booking.total || 0)
+                },
+                currentUser: req.user,
+                tenantId,
+                session,
+                parentUserCache
+            });
+
+            const targetCreatedBy = financialResult.bookingUser?._id || fallbackCreatedBy;
 
             const bookingObj = {
-                bookingId: booking.barcodeId || "OH" + Math.floor(Math.random() * 10000000000),
+                bookingId,
                 date: booking.date || new Date().toISOString().split('T')[0],
                 time: booking.time || new Date().toTimeString().split(' ')[0].substring(0, 5),
                 patientName: capitalizedName,
@@ -937,18 +959,43 @@ const bulkBookingsController = asyncHandler(async (req, res) => {
                 doctorName: booking.doctorName || "",
                 labName: booking.labName || "",
                 clinicalHistory: booking.clinicalHistory || "",
-                total: Number(booking.total || 0),
+                total: financialResult.parsedTotal,
                 bulkUploadedResults: booking.bulkUploadedResults || [],
                 tableData: booking.tableData || [],
                 tenantId,
-                createdBy,
+                createdBy: targetCreatedBy,
                 createdbyuser,
-                status: "pending"
+                status: isAdminActor(req.user) ? "pending" : "booked",
+                subFranchisee: booking.subFranchisee || "",
+                subFranchiseeId: booking.subFranchiseeId || undefined,
+                savedDoctor: booking.savedDoctor || "",
+                savedDoctorId: booking.savedDoctorId || undefined,
+                savedLab: booking.savedLab || "",
+                savedLabId: booking.savedLabId || undefined,
+                discountamount: Number(booking.discountamount || 0),
+                discountunit: Number(booking.discountunit || 0),
             };
 
-            const created = await newBooking.create([bookingObj]);
-            successfulBookings.push({ bookingId: created[0].bookingId, patientName: capitalizedName });
+            const [created] = await newBooking.create([bookingObj], { session });
+
+            // 2. Complete financials (link caseId, monthly Target, staff activities)
+            await completeBookingFinancials({
+                booking: created,
+                financialResult,
+                currentUser: req.user,
+                tenantId,
+                session
+            });
+
+            await session.commitTransaction();
+            session.endSession();
+
+            successfulBookings.push({ bookingId: created.bookingId, patientName: capitalizedName });
         } catch (error) {
+            try {
+                await session.abortTransaction();
+            } catch (_) {}
+            session.endSession();
             failedBookings.push({ 
                 patient: booking.PatientName || booking.patientName || "Unknown", 
                 error: error.message 

@@ -17,6 +17,7 @@ import { Template } from "../models/template.model.js";
 import { createCanvas } from "canvas";
 import JsBarcode from "jsbarcode";
 import qr from "qrcode";
+import { processBookingFinancials, completeBookingFinancials, isAdminActor } from "../services/bookingFinance.service.js";
 
 const ACCESS_TOKEN_SECRET = process.env.SUPER_ADMIN_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.SUPER_ADMIN_REFRESH_TOKEN_SECRET;
@@ -419,9 +420,7 @@ const normalizeBookingInput = (bookingInput = {}) => {
         throw new ApiError(400, "Test Names are required for bulk auto finalize.");
     }
 
-    if (testResults.length === 0) {
-        throw new ApiError(400, "Test Results are required for bulk auto finalize.");
-    }
+    const hasMeaningfulResults = Array.isArray(testResults) && testResults.length > 0 && testResults.some(r => String(r || "").trim() !== "");
 
     if (tableData.length === 0) {
         throw new ApiError(400, "At least one test/sample row is required.");
@@ -436,6 +435,7 @@ const normalizeBookingInput = (bookingInput = {}) => {
         gender,
         testNames,
         testResults,
+        hasResults: hasMeaningfulResults,
         tableData,
     };
 };
@@ -515,9 +515,7 @@ const saveAcceptedBarcodeDocument = async (tenantId, bookingId, tableData, sessi
     return barcodeEntries;
 };
 
-const createBookingDocument = async (bookingInput, tenantId, createdBy, createdbyuser, session) => {
-    const normalized = normalizeBookingInput(bookingInput);
-
+const createBookingDocument = async (bookingInput, tenantId, createdBy, createdbyuser, session, financialResult, normalized) => {
     let bookingId = normalized.bookingId;
     const manualBookingId = normalizeText(bookingInput.barcodeId || bookingInput.bookingId);
 
@@ -538,6 +536,13 @@ const createBookingDocument = async (bookingInput, tenantId, createdBy, createdb
         }
     }
 
+    let initialStatus = "pending";
+    if (normalized?.hasResults) {
+        initialStatus = "pending";
+    } else {
+        initialStatus = "booked";
+    }
+
     const payload = {
         bookingId,
         date: bookingInput.date ? new Date(bookingInput.date) : new Date(),
@@ -552,15 +557,21 @@ const createBookingDocument = async (bookingInput, tenantId, createdBy, createdb
         labName: normalizeText(bookingInput.LabName || bookingInput.labName),
         franchisee: normalizeText(bookingInput.franchisee),
         clinicalHistory: normalizeText(bookingInput.ClinicalHistory || bookingInput.clinicalHistory),
-        total: Number(bookingInput.Total ?? bookingInput.total ?? 0),
+        total: financialResult?.parsedTotal ?? Number(bookingInput.Total ?? bookingInput.total ?? 0),
         tableData: normalized.tableData,
         tenantId,
         createdBy,
         createdbyuser,
-        status: "pending",
+        status: initialStatus,
         isreportready: false,
         discountamount: Number(bookingInput.DiscountAmount ?? bookingInput.discountamount ?? 0),
         discountunit: Number(bookingInput.DiscountPercentage ?? bookingInput.discountunit ?? 0),
+        subFranchisee: normalizeText(bookingInput.subFranchisee),
+        subFranchiseeId: bookingInput.subFranchiseeId || undefined,
+        savedDoctor: normalizeText(bookingInput.savedDoctor || bookingInput.DoctorName || bookingInput.doctorName),
+        savedDoctorId: bookingInput.savedDoctorId || undefined,
+        savedLab: normalizeText(bookingInput.savedLab || bookingInput.LabName || bookingInput.labName),
+        savedLabId: bookingInput.savedLabId || undefined,
     };
 
     const [createdBooking] = await newBooking.create([payload], { session });
@@ -1767,89 +1778,136 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     return { reportId: savedReport._id };
 };
 
-const processBulkAutoFinalizeRow = async (bookingInput, req) => {
+const processBulkAutoFinalizeRow = async (bookingInput, req, parentUserCache = new Map()) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
         const tenantId = req.user.tenantId._id || req.user.tenantId;
-        const createdBy = req.user.role === "staff" && req.user.parentUser
-            ? req.user.parentUser
-            : req.user._id;
+        const normalized = normalizeBookingInput(bookingInput);
+        let bookingId = normalized.bookingId;
+
+        // 1. Process Financials: Wallet deduction, overdraft checks, commissions, ledger entries
+        const financialResult = await processBookingFinancials({
+            bookingInput: {
+                ...bookingInput,
+                barcodeId: bookingId,
+                bookingId,
+                patientName: normalized.patientName,
+                tableData: normalized.tableData,
+                total: bookingInput.total ?? bookingInput.Total ?? 0,
+            },
+            currentUser: req.user,
+            tenantId,
+            session,
+            parentUserCache
+        });
+
+        const createdBy = financialResult.bookingUser?._id || (
+            req.user.role === "staff" && req.user.parentUser
+                ? req.user.parentUser
+                : req.user._id
+        );
         const createdbyuser = req.user.username;
 
-        const { booking, bookingId, normalized } = await createBookingDocument(
+        // 2. Create Booking Document
+        const { booking, bookingId: finalBookingId } = await createBookingDocument(
             bookingInput,
             tenantId,
             createdBy,
             createdbyuser,
-            session
+            session,
+            financialResult,
+            normalized
         );
 
+        // 3. Save Accepted Barcodes Document
         const tableData = normalizeTableData(bookingInput);
-        const barcodeEntries = await saveAcceptedBarcodeDocument(tenantId, bookingId, tableData, session);
-        
-        const bDate = new Date(booking.date);
-        const [hrs, mins] = String(booking.time || "00:00").split(':');
-        const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
-        const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
+        const barcodeEntries = await saveAcceptedBarcodeDocument(tenantId, finalBookingId, tableData, session);
 
-        // Create the report shell first. The browser step fills the rows, then sign-off closes the loop.
-        await reports.findOneAndUpdate(
-            {
-                tenantId,
-                bookingId,
-            },
-            {
-                tenantId,
-                createdBy,
-                bookingId,
-                date: booking.date || new Date(),
-                time: booking.time || new Date().toTimeString().split(" ")[0].substring(0, 5),
-                courierName: booking.courierName || "",
-                courierId: booking.courierId || "",
-                patientName: booking.patientName,
-                year: booking.year || "",
-                gender: booking.gender || "Any",
-                patientPhone: booking.patientPhone || "N/A",
-                doctorName: booking.doctorName || "",
-                labName: booking.labName || "",
-                franchisee: booking.franchisee || "",
-                clinicalHistory: booking.clinicalHistory || "",
-                collectedOn,
-                receivedOn,
-                categorizedPDF: true,
-                total: Number(booking.total || 0),
-                status: booking.status || "pending",
-                signOff: false,
-                CategoryAndTest: [],
-                sampleDetails: [],
-                uniquetestArray: [],
-                isdocumented: false,
-            },
-            { upsert: true, new: true, session }
-        );
-
-        await session.commitTransaction();
-        session.endSession();
-
-        // Replace Puppeteer with direct backend finalization
-        const finalizeResult = await finalizeReportOnBackend(
+        // 4. Complete Financials (link caseId, update monthly Target, staff activities)
+        await completeBookingFinancials({
             booking,
-            normalized,
+            financialResult,
+            currentUser: req.user,
             tenantId,
-            createdBy
-        );
-        
-        const updatedBooking = await newBooking.findOne({ bookingId, tenantId }).select("status isreportready").lean();
+            session
+        });
 
-        return {
-            bookingId,
-            reportId: finalizeResult.reportId,
-            status: updatedBooking.status,
-            isreportready: updatedBooking.isreportready,
-            patientName: booking.patientName,
-        };
+        // 5. If test results are present, create report shell and auto-finalize
+        if (normalized.hasResults) {
+            const bDate = new Date(booking.date);
+            const [hrs, mins] = String(booking.time || "00:00").split(':');
+            const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
+            const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
+
+            await reports.findOneAndUpdate(
+                {
+                    tenantId,
+                    bookingId: finalBookingId,
+                },
+                {
+                    tenantId,
+                    createdBy,
+                    bookingId: finalBookingId,
+                    date: booking.date || new Date(),
+                    time: booking.time || new Date().toTimeString().split(" ")[0].substring(0, 5),
+                    courierName: booking.courierName || "",
+                    courierId: booking.courierId || "",
+                    patientName: booking.patientName,
+                    year: booking.year || "",
+                    gender: booking.gender || "Any",
+                    patientPhone: booking.patientPhone || "N/A",
+                    doctorName: booking.doctorName || "",
+                    labName: booking.labName || "",
+                    franchisee: booking.franchisee || "",
+                    clinicalHistory: booking.clinicalHistory || "",
+                    collectedOn,
+                    receivedOn,
+                    categorizedPDF: true,
+                    total: Number(financialResult.parsedTotal || 0),
+                    status: booking.status || "pending",
+                    signOff: false,
+                    CategoryAndTest: [],
+                    sampleDetails: [],
+                    uniquetestArray: [],
+                    isdocumented: false,
+                },
+                { upsert: true, new: true, session }
+            );
+
+            await session.commitTransaction();
+            session.endSession();
+
+            // Direct backend finalization
+            const finalizeResult = await finalizeReportOnBackend(
+                booking,
+                normalized,
+                tenantId,
+                createdBy
+            );
+            
+            const updatedBooking = await newBooking.findOne({ bookingId: finalBookingId, tenantId }).select("status isreportready").lean();
+
+            return {
+                bookingId: finalBookingId,
+                reportId: finalizeResult.reportId,
+                status: updatedBooking?.status || "completed",
+                isreportready: updatedBooking?.isreportready ?? true,
+                patientName: booking.patientName,
+            };
+        } else {
+            // No test results provided: booking created and paid for cleanly
+            await session.commitTransaction();
+            session.endSession();
+
+            return {
+                bookingId: finalBookingId,
+                status: booking.status,
+                isreportready: false,
+                patientName: booking.patientName,
+            };
+        }
     } catch (error) {
         try {
             await session.abortTransaction();
@@ -1874,10 +1932,11 @@ const bulkAutoFinalizeController = asyncHandler(async (req, res) => {
 
     const successfulBookings = [];
     const failedBookings = [];
+    const parentUserCache = new Map();
 
     for (const bookingInput of bookingsData) {
         try {
-            const result = await processBulkAutoFinalizeRow(bookingInput, req);
+            const result = await processBulkAutoFinalizeRow(bookingInput, req, parentUserCache);
             successfulBookings.push(result);
         } catch (error) {
             failedBookings.push({

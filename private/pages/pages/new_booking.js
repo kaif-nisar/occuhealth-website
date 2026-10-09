@@ -72,12 +72,16 @@ async function bookingload() {
     }
 
     async function fetchWalletAmount(id) {
+        if (!id) return;
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/get-wallet-balance?userId=${id}`);
             const data = await response.json();
             if (data.success) {
+                window.currentWalletBalance = Number(data.balance) || 0;
                 const balanceDisplay = document.getElementById('wallet-balance');
                 if (balanceDisplay) balanceDisplay.innerText = `Wallet Balance: Rs. ${data.balance.toFixed(2)}`;
+                const bulkBalanceDisplay = document.getElementById('bulk-wallet-balance-display');
+                if (bulkBalanceDisplay) bulkBalanceDisplay.innerText = `Rs. ${data.balance.toFixed(2)}`;
             }
         } catch (error) {
             console.error("Error fetching wallet balance:", error);
@@ -889,10 +893,8 @@ async function bookingload() {
             if (!franchiseeId || franchiseeId === "-- No Franchisee Selected --") return;
 
             window.userId = franchiseeId;
-            userId = franchiseeId
-            if (user.role !== "admin" && user.role !== "staff") {
-                fetchWalletAmount(userId)
-            }
+            userId = franchiseeId;
+            fetchWalletAmount(userId);
             const dataResult = await fetchAllData();
             renderTests(dataResult.tests, dataResult.panels, dataResult.packages);
         });
@@ -1221,6 +1223,21 @@ async function bookingload() {
         const tbody = DOM.bulkPreviewTable.querySelector('tbody'); // Use a local variable for tbody
         tbody.innerHTML = '';
 
+        const subFranSelect = document.getElementById('franchisee-select');
+        const subFranOption = subFranSelect?.options[subFranSelect.selectedIndex];
+        const selectedSubFranchisee = subFranOption?.value || '';
+        const selectedSubFranchiseeId = subFranOption?.getAttribute('id') || subFranOption?.getAttribute('data-id') || '';
+
+        const doctorSelect = document.getElementById('doctor-selection');
+        const doctorOption = doctorSelect?.options[doctorSelect.selectedIndex];
+        const selectedDoctorId = doctorOption?.getAttribute('doctor-id') || '';
+        const selectedDoctorName = (doctorOption && doctorOption.value !== 'NoDoctor') ? doctorOption.value : '';
+
+        const labSelect = document.getElementById('lab-selection');
+        const labOption = labSelect?.options[labSelect.selectedIndex];
+        const selectedLabId = labOption?.getAttribute('Lab-id') || '';
+        const selectedLabName = (labOption && labOption.value !== 'NoLab') ? labOption.value : '';
+
         rows.forEach((rowData, rowIndex) => {
             // ✅ खाली रो को छोड़ें (Skip Trailing Empty Rows): 
             if (!rowData || rowData.length === 0 || rowData.every(cell => cell === null || cell === undefined || String(cell).trim() === "")) {
@@ -1316,8 +1333,14 @@ async function bookingload() {
                     year: `${booking.agevalue} ${booking.ageunit}`,
                     gender: booking.gender,
                     patientPhone: booking.patientphone,
-                    doctorName: booking.doctorname,
-                    labName: booking.labname,
+                    doctorName: booking.doctorname || selectedDoctorName,
+                    savedDoctor: selectedDoctorName,
+                    savedDoctorId: selectedDoctorId,
+                    labName: booking.labname || selectedLabName,
+                    savedLab: selectedLabName,
+                    savedLabId: selectedLabId,
+                    subFranchisee: selectedSubFranchisee,
+                    subFranchiseeId: selectedSubFranchiseeId,
                     clinicalHistory: booking.clinicalhistory,
                     discountamount: Number(booking.discountamount || 0),
                     discountunit: String(booking.discountpercentage || '').replace('%', ''),
@@ -1327,8 +1350,8 @@ async function bookingload() {
                     testResults: testResultsFiltered, // Use filtered results
                     testIds: resolvedTestEntries.map(item => item.id),
                     tableData: resolvedTableData,
-                    createdbyuser: username,
-                    userId: userId,
+                    createdbyuser: typeof username !== 'undefined' ? username : '',
+                    userId: userId || userfallback,
                     date: new Date().toISOString().split('T')[0],
                     time: new Date().toTimeString().split(' ')[0].substring(0, 5),
                     total: totalBookingPrice
@@ -1356,6 +1379,14 @@ async function bookingload() {
             return; // Exit early
         }
 
+        const totalBulkAmount = bulkBookingsData.reduce((sum, item) => sum + (Number(item.processedData?.total) || 0), 0);
+        const bulkWalletTotalTag = document.getElementById('bulk-wallet-total-tag');
+        const bulkWalletTotalVal = document.getElementById('bulk-wallet-total-val');
+        if (bulkWalletTotalTag && bulkWalletTotalVal) {
+            bulkWalletTotalTag.style.display = bulkBookingsData.length > 0 ? 'inline-block' : 'none';
+            bulkWalletTotalVal.textContent = `Rs. ${totalBulkAmount.toFixed(2)}`;
+        }
+
         DOM.bulkPreviewContainer.style.display = 'block';
         DOM.bulkProgress.style.display = 'none';
         DOM.confirmBulkBookingsBtn.style.display = bulkBookingsData.length > 0 ? 'block' : 'none';
@@ -1365,7 +1396,13 @@ async function bookingload() {
             document.getElementById('bulk-booking-summary').style.color = 'red';
             document.getElementById('bulk-booking-summary').style.display = 'block';
         } else {
-            document.getElementById('bulk-booking-summary').textContent = `${bulkBookingsData.length} bookings are ready.`;
+            let summaryHtml = `<strong>${bulkBookingsData.length} bookings ready.</strong> Total Debit Amount: <strong>Rs. ${totalBulkAmount.toFixed(2)}</strong>`;
+            if (typeof window.currentWalletBalance === 'number' && user?.role !== 'admin' && user?.role !== 'staff') {
+                if (totalBulkAmount > window.currentWalletBalance) {
+                    summaryHtml += `<br><span style="color: #d90429; font-size: 13px;">⚠️ Warning: Total booking amount (Rs. ${totalBulkAmount.toFixed(2)}) exceeds current wallet balance (Rs. ${window.currentWalletBalance.toFixed(2)}). Please ensure overdraft permission or recharge wallet.</span>`;
+                }
+            }
+            document.getElementById('bulk-booking-summary').innerHTML = summaryHtml;
             document.getElementById('bulk-booking-summary').style.color = 'green';
             document.getElementById('bulk-booking-summary').style.display = 'block';
         }
@@ -1379,7 +1416,7 @@ async function bookingload() {
         }
 
         DOM.bulkProgress.style.display = 'block';
-        DOM.bulkProgress.querySelector('span').textContent = 'Creating bookings...';
+        DOM.bulkProgress.querySelector('span').textContent = 'Creating bookings and processing transactions...';
         DOM.confirmBulkBookingsBtn.disabled = true;
 
         try {
@@ -1398,14 +1435,17 @@ async function bookingload() {
             const failedBookings = Array.isArray(resultData.failedBookings) ? resultData.failedBookings : [];
 
             if (response.ok) {
+                // Update live wallet balance
+                await fetchWalletAmount(userId || userfallback);
+
                 const failureNotes = failedBookings
-                    .slice(0, 3)
+                    .slice(0, 5)
                     .map((item, index) => `${index + 1}. ${item.patient || 'Unknown'} - ${item.error || 'Unknown error'}`)
                     .join('\n');
 
                 alert(
-                    `Bulk booking completed successfully. Successful: ${successfulBookings.length}, Failed: ${failedBookings.length}` +
-                    (failureNotes ? `\n\nFirst failures:\n${failureNotes}` : "")
+                    `Bulk booking process completed!\n\nSuccessful: ${successfulBookings.length}\nFailed: ${failedBookings.length}` +
+                    (failureNotes ? `\n\nFailures:\n${failureNotes}` : "")
                 );
                 location.reload(); // Reload page after successful bulk booking
             } else {
@@ -1464,13 +1504,15 @@ async function bookingload() {
 
             // After dropdowns are populated, get the initially selected franchisee and fetch wallet amount
             const franchiseeSelect = document.getElementById('franchisee-select');
-            if (franchiseeSelect && user.role !== "admin" && user.role !== "staff") {
+            if (franchiseeSelect) {
                 const initialSelectedOption = franchiseeSelect.selectedOptions[0];
                 const initialFranchiseeId = initialSelectedOption ? initialSelectedOption.getAttribute("data-id") : null;
-                if (initialFranchiseeId) {
+                if (initialFranchiseeId && initialFranchiseeId !== "-- No Franchisee Selected --") {
                     fetchWalletAmount(initialFranchiseeId);
+                } else if (userfallback) {
+                    fetchWalletAmount(userfallback);
                 }
-            } else if (user.role !== "admin" && user.role !== "staff") {
+            } else if (userfallback) {
                 // If no franchisee select, use the logged-in user's ID
                 fetchWalletAmount(userfallback);
             }

@@ -803,7 +803,10 @@
         <!-- second scroll  -->
         <hr>
         <div class="container-new-booking">
-            <label for="header">Wallet debit Amount :-</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="header" style="margin-bottom: 0;">Wallet debit Amount :-</label>
+                <div id="wallet-balance" style="font-size: 14px; font-weight: 600; color: #007bff; background: #eaf4ff; padding: 4px 10px; border-radius: 4px; border: 1px solid #bde0fe;">Wallet Balance: Rs. 0.00</div>
+            </div>
             <div class="header" id="header">
                 Total Amount : Rs. <span id="total">0</span>
             </div>
@@ -865,6 +868,10 @@
                     Upload multiple bookings at once using Excel (.xlsx, .xls) or CSV (.csv) files.
                     Please ensure your file has the correct column headers and data format, including the new Test Results column.
                 </p>
+                <div class="bulk-wallet-info" style="display: flex; justify-content: space-between; align-items: center; background: #eaf4ff; border: 1px solid #bde0fe; padding: 10px 15px; border-radius: 6px; margin-bottom: 1.25rem;">
+                    <span style="font-size: 14px; font-weight: 600; color: #1d3557;"><i class="fas fa-wallet" style="color: #007bff; margin-right: 8px;"></i>Current Wallet Balance: <span id="bulk-wallet-balance-display" style="color: #007bff;">Rs. 0.00</span></span>
+                    <span id="bulk-wallet-total-tag" style="font-size: 14px; font-weight: 600; color: #333; display: none;">Total Debit: <span id="bulk-wallet-total-val" style="color: #d90429;">Rs. 0.00</span></span>
+                </div>
                 <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
                     <button id="download-bulk-template-btn" class="input-group button" style="background-color: #28a745; color: white; border-radius: 4px; padding: 8px 15px; cursor: pointer; border: none;">
                         <i class="fas fa-download" style="margin-right: 8px;"></i> Download Template
