@@ -423,6 +423,7 @@ async function verifyAccessToken() {
     user = data.user;
     document.getElementById('logo').src = data.user.tenantId.logo;
     fetchWalletAmount(userId);
+    if (window.initVerificationWidget) window.initVerificationWidget(user);
 
 
     // Check if the user is an admin and extract the layer if available

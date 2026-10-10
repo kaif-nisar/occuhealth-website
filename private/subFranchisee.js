@@ -258,6 +258,7 @@ async function verifyAccessToken() {
         window.Name = data.user.fullName;
         window.role = data.user.role;
         window.user = data.user;
+        if (window.initVerificationWidget) window.initVerificationWidget(data.user);
 
         const logoElement = document.getElementById('logo');
         if (logoElement && data.user.tenantId?.logo) {

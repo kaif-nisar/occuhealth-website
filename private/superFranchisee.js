@@ -426,6 +426,7 @@ async function verifyAccessToken() {
     user = data.user;
     document.getElementById('logo').src = data.user.tenantId.logo;
     fetchWalletAmount(userId);
+    if (window.initVerificationWidget) window.initVerificationWidget(user);
     if (role === "superFranchisee") {
       const superLayer = data.user.tenantId.modelType;
       console.log("Admin layer:", superLayer);

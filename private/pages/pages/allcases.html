@@ -702,6 +702,383 @@
             overflow-y: auto;
             border-radius: 12px;
         }
+
+        /* ===== Cases Action Toolbar ===== */
+        .cases-action-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 14px 0 16px 0;
+            padding: 10px 16px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+        .cases-action-toolbar .toolbar-left,
+        .cases-action-toolbar .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .selection-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 9999px;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        .format-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .format-label {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+        .seg-control {
+            display: inline-flex;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .seg-option {
+            border: none;
+            background: transparent;
+            color: #64748b;
+            padding: 5px 11px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s ease;
+        }
+        .seg-option.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .btn-bulk-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 12.5px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        .btn-download-reports {
+            background: #0d6efd;
+            color: #ffffff;
+        }
+        .btn-download-reports:hover {
+            background: #0b5ed7;
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+            transform: translateY(-1px);
+        }
+        .btn-download-reports.is-downloading {
+            background: #dc2626;
+            color: #ffffff;
+            animation: pulseGlow 1.2s ease-in-out infinite;
+        }
+        .btn-merge-reports {
+            background: #059669;
+            color: #ffffff;
+        }
+        .btn-merge-reports:hover {
+            background: #047857;
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
+            transform: translateY(-1px);
+        }
+        .btn-bulk-action:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* ===== Booking ID badge (Click to download) ===== */
+        .booking-id-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.01em;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+        .booking-id-badge .booking-id-icon {
+            font-size: 11px;
+            opacity: 0.85;
+        }
+        .booking-id-badge:hover:not(.is-not-ready):not(.is-loading) {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .booking-id-badge.is-loading {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #64748b;
+            cursor: wait;
+            pointer-events: none;
+            animation: pulseGlow 1.2s ease-in-out infinite;
+        }
+        .booking-id-badge.is-not-ready {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+        .booking-id-badge.is-not-ready .booking-id-icon {
+            opacity: 0.5;
+        }
+        .not-ready-tooltip {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 4px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+        .case-checkbox {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #0d6efd;
+        }
+        .case-checkbox:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .app-toast.info {
+            background: #2563eb;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.25); }
+            50%      { box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.08); }
+        }
+
+        /* ===== PREMIUM REPORT DOWNLOAD BUFFER (INDUSTRY LEVEL) ===== */
+        .report-buffer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .report-buffer-overlay.is-visible {
+            opacity: 1;
+        }
+        .report-buffer-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px 32px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(226, 232, 240, 0.9);
+            text-align: center;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            color: #1e293b;
+            font-family: inherit;
+        }
+        .report-buffer-overlay.is-visible .report-buffer-card {
+            transform: scale(1);
+        }
+        .report-buffer-icon-wrap {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .report-buffer-ring-outer {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 3px solid rgba(37, 99, 235, 0.15);
+            border-top-color: #2563eb;
+            animation: rbfSpin 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+        }
+        .report-buffer-ring-inner {
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 2px dashed rgba(13, 148, 136, 0.35);
+            border-bottom-color: #0d9488;
+            animation: rbfSpinReverse 1.5s linear infinite;
+        }
+        .report-buffer-center-icon {
+            font-size: 26px;
+            color: #2563eb;
+            animation: rbfPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes rbfSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes rbfSpinReverse {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+        @keyframes rbfPulse {
+            0%, 100% { transform: scale(1); color: #2563eb; }
+            50% { transform: scale(1.12); color: #0d9488; }
+        }
+        .report-buffer-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
+        }
+        .report-buffer-meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 6px 0 14px;
+        }
+        .report-buffer-meta-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .report-buffer-meta-tag strong {
+            color: #0f172a;
+        }
+        .report-buffer-status {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+            margin: 6px 0 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 22px;
+        }
+        .report-buffer-spinner-sm {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #cbd5e1;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: rbfSpin 0.8s linear infinite;
+        }
+        .report-buffer-track {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .report-buffer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #0d9488);
+            border-radius: 999px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        .report-buffer-bar.indeterminate {
+            width: 45%;
+            animation: rbfShimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes rbfShimmer {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(250%); }
+        }
+        .report-buffer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 6px;
+        }
+        .report-buffer-cancel-btn {
+            margin-top: 16px;
+            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .report-buffer-cancel-btn:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+        .report-buffer-footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 11px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
     </style>
 </head>
 
@@ -774,6 +1151,39 @@
             <span id="totalbarcodes"></span>
             <span id="totalbookings"></span>
         </div>
+
+        <!-- Action Toolbar for Reports: Letterhead format toggle, Download Multiple & Merge Reports -->
+        <div class="cases-action-toolbar" id="casesActionToolbar">
+            <div class="toolbar-left">
+                <span class="selection-count-badge" id="casesSelectedCount" style="display:none;">
+                    <i class="fas fa-check-circle"></i> <span id="casesSelectedNum">0</span> selected
+                </span>
+            </div>
+            <div class="toolbar-right">
+                <div class="format-toggle-group">
+                    <span class="format-label">Report Format:</span>
+                    <div class="seg-control" id="allcases-letterhead-seg" role="group" aria-label="Report format">
+                        <button type="button" class="seg-option active" data-value="without" title="Download report without pre-printed letterhead">
+                            <i class="fas fa-file"></i> Without Letterhead
+                        </button>
+                        <button type="button" class="seg-option" data-value="with" title="Download report with pre-printed letterhead">
+                            <i class="fas fa-file-signature"></i> With Letterhead
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn-bulk-action btn-download-reports" id="downloadSelectedCases" type="button" title="Download reports for selected eligible bookings">
+                    <i class="fas fa-download"></i>
+                    <span class="btn-label" id="downloadSelectedCasesLabel">Download Selected</span>
+                </button>
+
+                <button class="btn-bulk-action btn-merge-reports" id="mergeSelectedCases" type="button" style="display: none;" title="Merge selected reports into a single PDF">
+                    <i class="fas fa-file-pdf"></i>
+                    <span class="btn-label" id="mergeSelectedCasesLabel">Merge Reports</span>
+                </button>
+            </div>
+        </div>
+
         <div class="container-allcases">
 
             <!-- Top horizontal scrollbar (synced with table container) -->
@@ -784,6 +1194,9 @@
             <table id="bookings-table">
                 <thead>
                     <tr>
+                        <th class="checkbox-th" style="width: 44px; text-align: center;">
+                            <input type="checkbox" id="selectAllCases" class="case-checkbox" title="Select All (Eligible Reports)" aria-label="Select all eligible reports">
+                        </th>
                         <th class="actions-th">Actions</th>
                         <th>Booking No.</th>
                         <th>Date</th>
@@ -871,6 +1284,44 @@
                 <div class="bill-modal-foot"><button type="button" id="billModalCancel">Cancel</button><button type="button" id="billModalSubmit"><i class="fa-solid fa-file-invoice"></i> Generate Invoice</button></div>
             </div>
         </div>
+
+        <!-- PREMIUM REPORT DOWNLOAD BUFFER MODAL (INDUSTRY LEVEL) -->
+        <div id="reportDownloadOverlay" class="report-buffer-overlay" role="dialog" aria-modal="true" aria-labelledby="reportBufferTitle">
+            <div class="report-buffer-card">
+                <div class="report-buffer-icon-wrap">
+                    <div class="report-buffer-ring-outer"></div>
+                    <div class="report-buffer-ring-inner"></div>
+                    <i class="fas fa-file-medical-alt report-buffer-center-icon"></i>
+                </div>
+                <h3 class="report-buffer-title" id="reportBufferTitle">Generating Clinical Report</h3>
+                <div class="report-buffer-meta" id="reportBufferMeta" style="display:none;">
+                    <span class="report-buffer-meta-tag" id="reportBufferBookingTag" style="display:none;">
+                        <i class="fas fa-barcode"></i> Booking: <strong id="reportBufferBookingId">-</strong>
+                    </span>
+                    <span class="report-buffer-meta-tag" id="reportBufferPatientTag" style="display:none;">
+                        <i class="fas fa-user"></i> Patient: <strong id="reportBufferPatientName">-</strong>
+                    </span>
+                </div>
+                <div class="report-buffer-status" id="reportBufferStatus">
+                    <div class="report-buffer-spinner-sm"></div>
+                    <span id="reportBufferStatusText">Processing report request...</span>
+                </div>
+                <div class="report-buffer-track">
+                    <div class="report-buffer-bar indeterminate" id="reportBufferBar"></div>
+                </div>
+                <div class="report-buffer-info" id="reportBufferInfo">
+                    <span id="reportBufferCountText">Please wait...</span>
+                    <span id="reportBufferPercentText"></span>
+                </div>
+                <button type="button" class="report-buffer-cancel-btn" id="reportBufferCancelBtn" style="display:none;">
+                    <i class="fas fa-circle-stop"></i> Cancel Download
+                </button>
+                <div class="report-buffer-footer">
+                    <i class="fas fa-shield-alt"></i> Secure encrypted PDF generation • OccuHealth Clinical System
+                </div>
+            </div>
+        </div>
+
         <script src="pages/pages/report_action_audit.js"></script>
         <script src="report_action_audit.js"></script>
         <script src="allcases.js"></script>
