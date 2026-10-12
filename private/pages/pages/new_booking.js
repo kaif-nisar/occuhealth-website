@@ -74,14 +74,60 @@ async function bookingload() {
     async function fetchWalletAmount(id) {
         if (!id) return;
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/get-wallet-balance?userId=${id}`);
+            const response = await fetch(`${BASE_URL}/api/v1/user/get-wallet-balance?userId=${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                }
+            });
             const data = await response.json();
             if (data.success) {
-                window.currentWalletBalance = Number(data.balance) || 0;
+                const balance = Number(data.balance) || 0;
+                const overdraftAllowed = Boolean(data.overdraftAllowed);
+                const overdraftLimit = Number(data.overdraftLimit) || 0;
+                const availableBalance = overdraftAllowed ? (balance + overdraftLimit) : Math.max(0, balance);
+
+                window.currentWalletBalance = balance;
+                window.overdraftAllowed = overdraftAllowed;
+                window.overdraftLimit = overdraftLimit;
+                window.availableBalance = availableBalance;
+
                 const balanceDisplay = document.getElementById('wallet-balance');
-                if (balanceDisplay) balanceDisplay.innerText = `Wallet Balance: Rs. ${data.balance.toFixed(2)}`;
+                if (balanceDisplay) {
+                    if (overdraftAllowed) {
+                        const isMinusInUse = balance < 0;
+                        balanceDisplay.style.background = isMinusInUse ? '#fff3cd' : '#eaf4ff';
+                        balanceDisplay.style.color = isMinusInUse ? '#856404' : '#007bff';
+                        balanceDisplay.style.borderColor = isMinusInUse ? '#ffeeba' : '#bde0fe';
+                        
+                        balanceDisplay.innerHTML = `
+                            <span><strong>Wallet:</strong> <span style="color: ${balance < 0 ? '#d90429' : '#28a745'};">₹${balance.toFixed(2)}</span></span>
+                            <span style="margin: 0 6px; color: #aaa;">|</span>
+                            <span><strong>Credit Limit:</strong> ₹${overdraftLimit.toFixed(2)}</span>
+                            <span style="margin: 0 6px; color: #aaa;">|</span>
+                            <span><strong>Available:</strong> <span style="color: #007bff; font-weight: 700;">₹${availableBalance.toFixed(2)}</span></span>
+                            <span style="margin-left: 6px; font-size: 11px; padding: 2px 6px; background: #28a745; color: #fff; border-radius: 10px;">Minus Booking ON</span>
+                        `;
+                    } else {
+                        const isLowOrZero = balance <= 0;
+                        balanceDisplay.style.background = isLowOrZero ? '#f8d7da' : '#eaf4ff';
+                        balanceDisplay.style.color = isLowOrZero ? '#721c24' : '#007bff';
+                        balanceDisplay.style.borderColor = isLowOrZero ? '#f5c6cb' : '#bde0fe';
+
+                        balanceDisplay.innerHTML = `
+                            <span><strong>Wallet Balance:</strong> <span style="color: ${balance <= 0 ? '#d90429' : '#28a745'}; font-weight: 700;">₹${balance.toFixed(2)}</span></span>
+                            <span style="margin-left: 8px; font-size: 11px; padding: 2px 6px; background: #6c757d; color: #fff; border-radius: 10px;">Minus Booking OFF</span>
+                        `;
+                    }
+                }
+
                 const bulkBalanceDisplay = document.getElementById('bulk-wallet-balance-display');
-                if (bulkBalanceDisplay) bulkBalanceDisplay.innerText = `Rs. ${data.balance.toFixed(2)}`;
+                if (bulkBalanceDisplay) {
+                    if (overdraftAllowed) {
+                        bulkBalanceDisplay.innerHTML = `₹${balance.toFixed(2)} <span style="font-size: 12px; color: #28a745; font-weight: 600;">(Available: ₹${availableBalance.toFixed(2)} incl. ₹${overdraftLimit.toFixed(2)} credit)</span>`;
+                    } else {
+                        bulkBalanceDisplay.innerText = `₹${balance.toFixed(2)}`;
+                    }
+                }
             }
         } catch (error) {
             console.error("Error fetching wallet balance:", error);
@@ -1397,9 +1443,15 @@ async function bookingload() {
             document.getElementById('bulk-booking-summary').style.display = 'block';
         } else {
             let summaryHtml = `<strong>${bulkBookingsData.length} bookings ready.</strong> Total Debit Amount: <strong>Rs. ${totalBulkAmount.toFixed(2)}</strong>`;
-            if (typeof window.currentWalletBalance === 'number' && user?.role !== 'admin' && user?.role !== 'staff') {
-                if (totalBulkAmount > window.currentWalletBalance) {
-                    summaryHtml += `<br><span style="color: #d90429; font-size: 13px;">⚠️ Warning: Total booking amount (Rs. ${totalBulkAmount.toFixed(2)}) exceeds current wallet balance (Rs. ${window.currentWalletBalance.toFixed(2)}). Please ensure overdraft permission or recharge wallet.</span>`;
+            const maxAllowed = typeof window.availableBalance === 'number'
+                ? window.availableBalance
+                : (window.currentWalletBalance || 0);
+
+            if (user?.role !== 'admin' && user?.role !== 'staff') {
+                if (totalBulkAmount > maxAllowed) {
+                    summaryHtml += `<br><span style="color: #d90429; font-size: 13px;">⚠️ Warning: Total booking amount (₹${totalBulkAmount.toFixed(2)}) exceeds available purchasing power (₹${maxAllowed.toFixed(2)}). Please recharge wallet or increase overdraft limit.</span>`;
+                } else if (window.currentWalletBalance < 0 || (window.currentWalletBalance - totalBulkAmount < 0)) {
+                    summaryHtml += `<br><span style="color: #b7791f; font-size: 13px;">ℹ️ Notice: This bulk booking will utilize overdraft credit. Available credit remaining after booking: ₹${(maxAllowed - totalBulkAmount).toFixed(2)}.</span>`;
                 }
             }
             document.getElementById('bulk-booking-summary').innerHTML = summaryHtml;

@@ -1,54 +1,623 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Overdraft Management</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overdraft & Credit Limit Management</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    .container { max-width: 700px; margin: 0 auto; }
-    .alert { padding: 12px; margin: 12px 0; border-radius: 4px; }
-    .alert-error { background: #fee; color: #c33; border: 1px solid #fcc; }
-    .alert-info { background: #eef; color: #33c; border: 1px solid #ccf; }
-    label { display:block; margin-top:10px; font-weight: bold; }
-    select, input { width:100%; padding:8px; margin-top:6px; }
-    button { padding:10px 16px; margin-top:12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #0b7dda; }
-    .status { margin-top:12px; }
-    .info-box { background: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; }
+    .od-wrapper {
+      padding: 24px;
+      background: #f8fafc;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+    }
+
+    .od-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .od-title-block h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .od-title-block p {
+      font-size: 14px;
+      color: #64748b;
+      margin: 0;
+    }
+
+    .od-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .od-btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .od-btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .od-btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .od-btn-secondary {
+      background: #ffffff;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .od-btn-secondary:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    /* Metric cards */
+    .od-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .od-metric-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .od-metric-info h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      color: #64748b;
+      margin: 0 0 6px 0;
+    }
+
+    .od-metric-info .od-metric-val {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .od-metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .od-metric-icon.blue { background: #eff6ff; color: #2563eb; }
+    .od-metric-icon.green { background: #f0fdf4; color: #16a34a; }
+    .od-metric-icon.purple { background: #faf5ff; color: #9333ea; }
+    .od-metric-icon.red { background: #fef2f2; color: #dc2626; }
+
+    /* Info banner */
+    .od-banner {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #2563eb;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #1e40af;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .od-banner i {
+      font-size: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Table Container & Filter */
+    .od-card {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+
+    .od-filter-bar {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      background: #ffffff;
+    }
+
+    .od-search-input {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+      max-width: 400px;
+    }
+
+    .od-search-input i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .od-search-input input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .od-search-input input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .od-filter-groups {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .od-select {
+      padding: 9px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13.5px;
+      background: #ffffff;
+      color: #334155;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .od-select:focus {
+      border-color: #2563eb;
+    }
+
+    /* Table */
+    .od-table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .od-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    .od-table th {
+      background: #f8fafc;
+      padding: 14px 18px;
+      font-weight: 600;
+      color: #475569;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    .od-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+
+    .od-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .od-user-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .od-user-name {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .od-user-sub {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* Role Badges */
+    .od-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .od-badge.admin { background: #f1f5f9; color: #475569; }
+    .od-badge.superFranchisee { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .od-badge.franchisee { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .od-badge.subFranchisee { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    /* Wallet balances */
+    .od-wallet-val {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .od-wallet-val.positive { color: #16a34a; }
+    .od-wallet-val.negative { color: #dc2626; }
+    .od-wallet-val.zero { color: #64748b; }
+
+    /* Modern Switch */
+    .od-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .od-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .od-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      transition: .3s;
+      border-radius: 34px;
+    }
+
+    .od-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .od-switch input:checked + .od-slider {
+      background-color: #16a34a;
+    }
+
+    .od-switch input:checked + .od-slider:before {
+      transform: translateX(22px);
+    }
+
+    .od-toggle-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .od-toggle-status-text {
+      font-size: 12px;
+      font-weight: 600;
+      width: 60px;
+    }
+
+    .od-toggle-status-text.enabled { color: #16a34a; }
+    .od-toggle-status-text.disabled { color: #94a3b8; }
+
+    /* Limit Input & Presets */
+    .od-limit-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 170px;
+    }
+
+    .od-input-wrap {
+      position: relative;
+    }
+
+    .od-input-wrap span {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .od-input-wrap input {
+      width: 100%;
+      padding: 7px 10px 7px 24px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13.5px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .od-input-wrap input:focus {
+      border-color: #2563eb;
+    }
+
+    .od-presets {
+      display: flex;
+      gap: 4px;
+    }
+
+    .od-preset-btn {
+      font-size: 10.5px;
+      padding: 2px 6px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      color: #475569;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .od-preset-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    /* Purchasing power */
+    .od-power-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .od-power-val {
+      font-weight: 700;
+      color: #2563eb;
+      font-size: 14px;
+    }
+
+    .od-power-sub {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    /* Action button */
+    .od-row-save-btn {
+      padding: 7px 14px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .od-row-save-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .od-row-save-btn.saved {
+      background: #16a34a;
+    }
+
+    .od-row-save-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* Empty state */
+    .od-empty {
+      padding: 48px 20px;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .od-empty i {
+      font-size: 40px;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+    }
+
+    /* Toast */
+    .od-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: odSlideUp 0.3s ease;
+    }
+
+    .od-toast.success { background: #16a34a; }
+    .od-toast.error { background: #dc2626; }
+
+    @keyframes odSlideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Franchisee Overdraft Management</h2>
-    
-    <div id="authAlert" class="alert alert-error" style="display:none;">
-      ❌ You don't have permission to manage overdraft limits. Contact your admin.
+  <div class="od-wrapper">
+    <!-- Header -->
+    <div class="od-header">
+      <div class="od-title-block">
+        <h1><i class="fa-solid fa-wallet" style="color: #2563eb;"></i> Overdraft & Credit Limit Management</h1>
+        <p>Configure negative balance booking permissions and maximum credit limits for child portals (Super Franchisee, Franchisee, and Sub Franchisee).</p>
+      </div>
+      <div class="od-header-actions">
+        <button id="odRefreshBtn" class="od-btn od-btn-secondary">
+          <i class="fa-solid fa-rotate"></i> Refresh
+        </button>
+      </div>
     </div>
 
-    <div id="successAlert" class="alert alert-info" style="display:none;">
-      ✅ Updated successfully!
+    <!-- Metrics -->
+    <div class="od-metrics-grid">
+      <div class="od-metric-card">
+        <div class="od-metric-info">
+          <h3>Total Portals</h3>
+          <p class="od-metric-val" id="metricTotal">0</p>
+        </div>
+        <div class="od-metric-icon blue">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+      <div class="od-metric-card">
+        <div class="od-metric-info">
+          <h3>Minus Booking Enabled</h3>
+          <p class="od-metric-val" id="metricEnabled" style="color: #16a34a;">0</p>
+        </div>
+        <div class="od-metric-icon green">
+          <i class="fa-solid fa-toggle-on"></i>
+        </div>
+      </div>
+      <div class="od-metric-card">
+        <div class="od-metric-info">
+          <h3>Total Credit Allocated</h3>
+          <p class="od-metric-val" id="metricTotalLimit">₹0</p>
+        </div>
+        <div class="od-metric-icon purple">
+          <i class="fa-solid fa-credit-card"></i>
+        </div>
+      </div>
+      <div class="od-metric-card">
+        <div class="od-metric-info">
+          <h3>Overdraft In Use (Minus)</h3>
+          <p class="od-metric-val" id="metricUtilized" style="color: #dc2626;">₹0</p>
+        </div>
+        <div class="od-metric-icon red">
+          <i class="fa-solid fa-chart-line-down"></i>
+        </div>
+      </div>
     </div>
 
-    <div id="mainContent" style="display:none;">
-      <div class="info-box">
-        <strong>ℹ️ Info:</strong> Set overdraft limits for your franchisees. They can book up to the limit even with negative balance.
+    <!-- Explanatory Banner -->
+    <div class="od-banner">
+      <i class="fa-solid fa-circle-info"></i>
+      <div>
+        <strong>How it works (Overdraft Logic):</strong> When <strong>Minus Booking</strong> is enabled for a portal, the user can create bookings even with ₹0 or insufficient wallet balance. The wallet balance may drop into negative numbers up to the assigned <strong>Overdraft Limit (Target Amount)</strong>. Once the negative balance reaches the limit, further bookings will be restricted until the wallet is recharged, with all transactions recorded in the financial ledger.
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="od-card">
+      <div class="od-filter-bar">
+        <div class="od-search-input">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="odSearch" placeholder="Search by name, username, or email..." />
+        </div>
+        <div class="od-filter-groups">
+          <select id="odRoleFilter" class="od-select">
+            <option value="all">All Roles</option>
+            <option value="superFranchisee">Super Franchisee</option>
+            <option value="franchisee">Franchisee</option>
+            <option value="subFranchisee">Sub Franchisee</option>
+          </select>
+          <select id="odStatusFilter" class="od-select">
+            <option value="all">All Status</option>
+            <option value="enabled">Minus Booking ON</option>
+            <option value="disabled">Minus Booking OFF</option>
+            <option value="in_negative">In Negative Balance</option>
+          </select>
+        </div>
       </div>
 
-      <label for="franchiseeSelect">Select Franchisee</label>
-      <select id="franchiseeSelect"></select>
-
-      <label>
-        <input type="checkbox" id="overdraftAllowed" /> Enable Overdraft (allow minus booking)
-      </label>
-
-      <label for="overdraftLimit">Overdraft Limit (₹)</label>
-      <input id="overdraftLimit" type="number" min="0" placeholder="e.g. 1000" />
-
-      <button id="saveBtn">Save</button>
-
-      <div class="status" id="status"></div>
+      <div class="od-table-responsive">
+        <table class="od-table">
+          <thead>
+            <tr>
+              <th>Child Portal / Franchisee</th>
+              <th>Role</th>
+              <th>Current Wallet Balance</th>
+              <th>Minus Booking Toggle</th>
+              <th>Overdraft Limit (₹)</th>
+              <th>Effective Purchasing Power</th>
+              <th>Audit Info</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="odTableBody">
+            <tr>
+              <td colspan="8" class="od-empty">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <p>Loading eligible portals...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <script src="./overdraft.js"></script>
+  <div id="odToast" class="od-toast"></div>
+
+  <script src="pages/pages/overdraft.js"></script>
 </body>
 </html>

@@ -421,7 +421,18 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 if (!overdraftAllowed || overdraftNeeded > overdraftLimit) {
                     await session.abortTransaction();
                     session.endSession();
-                    return res.status(402).json({ message: 'Insufficient Balance, recharge wallet' });
+                    if (!overdraftAllowed) {
+                        return res.status(402).json({
+                            success: false,
+                            message: `Insufficient Balance in wallet (₹${(bookingUser.bookingWallet || 0).toFixed(2)}). Minus booking is disabled for this account. Please recharge wallet or contact administrator.`
+                        });
+                    } else {
+                        const availableCredit = overdraftLimit - (bookingUser.bookingWallet < 0 ? Math.abs(bookingUser.bookingWallet) : 0);
+                        return res.status(402).json({
+                            success: false,
+                            message: `Insufficient Balance. Overdraft limit of ₹${overdraftLimit.toFixed(2)} exceeded (Available credit: ₹${Math.max(0, availableCredit).toFixed(2)}). Current wallet: ₹${(bookingUser.bookingWallet || 0).toFixed(2)}, Booking total: ₹${parsedTotal.toFixed(2)}.`
+                        });
+                    }
                 }
             }
 
@@ -595,7 +606,9 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 sampleBarcodeId: sampleBarcodeId,
                 type: "debit",
                 transactionId,
-                description: `Booking for ${barcodeId}`,
+                description: balanceAfterTransaction < 0 
+                    ? `Booking for ${barcodeId} (Overdraft used: ₹${Math.abs(balanceAfterTransaction).toFixed(2)})`
+                    : `Booking for ${barcodeId}`,
                 balanceAfterTransaction,
                 testDetails: testDetailsForCurrentUser,
                 discountamount: issinglelayeradmin ? Number(discountamount) : 0,

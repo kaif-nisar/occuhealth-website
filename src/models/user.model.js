@@ -102,6 +102,13 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    overdraftSetBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    overdraftUpdatedAt: {
+      type: Date,
+    },
 
     // Subscription Management
     subscription: {

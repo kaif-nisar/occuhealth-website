@@ -1480,12 +1480,23 @@ const fetchFranchiseeChain = asyncHandler(async (req, res) => {
 });
 
 const amountUpdate = asyncHandler(async (req, res) => {
-  // Log userId
   try {
     const user = await User.findById(req.params.userId);
-    if (!user) return res.status(403).send("User not found");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    res.json({ wallet: user.bookingWallet });
+    const wallet = Number(user.bookingWallet || 0);
+    const overdraftAllowed = Boolean(user.overdraftAllowed);
+    const overdraftLimit = Number(user.overdraftLimit || 0);
+    const availableBalance = overdraftAllowed ? (wallet + overdraftLimit) : Math.max(0, wallet);
+
+    res.json({
+      success: true,
+      wallet: wallet,
+      balance: wallet,
+      overdraftAllowed,
+      overdraftLimit,
+      availableBalance
+    });
   } catch (error) {
     throw new ApiError(500, "something went wrong fetching amount");
   }
@@ -1993,31 +2004,273 @@ const franchisee = asyncHandler(async (req, res) => {
   }
 });
 
-// Set overdraft permission & limit for a user (franchisee)
+// Get wallet balance and overdraft details for self or specified user
+const getWalletBalance = asyncHandler(async (req, res) => {
+  try {
+    let targetUserId = req.query.userId;
+    if (!targetUserId) {
+      targetUserId = (req.user.role === 'staff' && req.user.parentUser) ? req.user.parentUser : req.user._id;
+    }
+
+    if (!mongoose.isValidObjectId(targetUserId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+    const user = await User.findById(targetUserId).select(
+      'fullName username email role bookingWallet overdraftAllowed overdraftLimit tenantId'
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Verify tenant
+    const userTenantId = user.tenantId?._id?.toString() || user.tenantId?.toString();
+    if (userTenantId !== authTenantId && req.user.role !== 'superAdmin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized tenant access' });
+    }
+
+    const wallet = Number(user.bookingWallet || 0);
+    const overdraftAllowed = Boolean(user.overdraftAllowed);
+    const overdraftLimit = Number(user.overdraftLimit || 0);
+    const availableBalance = overdraftAllowed ? (wallet + overdraftLimit) : Math.max(0, wallet);
+
+    return res.status(200).json({
+      success: true,
+      balance: wallet,
+      wallet: wallet,
+      overdraftAllowed,
+      overdraftLimit,
+      availableBalance,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        username: user.username,
+        role: user.role,
+        bookingWallet: wallet,
+        overdraftAllowed,
+        overdraftLimit,
+        availableBalance
+      }
+    });
+  } catch (error) {
+    console.error('Error in getWalletBalance:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Fetch all child portals / franchisees eligible for overdraft management by current user
+const getOverdraftEligibleUsers = asyncHandler(async (req, res) => {
+  try {
+    const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+    let currentUserId = req.user._id;
+    let currentUserRole = req.user.role;
+
+    if (currentUserRole === 'staff' && req.user.parentUser) {
+      currentUserId = req.user.parentUser;
+      const parentUser = await User.findById(currentUserId);
+      if (parentUser) currentUserRole = parentUser.role;
+    }
+
+    let eligibleUsers = [];
+
+    if (currentUserRole === 'admin' || currentUserRole === 'superAdmin') {
+      // Admin can configure overdraft for all portal tiers: superFranchisee, franchisee, subFranchisee
+      eligibleUsers = await User.find({
+        tenantId: authTenantId,
+        role: { $in: ['superFranchisee', 'franchisee', 'subFranchisee'] }
+      })
+      .select('fullName username email role bookingWallet overdraftAllowed overdraftLimit overdraftUpdatedAt overdraftSetBy createdBy')
+      .populate('overdraftSetBy', 'fullName username role')
+      .populate('createdBy', 'fullName username role')
+      .sort({ createdAt: -1 });
+    } else if (currentUserRole === 'superFranchisee') {
+      // Super Franchisee can configure overdraft for franchisees and subFranchisees in their chain
+      const collectChainUsers = async (parentId, visited = new Set()) => {
+        const pId = parentId.toString();
+        if (visited.has(pId)) return [];
+        visited.add(pId);
+
+        const direct = await User.find({
+          tenantId: authTenantId,
+          createdBy: parentId,
+          role: { $in: ['franchisee', 'subFranchisee'] }
+        })
+        .select('fullName username email role bookingWallet overdraftAllowed overdraftLimit overdraftUpdatedAt overdraftSetBy createdBy')
+        .populate('overdraftSetBy', 'fullName username role')
+        .populate('createdBy', 'fullName username role');
+
+        let all = [...direct];
+        for (const child of direct) {
+          const sub = await collectChainUsers(child._id, visited);
+          all = [...all, ...sub];
+        }
+        return all;
+      };
+
+      eligibleUsers = await collectChainUsers(currentUserId);
+    } else if (currentUserRole === 'franchisee') {
+      // Franchisee can configure overdraft for subFranchisees created under them
+      eligibleUsers = await User.find({
+        tenantId: authTenantId,
+        createdBy: currentUserId,
+        role: 'subFranchisee'
+      })
+      .select('fullName username email role bookingWallet overdraftAllowed overdraftLimit overdraftUpdatedAt overdraftSetBy createdBy')
+      .populate('overdraftSetBy', 'fullName username role')
+      .populate('createdBy', 'fullName username role')
+      .sort({ createdAt: -1 });
+    } else {
+      return res.status(403).json({ success: false, message: 'You do not have permission to manage overdraft limits' });
+    }
+
+    // Format output with calculated available balance and utilization
+    const formatted = eligibleUsers.map(u => {
+      const wallet = Number(u.bookingWallet || 0);
+      const limit = Number(u.overdraftLimit || 0);
+      const isAllowed = Boolean(u.overdraftAllowed);
+      const availableBalance = isAllowed ? (wallet + limit) : Math.max(0, wallet);
+      const overdraftUtilized = wallet < 0 ? Math.abs(wallet) : 0;
+
+      return {
+        _id: u._id,
+        fullName: u.fullName,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        bookingWallet: wallet,
+        overdraftAllowed: isAllowed,
+        overdraftLimit: limit,
+        availableBalance,
+        overdraftUtilized,
+        overdraftSetBy: u.overdraftSetBy,
+        overdraftUpdatedAt: u.overdraftUpdatedAt,
+        createdBy: u.createdBy
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted
+    });
+  } catch (error) {
+    console.error('Error in getOverdraftEligibleUsers:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error fetching overdraft users' });
+  }
+});
+
+// Set overdraft permission & limit for a user (child portal / franchisee)
 const setOverdraft = asyncHandler(async (req, res) => {
   try {
     const { userId, overdraftAllowed, overdraftLimit } = req.body;
-    if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
-
-    // Only allow superAdmin or admins to set overdraft (route will also be protected)
-    if (!['superAdmin', 'admin', 'superFranchisee'].includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Not authorized to set overdraft' });
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'A valid userId is required' });
     }
 
-    const updateObj = {};
-    if (typeof overdraftAllowed === 'boolean') updateObj.overdraftAllowed = overdraftAllowed;
-    if (typeof overdraftLimit !== 'undefined') updateObj.overdraftLimit = Number(overdraftLimit) || 0;
+    const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+    let currentUserId = req.user._id;
+    let currentUserRole = req.user.role;
 
-    const updated = await User.findByIdAndUpdate(userId, { $set: updateObj }, { new: true });
-    if (!updated) return res.status(404).json({ success: false, message: 'User not found' });
+    if (currentUserRole === 'staff' && req.user.parentUser) {
+      currentUserId = req.user.parentUser;
+      const parentUser = await User.findById(currentUserId);
+      if (parentUser) currentUserRole = parentUser.role;
+    }
 
-    // Log activity
-    await updated.logActivity('user_management', { action: 'set_overdraft', by: req.user._id, overdraftAllowed: updated.overdraftAllowed, overdraftLimit: updated.overdraftLimit });
+    // Only authorized roles can set overdraft
+    if (!['superAdmin', 'admin', 'superFranchisee', 'franchisee'].includes(currentUserRole)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to manage overdraft limits' });
+    }
 
-    return res.status(200).json({ success: true, message: 'Overdraft updated', user: updated });
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Target user not found' });
+    }
+
+    const targetTenantId = targetUser.tenantId?._id?.toString() || targetUser.tenantId?.toString();
+    if (targetTenantId !== authTenantId && currentUserRole !== 'superAdmin') {
+      return res.status(403).json({ success: false, message: 'Cannot modify users from another tenant' });
+    }
+
+    // Hierarchy check: Caller cannot modify someone with equal or higher authority
+    const roleRank = {
+      superAdmin: 4,
+      admin: 3,
+      superFranchisee: 2,
+      franchisee: 1,
+      subFranchisee: 0,
+      staff: 0
+    };
+
+    if (roleRank[targetUser.role] >= roleRank[currentUserRole] && currentUserRole !== 'superAdmin') {
+      return res.status(403).json({
+        success: false,
+        message: `You cannot set overdraft limit for a user with role ${targetUser.role}`
+      });
+    }
+
+    // Franchisee can only manage subFranchisee; SuperFranchisee can manage franchisee and subFranchisee
+    if (currentUserRole === 'franchisee' && targetUser.role !== 'subFranchisee') {
+      return res.status(403).json({ success: false, message: 'Franchisee can only set overdraft for sub-franchisees' });
+    }
+
+    const updateObj = {
+      overdraftSetBy: currentUserId,
+      overdraftUpdatedAt: new Date()
+    };
+
+    if (typeof overdraftAllowed === 'boolean') {
+      updateObj.overdraftAllowed = overdraftAllowed;
+    }
+
+    if (typeof overdraftLimit !== 'undefined') {
+      const parsedLimit = Number(overdraftLimit);
+      if (isNaN(parsedLimit) || parsedLimit < 0) {
+        return res.status(400).json({ success: false, message: 'Overdraft limit must be a non-negative number' });
+      }
+      updateObj.overdraftLimit = parsedLimit;
+    }
+
+    const updated = await User.findByIdAndUpdate(userId, { $set: updateObj }, { new: true })
+      .select('-password -refreshToken')
+      .populate('overdraftSetBy', 'fullName username role');
+
+    // Log user activity
+    if (typeof updated.logActivity === 'function') {
+      await updated.logActivity('user_management', {
+        action: 'set_overdraft',
+        by: currentUserId,
+        overdraftAllowed: updated.overdraftAllowed,
+        overdraftLimit: updated.overdraftLimit
+      });
+    }
+
+    const wallet = Number(updated.bookingWallet || 0);
+    const limit = Number(updated.overdraftLimit || 0);
+    const isAllowed = Boolean(updated.overdraftAllowed);
+    const availableBalance = isAllowed ? (wallet + limit) : Math.max(0, wallet);
+
+    return res.status(200).json({
+      success: true,
+      message: `Overdraft successfully updated for ${updated.fullName || updated.username}`,
+      user: {
+        _id: updated._id,
+        fullName: updated.fullName,
+        username: updated.username,
+        role: updated.role,
+        bookingWallet: wallet,
+        overdraftAllowed: isAllowed,
+        overdraftLimit: limit,
+        availableBalance,
+        overdraftSetBy: updated.overdraftSetBy,
+        overdraftUpdatedAt: updated.overdraftUpdatedAt
+      }
+    });
   } catch (error) {
     console.error('Error in setOverdraft:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    return res.status(500).json({ success: false, message: 'Internal server error updating overdraft' });
   }
 });
 
@@ -2030,6 +2283,8 @@ export {
   superFranchiseeCreate,
   // New: set overdraft permission and limit for franchisees
   setOverdraft,
+  getWalletBalance,
+  getOverdraftEligibleUsers,
   moneySendToFranchisee,
   moneySendToSubFranchisee,
   moneySendToSuperFranchisee,

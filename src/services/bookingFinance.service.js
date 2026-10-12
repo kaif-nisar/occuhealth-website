@@ -143,7 +143,12 @@ export async function processBookingFinancials({
             const overdraftNeeded = Math.abs(balanceAfterTransaction);
 
             if (!overdraftAllowed || overdraftNeeded > overdraftLimit) {
-                throw new ApiError(402, `Insufficient Balance for ${bookingUser.username || 'user'}, recharge wallet`);
+                if (!overdraftAllowed) {
+                    throw new ApiError(402, `Insufficient Balance for ${bookingUser.username || 'user'} (Wallet: ₹${currentWallet.toFixed(2)}). Minus booking is not enabled. Please recharge wallet.`);
+                } else {
+                    const availableCredit = overdraftLimit - (currentWallet < 0 ? Math.abs(currentWallet) : 0);
+                    throw new ApiError(402, `Insufficient Balance for ${bookingUser.username || 'user'}. Overdraft limit of ₹${overdraftLimit.toFixed(2)} exceeded (Available credit: ₹${Math.max(0, availableCredit).toFixed(2)}). Current wallet: ₹${currentWallet.toFixed(2)}, Booking amount: ₹${parsedTotal.toFixed(2)}.`);
+                }
             }
         }
 
@@ -267,7 +272,9 @@ export async function processBookingFinancials({
             sampleBarcodeId: sampleBarcodeId,
             type: "debit",
             transactionId,
-            description: `Booking for ${bookingId}`,
+            description: balanceAfterTransaction < 0 
+                ? `Booking for ${bookingId} (Overdraft used: ₹${Math.abs(balanceAfterTransaction).toFixed(2)})`
+                : `Booking for ${bookingId}`,
             balanceAfterTransaction,
             testDetails: testDetailsForCurrentUser,
             discountamount: issinglelayeradmin ? discountamount : 0,

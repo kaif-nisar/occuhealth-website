@@ -106,6 +106,8 @@ import {
   fetchAllFranchisee,
   fetchFranchiseeChain,
   setOverdraft,
+  getWalletBalance,
+  getOverdraftEligibleUsers,
   moneyDebitFromSuperFranchisee,
   moneyDebitFromFranchisee,
   moneyDebitFromSubFranchisee,
@@ -448,8 +450,14 @@ router.route("/fetchFranchisee").get(verifyJWT, authorizeRoles(["admin", "franch
 //fetchFranchiseeChain - Fetch all franchisees in the current user's chain (recursive)
 router.route("/fetchFranchiseeChain").get(verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), fetchFranchiseeChain)
 
+// Fetch overdraft eligible users for overdraft / credit limit management
+router.route("/get-overdraft-eligible-users").get(verifyJWT, authorizeRoles(["admin", "superAdmin", "franchisee", "superFranchisee", "staff"]), checkStaffPermission("canManageUsers"), getOverdraftEligibleUsers);
+
+// Get current wallet balance with overdraft limits (for new booking & portals)
+router.route("/get-wallet-balance").get(verifyJWT, getWalletBalance);
+
 // Set overdraft permission & limit for a franchisee/user
-router.post("/set-overdraft", verifyJWT, authorizeRoles(["admin", "franchisee", "superFranchisee", "subFranchisee", "staff"]), checkStaffPermission("canManageUsers"), setOverdraft);
+router.post("/set-overdraft", verifyJWT, authorizeRoles(["admin", "superAdmin", "franchisee", "superFranchisee", "staff"]), checkStaffPermission("canManageUsers"), setOverdraft);
 
 // // franchisee logout
 // router.route("/franchisee-logOut").post(
