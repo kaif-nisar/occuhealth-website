@@ -538,7 +538,14 @@ function downloadPdf(bookingId, patientName, formatOverride, bookingStatus) {
       })
     });
   })
-  .then(function (r) { if (!r || !r.ok) throw new Error('PDF generation failed'); return r.blob(); })
+  .then(async function (r) {
+    if (!r || !r.ok) {
+      var errData = await r.json().catch(function () { return null; });
+      var errMsg = (errData && errData.message) || 'PDF generation failed';
+      throw new Error(errMsg);
+    }
+    return r.blob();
+  })
   .then(function (blob) {
     var url = URL.createObjectURL(blob);
     var a   = document.createElement('a');
@@ -559,7 +566,7 @@ function downloadPdf(bookingId, patientName, formatOverride, bookingStatus) {
     if (err !== 'no-data') {
       console.warn('PDF download info:', err);
       var msg = (err && err.message) || 'Report not found for this booking. Please ensure tests have been saved.';
-      showToast(msg, 'warning');
+      showToast(msg, 'error');
     }
   })
   .finally(function () { hideLoader(); });
@@ -664,7 +671,12 @@ async function downloadSingleReportAsync(bookingId, patientName, format) {
         auditAction: 'DOWNLOAD'
       })
     });
-    if (!pdfRes.ok) throw new Error('PDF generation failed');
+    if (!pdfRes.ok) {
+      var errData = await pdfRes.json().catch(function () { return null; });
+      var errMsg = (errData && errData.message) || 'PDF generation failed';
+      showToast(errMsg, 'error');
+      throw new Error(errMsg);
+    }
 
     var blob = await pdfRes.blob();
     var url = URL.createObjectURL(blob);
@@ -739,7 +751,12 @@ async function mergeSelectedReports() {
       })
     });
 
-    if (!mergeRes.ok) throw new Error('PDF merge failed');
+    if (!mergeRes.ok) {
+      var errData = await mergeRes.json().catch(function () { return null; });
+      var errMsg = (errData && errData.message) || 'PDF merge failed';
+      showToast(errMsg, 'error');
+      throw new Error(errMsg);
+    }
 
     var blob = await mergeRes.blob();
     var url = URL.createObjectURL(blob);
@@ -754,7 +771,7 @@ async function mergeSelectedReports() {
     showToast('Merged PDF downloaded successfully!', 'success');
   } catch (err) {
     console.error('Merge error:', err);
-    showToast('Failed to merge reports. Please try again.', 'error');
+    showToast(err.message || 'Failed to merge reports. Please try again.', 'error');
   } finally {
     hideLoader();
   }
@@ -828,10 +845,40 @@ function fmtDateInput(d) {
   return y + '-' + m + '-' + day;
 }
 
+async function checkAndDisplayWalletRestrictionBanner() {
+  try {
+    var res = await fetch(BASE_URL + '/api/v1/user/get-wallet-balance', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    });
+    if (!res.ok) return;
+    var data = await res.json();
+    if (data && data.success && typeof data.balance === 'number' && data.balance < 0) {
+      var bannerId = 'wallet-negative-restriction-banner';
+      if (!document.getElementById(bannerId)) {
+        var banner = document.createElement('div');
+        banner.id = bannerId;
+        banner.style.cssText = 'background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 12px 18px; border-radius: 8px; margin: 15px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(239,68,68,0.1);';
+        banner.innerHTML = '<div style="display:flex; align-items:center; gap: 10px;">' +
+          '<i class="fas fa-exclamation-triangle" style="font-size: 20px; color: #dc2626;"></i>' +
+          '<span><strong>Report Download Restricted:</strong> Your wallet balance is negative (-₹' + Math.abs(data.balance).toFixed(2) + '). Please recharge your wallet first to download reports.</span>' +
+          '</div>' +
+          '<span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap;">Recharge Required</span>';
+        var container = document.querySelector('.main-content') || document.querySelector('.container') || document.body.firstElementChild || document.body;
+        if (container) container.insertBefore(banner, container.firstChild);
+      }
+    }
+  } catch (e) {
+    console.debug('Wallet balance check skipped:', e);
+  }
+}
+
 // ===== AUTO LOAD ON PAGE OPEN / AJAX INSERTION =====
 function initSearchPage() {
   initLetterhead();
   triggerSearch(1);
+  checkAndDisplayWalletRestrictionBanner();
   if (searchInput) {
     try { searchInput.focus(); } catch (e) {}
   }

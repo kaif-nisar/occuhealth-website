@@ -771,7 +771,12 @@
                 })
             });
 
-            if (!response.ok) throw new Error('PDF generation failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                const errMsg = errData?.message || 'PDF generation failed';
+                showToast('error', 'Download Restricted', errMsg);
+                throw new Error(errMsg);
+            }
 
             const pdfBlob = await response.blob();
             const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -1041,7 +1046,12 @@
                 })
             });
 
-            if (!response.ok) throw new Error('PDF merge failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                const errMsg = errData?.message || 'PDF merge failed';
+                showToast('error', 'Merge Restricted', errMsg);
+                throw new Error(errMsg);
+            }
 
             const pdfBlob = await response.blob();
             const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -1057,7 +1067,7 @@
             showToast('success', 'Reports merged successfully!', `${reportIds.length} reports combined into a single PDF.`);
         } catch (error) {
             console.error('Error merging PDFs:', error);
-            showToast('error', 'Merge failed', 'We couldn’t merge the selected reports. Please try again.');
+            showToast('error', 'Merge failed', error.message || 'We couldn’t merge the selected reports. Please try again.');
         } finally {
             if (loader) loader.style.display = 'none';
         }
@@ -1136,6 +1146,37 @@
         if (searchButton) searchButton.click();
     }
 
+    async function checkAndDisplayWalletRestrictionBanner() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/get-wallet-balance`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data && data.success && typeof data.balance === 'number' && data.balance < 0) {
+                const bannerId = 'wallet-negative-restriction-banner';
+                if (!document.getElementById(bannerId)) {
+                    const banner = document.createElement('div');
+                    banner.id = bannerId;
+                    banner.style.cssText = 'background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 12px 18px; border-radius: 8px; margin: 15px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 500; box-shadow: 0 2px 4px rgba(239,68,68,0.1);';
+                    banner.innerHTML = `
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 20px; color: #dc2626;"></i>
+                            <span><strong>Report Download Restricted:</strong> Your wallet balance is negative (-₹${Math.abs(data.balance).toFixed(2)}). Please recharge your wallet first to download reports.</span>
+                        </div>
+                        <span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap;">Recharge Required</span>
+                    `;
+                    const container = document.querySelector('.main-content') || document.querySelector('.container') || document.body.firstElementChild || document.body;
+                    if (container) container.insertBefore(banner, container.firstChild);
+                }
+            }
+        } catch (e) {
+            console.debug('Wallet balance check skipped:', e);
+        }
+    }
+
     // ============================================================
     // INITIALIZE
     // ============================================================
@@ -1148,6 +1189,9 @@
 
         // Load sub-franchisees (quietly)
         await subfranchisee();
+
+        // Check wallet balance and display restriction banner if balance is negative
+        checkAndDisplayWalletRestrictionBanner();
 
         // Initial booking fetch with skeleton loading
         await fetchBookings(getLast24HoursDate(), getTodayDate());

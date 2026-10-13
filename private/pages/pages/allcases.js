@@ -557,7 +557,16 @@ async function allcases() {
                 })
             });
 
-            if (!response.ok) throw new Error('PDF generation failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                const errMsg = errData?.message || 'PDF generation failed';
+                if (typeof showAppToast === 'function') {
+                    showAppToast(errMsg, 'error');
+                } else {
+                    alert(errMsg);
+                }
+                throw new Error(errMsg);
+            }
 
             const pdfBlob = await response.blob();
             const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -843,7 +852,12 @@ async function allcases() {
                 })
             });
 
-            if (!response.ok) throw new Error('PDF merge failed on server');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                const errMsg = errData?.message || 'PDF merge failed on server';
+                showAppToast(errMsg, 'error');
+                throw new Error(errMsg);
+            }
 
             ReportDownloadBuffer.update({
                 percent: 95,
@@ -871,7 +885,7 @@ async function allcases() {
         } catch (error) {
             console.error('Error merging reports:', error);
             ReportDownloadBuffer.hide(200);
-            showAppToast('Merge failed. Please try again.', 'error');
+            showAppToast(error.message || 'Merge failed. Please try again.', 'error');
         }
     }
 

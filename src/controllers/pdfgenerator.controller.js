@@ -19,6 +19,8 @@ import { reports } from '../models/reportData.model.js';
 import { Template } from '../models/template.model.js';
 import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js';
 import { recordReportPrintAudit, recordReportPrintAuditForMany } from '../services/reportPrintAudit.service.js';
+import { User } from '../models/user.model.js';
+import { isAdminActor } from '../services/bookingFinance.service.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1418,7 +1420,71 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     }
 }
 
+/**
+ * Verifies if the authenticated portal user is eligible to generate or download reports.
+ * If the portal wallet balance is negative (< 0), report downloads are restricted
+ * until the wallet is recharged. Admin & superAdmin portals are exempt.
+ */
+async function checkReportDownloadEligibility(reqUser) {
+    if (!reqUser) {
+        return { allowed: false, statusCode: 401, message: 'Authentication required.' };
+    }
+
+    // Admins / SuperAdmins are exempt (lab owners do not operate on prepaid limits)
+    if (isAdminActor(reqUser)) {
+        return { allowed: true };
+    }
+
+    const effectiveUserId = (reqUser.role === 'staff' && reqUser.parentUser)
+        ? reqUser.parentUser
+        : reqUser._id;
+
+    if (!effectiveUserId) {
+        return { allowed: false, statusCode: 400, message: 'Invalid portal account.' };
+    }
+
+    // Always fetch fresh real-time record from database to prevent stale cache bypass
+    const portalUser = await User.findById(effectiveUserId)
+        .select('bookingWallet role fullName username parentRole parentUser')
+        .lean();
+
+    if (!portalUser) {
+        return { allowed: false, statusCode: 404, message: 'Portal account not found.' };
+    }
+
+    if (isAdminActor(portalUser)) {
+        return { allowed: true };
+    }
+
+    const currentBalance = Number(portalUser.bookingWallet || 0);
+    if (currentBalance < 0) {
+        const negativeAmount = Math.abs(currentBalance).toFixed(2);
+        return {
+            allowed: false,
+            statusCode: 403,
+            walletBalance: currentBalance,
+            message: `Report download restricted. Your wallet balance is negative (-₹${negativeAmount}). Please recharge your wallet first to download reports.`
+        };
+    }
+
+    return { allowed: true, walletBalance: currentBalance };
+}
+
 const getpdfcontroller = async (req, res) => {
+    // ------------------------------------------------------------------
+    // Strict restriction: Prevent report generation/download if the
+    // portal's wallet balance is negative (< 0).
+    // ------------------------------------------------------------------
+    const eligibility = await checkReportDownloadEligibility(req.user);
+    if (!eligibility.allowed) {
+        return res.status(eligibility.statusCode || 403).json({
+            success: false,
+            restricted: true,
+            code: 'NEGATIVE_WALLET_BALANCE',
+            walletBalance: eligibility.walletBalance,
+            message: eligibility.message
+        });
+    }
 
     const { value1, checkBox, htmlContent, cssContent, header, footer, backgroundImageUrl,
         headermargin, footermargin, marginRight, marginLeft, selectedFontSize, RowSpacing, HighLow,
@@ -1712,6 +1778,21 @@ const saveOrUpdatePdfSetting = async ({
 
 // Backend API endpoint for merging PDFs
 const mergePdfsController = async (req, res) => {
+    // ------------------------------------------------------------------
+    // Strict restriction: Prevent merged report download if the
+    // portal's wallet balance is negative (< 0).
+    // ------------------------------------------------------------------
+    const eligibility = await checkReportDownloadEligibility(req.user);
+    if (!eligibility.allowed) {
+        return res.status(eligibility.statusCode || 403).json({
+            success: false,
+            restricted: true,
+            code: 'NEGATIVE_WALLET_BALANCE',
+            walletBalance: eligibility.walletBalance,
+            message: eligibility.message
+        });
+    }
+
     const { reportIds, checkBox } = req.body;
 
     if (!reportIds || !Array.isArray(reportIds) || reportIds.length < 2) {

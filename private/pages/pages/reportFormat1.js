@@ -245,7 +245,12 @@
                     },
                     body: JSON.stringify({ value1 })
                 });
-                if (!response.ok) throw new Error('PDF generation failed');
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => null);
+                    const errMsg = errData?.message || 'PDF generation failed';
+                    alert(errMsg);
+                    throw new Error(errMsg);
+                }
 
                 if (popupModal.style.display === 'block') return;
 
@@ -1170,7 +1175,12 @@
                     }),
                 });
 
-                if (!response.ok) throw new Error('PDF generation failed');
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => null);
+                    const errMsg = errData?.message || 'PDF generation failed';
+                    alert(errMsg);
+                    throw new Error(errMsg);
+                }
 
                 // Creating blob from response
                 const pdfBlob = await response.blob();

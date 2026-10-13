@@ -1449,7 +1449,12 @@
                         DownloadPdf: true
                     })
                 });
-                if (!response.ok) throw new Error('PDF generation failed');
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => null);
+                    const errMsg = errData?.message || 'PDF generation failed. Please try again.';
+                    toast(errMsg, 'error');
+                    throw new Error(errMsg);
+                }
 
                 const pdfBlob = await response.blob();
                 const link = document.createElement('a');
@@ -1462,7 +1467,6 @@
                 toast('PDF downloaded.');
             } catch (error) {
                 console.error('Error generating PDF:', error);
-                toast('PDF generation failed. Please try again.', 'error');
             } finally {
                 loader.style.display = 'none';
                 requestState.download = false;
@@ -1527,7 +1531,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ value1: state.reportId })
                 });
-                if (!response.ok) throw new Error('PDF generation failed');
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => null);
+                    const errMsg = errData?.message || 'Error generating PDF. Please try again.';
+                    toast(errMsg, 'error');
+                    throw new Error(errMsg);
+                }
 
                 if (popupModal.style.display === 'block') return;
                 popupModal.style.display = 'block';
@@ -1536,7 +1545,7 @@
                 const pdfBlob = await response.blob();
                 iframe.src = URL.createObjectURL(pdfBlob);
             } catch (error) {
-                toast('Error generating PDF. Please try again.', 'error');
+                console.error('Error generating PDF preview:', error);
                 popupModal.style.display = 'none';
                 loader.style.display = 'none';
             } finally {

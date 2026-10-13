@@ -330,7 +330,12 @@
           })
         });
 
-        if (!response.ok) throw new Error('PDF generation failed');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => null);
+          const errMsg = errData?.message || 'Failed to generate PDF. Please try again.';
+          alert(errMsg);
+          throw new Error(errMsg);
+        }
 
         const pdfBlob = await response.blob();
         const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -351,7 +356,6 @@
 
       } catch (error) {
         console.error('Error generating PDF:', error);
-        alert('Failed to generate PDF. Please try again.');
       } finally {
         hideLoader();
       }
