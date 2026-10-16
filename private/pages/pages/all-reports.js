@@ -132,6 +132,25 @@
     const pageSizeSelect = document.querySelector('#page-size-select');
 
     // ============================================================
+    // SELECTIVE DOWNLOAD MODAL DOM REFS & STATE
+    // ============================================================
+    const selectiveModal = document.querySelector('#selectiveDownloadModal');
+    const closeSelectiveModalBtn = document.querySelector('#closeSelectiveModalBtn');
+    const cancelSelectiveModalBtn = document.querySelector('#cancelSelectiveModalBtn');
+    const modalFullDownloadBtn = document.querySelector('#modalFullDownloadBtn');
+    const modalSelectAllBtn = document.querySelector('#modalSelectAllBtn');
+    const modalDeselectAllBtn = document.querySelector('#modalDeselectAllBtn');
+    const modalSelectionCounter = document.querySelector('#modalSelectionCounter');
+    const modalLetterheadSelect = document.querySelector('#modalLetterheadSelect');
+    const selectiveItemsList = document.querySelector('#selectiveItemsList');
+    const downloadSelectiveBtn = document.querySelector('#downloadSelectiveBtn');
+    const downloadSelectiveBtnLabel = document.querySelector('#downloadSelectiveBtnLabel');
+    const modalBookingId = document.querySelector('#modalBookingId');
+    const modalPatientName = document.querySelector('#modalPatientName');
+
+    let currentModalBooking = null;
+
+    // ============================================================
     // TOAST SYSTEM
     // ============================================================
     const toastContainer = document.querySelector('#toast-container');
@@ -607,7 +626,15 @@
                     <td class="font-medium text-gray-800 td-patient-name" data-patient-name="${escapeHtml(patientNameStr)}">${escapeHtml(displayPatientName)}</td>
                     <td>${escapeHtml(sampleId)}</td>
                     <td>${escapeHtml(booking.doctorName || 'N/A')}</td>
-                    <td class="td-tests">${tests}</td>
+                    <td class="td-tests">
+                        ${tests}
+                        ${eligible ? `
+                        <div style="margin-top:6px;">
+                            <button type="button" class="btn-selective-download" data-booking-id="${escapeHtml(booking.bookingId || '')}" title="Select specific tests, panels, or packages to download">
+                                <i class="fas fa-list-check"></i> Select Tests
+                            </button>
+                        </div>` : ''}
+                    </td>
                     <td>
                         <span class="status-badge${eligible ? '' : ' is-not-ready'}" style="background:${statusInfo.bg};color:${statusInfo.text};border-color:${statusInfo.border}">
                             ${statusInfo.label}
@@ -755,20 +782,36 @@
     async function autogeneratingpdf({ value1 = '', startDate = '', patientname, bookingId = '', hideLoader = false, labinchargesign = null,
         checkBox = false, labinchargeinfo = '', backgroundImageUrl = null, headermargin, footermargin,
         marginRight, marginLeft, labinchargesignurl = null, selectedFontSize, RowSpacing, HighLow,
-        HLinred, BoldRow, showInvest } = {}) {
+        HLinred, BoldRow, showInvest,
+        selectedItems = null, filteredPanels = null, filteredTests = null, filteredPackages = null, customFilename = null } = {}) {
 
         try {
             if (!hideLoader && loader) loader.style.display = 'flex';
 
+            const payload = {
+                value1, labinchargesign, checkBox: startDate === 'with' ? false : true, labinchargeinfo,
+                backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
+                labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
+                bookingId, auditAction: 'DOWNLOAD'
+            };
+
+            if (selectedItems && Array.isArray(selectedItems) && selectedItems.length > 0) {
+                payload.selectedItems = selectedItems;
+            }
+            if (filteredPanels && Array.isArray(filteredPanels) && filteredPanels.length > 0) {
+                payload.filteredPanels = filteredPanels;
+            }
+            if (filteredTests && Array.isArray(filteredTests) && filteredTests.length > 0) {
+                payload.filteredTests = filteredTests;
+            }
+            if (filteredPackages && Array.isArray(filteredPackages) && filteredPackages.length > 0) {
+                payload.filteredPackages = filteredPackages;
+            }
+
             const response = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    value1, labinchargesign, checkBox: startDate === 'with' ? false : true, labinchargeinfo,
-                    backgroundImageUrl, headermargin, footermargin, marginRight, marginLeft,
-                    labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
-                    bookingId, auditAction: 'DOWNLOAD'
-                })
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
@@ -783,7 +826,7 @@
 
             const link = document.createElement('a');
             link.href = pdfUrl;
-            link.download = getReportFilename(patientname, bookingId);
+            link.download = customFilename || getReportFilename(patientname, bookingId);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -877,6 +920,448 @@
             // Restore the badge
             badgeElement.classList.remove('is-loading');
             badgeElement.innerHTML = originalHTML;
+        }
+    }
+
+    // ============================================================
+    // SELECTIVE REPORT DOWNLOAD (MODAL & FILTER LOGIC)
+    // ============================================================
+    function extractSelectableItemsFromReport(patientDetails, bookingObj) {
+        const packages = [];
+        const panels = [];
+        const tests = [];
+
+        // 1. If bookedItems manifest already exists on patientDetails (from modern labreport save):
+        if (patientDetails?.bookedItems && typeof patientDetails.bookedItems === 'object') {
+            const bi = patientDetails.bookedItems;
+            if (Array.isArray(bi.packages)) {
+                bi.packages.forEach(pkg => {
+                    const name = String(pkg.name || '').trim();
+                    if (name && !packages.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        packages.push({
+                            id: name,
+                            name: name,
+                            category: 'Package',
+                            subText: 'Includes all packaged profiles & tests'
+                        });
+                    }
+                });
+            }
+            if (Array.isArray(bi.panels)) {
+                bi.panels.forEach(pnl => {
+                    const name = String(pnl.name || '').trim();
+                    if (name && !panels.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        panels.push({
+                            id: name,
+                            name: name,
+                            category: pnl.category || 'Panel',
+                            subText: `${pnl.category || 'Panel'}${pnl.testCount ? ' • ' + pnl.testCount + ' tests' : ''}`
+                        });
+                    }
+                });
+            }
+            if (Array.isArray(bi.tests)) {
+                bi.tests.forEach(tst => {
+                    const name = String(tst.name || '').trim();
+                    if (name && !tests.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+                        tests.push({
+                            id: name,
+                            name: name,
+                            category: tst.category || 'Test',
+                            subText: tst.category || 'Test'
+                        });
+                    }
+                });
+            }
+        }
+
+        // 2. Discover Packages and Panels from booking.tableData or patientDetails.bookingTableData
+        const sourceTableData = (Array.isArray(bookingObj?.tableData) && bookingObj.tableData.length)
+            ? bookingObj.tableData
+            : (Array.isArray(patientDetails?.bookingTableData) ? patientDetails.bookingTableData : []);
+
+        sourceTableData.forEach(item => {
+            const rawName = String(item?.testName || '').trim();
+            if (!rawName) return;
+
+            const ids = Array.isArray(item?.ids) ? item.ids : [];
+            const isPackage = ids.some(idObj => idObj.collectionName === 'Package') ||
+                /package|profile\s+pack/i.test(rawName);
+            const isPanel = ids.some(idObj => idObj.collectionName === 'Panel' || idObj.collectionName === 'addPannel') ||
+                /panel|profile/i.test(rawName);
+
+            if (isPackage && !packages.some(p => p.name.toLowerCase() === rawName.toLowerCase())) {
+                packages.push({
+                    id: rawName,
+                    name: rawName,
+                    category: 'Package',
+                    subText: 'Includes all packaged profiles & tests'
+                });
+            } else if (isPanel && !panels.some(p => p.name.toLowerCase() === rawName.toLowerCase())) {
+                panels.push({
+                    id: rawName,
+                    name: rawName,
+                    category: item.typeOfSample ? `Sample: ${item.typeOfSample}` : 'Panel',
+                    subText: item.typeOfSample ? `Sample: ${item.typeOfSample}` : 'Panel'
+                });
+            }
+        });
+
+        // 3. Extract Panels and Tests from CategoryAndTest
+        const catAndTests = Array.isArray(patientDetails?.CategoryAndTest) ? patientDetails.CategoryAndTest : [];
+        catAndTests.forEach(sec => {
+            const categoryName = String(sec?.category || '').trim();
+            const panelTitle = String(sec?.panelName || sec?.title || '').trim();
+            const isPanel = sec?.type === 'panel' ||
+                (panelTitle && panelTitle !== categoryName && !panelTitle.includes('Unknown Title'));
+
+            if (isPanel && panelTitle) {
+                if (!panels.some(p => p.name.toLowerCase() === panelTitle.toLowerCase())) {
+                    const rowCount = Array.isArray(sec.tableData)
+                        ? sec.tableData.filter(r => r.testName && !r.isMultiHeader).length
+                        : 0;
+                    panels.push({
+                        id: panelTitle,
+                        name: panelTitle,
+                        category: categoryName || 'Panel',
+                        subText: `${categoryName || 'Panel'}${rowCount ? ' • ' + rowCount + ' tests' : ''}`
+                    });
+                }
+            }
+
+            // Extract individual tests
+            const rows = Array.isArray(sec?.tableData) ? sec.tableData : [];
+            rows.forEach(r => {
+                const tName = String(r?.testName || '').trim();
+                if (tName && !r.isMultiHeader && !r.isParameter) {
+                    if (!tests.some(t => t.name.toLowerCase() === tName.toLowerCase())) {
+                        tests.push({
+                            id: tName,
+                            name: tName,
+                            category: categoryName || 'Test',
+                            subText: panelTitle && panelTitle !== categoryName ? `${panelTitle} (${categoryName})` : (categoryName || 'Test')
+                        });
+                    }
+                }
+            });
+        });
+
+        // 4. Fallback if no individual tests were found
+        if (tests.length === 0 && panels.length === 0 && packages.length === 0) {
+            sourceTableData.forEach(item => {
+                const rawName = String(item?.testName || '').trim();
+                if (rawName && !tests.some(t => t.name.toLowerCase() === rawName.toLowerCase())) {
+                    tests.push({
+                        id: rawName,
+                        name: rawName,
+                        category: item.typeOfSample ? `Sample: ${item.typeOfSample}` : 'Test',
+                        subText: item.typeOfSample ? `Sample: ${item.typeOfSample}` : 'Test'
+                    });
+                }
+            });
+        }
+
+        return { packages, panels, tests };
+    }
+
+    async function openSelectiveModal(bookingId, row) {
+        if (!selectiveModal) return;
+
+        const bookingObj = (Array.isArray(bookings) ? bookings.find(b => String(b.bookingId) === String(bookingId)) : null) || null;
+        const patientNameFromList = getBookingPatientName(bookingId, row);
+
+        if (modalBookingId) modalBookingId.textContent = bookingId || 'N/A';
+        if (modalPatientName) modalPatientName.textContent = patientNameFromList || 'Patient';
+
+        if (modalSelectionCounter) modalSelectionCounter.textContent = '0 selected';
+        if (downloadSelectiveBtn) {
+            downloadSelectiveBtn.disabled = true;
+            if (downloadSelectiveBtnLabel) downloadSelectiveBtnLabel.textContent = 'Download Selected (0 items)';
+        }
+
+        if (modalLetterheadSelect) {
+            modalLetterheadSelect.value = getLetterheadPreference();
+        }
+
+        selectiveModal.style.display = 'flex';
+        selectiveModal.classList.remove('hidden');
+        if (selectiveItemsList) {
+            selectiveItemsList.innerHTML = `
+                <div class="selective-loading" style="text-align:center; padding:32px 16px; color:#64748b;">
+                    <i class="fas fa-spinner fa-spin" style="font-size:24px; margin-bottom:8px; color:var(--color);"></i>
+                    <div>Fetching tests, panels & packages for ${escapeHtml(bookingId)}...</div>
+                </div>
+            `;
+        }
+
+        try {
+            const patientDetails = await fetchreport(bookingId);
+            if (!patientDetails || !patientDetails._id) {
+                throw new Error('Report details not found for this booking.');
+            }
+
+            const resolvedPatientName = resolvePatientName({
+                reportData: patientDetails,
+                bookingListPatientName: patientNameFromList,
+                bookingId: bookingId,
+                row: row
+            });
+
+            if (modalPatientName) modalPatientName.textContent = resolvedPatientName;
+
+            const manifest = extractSelectableItemsFromReport(patientDetails, bookingObj);
+
+            currentModalBooking = {
+                bookingId,
+                patientName: resolvedPatientName,
+                reportData: patientDetails,
+                bookingObj,
+                row,
+                manifest
+            };
+
+            renderSelectiveItemsList(manifest);
+        } catch (error) {
+            console.error('Error loading report manifest:', error);
+            if (selectiveItemsList) {
+                selectiveItemsList.innerHTML = `
+                    <div style="text-align:center; padding:32px 16px; color:#dc2626;">
+                        <i class="fas fa-circle-exclamation" style="font-size:24px; margin-bottom:8px;"></i>
+                        <div style="font-weight:600;">Unable to load tests for this booking</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px;">${escapeHtml(error.message || 'Please try again.')}</div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    function closeSelectiveModal() {
+        if (!selectiveModal) return;
+        selectiveModal.style.display = 'none';
+        selectiveModal.classList.add('hidden');
+        currentModalBooking = null;
+    }
+
+    function renderSelectiveItemsList(manifest) {
+        if (!selectiveItemsList) return;
+
+        const { packages = [], panels = [], tests = [] } = manifest;
+        const totalItems = packages.length + panels.length + tests.length;
+
+        if (totalItems === 0) {
+            selectiveItemsList.innerHTML = `
+                <div style="text-align:center; padding:28px 16px; color:#64748b;">
+                    <i class="fas fa-info-circle" style="font-size:22px; margin-bottom:8px;"></i>
+                    <div style="font-weight:600;">No selectable tests found</div>
+                    <div style="font-size:12px; margin-top:4px;">You can still download the complete report using the button above.</div>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+
+        if (packages.length > 0) {
+            html += `
+                <div class="selective-group">
+                    <div class="selective-group-title">
+                        <i class="fas fa-box-archive" style="color:#b45309;"></i> Packages (${packages.length})
+                    </div>
+                    ${packages.map(pkg => `
+                        <div class="selective-item-card" data-item-type="package" data-item-name="${escapeHtml(pkg.name)}">
+                            <input type="checkbox" class="selective-checkbox" data-item-type="package" data-item-name="${escapeHtml(pkg.name)}">
+                            <div class="selective-item-details">
+                                <div class="selective-item-header">
+                                    <span class="selective-item-name">${escapeHtml(pkg.name)}</span>
+                                    <span class="selective-item-badge badge-package">Package</span>
+                                </div>
+                                <div class="selective-item-sub">${escapeHtml(pkg.subText || 'Package Profile')}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        if (panels.length > 0) {
+            html += `
+                <div class="selective-group">
+                    <div class="selective-group-title">
+                        <i class="fas fa-layer-group" style="color:#0369a1;"></i> Panels / Profiles (${panels.length})
+                    </div>
+                    ${panels.map(pnl => `
+                        <div class="selective-item-card" data-item-type="panel" data-item-name="${escapeHtml(pnl.name)}">
+                            <input type="checkbox" class="selective-checkbox" data-item-type="panel" data-item-name="${escapeHtml(pnl.name)}">
+                            <div class="selective-item-details">
+                                <div class="selective-item-header">
+                                    <span class="selective-item-name">${escapeHtml(pnl.name)}</span>
+                                    <span class="selective-item-badge badge-panel">Panel</span>
+                                </div>
+                                <div class="selective-item-sub">${escapeHtml(pnl.subText || 'Panel')}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        if (tests.length > 0) {
+            html += `
+                <div class="selective-group">
+                    <div class="selective-group-title">
+                        <i class="fas fa-flask" style="color:#475569;"></i> Individual Tests (${tests.length})
+                    </div>
+                    ${tests.map(tst => `
+                        <div class="selective-item-card" data-item-type="test" data-item-name="${escapeHtml(tst.name)}">
+                            <input type="checkbox" class="selective-checkbox" data-item-type="test" data-item-name="${escapeHtml(tst.name)}">
+                            <div class="selective-item-details">
+                                <div class="selective-item-header">
+                                    <span class="selective-item-name">${escapeHtml(tst.name)}</span>
+                                    <span class="selective-item-badge badge-test">Test</span>
+                                </div>
+                                <div class="selective-item-sub">${escapeHtml(tst.subText || 'Test')}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        selectiveItemsList.innerHTML = html;
+        updateSelectiveModalCounters();
+    }
+
+    function updateSelectiveModalCounters() {
+        if (!selectiveItemsList) return;
+        const checkboxes = selectiveItemsList.querySelectorAll('.selective-checkbox');
+        let selectedCount = 0;
+        checkboxes.forEach(cb => {
+            const card = cb.closest('.selective-item-card');
+            if (cb.checked) {
+                selectedCount++;
+                if (card) card.classList.add('is-checked');
+            } else {
+                if (card) card.classList.remove('is-checked');
+            }
+        });
+
+        if (modalSelectionCounter) {
+            modalSelectionCounter.textContent = `${selectedCount} selected`;
+        }
+
+        if (downloadSelectiveBtn) {
+            downloadSelectiveBtn.disabled = selectedCount === 0;
+            if (downloadSelectiveBtnLabel) {
+                downloadSelectiveBtnLabel.textContent = `Download Selected (${selectedCount} item${selectedCount === 1 ? '' : 's'})`;
+            }
+        }
+    }
+
+    async function handleSelectiveDownload() {
+        if (!currentModalBooking || !downloadSelectiveBtn || downloadSelectiveBtn.disabled) return;
+
+        const checkedBoxes = Array.from(selectiveItemsList.querySelectorAll('.selective-checkbox:checked'));
+        if (checkedBoxes.length === 0) {
+            showToast('error', 'No tests selected', 'Please select at least one test, panel, or package.');
+            return;
+        }
+
+        const selectedPackages = [];
+        const selectedPanels = [];
+        const selectedTests = [];
+        const selectedItems = [];
+
+        checkedBoxes.forEach(cb => {
+            const itemType = cb.getAttribute('data-item-type');
+            const itemName = cb.getAttribute('data-item-name');
+            if (!itemName) return;
+
+            selectedItems.push(itemName);
+            if (itemType === 'package') selectedPackages.push(itemName);
+            else if (itemType === 'panel') selectedPanels.push(itemName);
+            else if (itemType === 'test') selectedTests.push(itemName);
+        });
+
+        const letterPadOption = modalLetterheadSelect ? modalLetterheadSelect.value : getLetterheadPreference();
+
+        const patientNameClean = String(currentModalBooking.patientName || 'Report')
+            .normalize('NFKC')
+            .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+            .replace(/\s+/g, '_')
+            .trim();
+
+        let customFilename;
+        if (selectedItems.length === 1) {
+            const itemClean = selectedItems[0].replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_').replace(/\s+/g, '_');
+            customFilename = `${patientNameClean}_${itemClean}_Report.pdf`;
+        } else if (selectedItems.length <= 2) {
+            const itemsClean = selectedItems.map(s => s.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_').replace(/\s+/g, '_')).join('_');
+            customFilename = `${patientNameClean}_${itemsClean}_Report.pdf`;
+        } else {
+            customFilename = `${patientNameClean}_${selectedItems.length}_Selected_Tests_Report.pdf`;
+        }
+
+        const origBtnHtml = downloadSelectiveBtn.innerHTML;
+        downloadSelectiveBtn.disabled = true;
+        downloadSelectiveBtn.innerHTML = `
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Generating Selective PDF...</span>
+        `;
+
+        showToast('info', 'Generating Selective Report…', `Creating report for ${selectedItems.length} selected item(s). Please wait.`, 5000);
+
+        try {
+            const success = await autogeneratingpdf({
+                value1: currentModalBooking.reportData._id,
+                bookingId: currentModalBooking.bookingId,
+                startDate: letterPadOption,
+                patientname: currentModalBooking.patientName,
+                selectedItems: selectedItems,
+                filteredPanels: selectedPanels,
+                filteredTests: selectedTests,
+                filteredPackages: selectedPackages,
+                customFilename: customFilename
+            });
+
+            if (!success) {
+                throw new Error('PDF generation failed on server.');
+            }
+
+            showToast('success', 'Report Downloaded!', `Selective report with ${selectedItems.length} item(s) downloaded successfully.`);
+            closeSelectiveModal();
+        } catch (error) {
+            console.error('Error generating selective PDF:', error);
+            showToast('error', 'Download Failed', `Could not generate selective report: ${error.message || 'Please try again.'}`);
+        } finally {
+            if (downloadSelectiveBtn) {
+                downloadSelectiveBtn.disabled = false;
+                downloadSelectiveBtn.innerHTML = origBtnHtml;
+                updateSelectiveModalCounters();
+            }
+        }
+    }
+
+    async function handleModalFullDownload() {
+        if (!currentModalBooking) return;
+        const { bookingId, patientName, reportData } = currentModalBooking;
+        const letterPadOption = modalLetterheadSelect ? modalLetterheadSelect.value : getLetterheadPreference();
+
+        closeSelectiveModal();
+        showToast('info', 'Downloading Full Report…', `Preparing complete report for booking ${bookingId}. Please wait.`, 5000);
+
+        try {
+            const success = await autogeneratingpdf({
+                value1: reportData._id,
+                bookingId: bookingId,
+                startDate: letterPadOption,
+                patientname: patientName
+            });
+
+            if (!success) throw new Error('PDF generation failed on the server.');
+            showToast('success', 'Report downloaded successfully!', `Complete report for ${patientName || bookingId} downloaded.`);
+        } catch (error) {
+            console.error('Error downloading full report from modal:', error);
+            showToast('error', 'Download failed', `We couldn’t generate the complete report for booking ${bookingId}.`);
         }
     }
 
@@ -1229,24 +1714,112 @@
         });
     }
 
-    // Table container: single-booking download (event delegation, prevents double-clicks)
+    // Table container: single-booking download & selective download modal
     if (tableContainer) {
         tableContainer.addEventListener('click', async function (event) {
+            const selectiveBtn = event.target.closest('.btn-selective-download');
+            if (selectiveBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                const bId = selectiveBtn.getAttribute('data-booking-id');
+                const row = selectiveBtn.closest('tr');
+                if (bId) {
+                    await openSelectiveModal(bId, row);
+                }
+                return;
+            }
+
             const badge = event.target.closest('.booking-id-badge');
             if (!badge) return;
             event.preventDefault();
             await downloadSingleReport(badge);
         });
 
-        // Keyboard accessibility: Enter / Space triggers download on the badge
+        // Keyboard accessibility: Enter / Space triggers download on the badge or selective button
         tableContainer.addEventListener('keydown', function (event) {
             if (event.key !== 'Enter' && event.key !== ' ') return;
+            const selectiveBtn = event.target.closest('.btn-selective-download');
+            if (selectiveBtn) {
+                event.preventDefault();
+                const bId = selectiveBtn.getAttribute('data-booking-id');
+                const row = selectiveBtn.closest('tr');
+                if (bId) openSelectiveModal(bId, row);
+                return;
+            }
             const badge = event.target.closest('.booking-id-badge');
             if (!badge) return;
             event.preventDefault();
             downloadSingleReport(badge);
         });
     }
+
+    // ============================================================
+    // SELECTIVE MODAL EVENT LISTENERS
+    // ============================================================
+    if (closeSelectiveModalBtn) {
+        closeSelectiveModalBtn.addEventListener('click', closeSelectiveModal);
+    }
+
+    if (cancelSelectiveModalBtn) {
+        cancelSelectiveModalBtn.addEventListener('click', closeSelectiveModal);
+    }
+
+    if (modalFullDownloadBtn) {
+        modalFullDownloadBtn.addEventListener('click', handleModalFullDownload);
+    }
+
+    if (downloadSelectiveBtn) {
+        downloadSelectiveBtn.addEventListener('click', handleSelectiveDownload);
+    }
+
+    if (modalSelectAllBtn) {
+        modalSelectAllBtn.addEventListener('click', function () {
+            if (!selectiveItemsList) return;
+            selectiveItemsList.querySelectorAll('.selective-checkbox').forEach(cb => { cb.checked = true; });
+            updateSelectiveModalCounters();
+        });
+    }
+
+    if (modalDeselectAllBtn) {
+        modalDeselectAllBtn.addEventListener('click', function () {
+            if (!selectiveItemsList) return;
+            selectiveItemsList.querySelectorAll('.selective-checkbox').forEach(cb => { cb.checked = false; });
+            updateSelectiveModalCounters();
+        });
+    }
+
+    if (selectiveItemsList) {
+        selectiveItemsList.addEventListener('click', function (event) {
+            const card = event.target.closest('.selective-item-card');
+            if (!card) return;
+            const checkbox = card.querySelector('.selective-checkbox');
+            if (!checkbox) return;
+            if (event.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+            }
+            updateSelectiveModalCounters();
+        });
+
+        selectiveItemsList.addEventListener('change', function (event) {
+            if (event.target.classList.contains('selective-checkbox')) {
+                updateSelectiveModalCounters();
+            }
+        });
+    }
+
+    if (selectiveModal) {
+        selectiveModal.addEventListener('click', function (event) {
+            if (event.target === selectiveModal) {
+                closeSelectiveModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && selectiveModal && selectiveModal.style.display !== 'none' && !selectiveModal.classList.contains('hidden')) {
+            closeSelectiveModal();
+        }
+    });
 
     // Download Selected Reports button
     if (downloadBtn) {

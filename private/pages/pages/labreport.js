@@ -861,6 +861,13 @@ async function loadfunction() {
     async function createTable(title, category, data, isPanel = false, hideCategory = false, panelDetails = null) {
         const section = document.createElement("div");
         section.classList.add("section");
+        section.setAttribute("data-type", isPanel ? "panel" : "test");
+        if (isPanel && panelDetails) {
+            section.setAttribute("data-panel-id", panelDetails._id || "");
+            section.setAttribute("data-panel-name", title || "");
+        } else {
+            section.setAttribute("data-test-group", title || "");
+        }
 
         console.log("category:", category);
 
@@ -873,7 +880,10 @@ async function loadfunction() {
 
             const heading = document.createElement("h3");
             heading.textContent = title;
-            heading.setAttribute('data-order', panelDetails?.order || 999)
+            heading.setAttribute('data-order', panelDetails?.order || 999);
+            if (isPanel) {
+                heading.setAttribute('data-panel-name', title);
+            }
             section.appendChild(heading);
         }
 
@@ -1019,6 +1029,8 @@ async function loadfunction() {
 
             const row = document.createElement("tr");
             row.setAttribute("data-order", test.order); // Set a data attribute for sorting
+            row.setAttribute("data-id", test._id || "");
+            row.setAttribute("data-test-name", test.Name || test.Short_name || "");
 
             if (test.parameters && test.parameters.length > 1) {
                 // Row for tests with multiple parameters
@@ -1039,6 +1051,9 @@ async function loadfunction() {
                     const paramShortNames = getMachineShortNames(test, param);
                     const paramRow = document.createElement("tr");
                     paramRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
+                    paramRow.setAttribute("data-id", test._id || "");
+                    paramRow.setAttribute("data-test-name", test.Name || test.Short_name || "");
+                    paramRow.setAttribute("data-param-name", param.Para_name || "");
                     paramRow.innerHTML = `
         <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
         <td class="test-name" id="parameters" style="padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${param.Para_name}</td>
@@ -2433,8 +2448,12 @@ async function loadfunction() {
         };
 
         tables.forEach((table) => {
-            const category = table.closest(".grouped-section").querySelector("h2")?.textContent || "Unknown Category";
-            const title = table.closest(".section").querySelector("h3")?.textContent || "Unknown Title";
+            const section = table.closest(".section");
+            const category = table.closest(".grouped-section")?.querySelector("h2")?.textContent?.trim() || "Unknown Category";
+            const title = section?.querySelector("h3")?.textContent?.trim() || "Unknown Title";
+            const isPanel = section?.getAttribute("data-type") === "panel" || (title && title !== category && !title.includes("Unknown Title"));
+            const panelId = section?.getAttribute("data-panel-id") || null;
+            const panelName = isPanel ? (section?.getAttribute("data-panel-name") || title) : null;
 
             const rows = table.querySelectorAll("tbody tr:not(.exclude)");
             const tableData = [];
@@ -2455,6 +2474,7 @@ async function loadfunction() {
                 const valueInput = valueInputElement?.value ?? null;
                 const unit = row.querySelector(".unit + td")?.textContent?.trim() || null;
                 const reference = row.querySelector(".reference")?.textContent?.trim() || null;
+                const testId = row.getAttribute("data-id") || row.getAttribute("data-test-id") || null;
 
                 // Check for CKEditor in the row
                 const editorContainer = row.querySelector("[id^='editorContent']");
@@ -2488,6 +2508,7 @@ async function loadfunction() {
                     }
 
                     const testObject = {
+                        testId: testId || undefined,
                         pagebreak: pagebreak,
                         testName: editorContent || testName,
                         value: hasMeaningfulValue ? normalizeReportFieldValue(valueInput) : null,
@@ -2585,6 +2606,9 @@ async function loadfunction() {
                 allTableData.push({
                     category,
                     title,
+                    type: isPanel ? "panel" : "test",
+                    panelId: panelId || null,
+                    panelName: panelName || null,
                     tests: tableData,
                     notes: tableNotes,
                     remarks: tableRemarks,
@@ -2599,6 +2623,50 @@ async function loadfunction() {
             reportData: allTableData,
             reportMeta,
         };
+    }
+
+    function extractBookedItemsManifest(bookingObj, reportTables) {
+        const tableRows = Array.isArray(bookingObj?.tableData) ? bookingObj.tableData : [];
+        const packages = [];
+        const panels = [];
+        const tests = [];
+
+        tableRows.forEach(row => {
+            const rawName = String(row?.testName || "").trim();
+            const ids = Array.isArray(row?.ids) ? row.ids : [];
+            const isPackage = ids.some(item => item.collectionName === "Package") || /package|profile\s+pack/i.test(rawName);
+            if (isPackage && rawName && !packages.some(p => p.name === rawName)) {
+                packages.push({ name: rawName, barcodeId: row.barcodeId || "" });
+            }
+        });
+
+        (reportTables || []).forEach(sec => {
+            if (sec.type === "panel" || (sec.title && sec.title !== sec.category && !sec.title.includes("Unknown Title"))) {
+                const panelName = sec.panelName || sec.title;
+                if (panelName && !panels.some(p => p.name === panelName)) {
+                    panels.push({
+                        name: panelName,
+                        category: sec.category,
+                        panelId: sec.panelId || null,
+                        testCount: (sec.tests || []).filter(t => t.testName && !t.isMultiHeader).length
+                    });
+                }
+            } else {
+                (sec.tests || []).forEach(t => {
+                    if (t.testName && !t.isMultiHeader && !t.isParameter) {
+                        if (!tests.some(item => item.name === t.testName)) {
+                            tests.push({
+                                name: t.testName,
+                                category: sec.category,
+                                testId: t.testId || null
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        return { packages, panels, tests };
     }
 
     function syncBookingStatusLocally(nextStatus) {
@@ -2626,6 +2694,7 @@ async function loadfunction() {
     async function saveTablesToDatabase(saveOnly) {
         const { reportData, reportMeta } = extractTableData();
         const isFinalAction = saveOnly;
+        const bookedItems = extractBookedItemsManifest(booking, reportData);
         delete booking.__v;
         delete booking.updatedAt;
         delete booking._id;
@@ -2651,7 +2720,8 @@ async function loadfunction() {
                     collectedOn, receivedOn, reportedOn, categorized, moredetails,
                     uniquetestArray: uniquetestArray2,
                     isdocumented,
-                    saveMode: isFinalAction ? "final" : "saveOnly"
+                    saveMode: isFinalAction ? "final" : "saveOnly",
+                    bookedItems
                 }),
             });
 

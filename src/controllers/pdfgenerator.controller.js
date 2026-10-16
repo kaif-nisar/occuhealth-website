@@ -599,7 +599,7 @@ const convertImagesInHtmlToBase64 = async (htmlContent) => {
 };
 
 const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
-    const reportSelect = 'tenantId bookingId patientName';
+    const reportSelect = 'tenantId bookingId patientName categorizedPDF';
     let reportContext = null;
     const tenantFilter = tenantId ? { tenantId } : {};
 
@@ -621,6 +621,7 @@ const resolveUserPdfContext = async ({ value1, bookingId, tenantId }) => {
         resolvedTenantId: tenantId || reportContext?.tenantId || "",
         resolvedBookingId: bookingId || reportContext?.bookingId || value1 || "",
         resolvedPatientName: reportContext?.patientName || "",
+        categorizedPDF: Boolean(reportContext?.categorizedPDF),
     };
 };
 
@@ -658,13 +659,277 @@ const resolveLetterheadBackgroundImage = async ({ tenantId, backgroundImageUrl, 
     return String(templateDoc?.template ?? "").trim();
 };
 
+const escapeHtmlForPdf = (str) =>
+    String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+const buildHtmlFromReport = (reportData) => {
+    if (!reportData || !Array.isArray(reportData.CategoryAndTest)) return '';
+    let sectionsHtml = '';
+    reportData.CategoryAndTest.forEach((categoryData, index) => {
+        const isPanel = categoryData.type === 'panel' || (categoryData.title && categoryData.title !== categoryData.category && !String(categoryData.title).includes('Unknown Title'));
+        const panelTitle = isPanel ? (categoryData.panelName || categoryData.title || '') : '';
+        const categoryTitle = categoryData.category || '';
+
+        let headings = '<div class="headings" style="text-align: center; width: 100%; margin: 6px auto;">';
+        if (categoryTitle) {
+            headings += `<h3 style="text-align: center; margin: 0;">${escapeHtmlForPdf(categoryTitle)}</h3>`;
+        }
+        if (isPanel && panelTitle) {
+            headings += `<h4 style="text-align: center; margin: 0;">${escapeHtmlForPdf(panelTitle)}</h4>`;
+        }
+        headings += '</div>';
+
+        let rowsHtml = '';
+        (categoryData.tests || []).forEach(test => {
+            if (test?.isInterpretation) {
+                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row interpretation-row"><div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content">${test.details || ''}</div></div></td></tr>`;
+                return;
+            }
+            if (!test?.testName || test.testName === 'null') return;
+
+            if (test.isDocumented) {
+                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${test.testName || ''}</div></td></tr>`;
+            } else {
+                let suffix = '';
+                if (test.reference && test.value) {
+                    const parts = String(test.reference).split(' - ');
+                    if (parts.length === 2) {
+                        const low = parseFloat(parts[0]);
+                        const high = parseFloat(parts[1]);
+                        const val = parseFloat(test.value);
+                        if (!isNaN(low) && !isNaN(high) && !isNaN(val)) {
+                            if (val < low) suffix = 'L';
+                            else if (val > high) suffix = 'H';
+                        }
+                    }
+                }
+                const isBold = suffix || (typeof test.value === 'string' && test.value.toLowerCase().includes('positive'));
+                rowsHtml += `<tr class="${isBold ? 'BoldRow' : ''}" style="${isBold ? 'font-weight:bold;' : ''}">
+                    <td class="wrong"></td>
+                    <td class="test-name">${escapeHtmlForPdf(test.testName)}</td>
+                    <td class="high-low"><div class="HL"><span>${suffix}</span></div><span>${escapeHtmlForPdf(test.value || '')}</span></td>
+                    <td>${escapeHtmlForPdf(test.unit || '')}</td>
+                    <td>${escapeHtmlForPdf(test.reference || '')}</td>
+                </tr>`;
+            }
+        });
+
+        const isPageBreak = Boolean(reportData.categorizedPDF && index > 0);
+        sectionsHtml += `<div class="section${isPageBreak ? ' page-break' : ''}" data-panel-name="${panelTitle ? escapeHtmlForPdf(panelTitle) : ''}">
+            ${headings}
+            <table class="test-table">
+                <thead><tr><th class="deletion"></th><th>Test Name</th><th class="valuecell">Value</th><th>Unit</th><th>Reference</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        </div>`;
+    });
+
+    return `<html><head></head><body><div class="container2" id="containerpdf"><div class="table-div" id="tables-container">${sectionsHtml}</div></div></body></html>`;
+};
+
+const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filteredPanels, filteredTests, filteredPackages, categorizedPDF = false }) => {
+    if (!htmlContent) return { htmlContent, header };
+
+    const rawPanels = Array.isArray(filteredPanels) ? filteredPanels : [];
+    const rawTests = Array.isArray(filteredTests) ? filteredTests : [];
+    const rawPackages = Array.isArray(filteredPackages) ? filteredPackages : [];
+    const rawSelected = Array.isArray(selectedItems) ? selectedItems : [];
+
+    const cleanStr = (s) => String(s ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanNoParens = (s) => cleanStr(String(s ?? '').replace(/\([^)]*\)/g, ''));
+
+    const matchCandidate = (target, candidates) => {
+        if (!target || !Array.isArray(candidates) || candidates.length === 0) return false;
+        const tClean = cleanStr(target);
+        const tNoParens = cleanNoParens(target);
+        if (!tClean) return false;
+
+        return candidates.some(cand => {
+            const cStr = typeof cand === 'object' ? (cand?.name || cand?.title || '') : cand;
+            const cClean = cleanStr(cStr);
+            const cNoParens = cleanNoParens(cStr);
+            if (!cClean) return false;
+            return tClean === cClean || (tNoParens && tNoParens === cNoParens);
+        });
+    };
+
+    // Candidates for panels (from filteredPanels, filteredPackages, or selectedItems)
+    const panelCandidates = rawPanels.length > 0 || rawPackages.length > 0
+        ? [...rawPanels, ...rawPackages]
+        : rawSelected;
+
+    // Candidates for individual tests (only if tests were selected, or if caller provided selectedItems without panels)
+    const testCandidates = rawTests.length > 0
+        ? rawTests
+        : (rawPanels.length === 0 && rawPackages.length === 0 ? rawSelected : []);
+
+    const allSelectedList = Array.from(new Set(
+        [...rawSelected, ...rawPanels, ...rawTests, ...rawPackages]
+            .map(item => String(typeof item === 'object' ? (item?.name || item?.title || '') : item).trim())
+            .filter(Boolean)
+    ));
+
+    if (allSelectedList.length === 0) {
+        return { htmlContent, header };
+    }
+
+    let updatedHtml = htmlContent;
+
+    try {
+        const $ = cheerio.load(htmlContent, null, false);
+        const sections = $('.section');
+
+        if (sections.length > 0) {
+            sections.each((_, secEl) => {
+                const $sec = $(secEl);
+                const h4Text = $sec.find('h4').clone().children('.delete-btn').remove().end().text().trim();
+                const h3Text = $sec.find('h3').clone().children('.delete-btn').remove().end().text().trim();
+                const h2Text = $sec.find('h2').clone().children('.delete-btn').remove().end().text().trim();
+                const testHeading = $sec.find('.test-heading').text().trim();
+                const dataPanelName = $sec.attr('data-panel-name') || '';
+
+                const panelTitle = h4Text || testHeading || dataPanelName || (h2Text ? h3Text : '');
+                const categoryTitle = h2Text || (!h4Text ? h3Text : '') || $sec.find('.category-heading').text().trim();
+                const isPanelSection = Boolean(h4Text || (dataPanelName && dataPanelName !== 'null' && dataPanelName !== categoryTitle));
+
+                if (isPanelSection) {
+                    const isPanelMatch = matchCandidate(panelTitle, panelCandidates) ||
+                                         matchCandidate(h4Text, panelCandidates) ||
+                                         matchCandidate(dataPanelName, panelCandidates);
+
+                    if (isPanelMatch) {
+                        // Keep the entire requested panel
+                        return;
+                    } else {
+                        // Unselected panel: remove entire section to avoid leaking sub-tests or duplicating tests
+                        $sec.remove();
+                        return;
+                    }
+                }
+
+                // If user did not select any individual tests (they only selected panels), remove this non-panel section!
+                if (testCandidates.length === 0) {
+                    $sec.remove();
+                    return;
+                }
+
+                // Check individual rows in non-panel / standalone test sections against testCandidates
+                const rows = $sec.find('table tbody tr');
+                let hasKeptRow = false;
+
+                rows.each((_, rowEl) => {
+                    const $row = $(rowEl);
+                    const testName = $row.find('.test-name').clone().children('.delete-row-icon, .delete-btn').remove().end().text().trim() || $row.attr('data-test-name') || '';
+                    const paramName = $row.attr('data-param-name') || '';
+                    const dataTestName = $row.attr('data-test-name') || '';
+                    const documentedContent = $row.find('.documented-content, .editor-container, .editor-content').text().trim();
+
+                    const isRowMatch = matchCandidate(testName, testCandidates) ||
+                                       matchCandidate(paramName, testCandidates) ||
+                                       matchCandidate(dataTestName, testCandidates);
+
+                    if (isRowMatch) {
+                        hasKeptRow = true;
+                    } else if (documentedContent && matchCandidate(documentedContent, testCandidates)) {
+                        hasKeptRow = true;
+                    } else {
+                        $row.remove();
+                    }
+                });
+
+                if (!hasKeptRow) {
+                    $sec.remove();
+                }
+            });
+
+            // Normalize page breaks on surviving sections based on categorizedPDF setting
+            const remainingSections = $('.section');
+            remainingSections.each((idx, secEl) => {
+                const $sec = $(secEl);
+                if (categorizedPDF) {
+                    if (idx === 0) {
+                        $sec.removeClass('page-break');
+                    } else {
+                        $sec.addClass('page-break');
+                    }
+                } else {
+                    $sec.removeClass('page-break');
+                }
+            });
+        } else {
+            // Fallback for tables without .section wrapper
+            const tables = $('table');
+            if (tables.length > 0) {
+                const activeCandidates = testCandidates.length > 0 ? testCandidates : panelCandidates;
+                tables.each((_, tblEl) => {
+                    const $tbl = $(tblEl);
+                    const rows = $tbl.find('tbody tr');
+                    let hasKeptRow = false;
+
+                    rows.each((_, rowEl) => {
+                        const $row = $(rowEl);
+                        const testName = $row.find('.test-name').clone().children('.delete-row-icon, .delete-btn').remove().end().text().trim() || $row.attr('data-test-name') || '';
+                        const paramName = $row.attr('data-param-name') || '';
+                        const dataTestName = $row.attr('data-test-name') || '';
+                        const documentedContent = $row.find('.documented-content, .editor-container, .editor-content').text().trim();
+
+                        const isRowMatch = matchCandidate(testName, activeCandidates) ||
+                                           matchCandidate(paramName, activeCandidates) ||
+                                           matchCandidate(dataTestName, activeCandidates);
+
+                        if (isRowMatch) {
+                            hasKeptRow = true;
+                        } else if (documentedContent && matchCandidate(documentedContent, activeCandidates)) {
+                            hasKeptRow = true;
+                        } else {
+                            $row.remove();
+                        }
+                    });
+
+                    if (!hasKeptRow) {
+                        $tbl.remove();
+                    }
+                });
+            }
+        }
+        updatedHtml = $.html();
+    } catch (filterErr) {
+        console.error('Error filtering HTML by selection:', filterErr);
+    }
+
+    // Update header investigation display safely
+    let updatedHeader = header;
+    if (header && allSelectedList.length > 0) {
+        try {
+            const $hdr = cheerio.load(header, null, false);
+            const $inv = $hdr('.investigationDiv .value, #investDiv .value, [data-field="uniquetestArray"], .investigation-value');
+            if ($inv && $inv.length > 0) {
+                $inv.text(allSelectedList.join(', '));
+                updatedHeader = $hdr.html();
+            }
+        } catch (hdrErr) {
+            console.warn('Could not update header investigation text:', hdrErr.message);
+        }
+    }
+
+    return {
+        htmlContent: updatedHtml,
+        header: updatedHeader
+    };
+};
+
 const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingId, showInvest, BoldRow, HLinred, HighLow, RowSpacing,
     selectedFontSize, reportId, htmlContent,
     cssContent, header, footer, backgroundImageUrl, headermargin, footermargin, marginRight,
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -753,6 +1018,23 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6, .headings p,
                         h1, h2, h3, h4, h5, h6 {
                             margin-top: 0 !important;
+                        }
+                        .page-break {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            display: block !important;
+                        }
+                        .headings {
+                            width: 100% !important;
+                            text-align: center !important;
+                            margin: 6px auto !important;
+                        }
+                        .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6,
+                        .section-heading-main, .section-heading-sub, .test-heading, .category-heading {
+                            text-align: center !important;
+                            margin: 0 auto !important;
+                            display: block !important;
+                            width: 100% !important;
                         }
                         .wrong i, .delete-btn i {
                             display: none;
@@ -1020,15 +1302,17 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             updateData.backgroundImageUrl = backgroundImageUrl;
         }
 
-        // Save the path to the database
-        const getcustomization = await customization.findOneAndUpdate(
-            { tenantId, bookingId }, // Query by tenantId and bookingId
-            updateData,
-            {
-                new: true,  // Return the updated document
-                upsert: true, // Create new record if it doesn't exist
-            }
-        );
+        // Save the path to the database (only for non-selective / master downloads)
+        if (!isSelectiveRequest) {
+            await customization.findOneAndUpdate(
+                { tenantId, bookingId }, // Query by tenantId and bookingId
+                updateData,
+                {
+                    new: true,  // Return the updated document
+                    upsert: true, // Create new record if it doesn't exist
+                }
+            );
+        }
 
 
         res.setHeader('Content-Type', 'application/pdf');
@@ -1048,7 +1332,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -1131,6 +1415,23 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6, .headings p,
                         h1, h2, h3, h4, h5, h6 {
                             margin-top: 0 !important;
+                        }
+                        .page-break {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            display: block !important;
+                        }
+                        .headings {
+                            width: 100% !important;
+                            text-align: center !important;
+                            margin: 6px auto !important;
+                        }
+                        .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6,
+                        .section-heading-main, .section-heading-sub, .test-heading, .category-heading {
+                            text-align: center !important;
+                            margin: 0 auto !important;
+                            display: block !important;
+                            width: 100% !important;
                         }
                         .wrong i, .delete-btn i {
                             display: none;
@@ -1388,15 +1689,17 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             updateData.backgroundImageUrl = backgroundImageUrl;
         }
 
-        // Save the path to the database
-        const getcustomization = await customization.findOneAndUpdate(
-            { tenantId, bookingId }, // Query by tenantId and bookingId
-            updateData,
-            {
-                new: true,  // Return the updated document
-                upsert: true, // Create new record if it doesn't exist
-            }
-        );
+        // Save the path to the database (only for non-selective / master downloads)
+        if (!isSelectiveRequest) {
+            await customization.findOneAndUpdate(
+                { tenantId, bookingId }, // Query by tenantId and bookingId
+                updateData,
+                {
+                    new: true,  // Return the updated document
+                    upsert: true, // Create new record if it doesn't exist
+                }
+            );
+        }
 
 
         // Patient ka naam DB se fetch karo filename ke liye
@@ -1491,7 +1794,8 @@ const getpdfcontroller = async (req, res) => {
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, bookingId, format, headerContentGap,
-        auditAction, printAction, showCategory, showTestHeading } = req.body;
+        auditAction, printAction, showCategory, showTestHeading,
+        selectedItems, filteredTests, filteredPanels, filteredPackages } = req.body;
 
     // ------------------------------------------------------------------
     // Report print / download audit trail.
@@ -1536,6 +1840,63 @@ const getpdfcontroller = async (req, res) => {
             customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
         });
 
+        // Selective report download filter:
+        let resolvedHtmlContent = htmlContent || gettingcustomization?.htmlContent || "";
+        let resolvedHeader = header || gettingcustomization?.header || "";
+
+        const isSelectiveRequest = Boolean(
+            (Array.isArray(selectedItems) && selectedItems.length > 0) ||
+            (Array.isArray(filteredTests) && filteredTests.length > 0) ||
+            (Array.isArray(filteredPanels) && filteredPanels.length > 0) ||
+            (Array.isArray(filteredPackages) && filteredPackages.length > 0)
+        );
+
+        // Fallback reconstruction if htmlContent is empty or lacks table structure
+        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) {
+            const reportDoc = await reports.findOne(
+                pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)
+                    ? { _id: pdfContext.resolvedReportId }
+                    : { bookingId: pdfContext.resolvedBookingId || bookingId }
+            ).lean();
+            if (reportDoc && reportDoc.CategoryAndTest && reportDoc.CategoryAndTest.length > 0) {
+                resolvedHtmlContent = buildHtmlFromReport(reportDoc);
+            }
+        }
+
+        if (isSelectiveRequest) {
+            const filteredResult = filterHtmlContentBySelection({
+                htmlContent: resolvedHtmlContent,
+                header: resolvedHeader,
+                selectedItems,
+                filteredTests,
+                filteredPanels,
+                filteredPackages,
+                categorizedPDF: pdfContext.categorizedPDF
+            });
+            resolvedHtmlContent = filteredResult.htmlContent;
+            resolvedHeader = filteredResult.header;
+        } else if (resolvedHtmlContent) {
+            // Apply page breaks according to categorizedPDF for full reports
+            try {
+                const $norm = cheerio.load(resolvedHtmlContent, null, false);
+                const allSecs = $norm('.section');
+                if (allSecs.length > 0) {
+                    allSecs.each((idx, secEl) => {
+                        const $s = $norm(secEl);
+                        if (pdfContext.categorizedPDF) {
+                            if (idx === 0) $s.removeClass('page-break');
+                            else $s.addClass('page-break');
+                        } else {
+                            $s.removeClass('page-break');
+                        }
+                    });
+                    resolvedHtmlContent = $norm.html();
+                }
+            } catch (normErr) {
+                console.warn('Could not normalize page breaks in getpdfcontroller:', normErr);
+            }
+        }
+
         // PDF generation must not create a settings row. A missing row should
         // remain distinguishable from a row containing saved tenant settings.
         let mergedValues;
@@ -1553,9 +1914,9 @@ const getpdfcontroller = async (req, res) => {
                 selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Database > Request > Default
+                htmlContent: resolvedHtmlContent,
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
-                header: header || gettingcustomization?.header || "",
+                header: resolvedHeader,
                 footer: footer || gettingcustomization?.footer || "",
                 headermargin: (headermargin !== undefined && headermargin !== null && headermargin !== "")
                     ? String(headermargin)
@@ -1592,6 +1953,7 @@ const getpdfcontroller = async (req, res) => {
                 ),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
+                isSelectiveRequest,
                 res
             };
         } else {
@@ -1607,9 +1969,9 @@ const getpdfcontroller = async (req, res) => {
                 selectedFontSize: defaultSettings?.selectedFontSize ?? gettingcustomization?.selectedFontSize ?? 10,
                 reportId: pdfContext.resolvedReportId,
                 bookingId: pdfContext.resolvedBookingId || gettingcustomization?.bookingId || "",
-                htmlContent: htmlContent || gettingcustomization?.htmlContent || "", // Priority: Request > Database > Default
+                htmlContent: resolvedHtmlContent, // Priority: Request/Selective > Database > Default
                 cssContent: cssContent || gettingcustomization?.cssContent || "",
-                header: header || gettingcustomization?.header || "",
+                header: resolvedHeader,
                 footer: footer || gettingcustomization?.footer || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
                 headermargin: (headermargin !== undefined && headermargin !== null && headermargin !== "")
@@ -1647,6 +2009,7 @@ const getpdfcontroller = async (req, res) => {
                 ),
                 DownloadPdf: Boolean(DownloadPdf),
                 format: format || gettingcustomization?.format || "",
+                isSelectiveRequest,
                 res
             };
         }
@@ -2213,7 +2576,8 @@ const getpdfcontrolleruser = async (req, res) => {
         HLinred, BoldRow, showInvest, DownloadPdf, investigationmargin, showlab, showdoctorfirst,
         showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
         fileInputDoctorlefttext, fileInputDoctorrighttext, pdfFormat, layerOne, bookingId, tenantId,
-        headerContentGap, showCategory, showTestHeading } = req.body;
+        headerContentGap, showCategory, showTestHeading,
+        selectedItems, filteredTests, filteredPanels, filteredPackages } = req.body;
 
     try {
         const resolvePdfValue = (...values) => {
@@ -2260,6 +2624,62 @@ const getpdfcontrolleruser = async (req, res) => {
         const defaultsetting = await defaultpdfsetting.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id }).lean();
         let mergedValues;
 
+        let resolvedHtmlContent = resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "";
+        let resolvedHeader = resolvePdfValue(header, gettingcustomization?.header, defaultsetting?.header, "") || "";
+
+        const isSelectiveRequest = Boolean(
+            (Array.isArray(selectedItems) && selectedItems.length > 0) ||
+            (Array.isArray(filteredTests) && filteredTests.length > 0) ||
+            (Array.isArray(filteredPanels) && filteredPanels.length > 0) ||
+            (Array.isArray(filteredPackages) && filteredPackages.length > 0)
+        );
+
+        // Fallback reconstruction if htmlContent is empty or lacks table structure
+        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) {
+            const reportDoc = await reports.findOne(
+                pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)
+                    ? { _id: pdfContext.resolvedReportId }
+                    : { bookingId: pdfContext.resolvedBookingId || bookingId }
+            ).lean();
+            if (reportDoc && reportDoc.CategoryAndTest && reportDoc.CategoryAndTest.length > 0) {
+                resolvedHtmlContent = buildHtmlFromReport(reportDoc);
+            }
+        }
+
+        if (isSelectiveRequest) {
+            const filteredResult = filterHtmlContentBySelection({
+                htmlContent: resolvedHtmlContent,
+                header: resolvedHeader,
+                selectedItems,
+                filteredTests,
+                filteredPanels,
+                filteredPackages,
+                categorizedPDF: pdfContext.categorizedPDF
+            });
+            resolvedHtmlContent = filteredResult.htmlContent;
+            resolvedHeader = filteredResult.header;
+        } else if (resolvedHtmlContent) {
+            // Apply page breaks according to categorizedPDF for full reports
+            try {
+                const $norm = cheerio.load(resolvedHtmlContent, null, false);
+                const allSecs = $norm('.section');
+                if (allSecs.length > 0) {
+                    allSecs.each((idx, secEl) => {
+                        const $s = $norm(secEl);
+                        if (pdfContext.categorizedPDF) {
+                            if (idx === 0) $s.removeClass('page-break');
+                            else $s.addClass('page-break');
+                        } else {
+                            $s.removeClass('page-break');
+                        }
+                    });
+                    resolvedHtmlContent = $norm.html();
+                }
+            } catch (normErr) {
+                console.warn('Could not normalize page breaks in getpdfcontrolleruser:', normErr);
+            }
+        }
+
         if (checkBox || DownloadPdf) {
             mergedValues = {
                 pdfformat: resolvePdfValue(pdfFormat, userPdfFormat, gettingcustomization?.format, defaultsetting?.format, "") || "",
@@ -2273,9 +2693,9 @@ const getpdfcontrolleruser = async (req, res) => {
                 RowSpacing: resolvePdfValue(defaultsetting?.RowSpacing, RowSpacing, gettingcustomization?.RowSpacing, 3),
                 selectedFontSize: resolvePdfValue(defaultsetting?.selectedFontSize, selectedFontSize, gettingcustomization?.selectedFontSize, 10),
                 reportId: pdfContext.resolvedReportId,
-                htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
+                htmlContent: resolvedHtmlContent,
                 cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",
-                header: resolvePdfValue(header, gettingcustomization?.header, defaultsetting?.header, "") || "",
+                header: resolvedHeader,
                 footer: resolvePdfValue(footer, gettingcustomization?.footer, defaultsetting?.footer, "") || "",
                 backgroundImageUrl: "",
                 headermargin: resolvePdfValue(headermargin, gettingcustomization?.headermargin, defaultsetting?.headermargin, "2.8") || "2.8",
@@ -2296,6 +2716,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 showCategory: parseBooleanSetting(resolvePdfValue(showCategory, gettingcustomization?.showCategory, defaultsetting?.showCategory, true), true),
                 showTestHeading: parseBooleanSetting(resolvePdfValue(showTestHeading, gettingcustomization?.showTestHeading, defaultsetting?.showTestHeading, true), true),
                 DownloadPdf: Boolean(DownloadPdf),
+                isSelectiveRequest,
                 res
             };
         } else {
@@ -2311,9 +2732,9 @@ const getpdfcontrolleruser = async (req, res) => {
                 RowSpacing: resolvePdfValue(defaultsetting?.RowSpacing, RowSpacing, gettingcustomization?.RowSpacing, 3),
                 selectedFontSize: resolvePdfValue(defaultsetting?.selectedFontSize, selectedFontSize, gettingcustomization?.selectedFontSize, 10),
                 reportId: pdfContext.resolvedReportId,
-                htmlContent: resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "",
+                htmlContent: resolvedHtmlContent,
                 cssContent: resolvePdfValue(cssContent, gettingcustomization?.cssContent, defaultsetting?.cssContent, "") || "",
-                header: resolvePdfValue(header, gettingcustomization?.header, defaultsetting?.header, "") || "",
+                header: resolvedHeader,
                 footer: resolvePdfValue(footer, gettingcustomization?.footer, defaultsetting?.footer, "") || "",
                 backgroundImageUrl: resolvedBackgroundImageUrl,
                 headermargin: resolvePdfValue(headermargin, gettingcustomization?.headermargin, defaultsetting?.headermargin, "2.8") || "2.8",
@@ -2334,6 +2755,7 @@ const getpdfcontrolleruser = async (req, res) => {
                 showCategory: parseBooleanSetting(resolvePdfValue(showCategory, gettingcustomization?.showCategory, defaultsetting?.showCategory, true), true),
                 showTestHeading: parseBooleanSetting(resolvePdfValue(showTestHeading, gettingcustomization?.showTestHeading, defaultsetting?.showTestHeading, true), true),
                 DownloadPdf: Boolean(DownloadPdf),
+                isSelectiveRequest,
                 res
             };
         }

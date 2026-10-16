@@ -773,6 +773,356 @@
             font-size: 13px;
             font-weight: 500;
         }
+
+        /* ---------- Selective Download Styles & Modal ---------- */
+        .btn-selective-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            padding: 3px 8px;
+            border-radius: var(--radius);
+            background: #eef2f7;
+            color: var(--color);
+            border: 1px solid #d2dbe5;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+        .btn-selective-download:hover {
+            background: var(--color);
+            color: #fff;
+            border-color: var(--color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .selective-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 99990;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .selective-modal-overlay.hidden {
+            display: none !important;
+        }
+        .selective-modal-container {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid var(--border-color);
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .selective-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .selective-modal-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .selective-modal-subtitle {
+            margin: 3px 0 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .selective-modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: color 0.15s, background 0.15s;
+        }
+        .selective-modal-close:hover {
+            color: #1e293b;
+            background: #e2e8f0;
+        }
+        .selective-quick-full {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 20px;
+            background: #f0f7ff;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .quick-full-text {
+            display: flex;
+            flex-direction: column;
+            font-size: 12px;
+        }
+        .quick-full-text strong {
+            color: #1e40af;
+            font-size: 13px;
+        }
+        .quick-full-text span {
+            color: #3b82f6;
+        }
+        .btn-quick-full-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .btn-quick-full-download:hover {
+            background: #1d4ed8;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        }
+        .selective-divider {
+            text-align: center;
+            margin: 12px 20px 4px;
+            position: relative;
+        }
+        .selective-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        .selective-divider span {
+            position: relative;
+            background: #ffffff;
+            padding: 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+        }
+        .selective-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 8px 20px 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .selection-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .btn-text-action {
+            background: none;
+            border: none;
+            color: var(--color);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+        .btn-text-action:hover {
+            text-decoration: underline;
+            color: var(--color-hover);
+        }
+        .action-pipe {
+            color: #cbd5e1;
+            font-weight: 300;
+        }
+        .selection-counter {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 7px;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: 10px;
+        }
+        .modal-letterhead-toggle {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+        .modal-lh-select {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: #fff;
+            color: #334155;
+            outline: none;
+            cursor: pointer;
+        }
+        .selective-modal-body {
+            padding: 12px 20px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 180px;
+            max-height: 400px;
+        }
+        .selective-group {
+            margin-bottom: 14px;
+        }
+        .selective-group:last-child {
+            margin-bottom: 0;
+        }
+        .selective-group-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .selective-item-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 12px;
+            margin-bottom: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .selective-item-card:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        .selective-item-card.is-checked {
+            background: #f0f7ff;
+            border-color: #93c5fd;
+        }
+        .selective-checkbox {
+            margin-top: 3px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color);
+        }
+        .selective-item-details {
+            flex: 1;
+            min-width: 0;
+        }
+        .selective-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .selective-item-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            word-break: break-word;
+        }
+        .selective-item-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .badge-package { background: #fef3c7; color: #b45309; }
+        .badge-panel   { background: #e0f2fe; color: #0369a1; }
+        .badge-test    { background: #f1f5f9; color: #475569; }
+        .selective-item-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .selective-modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border-color);
+        }
+        .btn-modal-cancel {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-modal-cancel:hover {
+            background: #f1f5f9;
+        }
+        .btn-modal-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: var(--radius);
+            background: var(--color);
+            border: 1px solid var(--color);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-modal-download:hover:not(:disabled) {
+            background: var(--color-hover);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+        .btn-modal-download:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .selective-loading {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
     </style>
 </head>
 
@@ -915,6 +1265,84 @@
                 </div>
             </div>
         </div>
+
+        <!-- ============ SELECTIVE REPORT DOWNLOAD MODAL ============ -->
+        <div id="selectiveDownloadModal" class="selective-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="selectiveModalTitle">
+            <div class="selective-modal-container">
+                <!-- Modal Header -->
+                <div class="selective-modal-header">
+                    <div>
+                        <h3 id="selectiveModalTitle" class="selective-modal-title">
+                            <i class="fas fa-file-medical" style="color:var(--color);"></i> Download Report
+                        </h3>
+                        <p class="selective-modal-subtitle" id="selectiveModalSubtitle">
+                            Booking: <strong id="modalBookingId"></strong> &bull; Patient: <span id="modalPatientName"></span>
+                        </p>
+                    </div>
+                    <button type="button" class="selective-modal-close" id="closeSelectiveModalBtn" aria-label="Close modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Quick 1-Click Full Download Banner -->
+                <div class="selective-quick-full">
+                    <div class="quick-full-text">
+                        <strong>Complete Report</strong>
+                        <span>Download all tests, panels & packages combined</span>
+                    </div>
+                    <button type="button" class="btn-quick-full-download" id="modalFullDownloadBtn">
+                        <i class="fas fa-file-pdf"></i> Download Full Report
+                    </button>
+                </div>
+
+                <div class="selective-divider">
+                    <span>OR SELECT SPECIFIC TESTS / PANELS / PACKAGES</span>
+                </div>
+
+                <!-- Selection Controls & Letterhead Toggle -->
+                <div class="selective-toolbar">
+                    <div class="selection-actions">
+                        <button type="button" class="btn-text-action" id="modalSelectAllBtn">
+                            <i class="fas fa-check-double"></i> Select All
+                        </button>
+                        <span class="action-pipe">|</span>
+                        <button type="button" class="btn-text-action" id="modalDeselectAllBtn">
+                            <i class="fas fa-times"></i> Clear All
+                        </button>
+                        <span class="selection-counter" id="modalSelectionCounter">0 selected</span>
+                    </div>
+                    <div class="modal-letterhead-toggle">
+                        <label for="modalLetterheadSelect" style="font-size:12px; font-weight:600; color:#475569; margin-right:6px;">Format:</label>
+                        <select id="modalLetterheadSelect" class="modal-lh-select">
+                            <option value="without">Without Letterhead</option>
+                            <option value="with">With Letterhead</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Modal Body: Grouped List of Items (Packages, Panels, Tests) -->
+                <div class="selective-modal-body" id="selectiveItemsList">
+                    <!-- Dynamic items rendered here -->
+                    <div class="selective-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading tests and panels...
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="selective-modal-footer">
+                    <button type="button" class="btn-modal-cancel" id="cancelSelectiveModalBtn">Cancel</button>
+                    <button type="button" class="btn-modal-download" id="downloadSelectiveBtn" disabled>
+                        <i class="fas fa-download"></i>
+                        <span id="downloadSelectiveBtnLabel">Download Selected (0 items)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Toast Container -->
+        <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    </div>
 </body>
 
 </html>

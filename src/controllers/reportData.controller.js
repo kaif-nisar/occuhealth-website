@@ -90,7 +90,7 @@ const getReportByBookingId = async (req, res) => {
 
 const SaveReportController = asyncHandler(async (req, res) => {
     const { reportData, reportMeta, reg_id, booking, collectedOn, receivedOn, reportedOn, categorized,
-        moredetails, uniquetestArray, isdocumented, saveMode } = req.body;
+        moredetails, uniquetestArray, isdocumented, saveMode, bookedItems } = req.body;
 
     const tenantId = req.user.tenantId?._id || req.user.tenantId;
 
@@ -102,7 +102,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
     const existingBooking = await newBooking.findOne({
         bookingId: booking.bookingId,
         tenantId
-    }).select("status isreportready");
+    }).select("status isreportready tableData testIds");
 
     const currentBookingStatus = existingBooking?.status || booking.status || "pending";
     let bookingStatus = currentBookingStatus;
@@ -119,29 +119,35 @@ const SaveReportController = asyncHandler(async (req, res) => {
         bookingStatus = currentBookingStatus;
     }
 
+    const updateFields = {
+        CategoryAndTest: reportData,
+        reg_id,
+        ...booking,
+        status: bookingStatus,
+        collectedOn,
+        receivedOn,
+        reportedOn,
+        categorizedPDF: categorized,
+        MoreDetails: moredetails,
+        uniquetestArray,
+        sampleDetails,
+        isdocumented,
+        completionMeta: {
+            hasIncompleteRows: Boolean(reportMeta?.hasIncompleteRows),
+            hasMeaningfulRows: Boolean(reportMeta?.hasMeaningfulRows),
+        }
+    };
+
+    if (bookedItems) {
+        updateFields.bookedItems = bookedItems;
+    }
+
     const savedREport = await reports.findOneAndUpdate(
         {
             bookingId: booking.bookingId,
             tenantId: tenantId,
         },
-        {
-            CategoryAndTest: reportData,
-            reg_id,
-            ...booking,
-            status: bookingStatus,
-            collectedOn,
-            receivedOn,
-            reportedOn,
-            categorizedPDF: categorized,
-            MoreDetails: moredetails,
-            uniquetestArray,
-            sampleDetails,
-            isdocumented,
-            completionMeta: {
-                hasIncompleteRows: Boolean(reportMeta?.hasIncompleteRows),
-                hasMeaningfulRows: Boolean(reportMeta?.hasMeaningfulRows),
-            }
-        },
+        updateFields,
         {
             upsert: true,
             new: true
@@ -364,11 +370,12 @@ const getReportController = asyncHandler(async (req, res) => {
     }
 
     const resolvedTenantId = Report.tenantId || tenantId;
-    const [user, usertenant, reportCustomization, tenantDefaults] = await Promise.all([
+    const [user, usertenant, reportCustomization, tenantDefaults, bookingDoc] = await Promise.all([
         User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
         Tenant.findById(resolvedTenantId).select("modelType").lean(),
         customization.findOne({ reportId: Report._id, tenantId: resolvedTenantId }).lean(),
         defaultpdfsetting.findOne({ tenantId: resolvedTenantId }).lean(),
+        newBooking.findOne({ bookingId: Report.bookingId, ...(resolvedTenantId ? { tenantId: resolvedTenantId } : {}) }).select("tableData testIds").lean(),
     ]);
 
     const printSettings = {
@@ -380,6 +387,7 @@ const getReportController = asyncHandler(async (req, res) => {
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
     responsePayload.savedPdfLayout = reportCustomization?.htmlContent || null;
+    responsePayload.bookingTableData = bookingDoc?.tableData || [];
 
     return res.status(200).json({
         ...responsePayload,

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose"
 
 const tabledataSchema = new Schema({
+    testId: String,
     reference: String,
     testName: String,
     unit: String,
@@ -15,7 +16,7 @@ const tabledataSchema = new Schema({
         type: Boolean,
         default: false
     }
-})
+}, { strict: false })
 
 const sampleDetailSchema = new Schema({
     barcodeId: String,
@@ -30,9 +31,21 @@ const categoryAndTestSchema = new Schema({
     notes: String,
     remarks: String,
     title: String,
+    type: {
+        type: String,
+        default: "test" // "panel" | "test"
+    },
+    panelId: {
+        type: String,
+        default: null
+    },
+    panelName: {
+        type: String,
+        default: null
+    },
     tests: [tabledataSchema],
     sampleDetails: [sampleDetailSchema]
-})
+}, { strict: false })
 
 const reportData = new Schema({
     tenantId: {
@@ -170,6 +183,10 @@ const reportData = new Schema({
     isdocumented : {
         type: Boolean,
         default: false
+    },
+    bookedItems: {
+        type: Schema.Types.Mixed,
+        default: null
     },
 },
     { timestamps: true }
