@@ -29,6 +29,71 @@ function normalizeSampleType(value) {
     return String(value || "").trim().toLowerCase();
 }
 
+const parseBookingDateTime = (dateVal, timeVal) => {
+    let year, month, day;
+    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+        const iso = dateVal.toISOString().split('T')[0];
+        const parts = iso.split('-').map(Number);
+        year = parts[0];
+        month = parts[1] - 1;
+        day = parts[2];
+    } else if (typeof dateVal === 'string' && dateVal.trim()) {
+        const trimmed = dateVal.trim().split('T')[0];
+        const parts = trimmed.split(/[-/]/);
+        if (parts.length === 3) {
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                year = Number(parts[0]);
+                month = Number(parts[1]) - 1;
+                day = Number(parts[2]);
+            } else { // DD-MM-YYYY
+                day = Number(parts[0]);
+                month = Number(parts[1]) - 1;
+                year = Number(parts[2]);
+            }
+        }
+    }
+
+    if (!year || isNaN(year)) {
+        const now = new Date();
+        year = now.getFullYear();
+        month = now.getMonth();
+        day = now.getDate();
+    }
+
+    let hrs = 0, mins = 0;
+    if (timeVal) {
+        const match = String(timeVal).trim().match(/^(\d{1,2}):(\d{1,2})/);
+        if (match) {
+            hrs = parseInt(match[1], 10) || 0;
+            mins = parseInt(match[2], 10) || 0;
+        }
+    }
+
+    const regDate = new Date(year, month, day, hrs, mins);
+    const collectedOn = new Date(regDate.getTime() + 5 * 60 * 1000);   // +5 mins
+    const receivedOn = new Date(collectedOn.getTime() + 10 * 60 * 1000); // +10 mins
+    const reportedOn = new Date(receivedOn.getTime() + 30 * 60 * 1000);  // +30 mins
+
+    const toLocalISOString = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const mn = String(d.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${dt}T${h}:${mn}`;
+    };
+
+    return {
+        regDate,
+        collectedOn,
+        receivedOn,
+        reportedOn,
+        collectedOnStr: toLocalISOString(collectedOn),
+        receivedOnStr: toLocalISOString(receivedOn),
+        reportedOnStr: toLocalISOString(reportedOn),
+    };
+};
+
 const getPreferredOrigin = (req) => {
     const requestOrigin = String(req?.headers?.origin || req?.get?.("origin") || "").trim();
     if (requestOrigin) {
@@ -543,10 +608,13 @@ const createBookingDocument = async (bookingInput, tenantId, createdBy, createdb
         initialStatus = "booked";
     }
 
+    const { regDate } = parseBookingDateTime(bookingInput.date, bookingInput.time);
+    const bookingTimeStr = normalizeText(bookingInput.time) || `${String(regDate.getHours()).padStart(2, '0')}:${String(regDate.getMinutes()).padStart(2, '0')}`;
+
     const payload = {
         bookingId,
-        date: bookingInput.date ? new Date(bookingInput.date) : new Date(),
-        time: normalizeText(bookingInput.time) || new Date().toTimeString().split(" ")[0].substring(0, 5),
+        date: regDate,
+        time: bookingTimeStr,
         courierName: normalizeText(bookingInput.CourierName || bookingInput.courierName),
         courierId: normalizeText(bookingInput.CourierId || bookingInput.courierId),
         patientName: normalized.patientName,
@@ -703,11 +771,8 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
     
     if (!barcodeDoc) throw new ApiError(404, "Barcodes not found for booking");
 
-    const bDate = new Date(booking.date);
-    const [hrs, mins] = String(booking.time || "00:00").split(':');
-    const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
-    const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
-    const reportedOn = new Date(receivedOn.getTime() + 30 * 60 * 1000);
+    const { regDate, collectedOn, receivedOn, reportedOn, collectedOnStr, receivedOnStr, reportedOnStr } =
+        parseBookingDateTime(booking.date, booking.time);
 
     const testIds = barcodeDoc.barcodes.flatMap(b => b.testIds || []);
     const singleTestIds = testIds.filter(t => t.collectionName === "testSchema").map(t => t.id);
@@ -880,13 +945,15 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
         { bookingId: booking.bookingId, tenantId },
         {
             ...reportPayload,
+            date: regDate,
+            time: booking.time,
             CategoryAndTest: reportData,
             reg_id: booking.bookingId,
             status: "completed",
             signOff: true,
-            collectedOn,
-            receivedOn,
-            reportedOn,
+            collectedOn: collectedOnStr,
+            receivedOn: receivedOnStr,
+            reportedOn: reportedOnStr,
             categorizedPDF: true, // Start categories on new page
             uniquetestArray: normalized.testNames,
             MoreDetails: booking.clinicalHistory || ""
@@ -905,7 +972,7 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
 
     const formatReportDateTime = (dateVal) => {
         if (!dateVal) return "";
-        const date = new Date(dateVal);
+        const date = (dateVal instanceof Date) ? dateVal : new Date(dateVal);
         if (isNaN(date.getTime())) return String(dateVal);
 
         const year = date.getFullYear();
@@ -921,8 +988,7 @@ const finalizeReportOnBackend = async (booking, normalized, tenantId, createdBy)
         return `${day}-${month}-${year} <span>${hours}:${minutes} ${amPm}</span>`;
     };
 
-    const datePart = booking.date instanceof Date ? booking.date.toISOString().split('T')[0] : new Date(booking.date).toISOString().split('T')[0];
-    const regOn = formatReportDateTime(datePart + "T" + (booking.time || "00:00"));
+    const regOn = formatReportDateTime(regDate);
     const collOn = formatReportDateTime(collectedOn);
     const recOn = formatReportDateTime(receivedOn);
     const repOn = formatReportDateTime(reportedOn);
@@ -1836,10 +1902,8 @@ const processBulkAutoFinalizeRow = async (bookingInput, req, parentUserCache = n
 
         // 5. If test results are present, create report shell and auto-finalize
         if (normalized.hasResults) {
-            const bDate = new Date(booking.date);
-            const [hrs, mins] = String(booking.time || "00:00").split(':');
-            const collectedOn = new Date(bDate.getFullYear(), bDate.getMonth(), bDate.getDate(), parseInt(hrs) || 0, parseInt(mins) || 0);
-            const receivedOn = new Date(collectedOn.getTime() + 5 * 60 * 1000);
+            const { regDate, collectedOnStr, receivedOnStr, reportedOnStr } =
+                parseBookingDateTime(booking.date, booking.time);
 
             await reports.findOneAndUpdate(
                 {
@@ -1850,8 +1914,8 @@ const processBulkAutoFinalizeRow = async (bookingInput, req, parentUserCache = n
                     tenantId,
                     createdBy,
                     bookingId: finalBookingId,
-                    date: booking.date || new Date(),
-                    time: booking.time || new Date().toTimeString().split(" ")[0].substring(0, 5),
+                    date: regDate,
+                    time: booking.time || `${String(regDate.getHours()).padStart(2, '0')}:${String(regDate.getMinutes()).padStart(2, '0')}`,
                     courierName: booking.courierName || "",
                     courierId: booking.courierId || "",
                     patientName: booking.patientName,
@@ -1862,8 +1926,9 @@ const processBulkAutoFinalizeRow = async (bookingInput, req, parentUserCache = n
                     labName: booking.labName || "",
                     franchisee: booking.franchisee || "",
                     clinicalHistory: booking.clinicalHistory || "",
-                    collectedOn,
-                    receivedOn,
+                    collectedOn: collectedOnStr,
+                    receivedOn: receivedOnStr,
+                    reportedOn: reportedOnStr,
                     categorizedPDF: true,
                     total: Number(financialResult.parsedTotal || 0),
                     status: booking.status || "pending",

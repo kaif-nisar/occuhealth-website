@@ -1159,7 +1159,7 @@ async function bookingload() {
         const headers = [
             "Patient Name", "Age Value", "Age Unit", "Gender", "Patient Phone",
             "Doctor Name", "Lab Name", "Clinical History", "Test Names",
-            "Test Results",
+            "Test Results", "Booking Date", "Booking Time",
             "Discount Amount", "Discount Percentage", "Courier Name", "Courier ID"
         ];
         const data = [headers];
@@ -1301,11 +1301,64 @@ async function bookingload() {
             });
 
             // Optional fields
-            ["patient phone", "test results", "doctor name", "lab name", "clinical history", "discount amount", "discount percentage", "courier name", "courier id"].forEach(f => {
+            ["patient phone", "test results", "doctor name", "lab name", "clinical history", "discount amount", "discount percentage", "courier name", "courier id", "booking date", "date", "booking time", "time"].forEach(f => {
                 const idx = headerIndices[f];
                 const val = (idx !== undefined) ? rowData[idx] : "";
                 booking[f.replace(/\s/g, '')] = (val === null || val === undefined) ? "" : String(val).trim();
             });
+
+            // Parse booking date safely (support DD-MM-YYYY, YYYY-MM-DD, Excel serial numbers, fallback to local date)
+            let parsedBookingDate = '';
+            const rawBookingDate = booking.bookingdate || booking.date;
+            if (rawBookingDate) {
+                if (typeof rawBookingDate === 'number' && !isNaN(rawBookingDate)) {
+                    const excelEpoch = new Date((rawBookingDate - 25569) * 86400 * 1000);
+                    if (!isNaN(excelEpoch.getTime())) {
+                        parsedBookingDate = excelEpoch.toLocaleDateString('en-CA');
+                    }
+                } else {
+                    const strDate = String(rawBookingDate).trim();
+                    const dmyMatch = strDate.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+                    const ymdMatch = strDate.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+                    if (dmyMatch) {
+                        const day = dmyMatch[1].padStart(2, '0');
+                        const month = dmyMatch[2].padStart(2, '0');
+                        const year = dmyMatch[3];
+                        parsedBookingDate = `${year}-${month}-${day}`;
+                    } else if (ymdMatch) {
+                        const year = ymdMatch[1];
+                        const month = ymdMatch[2].padStart(2, '0');
+                        const day = ymdMatch[3].padStart(2, '0');
+                        parsedBookingDate = `${year}-${month}-${day}`;
+                    } else {
+                        const d = new Date(strDate);
+                        if (!isNaN(d.getTime())) {
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const dt = String(d.getDate()).padStart(2, '0');
+                            parsedBookingDate = `${y}-${m}-${dt}`;
+                        }
+                    }
+                }
+            }
+            if (!parsedBookingDate) {
+                // Use client's local date (YYYY-MM-DD), NOT UTC toISOString() to avoid day shift
+                parsedBookingDate = new Date().toLocaleDateString('en-CA');
+            }
+
+            // Parse booking time safely
+            let parsedBookingTime = '';
+            const rawBookingTime = booking.bookingtime || booking.time;
+            if (rawBookingTime) {
+                const timeMatch = String(rawBookingTime).trim().match(/^(\d{1,2}):(\d{1,2})/);
+                if (timeMatch) {
+                    parsedBookingTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2].padStart(2, '0')}`;
+                }
+            }
+            if (!parsedBookingTime) {
+                const now = new Date();
+                parsedBookingTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            }
 
             headers.forEach((h, i) => { displayRow[h] = rowData[i]; });
 
@@ -1398,8 +1451,8 @@ async function bookingload() {
                     tableData: resolvedTableData,
                     createdbyuser: typeof username !== 'undefined' ? username : '',
                     userId: userId || userfallback,
-                    date: new Date().toISOString().split('T')[0],
-                    time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+                    date: parsedBookingDate,
+                    time: parsedBookingTime,
                     total: totalBookingPrice
                 },
                 errors: rowErrors

@@ -160,15 +160,68 @@
        Returns null for null/undefined/empty/invalid — callers must
        treat null as "no date" so we never call .toISOString() on an
        Invalid Date (which throws RangeError and kills boot). */
+    function parseSafeDate(dateVal, timeVal) {
+        if (!dateVal) return null;
+        let y, m, d;
+        if (dateVal instanceof Date) {
+            if (isNaN(dateVal.getTime())) return null;
+            y = dateVal.getFullYear();
+            m = dateVal.getMonth();
+            d = dateVal.getDate();
+        } else if (typeof dateVal === 'string') {
+            const trimmed = dateVal.trim();
+            const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            const ymd = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dmy) {
+                d = parseInt(dmy[1], 10);
+                m = parseInt(dmy[2], 10) - 1;
+                y = parseInt(dmy[3], 10);
+            } else if (ymd) {
+                y = parseInt(ymd[1], 10);
+                m = parseInt(ymd[2], 10) - 1;
+                d = parseInt(ymd[3], 10);
+            } else {
+                const parsed = new Date(trimmed);
+                if (!isNaN(parsed.getTime())) {
+                    y = parsed.getFullYear();
+                    m = parsed.getMonth();
+                    d = parsed.getDate();
+                } else {
+                    return null;
+                }
+            }
+        } else {
+            return null;
+        }
+
+        let hrs = 0, mins = 0;
+        if (timeVal) {
+            const timeStr = String(timeVal).trim();
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const tm = timeStr.match(/^(\d{1,2}):(\d{1,2})/);
+            if (tm) {
+                hrs = parseInt(tm[1], 10) || 0;
+                mins = parseInt(tm[2], 10) || 0;
+                if (isPM && hrs < 12) hrs += 12;
+                if (isAM && hrs === 12) hrs = 0;
+            }
+        }
+        return new Date(y, m, d, hrs, mins);
+    }
+
     function safeDateISO(dateValue) {
         if (!dateValue) return null;
-        const d = new Date(dateValue);
+        const d = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
         if (isNaN(d.getTime())) return null;
-        return d.toISOString().split('T')[0];
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
 
     function formatDateTime(timestamp) {
-        const date = new Date(timestamp);
+        const date = (timestamp instanceof Date) ? timestamp : new Date(timestamp);
         if (isNaN(date.getTime())) return '';
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -180,12 +233,83 @@
         return day + '-' + month + '-' + year + ' <span>' + hours + ':' + minutes + ' ' + amPm + '</span>';
     }
 
+    function getChronologicalTimestamps(report) {
+        const parseTs = (val) => {
+            if (!val) return null;
+            if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                const parts = trimmed.split(/[\sT]+/);
+                if (parts.length >= 2 && /^(\d{1,4}[-/]\d{1,2}[-/]\d{1,4})$/.test(parts[0])) {
+                    return parseSafeDate(parts[0], parts.slice(1).join(' '));
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+                return parseSafeDate(trimmed);
+            }
+            return null;
+        };
+
+        let reg = parseSafeDate(report?.date, report?.time);
+        let coll = parseTs(report?.collectedOn);
+        let rec = parseTs(report?.receivedOn);
+        let rep = parseTs(report?.reportedOn);
+
+        const now = new Date();
+
+        // 1. Ensure reg date is not in the future of sample collection or reporting
+        const earliestLater = coll || rec || rep;
+        if (earliestLater && reg && reg.getTime() > earliestLater.getTime()) {
+            const candidate = new Date(earliestLater.getFullYear(), earliestLater.getMonth(), earliestLater.getDate(), reg.getHours(), reg.getMinutes());
+            if (candidate.getTime() <= earliestLater.getTime()) {
+                reg = candidate;
+            } else {
+                reg = new Date(earliestLater.getTime() - 5 * 60 * 1000);
+            }
+        }
+
+        if (!reg) {
+            if (coll) reg = new Date(coll.getTime() - 5 * 60 * 1000);
+            else if (rec) reg = new Date(rec.getTime() - 15 * 60 * 1000);
+            else if (rep) reg = new Date(rep.getTime() - 45 * 60 * 1000);
+            else reg = now;
+        }
+
+        // 2. Ensure collectedOn >= reg
+        if (!coll || coll.getTime() < reg.getTime()) {
+            coll = new Date(reg.getTime() + 5 * 60 * 1000);
+        }
+
+        // 3. Ensure receivedOn >= collectedOn
+        if (!rec || rec.getTime() < coll.getTime()) {
+            rec = new Date(coll.getTime() + 10 * 60 * 1000);
+        }
+
+        // 4. Ensure reportedOn >= receivedOn
+        if (!rep || rep.getTime() < rec.getTime()) {
+            rep = new Date(rec.getTime() + 30 * 60 * 1000);
+        }
+
+        return {
+            regOn: formatDateTime(reg),
+            collOn: formatDateTime(coll),
+            recOn: formatDateTime(rec),
+            repOn: formatDateTime(rep),
+            regDate: reg,
+            collDate: coll,
+            recDate: rec,
+            repDate: rep
+        };
+    }
+
     /* ========================= PATIENT METADATA BAR (.report-details) =========================
        Structure/classes are a snapshot contract — Puppeteer renders this node as
        the repeating PDF page header. data-field attributes map values for DB
        extraction without changing markup shape. */
     function populateHeader() {
         document.getElementById('booking-registeration-number').innerText = state.report.reg_id || '';
+
+        const timestamps = getChronologicalTimestamps(state.report);
 
         const details = document.createElement('div');
         details.className = 'report-details-innerDiv2';
@@ -200,13 +324,13 @@
             '</div>' +
             '<div class="right2"><div>' +
                 '<div class="registered-div2" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Registered on:</div>' +
-                    '<div class="time-div">' + formatDateTime(safeDateISO(state.report.date) + 'T' + (state.report.time || '')) + '</div></div>' +
+                    '<div class="time-div">' + timestamps.regOn + '</div></div>' +
                 '<div class="registered-div2 forhide" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Collected on:</div>' +
-                    '<div class="time-div">' + formatDateTime(state.report.collectedOn) + '</div></div>' +
+                    '<div class="time-div">' + timestamps.collOn + '</div></div>' +
                 '<div class="registered-div2 forhide" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Received on:</div>' +
-                    '<div class="time-div">' + formatDateTime(state.report.receivedOn) + '</div></div>' +
+                    '<div class="time-div">' + timestamps.recOn + '</div></div>' +
                 '<div class="registered-div2" style="padding-top: 1px; padding-bottom: 1px;"><div class="registeration-tag2">Reported on:</div>' +
-                    '<div class="time-div">' + formatDateTime(state.report.reportedOn) + '</div></div>' +
+                    '<div class="time-div">' + timestamps.repOn + '</div></div>' +
             '</div></div>' +
             '<div class="barcode-div2"><div class="barcode2"><div id="barcodeContainer2">' +
                 '<img id="barcodeImage" alt="Generated Barcode" />' +

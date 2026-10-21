@@ -376,8 +376,59 @@
             // console.log(error)
         }
     }
+    function parseSafeDate(dateVal, timeVal) {
+        if (!dateVal) return null;
+        let y, m, d;
+        if (dateVal instanceof Date) {
+            if (isNaN(dateVal.getTime())) return null;
+            y = dateVal.getFullYear();
+            m = dateVal.getMonth();
+            d = dateVal.getDate();
+        } else if (typeof dateVal === 'string') {
+            const trimmed = dateVal.trim();
+            const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            const ymd = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dmy) {
+                d = parseInt(dmy[1], 10);
+                m = parseInt(dmy[2], 10) - 1;
+                y = parseInt(dmy[3], 10);
+            } else if (ymd) {
+                y = parseInt(ymd[1], 10);
+                m = parseInt(ymd[2], 10) - 1;
+                d = parseInt(ymd[3], 10);
+            } else {
+                const parsed = new Date(trimmed);
+                if (!isNaN(parsed.getTime())) {
+                    y = parsed.getFullYear();
+                    m = parsed.getMonth();
+                    d = parsed.getDate();
+                } else {
+                    return null;
+                }
+            }
+        } else {
+            return null;
+        }
+
+        let hrs = 0, mins = 0;
+        if (timeVal) {
+            const timeStr = String(timeVal).trim();
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const tm = timeStr.match(/^(\d{1,2}):(\d{1,2})/);
+            if (tm) {
+                hrs = parseInt(tm[1], 10) || 0;
+                mins = parseInt(tm[2], 10) || 0;
+                if (isPM && hrs < 12) hrs += 12;
+                if (isAM && hrs === 12) hrs = 0;
+            }
+        }
+        return new Date(y, m, d, hrs, mins);
+    }
+
     function formatDateTime(timestamp) {
-        const date = new Date(timestamp);
+        const date = (timestamp instanceof Date) ? timestamp : new Date(timestamp);
+        if (isNaN(date.getTime())) return '';
 
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ensure 2-digit month
@@ -392,10 +443,74 @@
         return `${day}-${month}-${year} <span>${hours}:${minutes} ${amPm}</span>`;
     }
 
+    function getChronologicalTimestamps(rep) {
+        const parseTs = (val) => {
+            if (!val) return null;
+            if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                const parts = trimmed.split(/[\sT]+/);
+                if (parts.length >= 2 && /^(\d{1,4}[-/]\d{1,2}[-/]\d{1,4})$/.test(parts[0])) {
+                    return parseSafeDate(parts[0], parts.slice(1).join(' '));
+                }
+                const d = new Date(trimmed);
+                if (!isNaN(d.getTime())) return d;
+                return parseSafeDate(trimmed);
+            }
+            return null;
+        };
+
+        let reg = parseSafeDate(rep?.date, rep?.time);
+        let coll = parseTs(rep?.collectedOn);
+        let rec = parseTs(rep?.receivedOn);
+        let reported = parseTs(rep?.reportedOn);
+
+        const now = new Date();
+
+        const earliestLater = coll || rec || reported;
+        if (earliestLater && reg && reg.getTime() > earliestLater.getTime()) {
+            const candidate = new Date(earliestLater.getFullYear(), earliestLater.getMonth(), earliestLater.getDate(), reg.getHours(), reg.getMinutes());
+            if (candidate.getTime() <= earliestLater.getTime()) {
+                reg = candidate;
+            } else {
+                reg = new Date(earliestLater.getTime() - 5 * 60 * 1000);
+            }
+        }
+
+        if (!reg) {
+            if (coll) reg = new Date(coll.getTime() - 5 * 60 * 1000);
+            else if (rec) reg = new Date(rec.getTime() - 15 * 60 * 1000);
+            else if (reported) reg = new Date(reported.getTime() - 45 * 60 * 1000);
+            else reg = now;
+        }
+
+        if (!coll || coll.getTime() < reg.getTime()) {
+            coll = new Date(reg.getTime() + 5 * 60 * 1000);
+        }
+        if (!rec || rec.getTime() < coll.getTime()) {
+            rec = new Date(coll.getTime() + 10 * 60 * 1000);
+        }
+        if (!reported || reported.getTime() < rec.getTime()) {
+            reported = new Date(rec.getTime() + 30 * 60 * 1000);
+        }
+
+        return {
+            regOn: formatDateTime(reg),
+            collOn: formatDateTime(coll),
+            recOn: formatDateTime(rec),
+            repOn: formatDateTime(reported),
+            regDate: reg,
+            collDate: coll,
+            recDate: rec,
+            repDate: reported
+        };
+    }
+
     async function populateHeader() {
         document.getElementById("booking-registeration-number").innerText = report.reg_id;
         // console.log("localstorage:", localStorage)
         const booking = JSON.parse(localStorage.getItem('booking'));
+        const timestamps = getChronologicalTimestamps(report);
 
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
@@ -412,19 +527,19 @@
                 <div>
                     <div class="format1-registered-div2">
                         <div class="format1-registeration-tag2"><strong>Registered on:</strong></div>
-                        <div class="format1-time-div">${formatDateTime(new Date(report.date).toISOString().split('T')[0] + "T" + report.time)}</div>
+                        <div class="format1-time-div">${timestamps.regOn}</div>
                         </div>
                         <div class="format1-registered-div2 forhide">
                             <div class="format1-registeration-tag2"><strong>Collected on:</strong></div>
-                            <div class="format1-time-div">${formatDateTime(report.collectedOn)}</div>
+                            <div class="format1-time-div">${timestamps.collOn}</div>
                         </div>
                     <div class="format1-registered-div2 forhide">
                         <div class="format1-registeration-tag2"><strong>Received on:</strong></div>
-                        <div class="format1-time-div">${formatDateTime(report.receivedOn)}</div>
+                        <div class="format1-time-div">${timestamps.recOn}</div>
                     </div>
                     <div class="format1-registered-div2">
                         <div class="format1-registeration-tag2"><strong>Reported on:</strong></div>
-                        <div class="format1-time-div">${formatDateTime(report.reportedOn)}</div>
+                        <div class="format1-time-div">${timestamps.repOn}</div>
                     </div>
                 </div>
             </div>

@@ -2141,19 +2141,88 @@ async function loadfunction() {
         }
     }
 
-    // for seeting default time in input fields
+    function parseSafeDate(dateVal, timeVal) {
+        if (!dateVal) return new Date();
+        let y, m, d;
+        if (dateVal instanceof Date) {
+            if (isNaN(dateVal.getTime())) return new Date();
+            y = dateVal.getFullYear();
+            m = dateVal.getMonth();
+            d = dateVal.getDate();
+        } else if (typeof dateVal === 'string') {
+            const trimmed = dateVal.trim();
+            const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            const ymd = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dmy) {
+                d = parseInt(dmy[1], 10);
+                m = parseInt(dmy[2], 10) - 1;
+                y = parseInt(dmy[3], 10);
+            } else if (ymd) {
+                y = parseInt(ymd[1], 10);
+                m = parseInt(ymd[2], 10) - 1;
+                d = parseInt(ymd[3], 10);
+            } else {
+                const parsed = new Date(trimmed);
+                if (!isNaN(parsed.getTime())) {
+                    y = parsed.getFullYear();
+                    m = parsed.getMonth();
+                    d = parsed.getDate();
+                } else {
+                    const now = new Date();
+                    y = now.getFullYear();
+                    m = now.getMonth();
+                    d = now.getDate();
+                }
+            }
+        } else {
+            const now = new Date();
+            y = now.getFullYear();
+            m = now.getMonth();
+            d = now.getDate();
+        }
+
+        let hrs = 0, mins = 0;
+        if (timeVal) {
+            const timeStr = String(timeVal).trim();
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const tm = timeStr.match(/^(\d{1,2}):(\d{1,2})/);
+            if (tm) {
+                hrs = parseInt(tm[1], 10) || 0;
+                mins = parseInt(tm[2], 10) || 0;
+                if (isPM && hrs < 12) hrs += 12;
+                if (isAM && hrs === 12) hrs = 0;
+            }
+        }
+        return new Date(y, m, d, hrs, mins);
+    }
+
+    function toLocalISOString(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const mn = String(d.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${dt}T${h}:${mn}`;
+    }
+
+    function formatDisplayDateTime(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        let hrs = d.getHours();
+        const mns = String(d.getMinutes()).padStart(2, '0');
+        const amPm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = String(hrs % 12 || 12).padStart(2, '0');
+        return `${dt}-${m}-${y} ${hrs}:${mns} ${amPm}`;
+    }
+
+    // for setting default time in input fields
     function defaultdateandtime() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based, so we add 1
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-
-        // Format the date and time to YYYY-MM-DDTHH:MM
-        const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-        document.getElementById('reportedOn').value = formattedDateTime;
+        const receivedVal = document.getElementById('receivedOn')?.value;
+        const recDate = receivedVal ? new Date(receivedVal) : new Date();
+        const repCandidate = new Date(Math.max(Date.now(), (recDate.getTime() || 0) + 30 * 60 * 1000));
+        document.getElementById('reportedOn').value = toLocalISOString(repCandidate);
     };
 
     // for populating patient information
@@ -2161,6 +2230,14 @@ async function loadfunction() {
         console.log("booking data in report page:", booking);
         document.getElementById("booking-registeration-number").innerText = booking.bookingId;
         // document.getElementById("booking-registeration-number2").innerText = reg_id;
+
+        const regDate = parseSafeDate(booking.date, booking.time);
+        const collDefaultDate = new Date(regDate.getTime() + 5 * 60 * 1000);
+        let recDefaultDate = recievedOn ? new Date(recievedOn) : null;
+        if (!recDefaultDate || isNaN(recDefaultDate.getTime()) || recDefaultDate.getTime() < collDefaultDate.getTime()) {
+            recDefaultDate = new Date(collDefaultDate.getTime() + 10 * 60 * 1000);
+        }
+
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
         patientdetails.innerHTML = `<div class="left2">
@@ -2173,15 +2250,15 @@ async function loadfunction() {
             <div class="right2">
                 <div class="registered-div2">
                     <div class="registeration-tag2">Registered on:</div>
-                    <span style = "text-align: center;"> ${new Date(booking.date).toLocaleDateString().split('T')[0]}    ${booking.time}</span>
+                    <span style = "text-align: center;"> ${formatDisplayDateTime(regDate)}</span>
                 </div>
                 <div class="registered-div2">
                     <div class="registeration-tag2">Collected on:</div>
-                    <input name="DateTime" type="datetime-local" id="collectedOn" name="collectedOn" value="${new Date(booking.date).toISOString().split('T')[0]}T${booking.time}">
+                    <input name="DateTime" type="datetime-local" id="collectedOn" name="collectedOn" value="${toLocalISOString(collDefaultDate)}">
                 </div>
                 <div class="registered-div2">
                     <div class="registeration-tag2">Received on:</div>
-                    <input name="DateTime" type="datetime-local" id="receivedOn" name="receivedOn" value="${recievedOn}">
+                    <input name="DateTime" type="datetime-local" id="receivedOn" name="receivedOn" value="${toLocalISOString(recDefaultDate)}">
                 </div>
                 <div class="registered-div2">
                     <div class="registeration-tag2">Reported on:</div>
@@ -2698,12 +2775,30 @@ async function loadfunction() {
         delete booking.__v;
         delete booking.updatedAt;
         delete booking._id;
-        delete booking.createdAt;
         delete booking.tableData;
 
-        const collectedOn = document.getElementById('collectedOn').value;
-        const receivedOn = document.getElementById('receivedOn').value;
-        const reportedOn = document.getElementById('reportedOn').value;
+        let collectedOn = document.getElementById('collectedOn')?.value;
+        let receivedOn = document.getElementById('receivedOn')?.value;
+        let reportedOn = document.getElementById('reportedOn')?.value;
+
+        // Chronological consistency check: regDate <= collectedOn <= receivedOn <= reportedOn
+        const regDateObj = parseSafeDate(booking.date, booking.time);
+        let collDateObj = collectedOn ? new Date(collectedOn) : null;
+        if (!collDateObj || isNaN(collDateObj.getTime()) || collDateObj.getTime() < regDateObj.getTime()) {
+            collDateObj = new Date(regDateObj.getTime() + 5 * 60 * 1000);
+            collectedOn = toLocalISOString(collDateObj);
+        }
+        let recDateObj = receivedOn ? new Date(receivedOn) : null;
+        if (!recDateObj || isNaN(recDateObj.getTime()) || recDateObj.getTime() < collDateObj.getTime()) {
+            recDateObj = new Date(collDateObj.getTime() + 10 * 60 * 1000);
+            receivedOn = toLocalISOString(recDateObj);
+        }
+        let repDateObj = reportedOn ? new Date(reportedOn) : null;
+        if (!repDateObj || isNaN(repDateObj.getTime()) || repDateObj.getTime() < recDateObj.getTime()) {
+            repDateObj = new Date(recDateObj.getTime() + 30 * 60 * 1000);
+            reportedOn = toLocalISOString(repDateObj);
+        }
+
         const categorized = document.getElementById('check1').checked;
         const moredetails = document.getElementById('moredetails').value;
 

@@ -33,27 +33,85 @@
     }
     
 
+    function parseSafeDate(dateVal, timeVal) {
+        if (!dateVal) return new Date();
+        let y, m, d;
+        if (dateVal instanceof Date) {
+            if (isNaN(dateVal.getTime())) return new Date();
+            y = dateVal.getFullYear();
+            m = dateVal.getMonth();
+            d = dateVal.getDate();
+        } else if (typeof dateVal === 'string') {
+            const trimmed = dateVal.trim();
+            const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            const ymd = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dmy) {
+                d = parseInt(dmy[1], 10);
+                m = parseInt(dmy[2], 10) - 1;
+                y = parseInt(dmy[3], 10);
+            } else if (ymd) {
+                y = parseInt(ymd[1], 10);
+                m = parseInt(ymd[2], 10) - 1;
+                d = parseInt(ymd[3], 10);
+            } else {
+                const parsed = new Date(trimmed);
+                if (!isNaN(parsed.getTime())) {
+                    y = parsed.getFullYear();
+                    m = parsed.getMonth();
+                    d = parsed.getDate();
+                } else {
+                    const now = new Date();
+                    y = now.getFullYear();
+                    m = now.getMonth();
+                    d = now.getDate();
+                }
+            }
+        } else {
+            const now = new Date();
+            y = now.getFullYear();
+            m = now.getMonth();
+            d = now.getDate();
+        }
+
+        let hrs = 0, mins = 0;
+        if (timeVal) {
+            const timeStr = String(timeVal).trim();
+            const isPM = /pm/i.test(timeStr);
+            const isAM = /am/i.test(timeStr);
+            const tm = timeStr.match(/^(\d{1,2}):(\d{1,2})/);
+            if (tm) {
+                hrs = parseInt(tm[1], 10) || 0;
+                mins = parseInt(tm[2], 10) || 0;
+                if (isPM && hrs < 12) hrs += 12;
+                if (isAM && hrs === 12) hrs = 0;
+            }
+        }
+        return new Date(y, m, d, hrs, mins);
+    }
+
+    function formatDisplayDateTime(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        let hrs = d.getHours();
+        const mns = String(d.getMinutes()).padStart(2, '0');
+        const amPm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = String(hrs % 12 || 12).padStart(2, '0');
+        return `${dt}-${m}-${y} ${hrs}:${mns} ${amPm}`;
+    }
+
     function defaultdateandtime() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based, so we add 1
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-
-        // Format the date and time to YYYY-MM-DDTHH:MM
-        const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-        // Set default value to the current date and time for each field
-        document.getElementById('collectedOn').value = report.collectedOn;
-        document.getElementById('receivedOn').value = report.receivedOn;
-        document.getElementById('reportedOn').value = report.reportedOn;
+        document.getElementById('collectedOn').value = report.collectedOn || '';
+        document.getElementById('receivedOn').value = report.receivedOn || '';
+        document.getElementById('reportedOn').value = report.reportedOn || '';
     };
-
 
     function populateHeader() {
         document.getElementById("booking-registeration-number").innerText = reg_id;
         document.getElementById("booking-registeration-number2").innerText = reg_id;
+
+        const regDate = parseSafeDate(booking.date, booking.time);
+
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv");
         patientdetails.innerHTML = `<div class="left">
@@ -66,7 +124,7 @@
             <div class="right">
                 <div>
                     <strong>Registered on:</strong>
-                    <span style = "text-align: center;"> ${new Date(booking.date).toISOString().split('T')[0]}    ${booking.time}</span>
+                    <span style = "text-align: center;"> ${formatDisplayDateTime(regDate)}</span>
                 </div>
                 <div>
                      <strong for="collectedOn">Collected On:</strong>
