@@ -1,10 +1,71 @@
+if (typeof window.BASE_URL === "undefined") {
+    window.BASE_URL = typeof BASE_URL !== "undefined" ? BASE_URL : window.location.origin;
+}
+
 async function loadfunction() {
-    // const urlParams = new URLSearchParams(window.location.search);
-    const booking = JSON.parse(localStorage.getItem("booking"));
+    const printSettings = (() => {
+        try {
+            return JSON.parse(localStorage.getItem("printSettings") || "{}");
+        } catch {
+            return {};
+        }
+    })();
+
+    let booking = null;
+    try {
+        booking = JSON.parse(localStorage.getItem("booking") || "null");
+    } catch (e) {
+        booking = null;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlBookingId = urlParams.get("value1") || urlParams.get("bookingId") || urlParams.get("_id");
+
+    // If no booking in localStorage, or booking in localStorage lacks bookingId/_id,
+    // or URL specifies a different booking ID than stored in localStorage:
+    if (!booking || (!booking.bookingId && !booking._id) || (urlBookingId && booking.bookingId !== urlBookingId && booking._id !== urlBookingId)) {
+        if (urlBookingId) {
+            try {
+                const bRes = await fetch(`${BASE_URL}/api/v1/user/getbooking`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value1: urlBookingId })
+                });
+                if (bRes.ok) {
+                    booking = await bRes.json();
+                    if (booking) {
+                        localStorage.setItem("booking", JSON.stringify(booking));
+                        localStorage.setItem("regId", JSON.stringify(booking.bookingId || urlBookingId));
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch booking by URL parameter:", err);
+            }
+        }
+    }
+
+    if (!booking) {
+        console.error("No booking found in localStorage or URL parameters.");
+        const bootalert = document.querySelector(".alert");
+        if (bootalert) {
+            bootalert.classList.remove("fade", "alert-success");
+            bootalert.classList.add("show", "alert-danger");
+            bootalert.textContent = "No booking found. Please select a case from All Cases or provide a valid booking ID.";
+            setTimeout(() => {
+                bootalert.classList.remove("show");
+                bootalert.classList.add("fade");
+            }, 6000);
+        }
+        return;
+    }
+
     // for getting individual parameter lower and upper value
-    const patient = { age: booking.year, gender: booking.gender };
+    const patient = { age: booking.year ?? "", gender: booking.gender ?? "" };
     // For PDF: print categories on separate page only if enabled in printSettings or selected by user
-    document.getElementById('check1').checked = Boolean(printSettings?.printCategoriesSeparatePage);
+    const check1Elem = document.getElementById('check1');
+    if (check1Elem) {
+        check1Elem.checked = Boolean(printSettings?.printCategoriesSeparatePage);
+    }
     let isdocumented = false;
     //Array for filtering tests and pannels
     let testArray = [];
@@ -16,13 +77,6 @@ async function loadfunction() {
     // for sample receiving time 
     let recievedOn;
     const showRandomBtn = document.getElementById('randomresult');
-    const printSettings = (() => {
-        try {
-            return JSON.parse(localStorage.getItem("printSettings") || "{}");
-        } catch {
-            return {};
-        }
-    })();
     let abnormalResultRed = Boolean(printSettings.HLinred);
     const abnormalResultColor = "#b71c1c";
 
@@ -31,7 +85,7 @@ async function loadfunction() {
         const settingsResponse = await fetch(`${BASE_URL}/api/v1/user/getting-pdf-data`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reportId: booking._id }),
+            body: JSON.stringify({ reportId: booking._id || booking.id || booking.bookingId }),
         });
         if (settingsResponse.ok) {
             const settingsData = await settingsResponse.json();
@@ -259,10 +313,9 @@ async function loadfunction() {
         return sampleDetails;
     }
 
-    if (user.showRandomBtn) {
-        showRandomBtn.style.display = 'block';
-    } else {
-        showRandomBtn.style.display = 'none';
+    const currentUser = (typeof user !== "undefined" && user) ? user : null;
+    if (showRandomBtn) {
+        showRandomBtn.style.display = currentUser?.showRandomBtn ? 'block' : 'none';
     }
 
     // for getting barcode tests
@@ -272,19 +325,30 @@ async function loadfunction() {
             headers: {
                 'Content-Type': 'application/json', // Specify JSON format
             },
-            body: JSON.stringify({ bookingId: booking.bookingId }),
+            body: JSON.stringify({ bookingId: booking.bookingId || booking._id }),
         });
 
         if (!response.ok) {
             // Handle non-2xx HTTP responses
-            const errorData = await response.json();
-            console.log("Error:", errorData.message || "Unknown error");
+            const errorData = await response.json().catch(() => ({}));
+            const errMsg = errorData.message || "Failed to load barcode tests. Please ensure samples are accepted.";
+            console.warn("getbarcodeTests error:", errMsg);
+            const bootalert = document.querySelector(".alert");
+            if (bootalert) {
+                bootalert.classList.remove("fade", "alert-success");
+                bootalert.classList.add("show", "alert-danger");
+                bootalert.textContent = errMsg;
+                setTimeout(() => {
+                    bootalert.classList.remove("show");
+                    bootalert.classList.add("fade");
+                }, 6000);
+            }
             return;
         }
 
         const data = await response.json();
         console.log("my data:", data);
-        testpanels = data[0];
+        testpanels = data?.[0];
         const barcodeEntries = data?.[0]?.barcodes?.barcodes || [];
         receivedBarcodeIds = [...new Set(
             barcodeEntries.map((entry) => normalizeShortName(entry?.barcode)).filter(Boolean)
@@ -300,7 +364,9 @@ async function loadfunction() {
 
         getallpptfromrelatedbarcode(barcodeEntries);
 
-        recievedOn = formatDateTimeLocal(data[0].barcodes.createdAt);
+        if (data?.[0]?.barcodes?.createdAt) {
+            recievedOn = formatDateTimeLocal(data[0].barcodes.createdAt);
+        }
     } catch (error) {
         console.log("Fetch error:", error.message);
     }
@@ -317,7 +383,9 @@ async function loadfunction() {
 
     // Convert to the required format
     function formatDateTimeLocal(isoDate) {
+        if (!isoDate) return "";
         const date = new Date(isoDate);
+        if (isNaN(date.getTime())) return "";
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
         const day = String(date.getDate()).padStart(2, '0');
@@ -531,10 +599,12 @@ async function loadfunction() {
             return;
         }
 
-        // अगर editor पहले से exist करता है तो destroy करें
         if (editorInstances.has(uniqueTestId)) {
             editorInstances.get(uniqueTestId).destroy()
                 .then(() => {
+                    createNewEditor(uniqueTestId, interpretation, editorElement);
+                })
+                .catch(() => {
                     createNewEditor(uniqueTestId, interpretation, editorElement);
                 });
         } else {
@@ -542,14 +612,42 @@ async function loadfunction() {
         }
     };
 
-    function createNewEditor(uniqueTestId, interpretation, editorElement) {
-        const { DecoupledEditor } = window.CKEDITOR;
+    async function ensureCKEditor() {
+        if (window.CKEDITOR && window.CKEDITOR.DecoupledEditor) {
+            return window.CKEDITOR;
+        }
+        if (!document.querySelector('script[src*="ckeditor5"]')) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.css";
+            document.head.appendChild(link);
+
+            const script = document.createElement("script");
+            script.src = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.umd.js";
+            document.head.appendChild(script);
+        }
+        for (let i = 0; i < 60; i++) {
+            if (window.CKEDITOR && window.CKEDITOR.DecoupledEditor) {
+                return window.CKEDITOR;
+            }
+            await new Promise((r) => setTimeout(r, 100));
+        }
+        return window.CKEDITOR || null;
+    }
+
+    async function createNewEditor(uniqueTestId, interpretation, editorElement) {
+        const ck = await ensureCKEditor();
+        if (!ck || !ck.DecoupledEditor) {
+            console.error("CKEDITOR is not available for createNewEditor.");
+            return;
+        }
+        const { DecoupledEditor } = ck;
 
         DecoupledEditor.create(editorElement, {
             plugins: [
-                window.CKEDITOR.Alignment,
-                window.CKEDITOR.Autoformat,
-                window.CKEDITOR.BlockQuote,
+                ck.Alignment,
+                ck.Autoformat,
+                ck.BlockQuote,
                 window.CKEDITOR.Bold,
                 window.CKEDITOR.Code,
                 window.CKEDITOR.CodeBlock,
@@ -936,11 +1034,14 @@ async function loadfunction() {
 
         console.log("category:", category);
 
+        const catName = (typeof category === "object" && category !== null) ? (category.category || "General") : (category || "General");
+        const catOrder = (typeof category === "object" && category !== null) ? (category.orderId || 999) : 999;
+
         // Table heading (only if not hidden)
         if (!hideCategory) {
             const categoryHeading = document.createElement("h2");
-            categoryHeading.textContent = category.category;
-            categoryHeading.setAttribute('data-order', category.orderId);
+            categoryHeading.textContent = catName;
+            categoryHeading.setAttribute('data-order', catOrder);
             section.appendChild(categoryHeading);
 
             const heading = document.createElement("h3");
@@ -971,7 +1072,8 @@ async function loadfunction() {
         tbody.className = "tbody";
         const previousContentMap = {};
         let previousContent = '';
-        for (const test of data) {
+        for (const test of (data || [])) {
+            if (!test) continue;
             if (test.isDocumentedTest) {
                 console.log("documented test");
                 const uniqueTestId = `${test._id}`; // Combine test._id and test.order for unique ID
@@ -1090,7 +1192,7 @@ async function loadfunction() {
                 continue;
             }
 
-            const { lowerValue, upperValue } = await getLowerUpperValues(patient, test.parameters[0]?.NormalValue);
+            const { lowerValue, upperValue } = await getLowerUpperValues(patient, test.parameters?.[0]?.NormalValue);
 
             const row = document.createElement("tr");
             row.setAttribute("data-order", test.order); // Set a data attribute for sorting
@@ -1216,7 +1318,7 @@ async function loadfunction() {
         </div>
     </td>
     <td>${test.parameters?.[0]?.unit || ""}</td>
-    <td class="reference"><i class="fas fa-edit" onclick="openModal(this)"></i>${test.parameters[0]?.text || (lowerValue && upperValue ? `${lowerValue} - ${upperValue}` : "")}</td>
+    <td class="reference"><i class="fas fa-edit" onclick="openModal(this)"></i>${test.parameters?.[0]?.text || (lowerValue && upperValue ? `${lowerValue} - ${upperValue}` : "")}</td>
 `;
                 tbody.appendChild(row);
 
@@ -1969,25 +2071,33 @@ async function loadfunction() {
     }
 
     async function renderData() {
-        // const data = await sendValueToDatabase();
         if (!testpanels) return;
         console.log("data is here:", testpanels);
 
-        const { singleTests, panels } = testpanels;
+        const { singleTests = [], panels = [] } = testpanels;
         uniquetestArray2 = buildInvestigationHeaderList(singleTests);
+
+        const getCatName = (cat) => {
+            if (!cat) return "General";
+            if (typeof cat === "string") return cat;
+            return cat.category || "General";
+        };
 
         // Create an array of {category, tests} instead of an object
         const singleTestsByCategory = [];
 
-        singleTests.forEach((test) => {
-            // Check if this category object is already present
+        (singleTests || []).forEach((test) => {
+            if (!test) return;
+            const currentCatName = getCatName(test.category);
             let existingCategory = singleTestsByCategory.find(
-                (entry) => entry.category.category === test.category.category
+                (entry) => getCatName(entry.category) === currentCatName
             );
 
             if (!existingCategory) {
                 existingCategory = {
-                    category: test.category, // store full category object
+                    category: (typeof test.category === "object" && test.category !== null)
+                        ? test.category
+                        : { category: currentCatName, orderId: 999 },
                     tests: []
                 };
                 singleTestsByCategory.push(existingCategory);
@@ -2003,17 +2113,18 @@ async function loadfunction() {
         // Render panels and collect matched categories
         if (panels && panels.length > 0) {
             for (const panel of panels) {
+                if (!panel) continue;
                 console.log("Rendering panels:", panel);
                 await createTable(
                     `${panel.name}`,
                     panel.category,
-                    panel.testsId,
+                    panel.testsId || [],
                     true,
                     false,
                     panel
                 );
 
-                matchedCategories.add(panel.category);
+                matchedCategories.add(getCatName(panel.category));
             }
         }
 
@@ -2021,8 +2132,9 @@ async function loadfunction() {
         for (const entry of singleTestsByCategory) {
             console.log("Checking category for single tests:", entry);
             const { category, tests } = entry;
-            if (matchedCategories.has(category.category)) {
-                await createTable(category.category, category, tests, false, false);
+            const cName = getCatName(category);
+            if (matchedCategories.has(cName)) {
+                await createTable(cName, category, tests, false, false);
             }
         }
 
@@ -2030,8 +2142,9 @@ async function loadfunction() {
         for (const entry of singleTestsByCategory) {
             console.log("Rendering unmatched category for single tests:", entry);
             const { category, tests } = entry;
-            if (!matchedCategories.has(category.category)) {
-                await createTable(category.category, category, tests);
+            const cName = getCatName(category);
+            if (!matchedCategories.has(cName)) {
+                await createTable(cName, category, tests);
             }
         }
 
@@ -2287,14 +2400,19 @@ async function loadfunction() {
         const receivedVal = document.getElementById('receivedOn')?.value;
         const recDate = receivedVal ? new Date(receivedVal) : new Date();
         const repCandidate = new Date(Math.max(Date.now(), (recDate.getTime() || 0) + 30 * 60 * 1000));
-        document.getElementById('reportedOn').value = toLocalISOString(repCandidate);
+        const repElem = document.getElementById('reportedOn');
+        if (repElem) {
+            repElem.value = toLocalISOString(repCandidate);
+        }
     };
 
     // for populating patient information
     function populateHea() {
         console.log("booking data in report page:", booking);
-        document.getElementById("booking-registeration-number").innerText = booking.bookingId;
-        // document.getElementById("booking-registeration-number2").innerText = reg_id;
+        const regElem = document.getElementById("booking-registeration-number");
+        if (regElem) {
+            regElem.innerText = booking.bookingId || "";
+        }
 
         const regDate = parseSafeDate(booking.date, booking.time);
         const collDefaultDate = new Date(regDate.getTime() + 5 * 60 * 1000);
@@ -2306,11 +2424,11 @@ async function loadfunction() {
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
         patientdetails.innerHTML = `<div class="left2">
-                <div class="infor-div"><div class="tags">Patient Name:</div><div class="value-header">${booking.patientName}</div></div>
-                <div class="infor-div"><div class="tags">Age / Sex:</div> <div class="value-header">${booking.year} / ${booking.gender}</div></div>
-                <div class="infor-div"><div class="tags">Referred By:</div> <div class="value-header">${booking.doctorName}</div></div>
-                <div class="infor-div"><div class="tags">Lab Name:</div> <div class="value-header">${booking.labName}</div></div>
-                <div class="infor-div"><div class="tags">Investigations:</div> <div class="value-header">${uniquetestArray2}</div></div>
+                <div class="infor-div"><div class="tags">Patient Name:</div><div class="value-header">${booking.patientName || ""}</div></div>
+                <div class="infor-div"><div class="tags">Age / Sex:</div> <div class="value-header">${booking.year || ""} / ${booking.gender || ""}</div></div>
+                <div class="infor-div"><div class="tags">Referred By:</div> <div class="value-header">${booking.doctorName || ""}</div></div>
+                <div class="infor-div"><div class="tags">Lab Name:</div> <div class="value-header">${booking.labName || ""}</div></div>
+                <div class="infor-div"><div class="tags">Investigations:</div> <div class="value-header">${uniquetestArray2 || ""}</div></div>
             </div>
             <div class="right2">
                 <div class="registered-div2">
@@ -2339,7 +2457,11 @@ async function loadfunction() {
 </div>
 `;
 
-        document.querySelector(".report-details").appendChild(patientdetails);
+        const reportDetails = document.querySelector(".report-details");
+        if (reportDetails) {
+            reportDetails.innerHTML = "";
+            reportDetails.appendChild(patientdetails);
+        }
         defaultdateandtime();
     }
 
@@ -2367,14 +2489,15 @@ async function loadfunction() {
 
             if (response.ok) {
                 const data = await response.json();
-                // If your API returns an image URL
-                document.getElementById("barcodeImage").src = data.barcode; // Display the barcode image
+                const barcodeImg = document.getElementById("barcodeImage");
+                if (barcodeImg && data.barcode) {
+                    barcodeImg.src = data.barcode;
+                }
             } else {
-                alert("Failed to generate barcode!");
+                console.warn("Failed to generate barcode image");
             }
         } catch (error) {
             console.error("Error generating barcode:", error);
-            alert("An error occurred. Please try again.");
         }
     }
 
@@ -2415,14 +2538,19 @@ async function loadfunction() {
                 displayArea.style.display = 'none';
                 editorContainer.style.display = 'block';
 
-                // ✅ CKEditor initialize karo
-                const { DecoupledEditor } = window.CKEDITOR;
+                // ✅ CKEditor initialize karo safely
+                const ck = await ensureCKEditor();
+                if (!ck || !ck.DecoupledEditor) {
+                    console.error("CKEDITOR is not available.");
+                    return;
+                }
+                const { DecoupledEditor } = ck;
 
                 try {
                     const editor = await DecoupledEditor.create(editorElement, {
                         plugins: [
-                            window.CKEDITOR.Alignment,
-                            window.CKEDITOR.Autoformat,
+                            ck.Alignment,
+                            ck.Autoformat,
                             window.CKEDITOR.BlockQuote,
                             window.CKEDITOR.Bold,
                             window.CKEDITOR.Code,
@@ -2545,26 +2673,29 @@ async function loadfunction() {
 
     // for getting reference lower and upper value
     async function getLowerUpperValues(patient, defaultresults) {
-
-        if (!patient || !defaultresults || defaultresults.length === 0) {
-            return "";
+        if (!patient || patient.age == null || !defaultresults || !Array.isArray(defaultresults) || defaultresults.length === 0) {
+            return { lowerValue: "", upperValue: "" };
         }
         // Helper function to convert age to days based on the unit
         const convertToDays = (age, unit) => {
-            if (unit === "Years" || unit === "years") return age * 365;
-            if (unit === "Months" || unit === "months") return age * 30;
-            if (unit === "Days" || unit === "days") return age;
-            return 0; // Unknown unit
+            const u = String(unit || "").toLowerCase();
+            if (u.startsWith("y")) return age * 365;
+            if (u.startsWith("m")) return age * 30;
+            if (u.startsWith("d")) return age;
+            return age * 365;
         };
 
-        // Extract patient age and unit, then convert to days
-        const [patientAge, patientAgeUnit] = patient.age.split(" ");
-        const patientAgeInDays = convertToDays(parseInt(patientAge), patientAgeUnit);
+        // Extract patient age and unit safely
+        const ageStr = String(patient.age).trim();
+        const match = ageStr.match(/^(\d+)(?:\s*([a-zA-Z]+))?/);
+        const patientAge = match ? parseInt(match[1], 10) : (parseInt(ageStr, 10) || 0);
+        const patientAgeUnit = (match && match[2]) ? match[2] : "Years";
+        const patientAgeInDays = convertToDays(patientAge, patientAgeUnit);
 
         for (const result of defaultresults) {
             // Convert minAge and maxAge in result to days
-            const minAgeInDays = convertToDays(parseInt(result.minAge), result.minAgeUnit);
-            const maxAgeInDays = convertToDays(parseInt(result.maxAge), result.maxAgeUnit);
+            const minAgeInDays = convertToDays(parseInt(result.minAge) || 0, result.minAgeUnit);
+            const maxAgeInDays = convertToDays(parseInt(result.maxAge) || 0, result.maxAgeUnit);
 
             // Check if gender and age (in days) fall within the criteria
             if (
@@ -2576,8 +2707,8 @@ async function loadfunction() {
             }
         }
 
-        // If no match is found, return null or an appropriate message
-        return "";
+        // If no match is found, return empty strings
+        return { lowerValue: "", upperValue: "" };
     }
 
     // Fixed extractTableData function - All rows ka pagebreak track
@@ -2837,10 +2968,10 @@ async function loadfunction() {
         const { reportData, reportMeta } = extractTableData();
         const isFinalAction = saveOnly;
         const bookedItems = extractBookedItemsManifest(booking, reportData);
-        delete booking.__v;
-        delete booking.updatedAt;
-        delete booking._id;
-        delete booking.tableData;
+        const bookingPayload = { ...booking };
+        delete bookingPayload.__v;
+        delete bookingPayload.updatedAt;
+        delete bookingPayload.tableData;
 
         let collectedOn = document.getElementById('collectedOn')?.value;
         let receivedOn = document.getElementById('receivedOn')?.value;
@@ -2864,8 +2995,8 @@ async function loadfunction() {
             reportedOn = toLocalISOString(repDateObj);
         }
 
-        const categorized = document.getElementById('check1').checked;
-        const moredetails = document.getElementById('moredetails').value;
+        const categorized = Boolean(document.getElementById('check1')?.checked);
+        const moredetails = document.getElementById('moredetails')?.value || "";
 
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/saveReportData`, {
@@ -2876,7 +3007,8 @@ async function loadfunction() {
                 body: JSON.stringify({
                     reportData,
                     reportMeta,
-                    reg_id: booking.bookingId, booking,
+                    reg_id: booking.bookingId,
+                    booking: bookingPayload,
                     collectedOn, receivedOn, reportedOn, categorized, moredetails,
                     uniquetestArray: uniquetestArray2,
                     isdocumented,
@@ -2967,22 +3099,30 @@ async function loadfunction() {
         }
 
         if (AllFieldsArray.length >= 0) {
-            const id = JSON.parse(localStorage.getItem("booking"))._id;
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/saveOrUpdateBookedTest`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ BookingId: id, EnteredValues: AllFieldsArray }),
-                });
-
-                if (response.ok) {
-                    await response.json();
+            const id = booking?._id || (() => {
+                try {
+                    return JSON.parse(localStorage.getItem("booking") || "{}")._id;
+                } catch {
+                    return null;
                 }
-            } catch (error) {
-                console.error("Error saving tables to database:", error);
+            })();
+
+            if (id) {
+                try {
+                    const response = await fetch(`${BASE_URL}/api/v1/user/saveOrUpdateBookedTest`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ BookingId: id, EnteredValues: AllFieldsArray }),
+                    });
+
+                    if (response.ok) {
+                        await response.json();
+                    }
+                } catch (error) {
+                    console.error("Error saving tables to database:", error);
+                }
             }
             return true;
         }
@@ -3017,9 +3157,9 @@ async function loadfunction() {
     }
 
     async function editdoctorsvisibility() {
-        const showlab = document.getElementById('labsign').checked;
-        const showfirstdoctor = document.getElementById('firstdoctor').checked;
-        const showseconddoctor = document.getElementById('seconddoctor').checked;
+        const showlab = Boolean(document.getElementById('labsign')?.checked);
+        const showfirstdoctor = Boolean(document.getElementById('firstdoctor')?.checked);
+        const showseconddoctor = Boolean(document.getElementById('seconddoctor')?.checked);
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/editdoctorsvisibility`, {
                 method: 'POST',
@@ -3034,72 +3174,95 @@ async function loadfunction() {
             }
 
         } catch (error) {
-            alert(error.message)
-            console.log(error.message);
+            console.warn("editdoctorsvisibility error:", error.message);
         }
     }
 
     // Add an event listener for the submit button to trigger the API call
-    document.getElementById("finalBtn").addEventListener("click", async (event) => {
-        event.preventDefault(); // Prevent default form submission
-        await checkFields(true);
-        await editdoctorsvisibility();
-        await saveTablesToDatabase(true);
-    });
+    const finalBtn = document.getElementById("finalBtn");
+    if (finalBtn) {
+        finalBtn.addEventListener("click", async (event) => {
+            event.preventDefault(); // Prevent default form submission
+            await checkFields(true);
+            await editdoctorsvisibility();
+            await saveTablesToDatabase(true);
+        });
+    }
+
     // Add an event listener for the submit button to trigger the API call
-    document.getElementById("saveBtn").addEventListener("click", async (event) => {
-        event.preventDefault(); // Prevent default form submission
-        event.target.disabled = true;
-        const returned = await checkFields(false);
-        if (!returned) {
+    const saveBtn = document.getElementById("saveBtn");
+    if (saveBtn) {
+        saveBtn.addEventListener("click", async (event) => {
+            event.preventDefault(); // Prevent default form submission
+            event.target.disabled = true;
+            const returned = await checkFields(false);
+            if (!returned) {
+                event.target.disabled = false;
+            }
+            await editdoctorsvisibility();
+            await saveTablesToDatabase(false);
             event.target.disabled = false;
-        }
-        await editdoctorsvisibility();
-        await saveTablesToDatabase(false);
-        event.target.disabled = false;
-    });
+        });
+    }
 
     // Ensure the buttons container starts hidden
-    document.getElementById("buttons-container").style.display = "none";
+    const buttonsContainer = document.getElementById("buttons-container");
+    if (buttonsContainer) {
+        buttonsContainer.style.display = "none";
+    }
 
     // Add event listener to the main container
-    document.getElementById("reorder-container").addEventListener("click", function () {
-        const buttonsContainer = document.getElementById("buttons-container");
-        // Toggle the visibility of the buttons container
-        if (buttonsContainer.style.display === "none" || buttonsContainer.style.display === "") {
-            buttonsContainer.style.display = "flex";
-        } else {
-            buttonsContainer.style.display = "none";
-        }
-    });
+    const reorderContainer = document.getElementById("reorder-container");
+    if (reorderContainer) {
+        reorderContainer.addEventListener("click", function () {
+            const bc = document.getElementById("buttons-container");
+            if (!bc) return;
+            // Toggle the visibility of the buttons container
+            if (bc.style.display === "none" || bc.style.display === "") {
+                bc.style.display = "flex";
+            } else {
+                bc.style.display = "none";
+            }
+        });
+    }
 
     // Add event listener to the document to hide the buttons container on outside click
     document.addEventListener("click", function (event) {
-        const buttonsContainer = document.getElementById("buttons-container");
-        const reorderContainer = document.getElementById("reorder-container");
+        const bc = document.getElementById("buttons-container");
+        const rc = document.getElementById("reorder-container");
 
         // Hide the buttons container if clicked outside
         if (
-            buttonsContainer.style.display === "flex" &&
-            !reorderContainer.contains(event.target) &&
-            !buttonsContainer.contains(event.target)
+            bc && rc &&
+            bc.style.display === "flex" &&
+            !rc.contains(event.target) &&
+            !bc.contains(event.target)
         ) {
-            buttonsContainer.style.display = "none";
+            bc.style.display = "none";
         }
     });
 
     // Add event listeners for the buttons
-    document.getElementById("reorder-tables").addEventListener("click", function () {
-        window.open(`${BASE_URL}/admin.html?page=test&value1=&value2=`, '_blank');
-    });
+    const reorderTables = document.getElementById("reorder-tables");
+    if (reorderTables) {
+        reorderTables.addEventListener("click", function () {
+            window.open(`${BASE_URL}/admin.html?page=test&value1=&value2=`, '_blank');
+        });
+    }
 
-    document.getElementById("reorder-categories").addEventListener("click", function () {
-        window.open(`${BASE_URL}/admin.html?page=categories&value1=&value2=`, '_blank');
-    });
+    const reorderCategories = document.getElementById("reorder-categories");
+    if (reorderCategories) {
+        reorderCategories.addEventListener("click", function () {
+            window.open(`${BASE_URL}/admin.html?page=categories&value1=&value2=`, '_blank');
+        });
+    }
 
-    document.getElementById("reorder-pannels").addEventListener("click", function () {
-        window.open(`${BASE_URL}/admin.html?page=testPanels&value1=&value2=`, '_blank');
-    });
+    const reorderPannels = document.getElementById("reorder-pannels");
+    if (reorderPannels) {
+        reorderPannels.addEventListener("click", function () {
+            window.open(`${BASE_URL}/admin.html?page=testPanels&value1=&value2=`, '_blank');
+        });
+    }
 
     async function populatedoctorvisibility() {
         try {
@@ -3114,9 +3277,12 @@ async function loadfunction() {
             // Parse the response JSON
             const data = await response.json();
 
-            document.getElementById('labsign').checked = data.showlabinchargesign;
-            document.getElementById('firstdoctor').checked = data.showfirstdoctorsign;
-            document.getElementById('seconddoctor').checked = data.showseconddoctorsign;
+            const labSign = document.getElementById('labsign');
+            if (labSign && data.showlabinchargesign !== undefined) labSign.checked = Boolean(data.showlabinchargesign);
+            const firstDoc = document.getElementById('firstdoctor');
+            if (firstDoc && data.showfirstdoctorsign !== undefined) firstDoc.checked = Boolean(data.showfirstdoctorsign);
+            const secondDoc = document.getElementById('seconddoctor');
+            if (secondDoc && data.showseconddoctorsign !== undefined) secondDoc.checked = Boolean(data.showseconddoctorsign);
 
         } catch (error) {
             console.log(error.message);
@@ -3203,15 +3369,15 @@ async function loadfunction() {
 
 async function initialization() {
     const loader = document.querySelector(".loader");
-    loader.style.display = "flex";
+    if (loader) loader.style.display = "flex";
     try {
         await loadfunction();
     } catch (error) {
-        console.log(error.message);
+        console.error("Error in loadfunction:", error);
     } finally {
         setTimeout(() => {
-            loader.style.display = "none";
-        }, 2000);
+            if (loader) loader.style.display = "none";
+        }, 1500);
     }
 }
 

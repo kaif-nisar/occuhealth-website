@@ -701,9 +701,11 @@ async function submitNewBooking() {
                 loadingScreen.classList.remove('active');
                 loader.classList.remove('loadervisible');
 
-                // Small delay then go back
                 setTimeout(() => {
-                    window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
+                    const bId = data?.data?.bookingId || (function() {
+                        try { return JSON.parse(localStorage.getItem('booking') || '{}').bookingId; } catch { return ''; }
+                    })();
+                    window.location.href = `${BASE_URL}/admin/admin.html?page=labreport${bId ? `&value1=${encodeURIComponent(bId)}` : ''}`;
                 }, 300);
                 
             } else {

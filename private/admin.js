@@ -5,6 +5,7 @@ let username;
 let userRole;
 let user;
 let BASE_URL = window.location.origin;
+window.BASE_URL = BASE_URL;
 const SUBSCRIPTION_POPUP_WARNING_DAYS = 5;
 
 // Select elements

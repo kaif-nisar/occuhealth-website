@@ -1588,7 +1588,7 @@ async function allcases() {
             const booking = await getBookingDetails(bookingId);
             if (!booking) return;
             saveBookingToLocalStorage(booking, row);
-            window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
+            window.location.href = `${BASE_URL}/admin/admin.html?page=labreport&value1=${encodeURIComponent(booking.bookingId)}`;
         }
         else if (action === "modify-case") {
             const booking = await getBookingDetails(bookingId);
@@ -1735,7 +1735,7 @@ async function allcases() {
                 const booking = await getBookingDetails(bookingId);
                 if (!booking) return;
                 saveBookingToLocalStorage(booking, row);
-                window.location.href = `${BASE_URL}/admin/admin.html?page=labreport`;
+                window.location.href = `${BASE_URL}/admin/admin.html?page=labreport&value1=${encodeURIComponent(booking.bookingId)}`;
             }
             else if (target.classList.contains("edit-report")) {
                 const booking = await getBookingDetails(bookingId);

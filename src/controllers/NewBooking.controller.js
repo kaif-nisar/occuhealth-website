@@ -3622,14 +3622,43 @@ const getTestNameController = async (req, res) => {
     const tid = req.user.tenantId._id;
 
     try {
-        // Only received samples are valid report inputs. Never fall back to
-        // newBooking.tableData because it also contains samples not received.
-        const barcodes = await acceptedBarcode.findOne({
+        // Prefer received samples from acceptedBarcode. If not found or empty,
+        // fall back to newBooking.tableData so Enter Result works seamlessly.
+        let barcodes = await acceptedBarcode.findOne({
             tenantId: tid,
-            bookingId
+            $or: [
+                { bookingId },
+                ...(mongoose.Types.ObjectId.isValid(bookingId) ? [{ _id: bookingId }] : [])
+            ]
         }).select("bookingId createdAt barcodes").lean();
 
-        if (!barcodes) {
+        if (!barcodes || !Array.isArray(barcodes.barcodes) || barcodes.barcodes.length === 0) {
+            const bookingDoc = await newBooking.findOne({
+                tenantId: tid,
+                $or: [
+                    { bookingId },
+                    ...(mongoose.Types.ObjectId.isValid(bookingId) ? [{ _id: bookingId }] : [])
+                ]
+            }).select("bookingId createdAt tableData").lean();
+
+            if (bookingDoc && Array.isArray(bookingDoc.tableData) && bookingDoc.tableData.length > 0) {
+                barcodes = {
+                    bookingId: bookingDoc.bookingId,
+                    createdAt: bookingDoc.createdAt,
+                    barcodes: bookingDoc.tableData.map((row) => ({
+                        barcode: row.barcodeId,
+                        sampleType: row.typeOfSample,
+                        testandpannelArray: String(row.testName || "").split(",").map((s) => s.trim()).filter(Boolean),
+                        testIds: (row.ids || []).map((item) => ({
+                            id: item.id,
+                            collectionName: item.collectionName
+                        }))
+                    }))
+                };
+            }
+        }
+
+        if (!barcodes || !Array.isArray(barcodes.barcodes) || barcodes.barcodes.length === 0) {
             return res.status(404).json({ message: "No test and panels found for this booking ID." });
         }
 
@@ -4308,7 +4337,10 @@ const getBookingcontroller = async (req, res) => {
 
     const booking = await newBooking.findOne({
         tenantId: tid,
-        bookingId: value1
+        $or: [
+            { bookingId: value1 },
+            ...(mongoose.Types.ObjectId.isValid(value1) ? [{ _id: value1 }] : [])
+        ]
     }).lean();
 
     if (!booking) {
@@ -4322,7 +4354,7 @@ const getBookingcontroller = async (req, res) => {
     }
 
     const acceptedBarcodeDoc = await acceptedBarcode.findOne(
-        { tenantId: tid, bookingId: value1 },
+        { tenantId: tid, bookingId: booking.bookingId },
         { barcodes: 1 }
     ).lean();
 

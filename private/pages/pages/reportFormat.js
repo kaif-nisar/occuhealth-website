@@ -1646,9 +1646,10 @@
                     const booking = await response.json();
                     if (booking && (booking.bookingId || booking._id)) {
                         booking.__fullBooking = true;
+                        const bId = booking.bookingId || bookingId;
                         localStorage.setItem('booking', JSON.stringify(booking));
-                        localStorage.setItem('regId', JSON.stringify(booking.bookingId || bookingId));
-                        window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+                        localStorage.setItem('regId', JSON.stringify(bId));
+                        window.open(`${BASE_URL}/admin/admin.html?page=labreport&value1=${encodeURIComponent(bId)}`, '_blank');
                         return;
                     }
                 }
@@ -1656,12 +1657,12 @@
                 // Fallback to state.report if getbooking API response is not valid
                 localStorage.setItem('booking', JSON.stringify(state.report));
                 localStorage.setItem('regId', JSON.stringify(bookingId));
-                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+                window.open(`${BASE_URL}/admin/admin.html?page=labreport&value1=${encodeURIComponent(bookingId)}`, '_blank');
             } catch (error) {
                 console.error('Error fetching booking details for Enter Result:', error);
                 localStorage.setItem('booking', JSON.stringify(state.report));
                 localStorage.setItem('regId', JSON.stringify(bookingId));
-                window.open(`${BASE_URL}/admin/admin.html?page=labreport`, '_blank');
+                window.open(`${BASE_URL}/admin/admin.html?page=labreport&value1=${encodeURIComponent(bookingId)}`, '_blank');
             } finally {
                 button.disabled = false;
             }
