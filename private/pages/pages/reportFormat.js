@@ -475,24 +475,148 @@
         return { isBold, suffix };
     }
 
+    function cleanDocumentedHtml(rawHtml) {
+        if (!rawHtml || typeof rawHtml !== 'string') return rawHtml;
+        const temp = document.createElement('div');
+        temp.innerHTML = rawHtml;
+
+        // 1. Remove rogue .section, .page, .page-break classes from inner elements
+        temp.querySelectorAll('.section, .page, .page-break').forEach((el) => {
+            el.classList.remove('section', 'page', 'page-break');
+            el.classList.add('doc-inner-sec');
+        });
+
+        // 2. Strip inline font-size, font-family, text-stroke, page-breaks
+        temp.querySelectorAll('[style]').forEach((el) => {
+            let style = el.getAttribute('style') || '';
+            style = style.replace(/(^|;)\s*font-size\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*font-family\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*-webkit-text-stroke-width\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-after\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-after\s*:\s*[^;]+;?/gi, ';')
+                         .trim()
+                         .replace(/^;+|;+$/g, '');
+            if (style) el.setAttribute('style', style);
+            else el.removeAttribute('style');
+        });
+
+        temp.querySelectorAll('[data-mce-style]').forEach((el) => el.removeAttribute('data-mce-style'));
+
+        // 3. Constrain oversized tables, figures, images
+        temp.querySelectorAll('figure.table, figure.image, figure').forEach((fig) => {
+            fig.removeAttribute('width');
+            let st = fig.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            fig.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;width:100% !important;box-sizing:border-box !important;');
+        });
+
+        temp.querySelectorAll('table').forEach((tbl) => {
+            tbl.removeAttribute('width');
+            let st = tbl.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            tbl.setAttribute('style', (st ? st + ';' : '') + 'width:100% !important;max-width:100% !important;border-collapse:collapse !important;');
+        });
+
+        temp.querySelectorAll('td, th').forEach((cell) => {
+            let st = cell.getAttribute('style') || '';
+            const match = st.match(/width\s*:\s*(\d+(?:\.\d+)?)\s*px/i);
+            if (match && parseFloat(match[1]) > 600) {
+                st = st.replace(/width\s*:\s*\d+(?:\.\d+)?\s*px;?/gi, 'width:auto;');
+                cell.setAttribute('style', st);
+            }
+            const w = parseFloat(cell.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) cell.removeAttribute('width');
+        });
+
+        temp.querySelectorAll('img').forEach((img) => {
+            let st = img.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*\d{3,}px;?/gi, '');
+            img.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;height:auto !important;object-fit:contain !important;display:block !important;margin:4px auto !important;');
+            const w = parseFloat(img.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) {
+                img.removeAttribute('width');
+                img.removeAttribute('height');
+            }
+        });
+
+        // 4. Clean empty paragraphs and excessive line breaks
+        temp.querySelectorAll('p').forEach((p) => {
+            const text = p.textContent.replace(/\u00a0/g, ' ').trim();
+            if (!text && p.querySelectorAll('img, table, svg, canvas').length === 0) {
+                p.remove();
+            }
+        });
+        temp.querySelectorAll('br + br + br').forEach((br) => br.remove());
+
+        return temp.innerHTML;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function stripHtmlToText(value) {
+        if (!value) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = String(value);
+        return (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
     /* ========================= REPORT BODY RENDERER =========================
        Builds canonical children (sections / moreDetails / end note) exactly with
        the legacy class structure, plus data-bind hooks for editable cells. */
-    function buildTestRow(test) {
+    function buildTestRow(test, options) {
+        const opts = options || {};
         const row = document.createElement('tr');
-        const flags = evaluateFlags(test);
-        if (flags.isBold) { row.style.fontWeight = 'bold'; row.classList.add('BoldRow'); }
+        const rawTestName = String(test?.testName ?? '');
+        const cleanName = stripHtmlToText(rawTestName);
 
         if (test.isDocumented) {
             row.innerHTML =
                 '<td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>' +
-                '<td colspan="4" style="padding:0;border:none;"><div class="documented-content">' + (test.testName || '') + '</div></td>';
+                '<td colspan="4" style="padding:0;border:none;"><div class="documented-content">' + cleanDocumentedHtml(rawTestName || '') + '</div></td>';
             return row;
         }
 
+        const isParameter = Boolean(opts.isParameter || test.isParameter || /id=(["'])parameters\1/.test(rawTestName) || /class=(["'])[^"']*parameter-name\1/.test(rawTestName));
+        const isMultiHeader = Boolean(opts.isMultiHeader || test.isMultiHeader || (!isParameter && cleanName && (test.value === null || test.value === undefined || test.value === '' || test.value === 'null') && !test.unit && !test.reference));
+
+        if (isMultiHeader) {
+            row.classList.add('multi-test-row');
+            row.innerHTML =
+                '<td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>' +
+                '<td class="test-name" style="padding-left:0 !important;text-indent:0 !important;"><span class="multi-test-name" style="font-weight:700 !important;text-decoration:underline !important;display:inline-block;">' +
+                escapeHtml(cleanName.toUpperCase()) +
+                '</span></td>' +
+                '<td class="high-low"></td>' +
+                '<td></td>' +
+                '<td></td>';
+            return row;
+        }
+
+        if (isParameter) {
+            row.classList.add('parameter-row');
+        }
+
+        const flags = evaluateFlags(test);
+        if (flags.isBold) { row.style.fontWeight = 'bold'; row.classList.add('BoldRow'); }
+
+        const nameTdStyle = isParameter ? ' style="padding-left:20px !important;"' : '';
+        const nameClass = isParameter ? 'test-name parameter-name' : 'test-name';
+        const nameContent = isParameter
+            ? '<span class="parameter-text">' + escapeHtml(cleanName) + '</span>'
+            : escapeHtml(cleanName);
+
         row.innerHTML =
             '<td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>' +
-            '<td class="test-name">' + (test.testName || '') + '</td>' +
+            '<td class="' + nameClass + '"' + nameTdStyle + '>' + nameContent + '</td>' +
             '<td class="high-low"><div class="HL"><span></span></div><span class="cell-edit" contenteditable="false" spellcheck="false" data-field="value"></span></td>' +
             '<td><span class="cell-edit" contenteditable="false" spellcheck="false" data-field="unit"></span></td>' +
             '<td><span class="cell-edit" contenteditable="false" spellcheck="false" data-field="reference"></span></td>';
@@ -527,7 +651,7 @@
         const cell = document.createElement('td');
         cell.colSpan = 4;
         cell.className = 'details-row';
-        cell.innerHTML = '<div class="documented-content">' + (test.details || '') + '</div>';
+        cell.innerHTML = '<div class="documented-content">' + cleanDocumentedHtml(test.details || '') + '</div>';
         row.appendChild(empty);
         row.appendChild(cell);
         return row;
@@ -555,6 +679,35 @@
             categoryDelete.addEventListener('click', () => {
                 removeFromCanonical(section);
                 section.remove();
+                onContentMutated();
+            });
+        }
+
+        const categoryHeading = $('.headings h2', section);
+        let pageBreakBtn = $('.headings h2 .page-break-toggle-btn', section);
+        const secIndex = state.bodyChildren.indexOf(section);
+        if (!pageBreakBtn && categoryHeading && secIndex > 0) {
+            pageBreakBtn = document.createElement('span');
+            const hasBreak = section.classList.contains('page-break');
+            pageBreakBtn.className = 'page-break-toggle-btn' + (hasBreak ? ' has-break' : '');
+            pageBreakBtn.title = hasBreak ? 'Click to remove Page Break before this section' : 'Click to add Page Break before this section';
+            pageBreakBtn.innerHTML = hasBreak 
+                ? '<i class="fas fa-scissors"></i> <span class="pb-text">Page Break</span>'
+                : '<i class="far fa-file"></i> <span class="pb-text">+ Page Break</span>';
+            pageBreakBtn.setAttribute('role', 'button');
+            categoryHeading.appendChild(pageBreakBtn);
+        }
+        if (pageBreakBtn && !boundDeleteNodes.has(pageBreakBtn)) {
+            boundDeleteNodes.add(pageBreakBtn);
+            pageBreakBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                section.classList.toggle('page-break');
+                const updatedHasBreak = section.classList.contains('page-break');
+                pageBreakBtn.className = 'page-break-toggle-btn' + (updatedHasBreak ? ' has-break' : '');
+                pageBreakBtn.title = updatedHasBreak ? 'Click to remove Page Break before this section' : 'Click to add Page Break before this section';
+                pageBreakBtn.innerHTML = updatedHasBreak 
+                    ? '<i class="fas fa-scissors"></i> <span class="pb-text">Page Break</span>'
+                    : '<i class="far fa-file"></i> <span class="pb-text">+ Page Break</span>';
                 onContentMutated();
             });
         }
@@ -594,12 +747,98 @@
         if (!savedMarkup) return false;
 
         const holder = document.createElement('div');
-        holder.innerHTML = savedMarkup;
-        const savedSections = Array.from(holder.querySelectorAll('.section'));
+        holder.innerHTML = cleanDocumentedHtml(savedMarkup);
+        const savedSections = Array.from(holder.querySelectorAll('.section'))
+            .filter((el) => !el.closest('.documented-content, table, tr, td, .details-row, .interpretation, .moreDetails'));
         if (!savedSections.length) return false;
 
+        // Ensure multi-test headers and parameters in saved layout retain proper classes & styles
+        savedSections.forEach((section, sIdx) => {
+            const table = section.querySelector('table');
+            if (table) {
+                const catHeading = section.querySelector('.headings h2')?.textContent?.trim();
+                const titleHeading = section.querySelector('.headings h3')?.textContent?.trim();
+                const categories = (report && report.CategoryAndTest) || [];
+                const categoryData = categories.find((c) =>
+                    String(c.category || '').trim() === catHeading &&
+                    (!titleHeading || String(c.title || '').trim() === titleHeading)
+                ) || categories[sIdx];
+                const tests = (categoryData && categoryData.tests) || [];
+
+                let inMulti = false;
+                table.querySelectorAll('tbody tr').forEach((row) => {
+                    if (row.querySelector('.details-row, .interpretation, .documented-content, .remark-row')) {
+                        inMulti = false;
+                        return;
+                    }
+
+                    const testNameCell = row.querySelector('.test-name');
+                    if (!testNameCell) return;
+
+                    const rawName = testNameCell.textContent.trim();
+                    if (!rawName) return;
+
+                    const matchedTest = tests.find((t) => {
+                        const tName = stripHtmlToText(t.testName || t.Name || '');
+                        return tName && tName.toLowerCase() === rawName.toLowerCase();
+                    });
+
+                    const valCell = row.querySelector('.high-low, td:nth-child(3)');
+                    const valText = valCell ? valCell.textContent.replace(/^[HL]\s*/, '').trim() : '';
+                    const unitCell = row.querySelector('td:nth-child(4)');
+                    const unitText = unitCell ? unitCell.textContent.trim() : '';
+                    const refCell = row.querySelector('td:nth-child(5)');
+                    const refText = refCell ? refCell.textContent.trim() : '';
+
+                    const isEmptyVal = !valText || valText === '-' || valText === 'null';
+                    const isEmptyUnit = !unitText || unitText === '-' || unitText === 'null' || unitText === '.';
+                    const isEmptyRef = !refText || refText === '-' || refText === 'null';
+
+                    const isExplicitMulti = row.classList.contains('multi-test-row') ||
+                        Boolean(row.querySelector('.multi-test-name')) ||
+                        Boolean(matchedTest && matchedTest.isMultiHeader);
+
+                    const isExplicitParam = row.classList.contains('parameter-row') ||
+                        testNameCell.classList.contains('parameter-name') ||
+                        /parameters/.test(testNameCell.id) ||
+                        /padding-left\s*:\s*20px/i.test(testNameCell.getAttribute('style') || '') ||
+                        Boolean(matchedTest && matchedTest.isParameter);
+
+                    const isStructuralMulti = !isExplicitParam && isEmptyVal && isEmptyUnit && isEmptyRef;
+
+                    if (isExplicitMulti || isStructuralMulti) {
+                        inMulti = true;
+                        row.classList.remove('parameter-row');
+                        row.classList.add('multi-test-row');
+                        testNameCell.classList.remove('parameter-name');
+                        testNameCell.style.paddingLeft = '0px';
+                        testNameCell.style.textIndent = '0px';
+
+                        let span = testNameCell.querySelector('.multi-test-name');
+                        if (!span) {
+                            span = document.createElement('span');
+                            span.className = 'multi-test-name';
+                            span.textContent = rawName.toUpperCase();
+                            testNameCell.innerHTML = '';
+                            testNameCell.appendChild(span);
+                        } else {
+                            span.textContent = span.textContent.trim().toUpperCase();
+                        }
+                        span.style.fontWeight = '700';
+                        span.style.textDecoration = 'underline';
+                        span.style.display = 'inline-block';
+                    } else if (isExplicitParam || inMulti) {
+                        row.classList.remove('multi-test-row');
+                        row.classList.add('parameter-row');
+                        testNameCell.classList.add('parameter-name');
+                        testNameCell.style.setProperty('padding-left', '20px', 'important');
+                    }
+                });
+            }
+            wireSectionDelete(section);
+        });
+
         state.bodyChildren = savedSections;
-        state.bodyChildren.forEach((section) => wireSectionDelete(section));
 
         const savedMoreDetails = holder.querySelector('.moreDetails');
         if (savedMoreDetails) state.bodyChildren.push(savedMoreDetails);
@@ -629,6 +868,30 @@
             categoryHeading.className = 'category-heading';
             categoryHeading.textContent = categoryData.category;
             categoryHeading.appendChild(deleteH2Button);
+
+            if (index > 0) {
+                const pageBreakBtn = document.createElement('span');
+                const hasBreak = section.classList.contains('page-break');
+                pageBreakBtn.className = 'page-break-toggle-btn' + (hasBreak ? ' has-break' : '');
+                pageBreakBtn.title = hasBreak ? 'Click to remove Page Break before this section' : 'Click to add Page Break before this section';
+                pageBreakBtn.innerHTML = hasBreak 
+                    ? '<i class="fas fa-scissors"></i> <span class="pb-text">Page Break</span>'
+                    : '<i class="far fa-file"></i> <span class="pb-text">+ Page Break</span>';
+                pageBreakBtn.setAttribute('role', 'button');
+                pageBreakBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    section.classList.toggle('page-break');
+                    const updatedHasBreak = section.classList.contains('page-break');
+                    pageBreakBtn.className = 'page-break-toggle-btn' + (updatedHasBreak ? ' has-break' : '');
+                    pageBreakBtn.title = updatedHasBreak ? 'Click to remove Page Break before this section' : 'Click to add Page Break before this section';
+                    pageBreakBtn.innerHTML = updatedHasBreak 
+                        ? '<i class="fas fa-scissors"></i> <span class="pb-text">Page Break</span>'
+                        : '<i class="far fa-file"></i> <span class="pb-text">+ Page Break</span>';
+                    onContentMutated();
+                });
+                categoryHeading.appendChild(pageBreakBtn);
+            }
+
             headings.appendChild(categoryHeading);
 
             let titleHeading = null;
@@ -665,15 +928,87 @@
 
             const tbody = document.createElement('tbody');
 
+            let inMultiHeader = false;
             (categoryData.tests || []).forEach((test) => {
-                let testRow = null;
+                if (!test) return;
 
-                if (test.testName) {
-                    testRow = buildTestRow(test);
-                    if (test.pagebreak) testRow.classList.add('page-break');
-                    wireRowDelete(testRow);
-                    tbody.appendChild(testRow);
+                if (test.isInterpretation) {
+                    inMultiHeader = false;
+                    const row = document.createElement('tr');
+                    const empty = document.createElement('td');
+                    empty.className = 'wrong';
+                    const cell = document.createElement('td');
+                    cell.colSpan = 4;
+                    cell.className = 'details-row interpretation-row';
+                    cell.innerHTML =
+                        '<div class="interpretation"><p style="font-weight:bold;">Interpretation</p>' +
+                        '<div class="documented-content">' + cleanDocumentedHtml(test.details || '') + '</div></div>';
+                    row.appendChild(empty);
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                    return;
                 }
+
+                // Multi-parameter test object with parameters array
+                if (Array.isArray(test.parameters) && test.parameters.length > 1) {
+                    inMultiHeader = false;
+                    const parentTest = {
+                        testName: test.Name || test.testName || '',
+                        isMultiHeader: true,
+                        pagebreak: Boolean(test.pagebreak)
+                    };
+                    const parentRow = buildTestRow(parentTest, { isMultiHeader: true });
+                    if (test.pagebreak) parentRow.classList.add('page-break');
+                    wireRowDelete(parentRow);
+                    tbody.appendChild(parentRow);
+
+                    test.parameters.forEach((param) => {
+                        const paramRow = buildTestRow({
+                            testName: param.Para_name || param.parameterName || param.name || '',
+                            value: param.value ?? param.result ?? param.defaultresult ?? '',
+                            unit: param.unit ?? '',
+                            reference: param.reference ?? param.text ?? '',
+                            isParameter: true,
+                            pagebreak: Boolean(param.pagebreak)
+                        }, { isParameter: true });
+                        if (param.pagebreak) paramRow.classList.add('page-break');
+                        wireRowDelete(paramRow);
+                        tbody.appendChild(paramRow);
+                    });
+
+                    if (test.remark) tbody.appendChild(buildRemarkRow(test));
+                    if (test.details) tbody.appendChild(buildDetailsRow(test));
+                    return;
+                }
+
+                const rawName = String(test.testName || '').trim();
+                if (!rawName || rawName === 'null') {
+                    if (test.remark) tbody.appendChild(buildRemarkRow(test));
+                    if (test.details) tbody.appendChild(buildDetailsRow(test));
+                    return;
+                }
+
+                const isExplicitParam = Boolean(test.isParameter) || /id=(["'])parameters\1/.test(rawName);
+                const isExplicitMulti = Boolean(test.isMultiHeader);
+                const isImplicitMulti = !isExplicitParam && !test.isDocumented &&
+                    (test.value === null || test.value === undefined || test.value === '' || test.value === 'null') &&
+                    !test.unit && !test.reference;
+
+                const isMulti = isExplicitMulti || isImplicitMulti;
+                if (isMulti) {
+                    inMultiHeader = true;
+                    test.isMultiHeader = true;
+                } else if (test.isParameter === false && !isExplicitParam) {
+                    inMultiHeader = false;
+                } else if (isExplicitParam || inMultiHeader) {
+                    test.isParameter = true;
+                }
+
+                const testRow = buildTestRow(test, { isMultiHeader: isMulti, isParameter: test.isParameter });
+                if (test.pagebreak) testRow.classList.add('page-break');
+                wireRowDelete(testRow);
+                tbody.appendChild(testRow);
+
                 if (test.remark) tbody.appendChild(buildRemarkRow(test));
                 if (test.details) tbody.appendChild(buildDetailsRow(test));
             });
@@ -704,7 +1039,7 @@
                 cell.colSpan = 4;
                 cell.innerHTML =
                     '<div class="interpretation"><p style="font-weight:bold;">Interpretation</p>' +
-                    '<div class="documented-content">' + categoryData.interpretation + '</div></div>';
+                    '<div class="documented-content">' + cleanDocumentedHtml(categoryData.interpretation) + '</div></div>';
                 row.appendChild(empty);
                 row.appendChild(cell);
                 tbody.appendChild(row);
@@ -732,7 +1067,7 @@
         if (data.MoreDetails) {
             const more = document.createElement('div');
             more.className = 'moreDetails';
-            more.innerHTML = '<span>Additional Findings :-</span><br><div class="documented-content">' + data.MoreDetails + '</div>';
+            more.innerHTML = '<span>Additional Findings :-</span><br><div class="documented-content">' + cleanDocumentedHtml(data.MoreDetails) + '</div>';
             children.push(more);
         }
     }
@@ -1248,10 +1583,17 @@
 
         const renderedTestName = $('.test-name', row)?.textContent?.trim();
         if (renderedTestName) {
-            const namedTest = (category.tests || []).find((test) =>
-                String(test.testName || '').trim() === renderedTestName
-            );
-            if (namedTest) return namedTest;
+            for (const test of (category.tests || [])) {
+                if (String(test.testName || test.Name || '').trim().toLowerCase() === renderedTestName.toLowerCase()) {
+                    return test;
+                }
+                if (Array.isArray(test.parameters)) {
+                    const param = test.parameters.find((p) =>
+                        String(p.Para_name || p.parameterName || p.name || '').trim().toLowerCase() === renderedTestName.toLowerCase()
+                    );
+                    if (param) return param;
+                }
+            }
         }
 
         const rowIndex = Array.prototype.indexOf.call($('tbody', table).children, row);

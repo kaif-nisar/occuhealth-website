@@ -667,6 +667,169 @@ const escapeHtmlForPdf = (str) =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 
+const isTopLevelPdfSection = ($el) => {
+    if (!$el || !$el.length) return false;
+    return $el.parents('.documented-content, table, tr, td, .details-row, .interpretation, .moreDetails').length === 0;
+};
+
+const sanitizePdfHtmlContent = (html) => {
+    if (!html || typeof html !== 'string') return html;
+    try {
+        const $ = cheerio.load(html, null, false);
+
+        // 1. Defang rogue .section, .page, and .page-break classes inside nested containers (e.g. Word/PDF/PRISCA exports)
+        $('.documented-content, .interpretation, .details-row, .moreDetails, table').each((_, container) => {
+            const $container = $(container);
+            $container.find('.section').removeClass('section').addClass('doc-inner-sec');
+            $container.find('.page').removeClass('page');
+            $container.find('.page-break').removeClass('page-break');
+        });
+
+        // 2. Strip destructive inline styles inside documented-content and interpretations
+        $('.documented-content, .interpretation, .details-row, .moreDetails').each((_, container) => {
+            const $container = $(container);
+            $container.find('[style]').addBack('[style]').each((_, el) => {
+                const $el = $(el);
+                let style = $el.attr('style') || '';
+                style = style
+                    .replace(/(^|;)\s*font-size\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*font-family\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*-webkit-text-stroke-width\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*page-break-before\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*page-break-after\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*break-before\s*:\s*[^;]+;?/gi, ';')
+                    .replace(/(^|;)\s*break-after\s*:\s*[^;]+;?/gi, ';')
+                    .trim()
+                    .replace(/^;+|;+$/g, '');
+                if (style) $el.attr('style', style);
+                else $el.removeAttr('style');
+            });
+            $container.find('[data-mce-style]').removeAttr('data-mce-style');
+
+            // 3. Normalize tables & figures inside documented content to prevent horizontal blowout
+            $container.find('figure.table, figure.image, figure').each((_, fig) => {
+                const $fig = $(fig);
+                $fig.removeAttr('width');
+                let style = $fig.attr('style') || '';
+                style = style.replace(/width\s*:\s*[^;]+;?/gi, '');
+                $fig.attr('style', (style ? style + ';' : '') + 'max-width:100% !important;width:100% !important;box-sizing:border-box !important;margin:4px auto !important;');
+            });
+
+            $container.find('table').each((_, tbl) => {
+                const $tbl = $(tbl);
+                $tbl.removeAttr('width');
+                let style = $tbl.attr('style') || '';
+                style = style.replace(/width\s*:\s*[^;]+;?/gi, '');
+                $tbl.attr('style', (style ? style + ';' : '') + 'width:100% !important;max-width:100% !important;border-collapse:collapse !important;table-layout:auto !important;');
+            });
+
+            $container.find('td, th').each((_, cell) => {
+                const $cell = $(cell);
+                let style = $cell.attr('style') || '';
+                const match = style.match(/width\s*:\s*(\d+(?:\.\d+)?)\s*px/i);
+                if (match && parseFloat(match[1]) > 600) {
+                    style = style.replace(/width\s*:\s*\d+(?:\.\d+)?\s*px;?/gi, 'width:auto;');
+                    $cell.attr('style', style);
+                }
+                const w = parseFloat($cell.attr('width') || '');
+                if (!isNaN(w) && w > 600) {
+                    $cell.removeAttr('width');
+                }
+            });
+
+            $container.find('img').each((_, img) => {
+                const $img = $(img);
+                let style = $img.attr('style') || '';
+                style = style.replace(/width\s*:\s*\d{3,}px;?/gi, '');
+                $img.attr('style', (style ? style + ';' : '') + 'max-width:100% !important;height:auto !important;object-fit:contain !important;display:block !important;margin:4px auto !important;');
+                const w = parseFloat($img.attr('width') || '');
+                if (!isNaN(w) && w > 600) {
+                    $img.removeAttr('width');
+                    $img.removeAttr('height');
+                }
+            });
+
+            // 4. Remove empty paragraphs and excessive breaks that inflate page heights
+            $container.find('p').each((_, p) => {
+                const $p = $(p);
+                const text = $p.text().replace(/\u00a0/g, ' ').trim();
+                if (!text && $p.find('img, table, svg, canvas').length === 0) {
+                    $p.remove();
+                }
+            });
+            $container.find('br + br + br').remove();
+        });
+
+        // 5. Ensure multi-test headers and parameters are properly styled
+        $('table.test-table').each((_, table) => {
+            const $table = $(table);
+            let inMulti = false;
+            $table.children('tbody').children('tr').each((_, tr) => {
+                const $tr = $(tr);
+                if ($tr.closest('.details-row, .interpretation, .documented-content, .moreDetails').length > 0) {
+                    inMulti = false;
+                    return;
+                }
+                if ($tr.find('.details-row, .interpretation, .documented-content, .remark-row').length > 0) {
+                    inMulti = false;
+                    return;
+                }
+                const $tdName = $tr.children('td.test-name');
+                if (!$tdName.length) return;
+
+                const rawName = $tdName.text().replace(/\s+/g, ' ').trim();
+                if (!rawName) return;
+
+                const valText = $tr.find('td.high-low, td:nth-child(3)').text().replace(/^[HL]\s*/, '').trim();
+                const unitText = $tr.find('td:nth-child(4)').text().trim();
+                const refText = $tr.find('td:nth-child(5)').text().trim();
+
+                const isEmptyVal = !valText || valText === '-' || valText === 'null';
+                const isEmptyUnit = !unitText || unitText === '-' || unitText === 'null' || unitText === '.';
+                const isEmptyRef = !refText || refText === '-' || refText === 'null';
+
+                const isExplicitMulti = $tr.hasClass('multi-test-row') ||
+                    $tdName.find('.multi-test-name').length > 0;
+
+                const isExplicitParam = $tr.hasClass('parameter-row') ||
+                    $tdName.hasClass('parameter-name') ||
+                    $tdName.attr('id') === 'parameters' ||
+                    /padding-left\s*:\s*20px/i.test($tdName.attr('style') || '');
+
+                const isStructuralMulti = !isExplicitParam && isEmptyVal && isEmptyUnit && isEmptyRef;
+
+                if (isExplicitMulti || isStructuralMulti) {
+                    inMulti = true;
+                    $tr.removeClass('parameter-row').addClass('multi-test-row');
+                    $tdName.removeClass('parameter-name');
+                    $tdName.attr('style', 'padding-left: 0 !important; text-indent: 0 !important;');
+                    let $span = $tdName.find('.multi-test-name');
+                    if (!$span.length) {
+                        $span = $('<span></span>').addClass('multi-test-name');
+                        $span.text(rawName.toUpperCase());
+                        $tdName.empty().append($span);
+                    } else {
+                        $span.text($span.text().trim().toUpperCase());
+                    }
+                    $span.attr('style', 'font-weight: 700 !important; text-decoration: underline !important; display: inline-block;');
+                } else if (isExplicitParam || inMulti) {
+                    $tr.removeClass('multi-test-row').addClass('parameter-row');
+                    $tdName.addClass('parameter-name');
+                    const existingStyle = $tdName.attr('style') || '';
+                    if (!/padding-left\s*:\s*20px/i.test(existingStyle)) {
+                        $tdName.attr('style', (existingStyle ? existingStyle + '; ' : '') + 'padding-left: 20px !important;');
+                    }
+                }
+            });
+        });
+
+        return $.html();
+    } catch (err) {
+        console.warn('Could not sanitize PDF HTML content:', err);
+        return html;
+    }
+};
+
 const buildHtmlFromReport = (reportData) => {
     if (!reportData || !Array.isArray(reportData.CategoryAndTest)) return '';
     let sectionsHtml = '';
@@ -685,39 +848,148 @@ const buildHtmlFromReport = (reportData) => {
         headings += '</div>';
 
         let rowsHtml = '';
+        let inMultiHeader = false;
         (categoryData.tests || []).forEach(test => {
             if (test?.isInterpretation) {
+                inMultiHeader = false;
                 rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row interpretation-row"><div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content">${test.details || ''}</div></div></td></tr>`;
                 return;
             }
-            if (!test?.testName || test.testName === 'null') return;
 
-            if (test.isDocumented) {
-                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${test.testName || ''}</div></td></tr>`;
-            } else {
-                let suffix = '';
-                if (test.reference && test.value) {
-                    const parts = String(test.reference).split(' - ');
-                    if (parts.length === 2) {
-                        const low = parseFloat(parts[0]);
-                        const high = parseFloat(parts[1]);
-                        const val = parseFloat(test.value);
-                        if (!isNaN(low) && !isNaN(high) && !isNaN(val)) {
-                            if (val < low) suffix = 'L';
-                            else if (val > high) suffix = 'H';
+            // Case A: Test with multiple parameters in an array
+            if (Array.isArray(test.parameters) && test.parameters.length > 1) {
+                inMultiHeader = false;
+                const parentName = escapeHtmlForPdf(String(test.Name || test.testName || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase());
+                rowsHtml += `<tr class="multi-test-row">
+                    <td class="wrong"></td>
+                    <td class="test-name" style="padding-left:0 !important;text-indent:0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${parentName}</span></td>
+                    <td class="high-low"></td>
+                    <td></td>
+                    <td></td>
+                </tr>`;
+
+                test.parameters.forEach(param => {
+                    let suffix = '';
+                    const ref = param.reference ?? param.text ?? '';
+                    const val = param.value ?? param.result ?? param.defaultresult ?? '';
+                    if (ref && val) {
+                        const parts = String(ref).split(' - ');
+                        if (parts.length === 2) {
+                            const low = parseFloat(parts[0]);
+                            const high = parseFloat(parts[1]);
+                            const v = parseFloat(val);
+                            if (!isNaN(low) && !isNaN(high) && !isNaN(v)) {
+                                if (v < low) suffix = 'L';
+                                else if (v > high) suffix = 'H';
+                            }
                         }
                     }
+                    const isBold = suffix || (typeof val === 'string' && val.toLowerCase().includes('positive'));
+                    const pName = escapeHtmlForPdf(param.Para_name || param.parameterName || param.name || '');
+                    rowsHtml += `<tr class="parameter-row ${isBold ? 'BoldRow' : ''}" style="${isBold ? 'font-weight:bold;' : ''}">
+                        <td class="wrong"></td>
+                        <td class="test-name parameter-name" style="padding-left: 20px !important;"><span class="parameter-text">${pName}</span></td>
+                        <td class="high-low"><div class="HL"><span>${suffix}</span></div><span>${escapeHtmlForPdf(val)}</span></td>
+                        <td>${escapeHtmlForPdf(param.unit || '')}</td>
+                        <td>${escapeHtmlForPdf(ref)}</td>
+                    </tr>`;
+                });
+
+                if (test.remark) {
+                    rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtmlForPdf(test.remark)}</td></tr>`;
                 }
-                const isBold = suffix || (typeof test.value === 'string' && test.value.toLowerCase().includes('positive'));
-                rowsHtml += `<tr class="${isBold ? 'BoldRow' : ''}" style="${isBold ? 'font-weight:bold;' : ''}">
-                    <td class="wrong"></td>
-                    <td class="test-name">${escapeHtmlForPdf(test.testName)}</td>
-                    <td class="high-low"><div class="HL"><span>${suffix}</span></div><span>${escapeHtmlForPdf(test.value || '')}</span></td>
-                    <td>${escapeHtmlForPdf(test.unit || '')}</td>
-                    <td>${escapeHtmlForPdf(test.reference || '')}</td>
-                </tr>`;
+                if (test.details) {
+                    rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row"><div class="documented-content">${test.details}</div></td></tr>`;
+                }
+                return;
+            }
+
+            const rawName = String(test?.testName ?? '').trim();
+            if (!rawName || rawName === 'null') {
+                if (test?.details) {
+                    rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row"><div class="documented-content">${test.details}</div></td></tr>`;
+                }
+                if (test?.remark) {
+                    rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtmlForPdf(test.remark)}</td></tr>`;
+                }
+                return;
+            }
+
+            if (test.isDocumented) {
+                inMultiHeader = false;
+                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${test.testName || ''}</div></td></tr>`;
+            } else {
+                const isExplicitParam = Boolean(test.isParameter) || /id=(["'])parameters\1/.test(rawName);
+                const isExplicitMulti = Boolean(test.isMultiHeader);
+                const isImplicitMulti = !isExplicitParam &&
+                    (test.value === null || test.value === undefined || test.value === '' || test.value === 'null') &&
+                    !test.unit && !test.reference;
+
+                const isMulti = isExplicitMulti || isImplicitMulti;
+                let isParam = false;
+                if (isMulti) {
+                    inMultiHeader = true;
+                } else if (test.isParameter === false && !isExplicitParam) {
+                    inMultiHeader = false;
+                } else if (isExplicitParam || inMultiHeader) {
+                    isParam = true;
+                }
+
+                if (isMulti) {
+                    const multiName = escapeHtmlForPdf(String(rawName.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).toUpperCase());
+                    rowsHtml += `<tr class="multi-test-row">
+                        <td class="wrong"></td>
+                        <td class="test-name" style="padding-left:0 !important;text-indent:0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${multiName}</span></td>
+                        <td class="high-low"></td>
+                        <td></td>
+                        <td></td>
+                    </tr>`;
+                } else {
+                    let suffix = '';
+                    if (test.reference && test.value) {
+                        const parts = String(test.reference).split(' - ');
+                        if (parts.length === 2) {
+                            const low = parseFloat(parts[0]);
+                            const high = parseFloat(parts[1]);
+                            const val = parseFloat(test.value);
+                            if (!isNaN(low) && !isNaN(high) && !isNaN(val)) {
+                                if (val < low) suffix = 'L';
+                                else if (val > high) suffix = 'H';
+                            }
+                        }
+                    }
+                    const isBold = suffix || (typeof test.value === 'string' && test.value.toLowerCase().includes('positive'));
+                    const cleanName = rawName.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    const tdClass = isParam ? 'test-name parameter-name' : 'test-name';
+                    const tdStyle = isParam ? ' style="padding-left: 20px !important;"' : '';
+                    const innerText = isParam
+                        ? `<span class="parameter-text">${escapeHtmlForPdf(cleanName)}</span>`
+                        : escapeHtmlForPdf(cleanName);
+
+                    rowsHtml += `<tr class="${isParam ? 'parameter-row ' : ''}${isBold ? 'BoldRow' : ''}" style="${isBold ? 'font-weight:bold;' : ''}">
+                        <td class="wrong"></td>
+                        <td class="${tdClass}"${tdStyle}>${innerText}</td>
+                        <td class="high-low"><div class="HL"><span>${suffix}</span></div><span>${escapeHtmlForPdf(test.value || '')}</span></td>
+                        <td>${escapeHtmlForPdf(test.unit || '')}</td>
+                        <td>${escapeHtmlForPdf(test.reference || '')}</td>
+                    </tr>`;
+                }
+            }
+
+            if (test.remark) {
+                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtmlForPdf(test.remark)}</td></tr>`;
+            }
+            if (test.details && !test.isInterpretation) {
+                rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row"><div class="documented-content">${test.details}</div></td></tr>`;
             }
         });
+
+        if (categoryData.advice) rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="advice"><div>Advice:</div> <span class="documented-content">${categoryData.advice}</span></td></tr>`;
+        if (categoryData.notes) rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="notes"><div>Notes:</div> <span class="documented-content">${categoryData.notes}</span></td></tr>`;
+        if (categoryData.remarks) rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="remarks"><div>Remarks:</div> <span class="documented-content">${categoryData.remarks}</span></td></tr>`;
+        if (categoryData.interpretation) {
+            rowsHtml += `<tr><td class="wrong"></td><td colspan="4" class="details-row interpretation-row"><div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content">${categoryData.interpretation}</div></div></td></tr>`;
+        }
 
         const isPageBreak = Boolean(reportData.categorizedPDF && index > 0);
         sectionsHtml += `<div class="section${isPageBreak ? ' page-break' : ''}" data-panel-name="${panelTitle ? escapeHtmlForPdf(panelTitle) : ''}">
@@ -729,7 +1001,12 @@ const buildHtmlFromReport = (reportData) => {
         </div>`;
     });
 
-    return `<html><head></head><body><div class="container2" id="containerpdf"><div class="table-div" id="tables-container">${sectionsHtml}</div></div></body></html>`;
+    if (reportData.MoreDetails) {
+        sectionsHtml += `<div class="moreDetails"><span>Additional Findings :-</span><br><div class="documented-content">${reportData.MoreDetails}</div></div>`;
+    }
+
+    const fullHtml = `<html><head></head><body><div class="container2" id="containerpdf"><div class="table-div" id="tables-container">${sectionsHtml}</div></div></body></html>`;
+    return sanitizePdfHtmlContent(fullHtml);
 };
 
 const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filteredPanels, filteredTests, filteredPackages, categorizedPDF = false }) => {
@@ -775,14 +1052,14 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
     ));
 
     if (allSelectedList.length === 0) {
-        return { htmlContent, header };
+        return { htmlContent: sanitizePdfHtmlContent(htmlContent), header };
     }
 
-    let updatedHtml = htmlContent;
+    let updatedHtml = sanitizePdfHtmlContent(htmlContent);
 
     try {
-        const $ = cheerio.load(htmlContent, null, false);
-        const sections = $('.section');
+        const $ = cheerio.load(updatedHtml, null, false);
+        const sections = $('.section').filter((_, el) => isTopLevelPdfSection($(el)));
 
         if (sections.length > 0) {
             sections.each((_, secEl) => {
@@ -818,16 +1095,35 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
                     return;
                 }
 
-                // Check individual rows in non-panel / standalone test sections against testCandidates
-                const rows = $sec.find('table tbody tr');
+                // Check individual top-level rows in non-panel / standalone test sections against testCandidates
+                const rows = $sec.find('> table > tbody > tr, > .table-scroll > table > tbody > tr, table.test-table > tbody > tr')
+                    .filter((_, trEl) => $(trEl).parents('.documented-content, .interpretation, .moreDetails').length === 0);
                 let hasKeptRow = false;
+                let lastMainRowKept = false;
 
                 rows.each((_, rowEl) => {
                     const $row = $(rowEl);
+                    const isDetailOrRemark = $row.hasClass('details-row') || $row.hasClass('remark-row') || $row.hasClass('interpretation-row') || $row.find('.details-row, .remark-row, .interpretation-row').length > 0;
+                    const isAnnotation = $row.hasClass('advice') || $row.hasClass('notes') || $row.hasClass('remarks');
+
+                    if (isDetailOrRemark) {
+                        if (lastMainRowKept) {
+                            hasKeptRow = true;
+                        } else {
+                            $row.remove();
+                        }
+                        return;
+                    }
+
+                    if (isAnnotation) {
+                        return;
+                    }
+
                     const testName = $row.find('.test-name').clone().children('.delete-row-icon, .delete-btn').remove().end().text().trim() || $row.attr('data-test-name') || '';
                     const paramName = $row.attr('data-param-name') || '';
                     const dataTestName = $row.attr('data-test-name') || '';
-                    const documentedContent = $row.find('.documented-content, .editor-container, .editor-content').text().trim();
+                    const documentedContainer = $row.find('.documented-content, .editor-container, .editor-content');
+                    const hasDocumented = documentedContainer.length > 0;
 
                     const isRowMatch = matchCandidate(testName, testCandidates) ||
                                        matchCandidate(paramName, testCandidates) ||
@@ -835,10 +1131,19 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
 
                     if (isRowMatch) {
                         hasKeptRow = true;
-                    } else if (documentedContent && matchCandidate(documentedContent, testCandidates)) {
-                        hasKeptRow = true;
+                        lastMainRowKept = true;
+                    } else if (hasDocumented) {
+                        const docText = documentedContainer.text().trim();
+                        if (matchCandidate(docText, testCandidates)) {
+                            hasKeptRow = true;
+                            lastMainRowKept = true;
+                        } else {
+                            $row.remove();
+                            lastMainRowKept = false;
+                        }
                     } else {
                         $row.remove();
+                        lastMainRowKept = false;
                     }
                 });
 
@@ -847,8 +1152,8 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
                 }
             });
 
-            // Normalize page breaks on surviving sections based on categorizedPDF setting
-            const remainingSections = $('.section');
+            // Normalize page breaks on surviving top-level sections based on categorizedPDF setting
+            const remainingSections = $('.section').filter((_, el) => isTopLevelPdfSection($(el)));
             remainingSections.each((idx, secEl) => {
                 const $sec = $(secEl);
                 if (categorizedPDF) {
@@ -863,20 +1168,29 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
             });
         } else {
             // Fallback for tables without .section wrapper
-            const tables = $('table');
+            const tables = $('table').filter((_, tbl) => $(tbl).parents('.documented-content, .interpretation, .moreDetails').length === 0);
             if (tables.length > 0) {
                 const activeCandidates = testCandidates.length > 0 ? testCandidates : panelCandidates;
                 tables.each((_, tblEl) => {
                     const $tbl = $(tblEl);
-                    const rows = $tbl.find('tbody tr');
+                    const rows = $tbl.find('> tbody > tr').filter((_, trEl) => $(trEl).parents('.documented-content, .interpretation, .moreDetails').length === 0);
                     let hasKeptRow = false;
+                    let lastMainRowKept = false;
 
                     rows.each((_, rowEl) => {
                         const $row = $(rowEl);
+                        const isDetailOrRemark = $row.hasClass('details-row') || $row.hasClass('remark-row') || $row.hasClass('interpretation-row');
+                        if (isDetailOrRemark) {
+                            if (lastMainRowKept) hasKeptRow = true;
+                            else $row.remove();
+                            return;
+                        }
+
                         const testName = $row.find('.test-name').clone().children('.delete-row-icon, .delete-btn').remove().end().text().trim() || $row.attr('data-test-name') || '';
                         const paramName = $row.attr('data-param-name') || '';
                         const dataTestName = $row.attr('data-test-name') || '';
-                        const documentedContent = $row.find('.documented-content, .editor-container, .editor-content').text().trim();
+                        const documentedContainer = $row.find('.documented-content, .editor-container, .editor-content');
+                        const hasDocumented = documentedContainer.length > 0;
 
                         const isRowMatch = matchCandidate(testName, activeCandidates) ||
                                            matchCandidate(paramName, activeCandidates) ||
@@ -884,10 +1198,13 @@ const filterHtmlContentBySelection = ({ htmlContent, header, selectedItems, filt
 
                         if (isRowMatch) {
                             hasKeptRow = true;
-                        } else if (documentedContent && matchCandidate(documentedContent, activeCandidates)) {
+                            lastMainRowKept = true;
+                        } else if (hasDocumented && matchCandidate(documentedContainer.text().trim(), activeCandidates)) {
                             hasKeptRow = true;
+                            lastMainRowKept = true;
                         } else {
                             $row.remove();
+                            lastMainRowKept = false;
                         }
                     });
 
@@ -957,7 +1274,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
-        htmlContent = inlinedSegments.htmlContent;
+        htmlContent = sanitizePdfHtmlContent(inlinedSegments.htmlContent);
         header = inlinedSegments.header;
         footer = inlinedSegments.footer;
 
@@ -1019,10 +1336,31 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                         h1, h2, h3, h4, h5, h6 {
                             margin-top: 0 !important;
                         }
-                        .page-break {
+                        tr.page-break {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            display: table-row !important;
+                        }
+                        div.page-break, .section.page-break {
                             page-break-before: always !important;
                             break-before: page !important;
                             display: block !important;
+                        }
+                        .test-table > tbody > tr:not(:has(.details-row)):not(:has(.documented-content)) {
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
+                        }
+                        .details-row, .interpretation, .documented-content, .moreDetails {
+                            page-break-inside: auto !important;
+                            break-inside: auto !important;
+                        }
+                        .details-row tr, .documented-content tr {
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
+                        }
+                        .details-row p, .documented-content p, .details-row li, .documented-content li {
+                            page-break-inside: avoid;
+                            break-inside: avoid;
                         }
                         .headings {
                             width: 100% !important;
@@ -1059,11 +1397,64 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
                             display: none !important;
                         }
                         ` : ''}
-                        tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                        tr, th, td, table td, table th, .high-low, .unit, .reference,
+                        .details-row, .details-row *,
+                        .documented-content, .documented-content *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                        .interpretation, .interpretation *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                        .moreDetails, .moreDetails *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
                             font-size: ${selectedFontSize}px !important;
+                            line-height: 1.35 !important;
                         }
                         .test-name, .test-name * {
                             font-size: ${Number(selectedFontSize) + 4}px !important;
+                        }
+                        .multi-test-name {
+                            font-weight: 700 !important;
+                            text-decoration: underline !important;
+                            display: inline-block !important;
+                        }
+                        .multi-test-row td.test-name {
+                            padding-left: 0 !important;
+                            text-indent: 0 !important;
+                        }
+                        .parameter-row td.test-name,
+                        .parameter-name,
+                        td.parameter-name {
+                            padding-left: 20px !important;
+                        }
+                        .documented-content h1, .interpretation h1 { font-size: ${Number(selectedFontSize) + 4}px !important; font-weight: bold !important; margin: 6px 0 !important; }
+                        .documented-content h2, .interpretation h2 { font-size: ${Number(selectedFontSize) + 3}px !important; font-weight: bold !important; margin: 5px 0 !important; }
+                        .documented-content h3, .interpretation h3 { font-size: ${Number(selectedFontSize) + 2}px !important; font-weight: bold !important; margin: 4px 0 !important; }
+                        .documented-content h4, .interpretation h4 { font-size: ${Number(selectedFontSize) + 1}px !important; font-weight: bold !important; margin: 3px 0 !important; }
+                        .documented-content, .interpretation, .moreDetails {
+                            overflow-x: hidden !important;
+                            word-wrap: break-word !important;
+                            overflow-wrap: break-word !important;
+                        }
+                        .documented-content table, .interpretation table {
+                            border-collapse: collapse !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            table-layout: auto !important;
+                            margin: 4px 0 !important;
+                        }
+                        .documented-content table td, .documented-content table th,
+                        .interpretation table td, .interpretation table th {
+                            border: 1px solid #d0d0d0 !important;
+                            padding: 3px 5px !important;
+                            word-break: break-word !important;
+                        }
+                        .documented-content figure.table, .interpretation figure.table {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            margin: 4px 0 !important;
+                            display: block !important;
+                        }
+                        .documented-content img, .interpretation img, .moreDetails img {
+                            max-width: 100% !important;
+                            height: auto !important;
+                            display: block !important;
+                            margin: 4px auto !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -1359,7 +1750,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
 
     try {
         const inlinedSegments = await inlinePdfHtmlSegments({ htmlContent, header, footer });
-        htmlContent = inlinedSegments.htmlContent;
+        htmlContent = sanitizePdfHtmlContent(inlinedSegments.htmlContent);
         header = inlinedSegments.header;
         footer = inlinedSegments.footer;
 
@@ -1416,10 +1807,31 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                         h1, h2, h3, h4, h5, h6 {
                             margin-top: 0 !important;
                         }
-                        .page-break {
+                        tr.page-break {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            display: table-row !important;
+                        }
+                        div.page-break, .section.page-break {
                             page-break-before: always !important;
                             break-before: page !important;
                             display: block !important;
+                        }
+                        .test-table > tbody > tr:not(:has(.details-row)):not(:has(.documented-content)) {
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
+                        }
+                        .details-row, .interpretation, .documented-content, .moreDetails {
+                            page-break-inside: auto !important;
+                            break-inside: auto !important;
+                        }
+                        .details-row tr, .documented-content tr {
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
+                        }
+                        .details-row p, .documented-content p, .details-row li, .documented-content li {
+                            page-break-inside: avoid;
+                            break-inside: avoid;
                         }
                         .headings {
                             width: 100% !important;
@@ -1456,11 +1868,64 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
                             display: none !important;
                         }
                         ` : ''}
-                        tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                        tr, th, td, table td, table th, .high-low, .unit, .reference,
+                        .details-row, .details-row *,
+                        .documented-content, .documented-content *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                        .interpretation, .interpretation *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                        .moreDetails, .moreDetails *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
                             font-size: ${selectedFontSize}px !important;
+                            line-height: 1.35 !important;
                         }
                         .test-name, .test-name * {
                             font-size: ${Number(selectedFontSize) + 4}px !important;
+                        }
+                        .multi-test-name {
+                            font-weight: 700 !important;
+                            text-decoration: underline !important;
+                            display: inline-block !important;
+                        }
+                        .multi-test-row td.test-name {
+                            padding-left: 0 !important;
+                            text-indent: 0 !important;
+                        }
+                        .parameter-row td.test-name,
+                        .parameter-name,
+                        td.parameter-name {
+                            padding-left: 20px !important;
+                        }
+                        .documented-content h1, .interpretation h1 { font-size: ${Number(selectedFontSize) + 4}px !important; font-weight: bold !important; margin: 6px 0 !important; }
+                        .documented-content h2, .interpretation h2 { font-size: ${Number(selectedFontSize) + 3}px !important; font-weight: bold !important; margin: 5px 0 !important; }
+                        .documented-content h3, .interpretation h3 { font-size: ${Number(selectedFontSize) + 2}px !important; font-weight: bold !important; margin: 4px 0 !important; }
+                        .documented-content h4, .interpretation h4 { font-size: ${Number(selectedFontSize) + 1}px !important; font-weight: bold !important; margin: 3px 0 !important; }
+                        .documented-content, .interpretation, .moreDetails {
+                            overflow-x: hidden !important;
+                            word-wrap: break-word !important;
+                            overflow-wrap: break-word !important;
+                        }
+                        .documented-content table, .interpretation table {
+                            border-collapse: collapse !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            table-layout: auto !important;
+                            margin: 4px 0 !important;
+                        }
+                        .documented-content table td, .documented-content table th,
+                        .interpretation table td, .interpretation table th {
+                            border: 1px solid #d0d0d0 !important;
+                            padding: 3px 5px !important;
+                            word-break: break-word !important;
+                        }
+                        .documented-content figure.table, .interpretation figure.table {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            margin: 4px 0 !important;
+                            display: block !important;
+                        }
+                        .documented-content img, .interpretation img, .moreDetails img {
+                            max-width: 100% !important;
+                            height: auto !important;
+                            display: block !important;
+                            margin: 4px auto !important;
                         }
                         td {
                             padding-top: ${parseFloat(RowSpacing) / 2}px !important;
@@ -1878,8 +2343,9 @@ const getpdfcontroller = async (req, res) => {
         } else if (resolvedHtmlContent) {
             // Apply page breaks according to categorizedPDF for full reports
             try {
+                resolvedHtmlContent = sanitizePdfHtmlContent(resolvedHtmlContent);
                 const $norm = cheerio.load(resolvedHtmlContent, null, false);
-                const allSecs = $norm('.section');
+                const allSecs = $norm('.section').filter((_, el) => isTopLevelPdfSection($norm(el)));
                 if (allSecs.length > 0) {
                     allSecs.each((idx, secEl) => {
                         const $s = $norm(secEl);
@@ -1896,6 +2362,8 @@ const getpdfcontroller = async (req, res) => {
                 console.warn('Could not normalize page breaks in getpdfcontroller:', normErr);
             }
         }
+
+        resolvedHtmlContent = sanitizePdfHtmlContent(resolvedHtmlContent);
 
         // PDF generation must not create a settings row. A missing row should
         // remain distinguishable from a row containing saved tenant settings.
@@ -2296,6 +2764,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     // Safe gap range: min 0.1 cm (strict restriction against 0 or negative overlap), max 10 cm, default 1 cm
     const headerContentGapCmMerge = finitePdfNumber(mergedValues.headerContentGap, 1, { min: 0.1, max: 10 });
 
+    mergedValues.htmlContent = sanitizePdfHtmlContent(mergedValues.htmlContent);
     const inlinedSegments = await inlinePdfHtmlSegments({
         htmlContent: mergedValues.htmlContent,
         header: mergedValues.header,
@@ -2360,6 +2829,44 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                     h1, h2, h3, h4, h5, h6 {
                         margin-top: 0 !important;
                     }
+                    tr.page-break {
+                        page-break-before: always !important;
+                        break-before: page !important;
+                        display: table-row !important;
+                    }
+                    div.page-break, .section.page-break {
+                        page-break-before: always !important;
+                        break-before: page !important;
+                        display: block !important;
+                    }
+                    .test-table > tbody > tr:not(:has(.details-row)):not(:has(.documented-content)) {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .details-row, .interpretation, .documented-content, .moreDetails {
+                        page-break-inside: auto !important;
+                        break-inside: auto !important;
+                    }
+                    .details-row tr, .documented-content tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .details-row p, .documented-content p, .details-row li, .documented-content li {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
+                    }
+                    .headings {
+                        width: 100% !important;
+                        text-align: center !important;
+                        margin: 6px auto !important;
+                    }
+                    .headings h1, .headings h2, .headings h3, .headings h4, .headings h5, .headings h6,
+                    .section-heading-main, .section-heading-sub, .test-heading, .category-heading {
+                        text-align: center !important;
+                        margin: 0 auto !important;
+                        display: block !important;
+                        width: 100% !important;
+                    }
                     .wrong i, .delete-btn i {
                         display: none;
                     }
@@ -2383,11 +2890,64 @@ async function generateSinglePdfBuffer(mergedValues, user) {
                         display: none !important;
                     }
                     ` : ''}
-                    tr, th, td, table td, table th, .high-low, .unit, .reference, .details-row, .details-row *, .documented-content, .documented-content p, .documented-content span, .documented-content td, .documented-content th, .documented-content div {
+                    tr, th, td, table td, table th, .high-low, .unit, .reference,
+                    .details-row, .details-row *,
+                    .documented-content, .documented-content *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                    .interpretation, .interpretation *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+                    .moreDetails, .moreDetails *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
                         font-size: ${mergedValues.selectedFontSize}px !important;
+                        line-height: 1.35 !important;
                     }
                     .test-name, .test-name * {
                         font-size: ${Number(mergedValues.selectedFontSize) + 4}px !important;
+                    }
+                    .multi-test-name {
+                        font-weight: 700 !important;
+                        text-decoration: underline !important;
+                        display: inline-block !important;
+                    }
+                    .multi-test-row td.test-name {
+                        padding-left: 0 !important;
+                        text-indent: 0 !important;
+                    }
+                    .parameter-row td.test-name,
+                    .parameter-name,
+                    td.parameter-name {
+                        padding-left: 20px !important;
+                    }
+                    .documented-content h1, .interpretation h1 { font-size: ${Number(mergedValues.selectedFontSize) + 4}px !important; font-weight: bold !important; margin: 6px 0 !important; }
+                    .documented-content h2, .interpretation h2 { font-size: ${Number(mergedValues.selectedFontSize) + 3}px !important; font-weight: bold !important; margin: 5px 0 !important; }
+                    .documented-content h3, .interpretation h3 { font-size: ${Number(mergedValues.selectedFontSize) + 2}px !important; font-weight: bold !important; margin: 4px 0 !important; }
+                    .documented-content h4, .interpretation h4 { font-size: ${Number(mergedValues.selectedFontSize) + 1}px !important; font-weight: bold !important; margin: 3px 0 !important; }
+                    .documented-content, .interpretation, .moreDetails {
+                        overflow-x: hidden !important;
+                        word-wrap: break-word !important;
+                        overflow-wrap: break-word !important;
+                    }
+                    .documented-content table, .interpretation table {
+                        border-collapse: collapse !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        table-layout: auto !important;
+                        margin: 4px 0 !important;
+                    }
+                    .documented-content table td, .documented-content table th,
+                    .interpretation table td, .interpretation table th {
+                        border: 1px solid #d0d0d0 !important;
+                        padding: 3px 5px !important;
+                        word-break: break-word !important;
+                    }
+                    .documented-content figure.table, .interpretation figure.table {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 4px 0 !important;
+                        display: block !important;
+                    }
+                    .documented-content img, .interpretation img, .moreDetails img {
+                        max-width: 100% !important;
+                        height: auto !important;
+                        display: block !important;
+                        margin: 4px auto !important;
                     }
                     td {
                         padding-top: ${parseFloat(mergedValues.RowSpacing) / 2}px !important;
@@ -2661,8 +3221,9 @@ const getpdfcontrolleruser = async (req, res) => {
         } else if (resolvedHtmlContent) {
             // Apply page breaks according to categorizedPDF for full reports
             try {
+                resolvedHtmlContent = sanitizePdfHtmlContent(resolvedHtmlContent);
                 const $norm = cheerio.load(resolvedHtmlContent, null, false);
-                const allSecs = $norm('.section');
+                const allSecs = $norm('.section').filter((_, el) => isTopLevelPdfSection($norm(el)));
                 if (allSecs.length > 0) {
                     allSecs.each((idx, secEl) => {
                         const $s = $norm(secEl);
@@ -2679,6 +3240,8 @@ const getpdfcontrolleruser = async (req, res) => {
                 console.warn('Could not normalize page breaks in getpdfcontrolleruser:', normErr);
             }
         }
+
+        resolvedHtmlContent = sanitizePdfHtmlContent(resolvedHtmlContent);
 
         if (checkBox || DownloadPdf) {
             mergedValues = {
@@ -3194,6 +3757,7 @@ export {
     certificatepdfgenerator,
     getAllInvoices,
     getpdfcontrolleruser,
-    mergePdfsController
-
+    mergePdfsController,
+    sanitizePdfHtmlContent,
+    buildHtmlFromReport
 };

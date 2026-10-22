@@ -13,6 +13,73 @@
 
     const urlWithParam = `${baseUrl}?value=${encodeURIComponent(value1)}&id=${encodeURIComponent(user.tenantId._id)}&format=${encodeURIComponent(user.pdfFormat)}`;
     const { labinchargeinfo, sign } = await fetchLabSignAndSetInputs();
+
+    function cleanDocumentedHtml(rawHtml) {
+        if (!rawHtml || typeof rawHtml !== 'string') return rawHtml;
+        const temp = document.createElement('div');
+        temp.innerHTML = rawHtml;
+
+        temp.querySelectorAll('.section, .page, .page-break').forEach((el) => {
+            el.classList.remove('section', 'page', 'page-break');
+            el.classList.add('doc-inner-sec');
+        });
+
+        temp.querySelectorAll('[style]').forEach((el) => {
+            let style = el.getAttribute('style') || '';
+            style = style.replace(/(^|;)\s*font-size\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*font-family\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*-webkit-text-stroke-width\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-after\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-after\s*:\s*[^;]+;?/gi, ';')
+                         .trim()
+                         .replace(/^;+|;+$/g, '');
+            if (style) el.setAttribute('style', style);
+            else el.removeAttribute('style');
+        });
+
+        temp.querySelectorAll('[data-mce-style]').forEach((el) => el.removeAttribute('data-mce-style'));
+
+        temp.querySelectorAll('figure.table, figure.image, figure').forEach((fig) => {
+            fig.removeAttribute('width');
+            let st = fig.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            fig.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;width:100% !important;box-sizing:border-box !important;');
+        });
+
+        temp.querySelectorAll('table').forEach((tbl) => {
+            tbl.removeAttribute('width');
+            let st = tbl.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            tbl.setAttribute('style', (st ? st + ';' : '') + 'width:100% !important;max-width:100% !important;border-collapse:collapse !important;');
+        });
+
+        temp.querySelectorAll('td, th').forEach((cell) => {
+            let st = cell.getAttribute('style') || '';
+            st = st.replace(/(^|;)\s*white-space\s*:\s*nowrap;?/gi, ';')
+                   .trim().replace(/^;+|;+$/g, '');
+            if (st) cell.setAttribute('style', st);
+            else cell.removeAttribute('style');
+        });
+
+        temp.querySelectorAll('img').forEach((img) => {
+            img.removeAttribute('width');
+            img.removeAttribute('height');
+            img.setAttribute('style', 'max-width:100% !important;height:auto !important;object-fit:contain !important;');
+        });
+
+        // 4. Clean empty paragraphs and excessive line breaks
+        temp.querySelectorAll('p').forEach((p) => {
+            const text = p.textContent.replace(/\u00a0/g, ' ').trim();
+            if (!text && p.querySelectorAll('img, table, svg, canvas').length === 0) {
+                p.remove();
+            }
+        });
+        temp.querySelectorAll('br + br + br').forEach((br) => br.remove());
+
+        return temp.innerHTML;
+    }
     async function fetchdoctorsandlabsign() {
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/getDoctorsSign`);
@@ -1043,7 +1110,7 @@
                     interpretationCell.style.paddingLeft = "0";
                     interpretationCell.style.marginLeft = "0";
                     interpretationCell.style.textIndent = "0";
-                    interpretationCell.innerHTML = `<div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content" style="margin: 0; padding: 0;">${test.details || ""}</div></div>`;
+                    interpretationCell.innerHTML = `<div class="interpretation"><p style="font-weight: bold;">Interpretation</p><div class="documented-content" style="margin: 0; padding: 0;">${cleanDocumentedHtml(test.details || "")}</div></div>`;
 
                     interpretationRow.appendChild(interpretationCellEmpty);
                     interpretationRow.appendChild(interpretationCell);
@@ -1145,7 +1212,7 @@
                         detailsCell.style.paddingLeft = "0";
                         detailsCell.style.marginLeft = "0";
                         detailsCell.style.textIndent = "0";
-                        detailsCell.innerHTML = `<div class="documented-content" style="margin: 0; padding: 0;">${test.details}</div>`;
+                        detailsCell.innerHTML = `<div class="documented-content" style="margin: 0; padding: 0;">${cleanDocumentedHtml(test.details)}</div>`;
 
                         detailsRow.appendChild(detailsCellEmpty);
                         detailsRow.appendChild(detailsCell);
@@ -1192,7 +1259,7 @@
                         <div class="documented-content">
                             ${isMultiHeaderRow
                                 ? `<div class="test-name multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important;">${renderedTestName || ""}</div>`
-                                : (renderedTestName || "")}
+                                : cleanDocumentedHtml(renderedTestName || "")}
                         </div>
                     </td>
                 `;
@@ -1255,7 +1322,7 @@
                     // ✅ Wrap details in documented-content div for proper isolation
                     detailsCell.innerHTML = `
         <div class="documented-content">
-            ${test.details}
+            ${cleanDocumentedHtml(test.details)}
         </div>
     `;
 
@@ -1359,7 +1426,7 @@
                 interpretation.className = "interpretation";
                 interpretation.innerHTML = `
                 <p style="font-weight: bold;">Interpretation</p> 
-                <div class="documented-content">${categoryData.interpretation}</div>
+                <div class="documented-content">${cleanDocumentedHtml(categoryData.interpretation)}</div>
             `;
 
                 interpretationCell.appendChild(interpretation);
@@ -1379,7 +1446,7 @@
             MoreDetails.className = "moreDetails";
             MoreDetails.innerHTML = `
             <span>Additional Findings :-</span><br> 
-            <div class="documented-content">${data.MoreDetails}</div>
+            <div class="documented-content">${cleanDocumentedHtml(data.MoreDetails)}</div>
         `;
             container.appendChild(MoreDetails);
         }

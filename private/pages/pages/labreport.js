@@ -3,8 +3,8 @@ async function loadfunction() {
     const booking = JSON.parse(localStorage.getItem("booking"));
     // for getting individual parameter lower and upper value
     const patient = { age: booking.year, gender: booking.gender };
-    //for pdf only (print tale on seperate page)
-    document.getElementById('check1').checked = true;
+    // For PDF: print categories on separate page only if enabled in printSettings or selected by user
+    document.getElementById('check1').checked = Boolean(printSettings?.printCategoriesSeparatePage);
     let isdocumented = false;
     //Array for filtering tests and pannels
     let testArray = [];
@@ -337,24 +337,89 @@ async function loadfunction() {
     }
 
     // ✅ Strip inline font-size and font-family from .test-details HTML
-    // Ye sirf test/panel definition ki interpretation ke liye hai (user-entered CKEditor
-    // documented content is path se nahi jaata, wo alag editorContent path use karta hai)
+    // Ye test/panel definition interpretation, documented content aur CKEditor content ko sanitize karta hai
     function sanitizeDetailsHtml(html) {
-        if (!html) return html;
+        if (!html || typeof html !== 'string') return html;
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
+
+        // 1. Defang rogue .section, .page, and .page-break classes from inner elements
+        tempDiv.querySelectorAll('.section, .page, .page-break').forEach(function (el) {
+            el.classList.remove('section', 'page', 'page-break');
+            el.classList.add('doc-inner-sec');
+        });
+
+        // 2. font-size, font-family, -webkit-text-stroke-width, page-break-*, break-* inline styles hata do
         tempDiv.querySelectorAll('[style]').forEach(function (el) {
             let style = el.getAttribute('style') || '';
-            // font-size aur font-family inline styles hata do
-            style = style.replace(/font-size\s*:\s*[^;]+;?/gi, '');
-            style = style.replace(/font-family\s*:\s*[^;]+;?/gi, '');
-            style = style.trim().replace(/;+$/, '');
+            style = style.replace(/(^|;)\s*font-size\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*font-family\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*-webkit-text-stroke-width\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*page-break-before\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*page-break-after\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*break-before\s*:\s*[^;]+;?/gi, ';');
+            style = style.replace(/(^|;)\s*break-after\s*:\s*[^;]+;?/gi, ';');
+            style = style.trim().replace(/^;+|;+$/g, '');
             if (style) {
                 el.setAttribute('style', style);
             } else {
                 el.removeAttribute('style');
             }
         });
+
+        // 3. Remove data-mce-style
+        tempDiv.querySelectorAll('[data-mce-style]').forEach(function (el) {
+            el.removeAttribute('data-mce-style');
+        });
+
+        // 4. Oversized tables, figures, cells, and images constrain karo
+        tempDiv.querySelectorAll('figure.table, figure.image, figure').forEach(function (fig) {
+            fig.removeAttribute('width');
+            let st = fig.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            fig.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;width:100% !important;box-sizing:border-box !important;');
+        });
+
+        tempDiv.querySelectorAll('table').forEach(function (tbl) {
+            tbl.removeAttribute('width');
+            let st = tbl.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            tbl.setAttribute('style', (st ? st + ';' : '') + 'width:100% !important;max-width:100% !important;border-collapse:collapse !important;');
+        });
+
+        tempDiv.querySelectorAll('td, th').forEach(function (cell) {
+            let st = cell.getAttribute('style') || '';
+            const match = st.match(/width\s*:\s*(\d+(?:\.\d+)?)\s*px/i);
+            if (match && parseFloat(match[1]) > 600) {
+                st = st.replace(/width\s*:\s*\d+(?:\.\d+)?\s*px;?/gi, 'width:auto;');
+                cell.setAttribute('style', st);
+            }
+            const w = parseFloat(cell.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) cell.removeAttribute('width');
+        });
+
+        tempDiv.querySelectorAll('img').forEach(function (img) {
+            let st = img.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*\d{3,}px;?/gi, '');
+            img.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;height:auto !important;object-fit:contain !important;display:block !important;margin:4px auto !important;');
+            const w = parseFloat(img.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) {
+                img.removeAttribute('width');
+                img.removeAttribute('height');
+            }
+        });
+
+        // 5. Clean empty paragraphs and excessive breaks
+        tempDiv.querySelectorAll('p').forEach(function (p) {
+            const text = p.textContent.replace(/\u00a0/g, ' ').trim();
+            if (!text && p.querySelectorAll('img, table, svg, canvas').length === 0) {
+                p.remove();
+            }
+        });
+        tempDiv.querySelectorAll('br + br + br').forEach(function (br) {
+            br.remove();
+        });
+
         return tempDiv.innerHTML;
     }
 
@@ -2561,7 +2626,7 @@ async function loadfunction() {
                 if (editorContainer) {
                     const editorId = editorContainer.id;
                     const uniqueTestId = editorId.replace('editorContent-', '');
-                    editorContent = getEditorContent(uniqueTestId);
+                    editorContent = sanitizeDetailsHtml(getEditorContent(uniqueTestId));
                     if (!isBlankOrDotOnlyValue(stripHtmlToText(editorContent))) {
                         isDocumented = true;
                         tableHasMeaningfulRows = true;
@@ -2674,7 +2739,7 @@ async function loadfunction() {
             if (interpretationRow) {
                 const interpretationCell = interpretationRow.querySelector(".interpretations");
                 if (interpretationCell) {
-                    tableInterpretation = interpretationCell.querySelector(".pannelInterpretation")?.innerHTML?.trim() || null;
+                    tableInterpretation = sanitizeDetailsHtml(interpretationCell.querySelector(".pannelInterpretation")?.innerHTML?.trim() || null);
                 }
             }
 

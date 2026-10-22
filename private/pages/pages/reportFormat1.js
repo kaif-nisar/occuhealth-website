@@ -27,6 +27,81 @@
         return `${safeName}${dateStr}.pdf`;
     }
 
+    function cleanDocumentedHtml(rawHtml) {
+        if (!rawHtml || typeof rawHtml !== 'string') return rawHtml;
+        const temp = document.createElement('div');
+        temp.innerHTML = rawHtml;
+
+        temp.querySelectorAll('.section, .page, .page-break').forEach((el) => {
+            el.classList.remove('section', 'page', 'page-break');
+            el.classList.add('doc-inner-sec');
+        });
+
+        temp.querySelectorAll('[style]').forEach((el) => {
+            let style = el.getAttribute('style') || '';
+            style = style.replace(/(^|;)\s*font-size\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*font-family\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*-webkit-text-stroke-width\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*page-break-after\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-before\s*:\s*[^;]+;?/gi, ';')
+                         .replace(/(^|;)\s*break-after\s*:\s*[^;]+;?/gi, ';')
+                         .trim()
+                         .replace(/^;+|;+$/g, '');
+            if (style) el.setAttribute('style', style);
+            else el.removeAttribute('style');
+        });
+
+        temp.querySelectorAll('[data-mce-style]').forEach((el) => el.removeAttribute('data-mce-style'));
+
+        temp.querySelectorAll('figure.table, figure.image, figure').forEach((fig) => {
+            fig.removeAttribute('width');
+            let st = fig.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            fig.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;width:100% !important;box-sizing:border-box !important;');
+        });
+
+        temp.querySelectorAll('table').forEach((tbl) => {
+            tbl.removeAttribute('width');
+            let st = tbl.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*[^;]+;?/gi, '');
+            tbl.setAttribute('style', (st ? st + ';' : '') + 'width:100% !important;max-width:100% !important;border-collapse:collapse !important;');
+        });
+
+        temp.querySelectorAll('td, th').forEach((cell) => {
+            let st = cell.getAttribute('style') || '';
+            const match = st.match(/width\s*:\s*(\d+(?:\.\d+)?)\s*px/i);
+            if (match && parseFloat(match[1]) > 600) {
+                st = st.replace(/width\s*:\s*\d+(?:\.\d+)?\s*px;?/gi, 'width:auto;');
+                cell.setAttribute('style', st);
+            }
+            const w = parseFloat(cell.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) cell.removeAttribute('width');
+        });
+
+        temp.querySelectorAll('img').forEach((img) => {
+            let st = img.getAttribute('style') || '';
+            st = st.replace(/width\s*:\s*\d{3,}px;?/gi, '');
+            img.setAttribute('style', (st ? st + ';' : '') + 'max-width:100% !important;height:auto !important;object-fit:contain !important;display:block !important;margin:4px auto !important;');
+            const w = parseFloat(img.getAttribute('width') || '');
+            if (!isNaN(w) && w > 600) {
+                img.removeAttribute('width');
+                img.removeAttribute('height');
+            }
+        });
+
+        // 4. Clean empty paragraphs and excessive line breaks
+        temp.querySelectorAll('p').forEach((p) => {
+            const text = p.textContent.replace(/\u00a0/g, ' ').trim();
+            if (!text && p.querySelectorAll('img, table, svg, canvas').length === 0) {
+                p.remove();
+            }
+        });
+        temp.querySelectorAll('br + br + br').forEach((br) => br.remove());
+
+        return temp.innerHTML;
+    }
+
     const baseUrl = `${BASE_URL}/pages/pages/download_reports.html`;
 
     localStorage.setItem('myKey', value1);
@@ -669,8 +744,29 @@
         }
     }
 
-    barcodegenerator();
+    function escapeHtml(value) {
+        if (!value && value !== 0) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
+    function stripHtmlToText(value) {
+        if (!value) return '';
+        return String(value)
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;/gi, "'")
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
 
     function renderData(data) {
         const container = document.getElementById("tables-container"); // Main container
@@ -747,9 +843,11 @@
 
             // Table body
             const tbody = document.createElement("tbody");
+            let inMultiHeader = false;
 
             categoryData.tests.forEach((test, rowIndex) => {
                 if (test?.isInterpretation) {
+                    inMultiHeader = false;
                     const interpretationRow = document.createElement("tr");
                     const interpretationCellEmpty = document.createElement("td");
                     interpretationCellEmpty.classList.add("wrong");
@@ -770,80 +868,156 @@
                     return;
                 }
 
-                let testRow;
-                
-                if (test.testName) {
-                    testRow = document.createElement("tr");
+                // Handle test with parameters array
+                if (Array.isArray(test.parameters) && test.parameters.length > 1) {
+                    inMultiHeader = false;
+                    const parentName = escapeHtml(stripHtmlToText(test.Name || test.testName || '')).toUpperCase();
+                    const parentRow = document.createElement("tr");
+                    parentRow.classList.add('multi-test-row');
+                    if (test.pagebreak) parentRow.classList.add('page-break');
+                    parentRow.innerHTML = `
+                        <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                        <td class="test-name" style="padding-left:0 !important;text-indent:0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${parentName}</span></td>
+                        <td class="high-low"></td>
+                        <td></td>
+                        <td></td>
+                    `;
+                    tbody.appendChild(parentRow);
 
-                    if (test.pagebreak) {
-                        testRow.classList.add('page-break');
+                    test.parameters.forEach((param) => {
+                        const paramRow = document.createElement("tr");
+                        paramRow.classList.add('parameter-row');
+                        if (param.pagebreak) paramRow.classList.add('page-break');
+                        const pName = escapeHtml(stripHtmlToText(param.Para_name || param.parameterName || param.name || ''));
+                        const pVal = param.value ?? param.result ?? param.defaultresult ?? '';
+                        const pUnit = param.unit ?? '';
+                        const pRef = param.reference ?? param.text ?? '';
+                        paramRow.innerHTML = `
+                            <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                            <td class="test-name parameter-name" style="padding-left: 20px !important;"><span class="parameter-text">${pName}</span></td>
+                            <td class="high-low"><div class="HL"><span></span></div><span>${escapeHtml(pVal)}</span></td>
+                            <td>${escapeHtml(pUnit)}</td>
+                            <td>${escapeHtml(pRef)}</td>
+                        `;
+                        tbody.appendChild(paramRow);
+                    });
+
+                    if (test.remark) {
+                        const remarkRow = document.createElement("tr");
+                        remarkRow.innerHTML = `<td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtml(test.remark)}</td>`;
+                        tbody.appendChild(remarkRow);
                     }
+                    return;
+                }
 
-                    let isBold = false;
-                    let testNameSuffix = "";
+                let testRow;
+                const rawTestName = String(test?.testName || test?.Name || '');
+                const cleanName = stripHtmlToText(rawTestName);
+                if (!cleanName || cleanName === 'null') {
+                    if (test.remark) {
+                        const remarkRow = document.createElement("tr");
+                        remarkRow.innerHTML = `<td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtml(test.remark)}</td>`;
+                        tbody.appendChild(remarkRow);
+                    }
+                    return;
+                }
 
-                    if (test.reference) {
-                        const referenceParts = test.reference.split(" - ");
-                        if (referenceParts.length === 2) {
-                            const lowerLimit = parseFloat(referenceParts[0]);
-                            const upperLimit = parseFloat(referenceParts[1]);
-                            const testValue = parseFloat(test.value);
+                if (test.isDocumented) {
+                    inMultiHeader = false;
+                    testRow = document.createElement("tr");
+                    if (test.pagebreak) testRow.classList.add('page-break');
+                    testRow.innerHTML = `
+                        <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                        <td colspan="4" style="padding: 0; border: none;"><div class="documented-content">${cleanDocumentedHtml(rawTestName)}</div></td>
+                    `;
+                    tbody.appendChild(testRow);
+                    if (test.remark) {
+                        const remarkRow = document.createElement("tr");
+                        remarkRow.innerHTML = `<td class="wrong"></td><td colspan="4" class="remark-row"><div>Remark:</div> ${escapeHtml(test.remark)}</td>`;
+                        tbody.appendChild(remarkRow);
+                    }
+                    return;
+                }
 
-                            if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
-                                if (testValue < lowerLimit) {
-                                    isBold = true;
-                                    testNameSuffix = "L";
-                                } else if (testValue > upperLimit) {
-                                    isBold = true;
-                                    testNameSuffix = "H";
-                                }
+                const isExplicitParam = Boolean(test.isParameter) || /id=(["'])parameters\1/.test(rawTestName);
+                const isExplicitMulti = Boolean(test.isMultiHeader);
+                const isImplicitMulti = !isExplicitParam &&
+                    (test.value === null || test.value === undefined || test.value === '' || test.value === 'null') &&
+                    !test.unit && !test.reference;
+
+                const isMulti = isExplicitMulti || isImplicitMulti;
+                let isParam = false;
+                if (isMulti) {
+                    inMultiHeader = true;
+                } else if (test.isParameter === false && !isExplicitParam) {
+                    inMultiHeader = false;
+                } else if (isExplicitParam || inMultiHeader) {
+                    isParam = true;
+                }
+
+                testRow = document.createElement("tr");
+                if (isMulti) testRow.classList.add('multi-test-row');
+                if (isParam) testRow.classList.add('parameter-row');
+                if (test.pagebreak) testRow.classList.add('page-break');
+
+                let isBold = false;
+                let testNameSuffix = "";
+
+                if (test.reference) {
+                    const referenceParts = String(test.reference).split(" - ");
+                    if (referenceParts.length === 2) {
+                        const lowerLimit = parseFloat(referenceParts[0]);
+                        const upperLimit = parseFloat(referenceParts[1]);
+                        const testValue = parseFloat(test.value);
+
+                        if (!isNaN(lowerLimit) && !isNaN(upperLimit) && !isNaN(testValue)) {
+                            if (testValue < lowerLimit) {
+                                isBold = true;
+                                testNameSuffix = "L";
+                            } else if (testValue > upperLimit) {
+                                isBold = true;
+                                testNameSuffix = "H";
                             }
                         }
                     }
-
-                    if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
-                        isBold = true;
-                    }
-
-                    if (isBold) {
-                        testRow.style.fontWeight = "bold";
-                        testRow.classList.add('BoldRow');
-                    }
-
-                    // ✅ FIXED: Documented test with proper colspan
-                    if (test.isDocumented) {
-                        testRow.innerHTML = `
-                    <td class="wrong">
-                        <span class="delete-row-icon" title="Delete Row">
-                            <i class="fa-sharp fa-solid fa-xmark"></i>
-                        </span>
-                    </td>
-                    <td colspan="4" style="padding: 0; border: none;">
-                        <div class="documented-content">
-                            ${test.testName || ""}
-                        </div>
-                    </td>
-                `;
-                    } else {
-                        // ✅ Regular test row
-                        testRow.innerHTML = `
-                    <td class="wrong">
-                        <span class="delete-row-icon" title="Delete Row">
-                            <i class="fa-sharp fa-solid fa-xmark"></i>
-                        </span>
-                    </td>
-                    <td class="test-name">${test.testName || ""}</td>
-                    <td class="high-low">
-                        <div class="HL"><span>${testNameSuffix}</span></div>
-                        <span>${test.value || ""}</span>
-                    </td>
-                    <td>${test.unit || ""}</td>
-                    <td>${test.reference || ""}</td>
-                `;
-                    }
-
-                    tbody.appendChild(testRow);
                 }
+
+                if (typeof test.value === "string" && test.value.toLowerCase().includes("positive")) {
+                    isBold = true;
+                }
+
+                if (isBold) {
+                    testRow.style.fontWeight = "bold";
+                    testRow.classList.add('BoldRow');
+                }
+
+                if (isMulti) {
+                    testRow.innerHTML = `
+                        <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                        <td class="test-name" style="padding-left:0 !important;text-indent:0 !important;"><span class="multi-test-name" style="font-weight: 700 !important; text-decoration: underline !important; display: inline-block;">${escapeHtml(cleanName.toUpperCase())}</span></td>
+                        <td class="high-low"></td>
+                        <td></td>
+                        <td></td>
+                    `;
+                } else if (isParam) {
+                    testRow.innerHTML = `
+                        <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                        <td class="test-name parameter-name" style="padding-left: 20px !important;"><span class="parameter-text">${escapeHtml(cleanName)}</span></td>
+                        <td class="high-low"><div class="HL"><span>${testNameSuffix}</span></div><span>${escapeHtml(test.value || "")}</span></td>
+                        <td>${escapeHtml(test.unit || "")}</td>
+                        <td>${escapeHtml(test.reference || "")}</td>
+                    `;
+                } else {
+                    testRow.innerHTML = `
+                        <td class="wrong"><span class="delete-row-icon" title="Delete Row"><i class="fa-sharp fa-solid fa-xmark"></i></span></td>
+                        <td class="test-name">${escapeHtml(cleanName)}</td>
+                        <td class="high-low"><div class="HL"><span>${testNameSuffix}</span></div><span>${escapeHtml(test.value || "")}</span></td>
+                        <td>${escapeHtml(test.unit || "")}</td>
+                        <td>${escapeHtml(test.reference || "")}</td>
+                    `;
+                }
+
+                tbody.appendChild(testRow);
 
 
                 // ✅ Remark row
@@ -876,7 +1050,7 @@
                     // ✅ Wrap details in documented-content div for proper isolation
                     detailsCell.innerHTML = `
         <div class="documented-content">
-            ${test.details}
+            ${cleanDocumentedHtml(test.details)}
         </div>
     `;
 
@@ -950,7 +1124,7 @@
                 detailsCellpre.colSpan = 4;
                 const interpretation = document.createElement("div");
                 interpretation.className = "interpretation";
-                interpretation.innerHTML = `<p style="font-weight: bold;">Interpretation</p> ${categoryData.interpretation}`;
+                interpretation.innerHTML = `<p style="font-weight: bold;">Interpretation</p> ${cleanDocumentedHtml(categoryData.interpretation)}`;
                 detailsCellpre.appendChild(interpretation);
                 detailsRow.appendChild(detailsCellpre);
                 table.appendChild(detailsRow);
