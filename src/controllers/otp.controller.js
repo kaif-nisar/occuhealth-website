@@ -29,39 +29,96 @@ async function getTransporter() {
       }
     });
   }
-  // No SMTP configured — return null so caller can fallback to console.log
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+  }
+  // No SMTP or email credentials configured — return null so caller can fallback to console.log
   return null;
 }
 
-// async function sendTestEmail() {
-//   const transporter = await getTransporter();
-  
-//   if (!transporter) {
-//     console.log('SMTP not configured');
-//     return;
-//   }
+export async function sendWhatsAppOtp(phone, code) {
+  if ((process.env.WHATSAPP_ENABLED || "false").toLowerCase() !== "true") {
+    throw new Error("WhatsApp notifications are disabled in .env (WHATSAPP_ENABLED=false)");
+  }
+  if (!process.env.WHATSAPP_PHONE_NUMBER_ID || !process.env.WHATSAPP_ACCESS_TOKEN) {
+    throw new Error("WhatsApp credentials missing in .env (WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN)");
+  }
 
-//   try {
-//     // Connection verify karo
-//     await transporter.verify();
-//     console.log('✅ SMTP connection verified');
+  // Normalize phone number: digits only (e.g. 919876543210)
+  let cleaned = String(phone || "").replace(/\D/g, "");
+  if (cleaned.length === 10) {
+    cleaned = "91" + cleaned; // default India (+91)
+  }
 
-//     // Test email bhejo
-//     const info = await transporter.sendMail({
-//       from: process.env.SMTP_USER,
-//       to: 'recipient@example.com', // Replace with actual email
-//       subject: 'Test Email',
-//       text: 'This is a test email',
-//       html: '<p>This is a test email</p>'
-//     });
+  const endpoint = `https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME;
+  let bodyPayload;
 
-//     console.log('✅ Email sent:', info.messageId);
-//   } catch (error) {
-//     console.error('❌ Error:', error.message);
-//   }
-// }
+  if (templateName) {
+    const components = [
+      {
+        type: "body",
+        parameters: [{ type: "text", text: String(code) }]
+      }
+    ];
 
-// sendTestEmail();
+    if (process.env.WHATSAPP_OTP_TEMPLATE_BUTTON === "true") {
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: String(code) }]
+      });
+    }
+
+    bodyPayload = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: cleaned,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en_US" },
+        components
+      }
+    };
+  } else {
+    bodyPayload = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: cleaned,
+      type: "text",
+      text: {
+        preview_url: false,
+        body: `Your OccuHealth verification code is ${code}. It expires in 10 minutes.`
+      }
+    };
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(bodyPayload)
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    const errorDetails = result.error?.message || "WhatsApp provider request failed";
+    console.error("Meta WhatsApp Cloud API error:", JSON.stringify(result.error || result));
+    throw new Error(errorDetails);
+  }
+
+  return result.messages?.[0]?.id || null;
+}
 
 export const sendOtp = asyncHandler(async (req, res) => {
   const { identifier, purpose = 'signup' } = req.body; // identifier: email or phone
@@ -70,29 +127,45 @@ export const sendOtp = asyncHandler(async (req, res) => {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + (10 * 60 * 1000)); // 10 minutes
 
-  // ✅ IMPORTANT: Invalidate all previous OTPs for this identifier & purpose
-  // So only the latest OTP is valid (prevents multiple valid OTPs)
+  // ✅ Invalidate all previous OTPs for this identifier & purpose
   const normalizedIdentifier = normalizeIdentifier(identifier);
   await OTP.deleteMany({ identifier: normalizedIdentifier, purpose });
 
-  // save new OTP (now it's the only valid one)
+  // save new OTP
   await OTP.create({ identifier: normalizedIdentifier, codeHash: hashCode(code), purpose, expiresAt });
 
-  const transporter = await getTransporter();
-  // sendTestEmail();
-  if (transporter) {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'no-reply@example.com',
-      to: normalizedIdentifier,
-      subject: `Your verification code`,
-      text: `Your verification code is ${code}. It expires in 10 minutes.`
-    });
-    return res.json({ success: true, message: 'OTP sent' });
+  const isEmail = normalizedIdentifier.includes('@') || purpose === 'contact_email';
+
+  if (isEmail) {
+    const transporter = await getTransporter();
+    if (transporter) {
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.EMAIL_USER || 'no-reply@occuhealth.in',
+        to: normalizedIdentifier,
+        subject: `Your OccuHealth verification code`,
+        text: `Your verification code is ${code}. It expires in 10 minutes.`
+      });
+      return res.json({ success: true, message: 'OTP sent to your email' });
+    }
+
+    if (process.env.NODE_ENV !== "production") console.log(`[DEV EMAIL OTP] Code for ${normalizedIdentifier}: ${code}`);
+    return res.json({ success: true, message: 'OTP generated (check server logs in dev)' });
   }
 
-  // Fallback: log code for dev
-  if (process.env.NODE_ENV !== "production") console.log(`OTP generated for ${normalizedIdentifier}`);
-  return res.json({ success: true, message: 'OTP generated (check server logs in dev)' });
+  // Otherwise, send via WhatsApp
+  try {
+    await sendWhatsAppOtp(normalizedIdentifier, code);
+    return res.json({ success: true, message: 'OTP sent to your WhatsApp' });
+  } catch (err) {
+    console.error('WhatsApp OTP delivery error:', err.message);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[DEV WHATSAPP OTP Fallback] Code for ${normalizedIdentifier}: ${code}`);
+    }
+    return res.status(400).json({
+      success: false,
+      message: `Failed to send WhatsApp message: ${err.message}`
+    });
+  }
 });
 
 export const verifyOtp = asyncHandler(async (req, res) => {
@@ -137,7 +210,16 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   if (req.user?._id && purpose.startsWith("contact_")) {
     const update = purpose === "contact_email"
       ? { emailVerified: true, emailVerifiedAt: new Date(), normalizedEmail: normalizedIdentifier }
-      : { phoneVerified: true, phoneVerifiedAt: new Date(), normalizedPhoneNumber: normalizedIdentifier, phoneNumber: normalizedIdentifier };
+      : { 
+          phoneVerified: true, 
+          phoneVerifiedAt: new Date(), 
+          normalizedPhoneNumber: normalizedIdentifier, 
+          phoneNumber: normalizedIdentifier,
+          whatsappOptIn: true,
+          whatsappOptInAt: new Date(),
+          whatsappNotificationEnabled: true,
+          "notificationPreferences.whatsapp.userOptIn": true
+        };
     await User.updateOne({ _id: req.user._id, tenantId: req.user.tenantId?._id || req.user.tenantId }, { $set: update });
   }
   return res.json({ success: true, message: 'OTP verified' });

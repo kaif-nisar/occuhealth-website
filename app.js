@@ -230,7 +230,12 @@ if (process.env.NODE_ENV === 'production') {
 // 🔒 DATA SANITIZATION
 // ========================
 
-app.use(mongoSanitize()); // NoSQL Injection Protection
+app.use((req, res, next) => {
+    if (req.path.includes('/webhooks')) {
+        return next();
+    }
+    mongoSanitize()(req, res, next);
+}); // NoSQL Injection Protection (bypassed for webhooks)
 app.use(xss()); // XSS Protection
 app.use(hpp()); // HTTP Parameter Pollution Protection
 

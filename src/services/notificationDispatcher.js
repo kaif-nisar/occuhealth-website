@@ -41,12 +41,16 @@ async function sendEmail(delivery) {
 async function sendWhatsApp(delivery) {
   if ((process.env.WHATSAPP_ENABLED || "false").toLowerCase() !== "true") throw new Error("WhatsApp notifications are disabled");
   if (process.env.WHATSAPP_PROVIDER !== "meta") throw new Error("Unsupported WhatsApp provider");
+
+  let cleanPhone = String(delivery.recipientPhone || "").replace(/\D/g, "");
+  if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
+
   const response = await fetch(`https://graph.facebook.com/v20.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       messaging_product: "whatsapp",
-      to: delivery.recipientPhone,
+      to: cleanPhone,
       type: "template",
       template: {
         name: delivery.templateName,
@@ -91,10 +95,24 @@ export function startNotificationDispatcher() {
 }
 
 export async function handleWhatsAppWebhook(req, res) {
-  if (req.query["hub.mode"] === "subscribe" && req.query["hub.verify_token"] === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-    return res.status(200).send(req.query["hub.challenge"]);
+  // Support both req.query and direct URL searchParams (in case middleware stripped dot-notation keys like hub.mode)
+  const url = new URL(req.originalUrl || req.url, "http://localhost");
+  const hubMode = req.query?.["hub.mode"] || url.searchParams.get("hub.mode");
+  const hubChallenge = req.query?.["hub.challenge"] || url.searchParams.get("hub.challenge");
+  const incomingToken = String(req.query?.["hub.verify_token"] || url.searchParams.get("hub.verify_token") || "").trim();
+  const configuredToken = String(process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "").trim();
+
+  if (hubMode === "subscribe") {
+    if (configuredToken && incomingToken === configuredToken) {
+      console.log("✅ Meta WhatsApp webhook verified successfully! Challenge returned:", hubChallenge);
+      return res.status(200).send(hubChallenge);
+    }
+    console.warn("❌ WhatsApp webhook verification failed: Token mismatch", {
+      incomingToken,
+      configuredToken: configuredToken ? "(configured in .env)" : "(missing in .env)"
+    });
+    return res.sendStatus(403);
   }
-  if (req.query["hub.mode"]) return res.sendStatus(403);
 
   const changes = req.body?.entry?.flatMap((entry) => entry.changes || []) || [];
   for (const change of changes) {
