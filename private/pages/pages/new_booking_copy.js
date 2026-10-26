@@ -1,4 +1,5 @@
 async function bookingload() {
+    let userId = (typeof AppState !== 'undefined' && AppState.userId) || window.userId || '';
     let totalprice = document.querySelector('#header span');
     const testSelection = document.getElementById('test-selection');
     testSelection.innerHTML = '';
@@ -655,7 +656,7 @@ async function bookingload() {
                 formData.append('franchisee', document.getElementById('franchisee-select')?.value || "");
                 formData.append('clinicalHistory', document.getElementById('clinical-history').value);
                 formData.append('total', total);
-                formData.append('userId', userId);
+                formData.append('userId', (typeof AppState !== 'undefined' && AppState.userId) || window.userId || userId);
                 formData.append('discountamount', document.getElementById('discount-amount').value);
                 formData.append('discountunit', document.getElementById('discount-percentage').value.replace('%', ''));
                 // Get the selected test/package IDs
@@ -710,7 +711,6 @@ async function bookingload() {
                     body: formData // Pass FormData object directly
                 });
                 const data = await response.json();
-                userId = userRole;
                 if (response.ok) {
                     successMessage.style.height = '4rem';
                     setTimeout(() => {

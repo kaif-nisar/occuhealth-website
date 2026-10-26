@@ -112,8 +112,27 @@ export async function processBookingFinancials({
     const issinglelayeradmin = tenantModelType === "1layer" && isAdminActor(currentUser);
 
     // Determine bookingUser
-    let bookingUserId = bookingInput.userId || bookingInput.createdBy;
-    if (!bookingUserId || !mongoose.isValidObjectId(bookingUserId)) {
+    const cleanSubFranchiseeId = bookingInput.subFranchiseeId &&
+        String(bookingInput.subFranchiseeId).trim() !== "" &&
+        String(bookingInput.subFranchiseeId) !== "null" &&
+        String(bookingInput.subFranchiseeId) !== "undefined" &&
+        String(bookingInput.subFranchiseeId) !== "-- No Franchisee Selected --" &&
+        String(bookingInput.subFranchiseeId) !== "-- Select franchisee --"
+            ? String(bookingInput.subFranchiseeId).trim()
+            : null;
+
+    let bookingUserId;
+    if (currentUser.role === "subFranchisee") {
+        bookingUserId = (currentUser.role === "staff" && currentUser.parentUser)
+            ? currentUser.parentUser
+            : currentUser._id;
+    } else if (cleanSubFranchiseeId && mongoose.isValidObjectId(cleanSubFranchiseeId)) {
+        bookingUserId = cleanSubFranchiseeId;
+    } else if (bookingInput.userId && mongoose.isValidObjectId(bookingInput.userId)) {
+        bookingUserId = bookingInput.userId;
+    } else if (bookingInput.createdBy && mongoose.isValidObjectId(bookingInput.createdBy)) {
+        bookingUserId = bookingInput.createdBy;
+    } else {
         bookingUserId = (currentUser.role === "staff" && currentUser.parentUser)
             ? currentUser.parentUser
             : currentUser._id;

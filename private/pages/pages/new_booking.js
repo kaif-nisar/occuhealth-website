@@ -826,6 +826,7 @@ async function bookingload() {
             const option = document.createElement('option');
             option.className = 'subFranchisee-option';
             option.setAttribute('data-id', item._id);
+            option.setAttribute('value', item.fullName || item.username || '');
             option.textContent = item.fullName;
             select.appendChild(option);
         });
@@ -934,9 +935,16 @@ async function bookingload() {
         if (!select) return;
         select.addEventListener('change', async function () {
             const option = select.selectedOptions[0];
-            const franchiseeId = option.getAttribute("data-id");
+            const franchiseeId = option ? (option.getAttribute("data-id") || option.getAttribute("id")) : null;
 
-            if (!franchiseeId || franchiseeId === "-- No Franchisee Selected --") return;
+            if (!franchiseeId || franchiseeId === "-- No Franchisee Selected --" || franchiseeId === "-- Select franchisee --") {
+                window.userId = userfallback;
+                userId = userfallback;
+                fetchWalletAmount(userfallback);
+                const dataResult = await fetchAllData();
+                renderTests(dataResult.tests, dataResult.panels, dataResult.packages);
+                return;
+            }
 
             window.userId = franchiseeId;
             userId = franchiseeId;
@@ -1019,8 +1027,9 @@ async function bookingload() {
                 const subFranSelect = document.getElementById('franchisee-select');
                 if (subFranSelect) {
                     const option = subFranSelect.options[subFranSelect.selectedIndex];
+                    const selectedSubFranId = option ? (option.getAttribute('data-id') || option.getAttribute('id')) : '';
                     formData.append('subFranchisee', option?.value || '');
-                    formData.append('subFranchiseeId', option?.getAttribute('id') || '');
+                    formData.append('subFranchiseeId', selectedSubFranId && selectedSubFranId !== "-- No Franchisee Selected --" && selectedSubFranId !== "-- Select franchisee --" ? selectedSubFranId : '');
                 }
 
                 // Add doctor
@@ -1611,14 +1620,20 @@ async function bookingload() {
             const franchiseeSelect = document.getElementById('franchisee-select');
             if (franchiseeSelect) {
                 const initialSelectedOption = franchiseeSelect.selectedOptions[0];
-                const initialFranchiseeId = initialSelectedOption ? initialSelectedOption.getAttribute("data-id") : null;
-                if (initialFranchiseeId && initialFranchiseeId !== "-- No Franchisee Selected --") {
+                const initialFranchiseeId = initialSelectedOption ? (initialSelectedOption.getAttribute("data-id") || initialSelectedOption.getAttribute("id")) : null;
+                if (initialFranchiseeId && initialFranchiseeId !== "-- No Franchisee Selected --" && initialFranchiseeId !== "-- Select franchisee --") {
+                    window.userId = initialFranchiseeId;
+                    userId = initialFranchiseeId;
                     fetchWalletAmount(initialFranchiseeId);
                 } else if (userfallback) {
+                    window.userId = userfallback;
+                    userId = userfallback;
                     fetchWalletAmount(userfallback);
                 }
             } else if (userfallback) {
                 // If no franchisee select, use the logged-in user's ID
+                window.userId = userfallback;
+                userId = userfallback;
                 fetchWalletAmount(userfallback);
             }
 

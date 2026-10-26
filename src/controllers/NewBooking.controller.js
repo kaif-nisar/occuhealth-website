@@ -294,7 +294,23 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         const cleanSubFranchiseeId = (!subFranchiseeId ||
             subFranchiseeId.trim() === '' ||
             subFranchiseeId === "null" ||
-            subFranchiseeId === "undefined") ? undefined : subFranchiseeId;
+            subFranchiseeId === "undefined" ||
+            subFranchiseeId === "-- No Franchisee Selected --" ||
+            subFranchiseeId === "-- Select franchisee --") ? undefined : subFranchiseeId.trim();
+
+        // Determine the actual account whose wallet should be debited
+        let bookingUserId;
+        if (req.user.role === "subFranchisee") {
+            // A Sub-Franchisee portal caller is always booking for their own wallet
+            bookingUserId = user;
+        } else if (cleanSubFranchiseeId && mongoose.isValidObjectId(cleanSubFranchiseeId)) {
+            // A parent (Franchisee / SuperFranchisee / Admin) selected a Child Sub-Franchisee
+            bookingUserId = cleanSubFranchiseeId;
+        } else if (userId && mongoose.isValidObjectId(userId) && (isAdminActor(req.user) || String(userId) === String(user))) {
+            bookingUserId = userId;
+        } else {
+            bookingUserId = user;
+        }
 
         const cleanSavedDoctorId = (!savedDoctorId ||
             savedDoctorId === "null" ||
@@ -401,10 +417,12 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         const transactionId = `#CR${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
         // ============================================================
-        // Non-admin users: Handle wallet and commission
+        // Non-admin users or child sub-franchisee: Handle wallet and commission
         // ============================================================
-        if (!isAdminActor(req.user)) {
-            const bookingUser = await User.findById(userId).session(session);
+        const isFinancialActor = !isAdminActor(req.user) || (cleanSubFranchiseeId && mongoose.isValidObjectId(cleanSubFranchiseeId));
+
+        if (isFinancialActor) {
+            const bookingUser = await User.findById(bookingUserId).session(session);
             if (!bookingUser) {
                 await session.abortTransaction();
                 session.endSession();
@@ -625,6 +643,11 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         // ============================================================
         // Create booking object
         // ============================================================
+        const effectiveSubFranchiseeId = cleanSubFranchiseeId || (req.user.role === "subFranchisee" ? user : undefined);
+        const effectiveSubFranchisee = (subFranchisee && subFranchisee !== "-- Select franchisee --" && subFranchisee !== "-- No Franchisee Selected --")
+            ? subFranchisee
+            : (req.user.role === "subFranchisee" ? (req.user.fullName || req.user.username) : "");
+
         const object = {
             bookingId: barcodeId,
             date,
@@ -645,17 +668,17 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 barcodeId: entry.confirmBarcodeId || entry.barcodeId,
             })),
             total: parsedTotal,
-            subFranchisee: subFranchisee || "",
-            subFranchiseeId: cleanSubFranchiseeId,
+            subFranchisee: effectiveSubFranchisee,
+            subFranchiseeId: effectiveSubFranchiseeId,
             savedDoctor: savedDoctor || "",
             savedDoctorId: cleanSavedDoctorId,
             savedLab: savedLab || "",
             savedLabId: cleanSavedLabId,
             discountamount: issinglelayeradmin ? Number(discountamount) : 0,
             discountunit: issinglelayeradmin ? Number(discountunit) : 0,
-            createdBy: userId,
+            createdBy: user,
             tenantId: tenantId._id,
-            createdbyuser: createdbyuser,
+            createdbyuser: createdbyuser || req.user.username,
             // ✅ Har nayi booking ka pehla status (pehle 'On Hold' tha) — ab 'booked'
             status: "booked"
         };
@@ -879,7 +902,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
         const currentMonth = new Date().toISOString().slice(0, 7);
         if (!isAdminActor(req.user)) {
             const currentTarget = await Target.findOne({
-                franchiseeId: user,
+                franchiseeId: bookingUserId,
                 month: currentMonth,
                 tenantId: tenantId._id
             }).session(session);
@@ -888,7 +911,7 @@ const NewBookingcontroller = asyncHandler(async (req, res) => {
                 await currentTarget.updateAchieved(parsedTotal, booking._id);
             } else {
                 await Target.create([{
-                    franchiseeId: user,
+                    franchiseeId: bookingUserId,
                     fullName: req.user.fullName,
                     assignedBy: req.user._id,
                     month: currentMonth,
@@ -1680,7 +1703,18 @@ const editbookingbookedtests = async (req, res) => {
 
         // === Wallet and Ledger Logic (Non-Admin) ===
         if (req.user.role !== "admin") {
-            const bookingUser = await User.findById(userId).session(session);
+            let bookingUserId;
+            if (req.user.role === "subFranchisee") {
+                bookingUserId = userId;
+            } else if (parsedSubFranchiseeId && mongoose.isValidObjectId(parsedSubFranchiseeId)) {
+                bookingUserId = parsedSubFranchiseeId;
+            } else if (existingBooking.subFranchiseeId && mongoose.isValidObjectId(existingBooking.subFranchiseeId)) {
+                bookingUserId = existingBooking.subFranchiseeId;
+            } else {
+                bookingUserId = userId;
+            }
+
+            const bookingUser = await User.findById(bookingUserId).session(session);
             if (!bookingUser) {
                 throw new ApiError(404, "Booking user not found");
             }
@@ -4366,6 +4400,22 @@ const getBookingcontroller = async (req, res) => {
     const isModifiable = booking.status !== "cancelled" && !booking.isreportready;
     booking.canEditTests = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
     booking.canEditBarcodes = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
+
+    if (typeof booking.categorizedPDF !== "boolean") {
+        try {
+            const linkedReport = await reports.findOne(
+                { bookingId: booking.bookingId, ...(tid ? { tenantId: tid } : {}) },
+                { categorizedPDF: 1 }
+            ).lean();
+            if (linkedReport && typeof linkedReport.categorizedPDF === "boolean") {
+                booking.categorizedPDF = linkedReport.categorizedPDF;
+            } else {
+                booking.categorizedPDF = false;
+            }
+        } catch (e) {
+            booking.categorizedPDF = false;
+        }
+    }
 
     return res.status(200).json(booking);
 }

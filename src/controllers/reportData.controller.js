@@ -215,6 +215,9 @@ const SaveReportController = asyncHandler(async (req, res) => {
         if (booking?.time) {
             bookingUpdateFields.time = booking.time;
         }
+        if (typeof categorized === "boolean") {
+            bookingUpdateFields.categorizedPDF = categorized;
+        }
 
         if (Object.keys(bookingUpdateFields).length > 0) {
             await newBooking.findOneAndUpdate(
@@ -254,6 +257,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
 
     const responsePayload = savedREport.toObject();
     responsePayload.bookingStatus = bookingStatus;
+    responsePayload.categorizedPDF = savedREport.categorizedPDF;
 
     return res.status(200).json(responsePayload);
 });
@@ -407,6 +411,14 @@ const getReportController = asyncHandler(async (req, res) => {
         }).lean();
     }
 
+    // 2b. If searchKey is a booking ObjectId, resolve bookingId from newBooking
+    if (!Report && tenantId && mongoose.Types.ObjectId.isValid(searchKey)) {
+        const bDoc = await newBooking.findOne({ _id: searchKey, tenantId }).select("bookingId").lean();
+        if (bDoc?.bookingId) {
+            Report = await reports.findOne({ bookingId: bDoc.bookingId, tenantId }).lean();
+        }
+    }
+
     // 3. Fallback: bookingId ke basis par bina tenantId filter dhundho (for admin, staff, or cross-tenant/sub-franchisee bookings)
     if (!Report) {
         Report = await reports.findOne({
@@ -421,6 +433,14 @@ const getReportController = asyncHandler(async (req, res) => {
         }).lean();
     }
 
+    // 4b. Fallback: newBooking ObjectId lookup without tenant filter
+    if (!Report && mongoose.Types.ObjectId.isValid(searchKey)) {
+        const bDoc = await newBooking.findById(searchKey).select("bookingId").lean();
+        if (bDoc?.bookingId) {
+            Report = await reports.findOne({ bookingId: bDoc.bookingId }).lean();
+        }
+    }
+
     // 5. Fallback: Case-insensitive bookingId match
     if (!Report) {
         Report = await reports.findOne({
@@ -428,8 +448,26 @@ const getReportController = asyncHandler(async (req, res) => {
         }).lean();
     }
 
-    // Agar Report nahi mili to error throw karo
+    // Fallback: If report not found yet, check if newBooking exists to return its categorizedPDF and tableData
     if (!Report) {
+        const existingBooking = await newBooking.findOne({
+            $or: [
+                { bookingId: searchKey },
+                ...(mongoose.Types.ObjectId.isValid(searchKey) ? [{ _id: searchKey }] : [])
+            ],
+            ...(tenantId ? { tenantId } : {})
+        }).select("bookingId categorizedPDF tableData testIds").lean();
+
+        if (existingBooking) {
+            return res.status(200).json({
+                bookingId: existingBooking.bookingId,
+                categorizedPDF: Boolean(existingBooking.categorizedPDF),
+                isDraft: true,
+                bookingTableData: existingBooking.tableData || [],
+                printSettings: {}
+            });
+        }
+
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
@@ -502,11 +540,53 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
     });
 });
 
+const updateReportCategorizedPdf = asyncHandler(async (req, res) => {
+    const { bookingId, value1, categorized } = req.body;
+    const searchKey = String(bookingId || value1 || "").trim();
+    if (!searchKey) {
+        throw new ApiError(400, "Booking ID is required");
+    }
+
+    const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
+    const isCategorized = Boolean(categorized);
+
+    const bookingFilter = {
+        $or: [
+            { bookingId: searchKey },
+            ...(mongoose.Types.ObjectId.isValid(searchKey) ? [{ _id: searchKey }] : [])
+        ],
+        ...(tenantId ? { tenantId } : {})
+    };
+
+    const bDoc = await newBooking.findOneAndUpdate(
+        bookingFilter,
+        { categorizedPDF: isCategorized },
+        { new: true }
+    );
+
+    const actualBookingId = bDoc?.bookingId || searchKey;
+
+    await reports.updateMany(
+        {
+            $or: [
+                { bookingId: actualBookingId },
+                { bookingId: searchKey },
+                ...(mongoose.Types.ObjectId.isValid(searchKey) ? [{ _id: searchKey }] : [])
+            ],
+            ...(tenantId ? { tenantId } : {})
+        },
+        { categorizedPDF: isCategorized }
+    );
+
+    return res.status(200).json(new ApiResponse(200, { categorizedPDF: isCategorized }, "Updated successfully"));
+});
+
 export {
     SaveReportController,
     getReportController,
     getReportByBookingId,
     editReportController,
     editReportsignofffieldController,
-    getReportControlleruser
+    getReportControlleruser,
+    updateReportCategorizedPdf
 }

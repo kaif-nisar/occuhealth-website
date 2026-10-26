@@ -63,47 +63,101 @@ async function loadfunction() {
     const patient = { age: booking.year ?? "", gender: booking.gender ?? "" };
     // For PDF: print categories on separate page only if enabled in printSettings or selected by user
     const check1Elem = document.getElementById('check1');
-    if (check1Elem) {
-        // 1. Initial default from localStorage preference
+    const targetBookingId = booking.bookingId || booking._id || urlBookingId;
+    let initialCategorized = null;
+
+    // A. Check if booking object already has categorizedPDF flag (e.g. from getbooking or prior save)
+    if (typeof booking?.categorizedPDF === 'boolean') {
+        initialCategorized = booking.categorizedPDF;
+    }
+
+    // B. Check per-booking localStorage preference
+    if (initialCategorized === null && targetBookingId) {
+        const perBookingPref = localStorage.getItem(`printCategories_${targetBookingId}`);
+        if (perBookingPref !== null) {
+            initialCategorized = perBookingPref === "true";
+        }
+    }
+
+    // C. Fetch existing report from server (AWAITED to avoid race condition with renderData)
+    if (targetBookingId) {
+        try {
+            const repRes = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value1: targetBookingId })
+            });
+            if (repRes.ok) {
+                const repData = await repRes.json();
+                if (repData && typeof repData.categorizedPDF === 'boolean') {
+                    initialCategorized = repData.categorizedPDF;
+                    booking.categorizedPDF = repData.categorizedPDF;
+                    try {
+                        localStorage.setItem("booking", JSON.stringify(booking));
+                        localStorage.setItem(`printCategories_${targetBookingId}`, String(repData.categorizedPDF));
+                        localStorage.setItem("printCategoriesSeparatePage", String(repData.categorizedPDF));
+                    } catch (e) {}
+                }
+            }
+        } catch (err) {
+            console.warn("Could not check existing report categorizedPDF setting:", err);
+        }
+    }
+
+    // D. Global localStorage / printSettings fallback if never set for this booking
+    if (initialCategorized === null) {
         const storedPref = localStorage.getItem("printCategoriesSeparatePage");
         if (storedPref !== null) {
-            check1Elem.checked = storedPref === "true";
+            initialCategorized = storedPref === "true";
         } else {
-            check1Elem.checked = Boolean(printSettings?.printCategoriesSeparatePage);
+            initialCategorized = Boolean(printSettings?.printCategoriesSeparatePage);
         }
+    }
 
-        // 2. Fetch existing report from server to respect previously saved setting for this booking
-        (async () => {
-            try {
-                const bId = booking.bookingId || booking._id;
-                if (bId) {
-                    const repRes = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ value1: bId })
-                    });
-                    if (repRes.ok) {
-                        const repData = await repRes.json();
-                        if (repData && typeof repData.categorizedPDF === 'boolean') {
-                            check1Elem.checked = repData.categorizedPDF;
-                            localStorage.setItem("printCategoriesSeparatePage", String(repData.categorizedPDF));
-                            updateCategoryPageBreakBadges(repData.categorizedPDF);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn("Could not check existing report categorizedPDF setting:", err);
+    if (check1Elem) {
+        check1Elem.checked = Boolean(initialCategorized);
+        const parentLabel = check1Elem.closest('.checkBox');
+        if (parentLabel) {
+            parentLabel.classList.toggle('active-pref', check1Elem.checked);
+        }
+        updateCategoryPageBreakBadges(check1Elem.checked);
+
+        check1Elem.addEventListener('change', async function () {
+            const isChecked = this.checked;
+            const bId = booking?.bookingId || booking?._id || urlBookingId;
+            if (bId) {
+                localStorage.setItem(`printCategories_${bId}`, String(isChecked));
             }
-        })();
-
-        check1Elem.addEventListener('change', function () {
-            localStorage.setItem("printCategoriesSeparatePage", String(this.checked));
+            localStorage.setItem("printCategoriesSeparatePage", String(isChecked));
             try {
                 const ps = JSON.parse(localStorage.getItem("printSettings") || "{}");
-                ps.printCategoriesSeparatePage = this.checked;
+                ps.printCategoriesSeparatePage = isChecked;
                 localStorage.setItem("printSettings", JSON.stringify(ps));
             } catch (e) {}
-            updateCategoryPageBreakBadges(this.checked);
+            if (booking) {
+                booking.categorizedPDF = isChecked;
+                try {
+                    localStorage.setItem("booking", JSON.stringify(booking));
+                } catch (e) {}
+            }
+            const parent = this.closest('.checkBox');
+            if (parent) {
+                parent.classList.toggle('active-pref', isChecked);
+            }
+            updateCategoryPageBreakBadges(isChecked);
+
+            // Persist immediately to server so the setting is never lost on refresh
+            if (bId) {
+                try {
+                    await fetch(`${BASE_URL}/api/v1/user/updateReportCategorizedPdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookingId: bId, categorized: isChecked })
+                    });
+                } catch (err) {
+                    console.warn("Direct categorized update error:", err);
+                }
+            }
         });
     }
 
@@ -125,6 +179,12 @@ async function loadfunction() {
             container.classList.add("categorized-page-breaks");
         } else {
             container.classList.remove("categorized-page-breaks");
+        }
+
+        const c1 = document.getElementById('check1');
+        if (c1) {
+            const parent = c1.closest('.checkBox');
+            if (parent) parent.classList.toggle('active-pref', Boolean(isEnabled));
         }
 
         const groupedSections = container.querySelectorAll(".grouped-section");
@@ -3255,6 +3315,16 @@ async function loadfunction() {
             if (!response.ok) {
                 throw new Error(result?.message || result?.details || result?.error || "Failed to save report data");
             }
+
+            // Sync booking with categorizedPDF and persist locally
+            booking.categorizedPDF = categorized;
+            if (effectiveBookingId) {
+                localStorage.setItem(`printCategories_${effectiveBookingId}`, String(categorized));
+            }
+            localStorage.setItem("printCategoriesSeparatePage", String(categorized));
+            try {
+                localStorage.setItem("booking", JSON.stringify(booking));
+            } catch (e) {}
 
             /* Final save must not mark the booking as completed/partial.
                Booking completion is gated to the report-format sign-off flow.

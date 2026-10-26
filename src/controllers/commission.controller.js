@@ -406,15 +406,32 @@ const assignSingleTestPrice = asyncHandler(async (req, res) => {
 //   }
 // };
 
+const resolveCatalogUserId = async (req, requestedUserId) => {
+  const role = req.user?.role;
+  const parentRole = req.user?.parentRole;
+  const actorId = role === "staff" ? req.user.parentUser : req.user?._id;
+
+  if (role === "admin" || (role === "staff" && parentRole === "admin")) {
+    return requestedUserId || String(actorId);
+  }
+
+  if (requestedUserId && Types.ObjectId.isValid(requestedUserId) && String(requestedUserId) !== String(actorId)) {
+    const isChild = await User.exists({
+      _id: requestedUserId,
+      $or: [{ parentUser: actorId }, { createdBy: actorId }]
+    });
+    if (isChild) {
+      return String(requestedUserId);
+    }
+  }
+
+  return String(actorId);
+};
+
 const getAssignedTests = async (req, res) => {
   try {
     const { userId: requestedUserId, oldId } = req.query;
-    const role = req.user.role;
-    const parentRole = req.user.parentRole;
-    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
-    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
-      ? requestedUserId
-      : String(actorId);
+    const userId = await resolveCatalogUserId(req, requestedUserId);
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
@@ -590,12 +607,7 @@ const getAssignedTests = async (req, res) => {
 const getAssignedPanels = async (req, res) => {
   try {
     const { userId: requestedUserId, oldId } = req.query;
-    const role = req.user.role;
-    const parentRole = req.user.parentRole;
-    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
-    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
-      ? requestedUserId
-      : String(actorId);
+    const userId = await resolveCatalogUserId(req, requestedUserId);
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
@@ -775,12 +787,7 @@ const getAssignedPanels = async (req, res) => {
 const getAssignedPackages = async (req, res) => {
   try {
     const { userId: requestedUserId, oldId } = req.query;
-    const role = req.user.role;
-    const parentRole = req.user.parentRole;
-    const actorId = role === "staff" ? req.user.parentUser : req.user._id;
-    const userId = (role === "admin" || (role === "staff" && parentRole === "admin"))
-      ? requestedUserId
-      : String(actorId);
+    const userId = await resolveCatalogUserId(req, requestedUserId);
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });

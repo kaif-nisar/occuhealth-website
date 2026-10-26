@@ -310,7 +310,8 @@ import {
 } from "../controllers/bookingAttachment.controller.js";
 import {
   SaveReportController, getReportController,
-  editReportsignofffieldController, getReportControlleruser
+  editReportsignofffieldController, getReportControlleruser,
+  updateReportCategorizedPdf
 } from "../controllers/reportData.controller.js"
 import { getAllTemplates, uploadImage, deleteImage } from "../controllers/template.controller.js"
 import { qrcodecontroller } from "../controllers/qrcode.controller.js"
@@ -1002,6 +1003,7 @@ router.route("/edit-defaultresults").post(verifySuperAdmin, editdefaultresult);
 
 // // recieving report-data
 router.route("/saveReportData").post(verifyJWT, SaveReportController);
+router.route("/updateReportCategorizedPdf").post(verifyJWT, updateReportCategorizedPdf);
 
 // // edit report-data
 // router.route("/editReportData").post(editReportController);
