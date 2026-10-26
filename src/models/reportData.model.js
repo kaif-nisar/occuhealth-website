@@ -84,7 +84,7 @@ const reportData = new Schema({
     },
     patientPhone: {
         type: String,
-        required: true
+        default: ""
     },
     doctorName: {
         type: String
@@ -103,7 +103,7 @@ const reportData = new Schema({
     },
     total: {
         type: Number,
-        required: true
+        default: 0
     },
     subFranchisee: {
         type: String
@@ -134,6 +134,7 @@ const reportData = new Schema({
         type: String
     },
     CategoryAndTest: [categoryAndTestSchema],
+    registeredOn: String,
     collectedOn: String,
     receivedOn: String,
     reportedOn: String,

@@ -100,7 +100,22 @@
         return `${dt}-${m}-${y} ${hrs}:${mns} ${amPm}`;
     }
 
+    function toLocalISOString(d) {
+        if (!d || isNaN(d.getTime())) return "";
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const mn = String(d.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${dt}T${h}:${mn}`;
+    }
+
     function defaultdateandtime() {
+        const regElem = document.getElementById('registeredOn');
+        if (regElem) {
+            const regDate = parseSafeDate(booking.date, booking.time);
+            regElem.value = report.registeredOn || (regDate ? toLocalISOString(regDate) : '');
+        }
         document.getElementById('collectedOn').value = report.collectedOn || '';
         document.getElementById('receivedOn').value = report.receivedOn || '';
         document.getElementById('reportedOn').value = report.reportedOn || '';
@@ -123,8 +138,8 @@
             </div>
             <div class="right">
                 <div>
-                    <strong>Registered on:</strong>
-                    <span style = "text-align: center;"> ${formatDisplayDateTime(regDate)}</span>
+                    <strong for="registeredOn">Registered On:</strong>
+                    <input type="datetime-local" id="registeredOn" name="registeredOn">
                 </div>
                 <div>
                      <strong for="collectedOn">Collected On:</strong>
@@ -666,38 +681,3 @@ function populateRows(defaultresults) {
         formContainer.appendChild(rowContainer);
     });
 }
-
-function addRow() {
-    const formContainer = document.getElementById('form-container');
-    const newRow = formContainer.firstElementChild.cloneNode(true);
-
-    // Clear values for the new row
-    newRow.querySelector('.min-age').value = "";
-    newRow.querySelector('.max-age').value = "";
-    newRow.querySelector('.lower-value').value = "";
-    newRow.querySelector('.upper-value').value = "";
-    newRow.querySelector('.display-report').textContent = "-";
-
-    formContainer.appendChild(newRow);
-}
-
-function deleteRow(element) {
-    const formContainer = document.getElementById('form-container');
-    if (formContainer.childElementCount > 1) {
-        element.parentElement.remove();
-    }
-}
-
-function updateReportDisplay(element) {
-    const rowContainer = element.parentElement.parentElement;
-    const lowerValue = rowContainer.querySelector('.lower-value').value;
-    const upperValue = rowContainer.querySelector('.upper-value').value;
-    const displayReport = rowContainer.querySelector('.display-report');
-
-    if (lowerValue && upperValue) {
-        displayReport.textContent = `${lowerValue} - ${upperValue}`;
-    } else {
-        displayReport.textContent = "-";
-    }
-}
-

@@ -89,21 +89,26 @@ const getReportByBookingId = async (req, res) => {
 };
 
 const SaveReportController = asyncHandler(async (req, res) => {
-    const { reportData, reportMeta, reg_id, booking, collectedOn, receivedOn, reportedOn, categorized,
+    const { reportData, reportMeta, reg_id, booking, registeredOn, collectedOn, receivedOn, reportedOn, categorized,
         moredetails, uniquetestArray, isdocumented, saveMode, bookedItems } = req.body;
 
-    const tenantId = req.user.tenantId?._id || req.user.tenantId;
+    const tenantId = req.user?.tenantId?._id || req.user?.tenantId;
 
+    const resolvedBookingId = String(booking?.bookingId || reg_id || booking?._id || "").trim();
 
-    if (!reportData || !reg_id || !booking) {
-        throw new ApiError(500, "please try again after sometime, and fill all test values")
+    if (!reportData || !resolvedBookingId || !booking) {
+        throw new ApiError(400, "Please try again after sometime, and fill all test values");
     }
 
     const existingBooking = await newBooking.findOne({
-        bookingId: booking.bookingId,
+        $or: [
+            { bookingId: resolvedBookingId },
+            ...(mongoose.Types.ObjectId.isValid(resolvedBookingId) ? [{ _id: resolvedBookingId }] : [])
+        ],
         tenantId
-    }).select("status isreportready tableData testIds");
+    }).select("status isreportready tableData testIds bookingId");
 
+    const actualBookingId = existingBooking?.bookingId || resolvedBookingId;
     const currentBookingStatus = existingBooking?.status || booking.status || "pending";
     let bookingStatus = currentBookingStatus;
     const sampleDetails = buildUniqueSampleDetails(reportData);
@@ -121,8 +126,9 @@ const SaveReportController = asyncHandler(async (req, res) => {
 
     const updateFields = {
         CategoryAndTest: reportData,
-        reg_id,
+        reg_id: actualBookingId,
         ...booking,
+        bookingId: actualBookingId,
         status: bookingStatus,
         collectedOn,
         receivedOn,
@@ -138,13 +144,47 @@ const SaveReportController = asyncHandler(async (req, res) => {
         }
     };
 
+    if (registeredOn) {
+        updateFields.registeredOn = registeredOn;
+    }
+    if (booking?.date) {
+        updateFields.date = new Date(booking.date);
+    }
+    if (booking?.time) {
+        updateFields.time = booking.time;
+    }
+
     if (bookedItems) {
         updateFields.bookedItems = bookedItems;
     }
 
+    // Strip immutable and internal fields that cause MongoServerError
+    delete updateFields._id;
+    delete updateFields.__v;
+    delete updateFields.createdAt;
+    delete updateFields.updatedAt;
+    delete updateFields.tableData;
+
+    delete updateFields.tenantId;
+    updateFields.tenantId = tenantId;
+
+    if (req.user?._id && !updateFields.createdBy) {
+        updateFields.createdBy = req.user._id;
+    }
+
+    if (updateFields.total === undefined || updateFields.total === null || isNaN(Number(updateFields.total))) {
+        updateFields.total = 0;
+    } else {
+        updateFields.total = Number(updateFields.total);
+    }
+
+    if (updateFields.patientPhone === undefined || updateFields.patientPhone === null) {
+        updateFields.patientPhone = "";
+    }
+
     const savedREport = await reports.findOneAndUpdate(
         {
-            bookingId: booking.bookingId,
+            bookingId: actualBookingId,
             tenantId: tenantId,
         },
         updateFields,
@@ -152,87 +192,111 @@ const SaveReportController = asyncHandler(async (req, res) => {
             upsert: true,
             new: true
         }
-    )
+    );
 
     if (!savedREport) {
         throw new ApiError(400, "please try again after sometime, report not saved");
     }
 
     if (saveMode === "final") {
-        const customizationIdentity = [{ bookingId: booking.bookingId }];
+        const customizationIdentity = [{ bookingId: actualBookingId }];
         if (savedREport._id) customizationIdentity.push({ reportId: savedREport._id });
         await customization.deleteMany({ tenantId, $or: customizationIdentity });
     }
 
-    if (existingBooking && bookingStatus !== currentBookingStatus) {
-        await newBooking.findOneAndUpdate(
-            {
-                bookingId: booking.bookingId,
-                tenantId
-            },
-            { status: bookingStatus },
-            { new: true }
-        );
+    if (existingBooking) {
+        const bookingUpdateFields = {};
+        if (bookingStatus !== currentBookingStatus) {
+            bookingUpdateFields.status = bookingStatus;
+        }
+        if (booking?.date) {
+            bookingUpdateFields.date = new Date(booking.date);
+        }
+        if (booking?.time) {
+            bookingUpdateFields.time = booking.time;
+        }
+
+        if (Object.keys(bookingUpdateFields).length > 0) {
+            await newBooking.findOneAndUpdate(
+                {
+                    bookingId: actualBookingId,
+                    tenantId
+                },
+                bookingUpdateFields,
+                { new: true }
+            );
+        }
     }
 
-      // अगर staff का parentUser है तो उसे भी notify करें
-        if (req.user.role === 'staff') {
-            console.log("Staff report update activity log");
-            await User.findByIdAndUpdate(req.user._id, {
-                $push: {
-                    activities: {
-                        activityType: "other",
-                        details: {
-                            staffId: req.user._id,
-                            staffName: req.user.fullName,
-                            action: `${req.user.fullName} has updated a report.`,
-                            reports: savedREport.bookingId,
-                            patientName: savedREport.patientName
-                        },
-                        reference: {
-                            model: "Report",
-                            id: savedREport._id
-                        },
-                        timestamp: new Date()
-                    }
+    // अगर staff का parentUser है तो उसे भी notify करें
+    if (req.user?.role === 'staff') {
+        console.log("Staff report update activity log");
+        await User.findByIdAndUpdate(req.user._id, {
+            $push: {
+                activities: {
+                    activityType: "other",
+                    details: {
+                        staffId: req.user._id,
+                        staffName: req.user.fullName,
+                        action: `${req.user.fullName} has updated a report.`,
+                        reports: savedREport.bookingId,
+                        patientName: savedREport.patientName
+                    },
+                    reference: {
+                        model: "Report",
+                        id: savedREport._id
+                    },
+                    timestamp: new Date()
                 }
-            });
-        }
+            }
+        });
+    }
 
     const responsePayload = savedREport.toObject();
     responsePayload.bookingStatus = bookingStatus;
 
     return res.status(200).json(responsePayload);
-})
+});
 
 const editReportController = asyncHandler(async (req, res) => {
     const { reportData, reg_id, booking, signedBy, collectedOn, receivedOn, reportedOn } = req.body;
 
-    if (!reportData || !reg_id || !booking || !signedBy) {
-        throw new ApiError(500, "please try again after sometime, and fill all test values")
+    const resolvedBookingId = String(booking?.bookingId || reg_id || booking?._id || "").trim();
+
+    if (!reportData || !resolvedBookingId || !booking || !signedBy) {
+        throw new ApiError(400, "please try again after sometime, and fill all test values");
     }
 
+    const updateFields = {
+        CategoryAndTest: reportData,
+        reg_id: resolvedBookingId,
+        ...booking,
+        bookingId: resolvedBookingId,
+        signedBy,
+        collectedOn,
+        receivedOn,
+        reportedOn,
+        sampleDetails: buildUniqueSampleDetails(reportData)
+    };
+
+    delete updateFields._id;
+    delete updateFields.__v;
+    delete updateFields.createdAt;
+    delete updateFields.updatedAt;
+    delete updateFields.tableData;
+
     const savedREport = await reports.findOneAndUpdate(
-        { bookingId: booking.bookingId },
-        {
-            CategoryAndTest: reportData,
-            reg_id,
-            ...booking,
-            signedBy,
-            collectedOn,
-            receivedOn,
-            reportedOn,
-            sampleDetails: buildUniqueSampleDetails(reportData)
-        },
+        { bookingId: resolvedBookingId },
+        updateFields,
         { new: true }
-    )
+    );
 
     if (!savedREport) {
         throw new ApiError(400, "please try again after sometime, report not saved");
     }
 
     return res.status(200).json(savedREport);
-})
+});
 
 const editReportsignofffieldController = asyncHandler(async (req, res) => {
     const { value1, signoff } = req.body;

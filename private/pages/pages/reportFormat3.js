@@ -296,12 +296,8 @@
                     throw new Error(errMsg);
                 }
 
-                if (popupModal.style.display === 'block') return;
-
                 popupModal.style.display = 'block';
 
-                loader.style.display = 'none';
-                e.target.disable = false;
                 // Create a Blob from the response
                 const pdfBlob = await response.blob();
 
@@ -313,11 +309,15 @@
                 if (iframe) {
                     iframe.src = pdfUrl;
                 } else {
-                    console.error('Iframe with ID "pdf-preview" not found!');
+                    console.error('Iframe with ID "pdfFrame" not found!');
                 }
             } catch (error) {
-                alert('Error generating PDF. Please try again.');
+                console.error('Error generating PDF:', error);
+                alert(error?.message || 'Error generating PDF. Please try again.');
                 popupModal.style.display = 'none';
+            } finally {
+                if (loader) loader.style.display = 'none';
+                if (e.target) e.target.disabled = false;
             }
         });
 

@@ -673,8 +673,10 @@ app.use('*', (req, res) => {
 app.use((error, req, res, next) => {
     console.error('💥 Global Error Handler:', error);
 
+    const errorMessage = error.message || 'Something went wrong!';
     const errorResponse = {
-        error: 'Something went wrong!'
+        error: errorMessage,
+        message: errorMessage
     };
 
     if (process.env.NODE_ENV !== 'production') {
@@ -682,7 +684,7 @@ app.use((error, req, res, next) => {
         errorResponse.stack = error.stack;
     }
 
-    res.status(error.status || 500).json(errorResponse);
+    res.status(error.statusCode || error.status || 500).json(errorResponse);
 });
 
 // ========================

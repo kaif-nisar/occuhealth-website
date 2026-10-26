@@ -2005,7 +2005,6 @@
                     throw new Error(errMsg);
                 }
 
-                if (popupModal.style.display === 'block') return;
                 popupModal.style.display = 'block';
                 loader.style.display = 'none';
 

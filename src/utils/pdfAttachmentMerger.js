@@ -248,9 +248,10 @@ const appendPdfBuffer = async (targetDoc, pdfBuffer) => {
 };
 
 const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId, reportId }) => {
-    if (!pdfBuffer?.length) {
-        return pdfBuffer;
-    }
+    try {
+        if (!pdfBuffer?.length) {
+            return pdfBuffer;
+        }
 
     const { resolvedTenantId, resolvedBookingId } = await resolveAttachmentContext({
         tenantId,
@@ -328,7 +329,11 @@ const mergePdfWithBookingAttachments = async ({ pdfBuffer, tenantId, bookingId, 
         }
     }
 
-    return Buffer.from(await mergedDoc.save());
+        return Buffer.from(await mergedDoc.save());
+    } catch (error) {
+        console.error("[pdfAttachmentMerger] Unexpected error merging attachments, returning original PDF:", error.message || error);
+        return pdfBuffer;
+    }
 };
 
 export {

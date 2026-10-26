@@ -49,6 +49,10 @@ let sharedBrowser = null;
 let sharedBrowserPromise = null;
 let browserShutdownHooksRegistered = false;
 
+const getTenantIdFromUser = (user) => {
+    return user?.tenantId?._id || user?.tenantId || user?.createdBy?.tenantId?._id || user?.createdBy?.tenantId || null;
+};
+
 const getPuppeteerLaunchOptions = async () => {
     // Prefer a configured/system browser on VPS hosts. The @sparticuz/chromium
     // package currently resolves an x86-64 binary in this deployment, while
@@ -481,7 +485,6 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
 
     try {
         const inputPdfDoc = await PDFDocument.load(inputPdfBuffer);
-
         const outputPdfDoc = await PDFDocument.create();
 
         let backgroundImage = null;
@@ -490,32 +493,39 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
             // Fetch and embed the background image if URL is provided
             const fetchImageAsBase64FromUrl = async (url) => {
                 try {
-                    const response = await fetch(url);
-                    const buffer = await response.buffer();
-                    return buffer.toString('base64');
+                    if (!url || typeof url !== 'string') return null;
+                    const trimmed = url.trim();
+                    if (trimmed.startsWith('data:image/')) {
+                        const commaIndex = trimmed.indexOf(',');
+                        return commaIndex !== -1 ? trimmed.slice(commaIndex + 1) : null;
+                    }
+                    const response = await fetch(trimmed);
+                    if (!response.ok) {
+                        console.error(`Failed to fetch image from URL: ${trimmed}, status: ${response.status}`);
+                        return null;
+                    }
+                    const arrayBuffer = await response.arrayBuffer();
+                    return Buffer.from(arrayBuffer).toString('base64');
                 } catch (error) {
-                    console.error('Error fetching background image:', error);
+                    console.error('Error fetching background image:', error.message || error);
                     return null;
                 }
             };
 
             const backgroundImageBase64 = await fetchImageAsBase64FromUrl(backgroundImageUrl);
-            if (!backgroundImageBase64) {
-            } else {
+            if (backgroundImageBase64) {
+                const imgBuffer = Buffer.from(backgroundImageBase64, 'base64');
                 try {
-                    backgroundImage = await outputPdfDoc.embedJpg(Buffer.from(backgroundImageBase64, 'base64'));
+                    backgroundImage = await outputPdfDoc.embedJpg(imgBuffer);
                 } catch (err) {
-                    console.warn('Failed to embed JPG image, trying PNG');
                     try {
-                        backgroundImage = await outputPdfDoc.embedPng(Buffer.from(backgroundImageBase64, 'base64'));
+                        backgroundImage = await outputPdfDoc.embedPng(imgBuffer);
                     } catch (pngError) {
-                        console.error('Failed to embed PNG image:', pngError);
+                        console.error('Failed to embed PNG/JPG background image:', pngError.message || pngError);
                         backgroundImage = null;
                     }
                 }
             }
-        } else {
-            // console.log('No background image URL provided, proceeding with blank background');
         }
 
         const pages = inputPdfDoc.getPages();
@@ -539,7 +549,7 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
             const [copiedPage] = await outputPdfDoc.embedPages([inputPdfDoc.getPages()[i]]);
             if (!copiedPage) {
                 console.error(`Failed to copy page at index ${i}`);
-                return null;
+                return inputPdfBuffer;
             }
 
             newPage.drawPage(copiedPage, {
@@ -553,8 +563,8 @@ const addBackgroundToPdf = async (inputPdfBuffer, backgroundImageUrl) => {
         const pdfBytes = await outputPdfDoc.save();
         return pdfBytes;
     } catch (error) {
-        console.error('Error adding background to PDF:', error);
-        return null;
+        console.error('Error adding background to PDF, falling back to input buffer:', error.message || error);
+        return inputPdfBuffer;
     }
 };
 
@@ -828,6 +838,32 @@ const sanitizePdfHtmlContent = (html) => {
         console.warn('Could not sanitize PDF HTML content:', err);
         return html;
     }
+};
+
+const buildHeaderFromReport = (reportData) => {
+    if (!reportData) return '';
+    const patientName = escapeHtmlForPdf(reportData.patientName || '');
+    const ageSex = escapeHtmlForPdf(`${reportData.year || ''} / ${reportData.gender || ''}`);
+    const doctorName = escapeHtmlForPdf(reportData.doctorName || 'Self');
+    const bookingId = escapeHtmlForPdf(reportData.bookingId || '');
+    const labName = escapeHtmlForPdf(reportData.labName || '');
+    const dateStr = reportData.createdAt ? new Date(reportData.createdAt).toLocaleDateString('en-GB') : '';
+
+    return `
+    <div class="report-details" style="width: 100%; display: flex; justify-content: center; align-items: center;">
+        <div class="report-details-innerDiv2" style="width: 100%; display: flex; justify-content: space-between; font-size: 11px; padding: 6px 12px; border-bottom: 1px solid #333;">
+            <div style="flex: 1;">
+                <div><strong>Patient Name:</strong> ${patientName}</div>
+                <div><strong>Age / Sex:</strong> ${ageSex}</div>
+                <div><strong>Referred By:</strong> ${doctorName}</div>
+                ${labName ? `<div><strong>Lab Name:</strong> ${labName}</div>` : ''}
+            </div>
+            <div style="text-align: right;">
+                <div><strong>Booking ID:</strong> ${bookingId}</div>
+                ${dateStr ? `<div><strong>Date:</strong> ${dateStr}</div>` : ''}
+            </div>
+        </div>
+    </div>`;
 };
 
 const buildHtmlFromReport = (reportData) => {
@@ -1624,7 +1660,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             return renderedPdf;
         });
 
-        const finalPdfBuffer = await addBackgroundToPdf(pdfBuffer, backgroundImageUrl);
+        const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
 
         if (!finalPdfBuffer) {
             console.error('Final PDF buffer is null');
@@ -2093,7 +2129,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             return renderedPdf;
         });
 
-        const finalPdfBuffer = await addBackgroundToPdf(pdfBuffer, backgroundImageUrl);
+        const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
 
         if (!finalPdfBuffer) {
             console.error('Final PDF buffer is null');
@@ -2275,20 +2311,20 @@ const getpdfcontroller = async (req, res) => {
     })();
 
     let pdfformat;
-    const tid = req.user.tenantId._id;
+    const tid = getTenantIdFromUser(req.user);
     let userId;
-    if (req.user.role === 'staff') {
-        userId = req.user.parentUser
+    if (req.user?.role === 'staff') {
+        userId = req.user.parentUser;
     } else {
-        userId = req.user._id
+        userId = req.user?._id;
     }
 
-    if (req.user.role === "admin") {
+    if (req.user?.role === "admin") {
         pdfformat = req.user.pdfFormat;
-    } else if (req.user.role === "staff") {
+    } else if (req.user?.role === "staff") {
         pdfformat = req.user.createdBy?.pdfFormat || req.user.pdfFormat;
     } else {
-        pdfformat = req.user.pdfFormat || req.user.createdBy?.pdfFormat;
+        pdfformat = req.user?.pdfFormat || req.user?.createdBy?.pdfFormat;
     }
 
     try {
@@ -2316,16 +2352,23 @@ const getpdfcontroller = async (req, res) => {
             (Array.isArray(filteredPackages) && filteredPackages.length > 0)
         );
 
-        // Fallback reconstruction if htmlContent is empty or lacks table structure
-        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) {
-            const reportDoc = await reports.findOne(
+        let reportDoc = null;
+        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table') || !hasPdfMarkup(resolvedHeader)) {
+            reportDoc = await reports.findOne(
                 pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)
                     ? { _id: pdfContext.resolvedReportId }
                     : { bookingId: pdfContext.resolvedBookingId || bookingId }
             ).lean();
-            if (reportDoc && reportDoc.CategoryAndTest && reportDoc.CategoryAndTest.length > 0) {
-                resolvedHtmlContent = buildHtmlFromReport(reportDoc);
-            }
+        }
+
+        // Fallback reconstruction if htmlContent is empty or lacks table structure
+        if ((!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) && reportDoc?.CategoryAndTest?.length > 0) {
+            resolvedHtmlContent = buildHtmlFromReport(reportDoc);
+        }
+
+        // Fallback reconstruction if header is empty
+        if (!hasPdfMarkup(resolvedHeader) && reportDoc) {
+            resolvedHeader = buildHeaderFromReport(reportDoc);
         }
 
         if (isSelectiveRequest) {
@@ -2482,7 +2525,7 @@ const getpdfcontroller = async (req, res) => {
             };
         }
 
-        if (req.user.tenantId.modelType === "1layer") {
+        if (req.user?.tenantId?.modelType === "1layer") {
             mergedValues.showInvest = false;
             mergedValues.layerone = true;
         }
@@ -2640,7 +2683,7 @@ const mergePdfsController = async (req, res) => {
         for (let reportId of reportIds) {
             try {
                 // Fetch customization for this report
-                const tid = req.user.tenantId._id;
+                const tid = getTenantIdFromUser(req.user);
                 const gettingcustomization = await customization.findOne({ reportId, tenantId: tid });
                 const tenantDefaultSettings = await defaultpdfsetting.findOne({ tenantId: tid }).lean();
 
@@ -2737,14 +2780,14 @@ const mergePdfsController = async (req, res) => {
 async function generateSinglePdfBuffer(mergedValues, user) {
 
     let pdfformat;
-    if (user.role === "admin") {
+    if (user?.role === "admin") {
         pdfformat = user.pdfFormat;
     } else {
-        pdfformat = user.createdBy.pdfFormat;
+        pdfformat = user?.createdBy?.pdfFormat || user?.pdfFormat;
     }
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
-    const layerone = user.tenantId.modelType === "1layer";
+    const layerone = user?.tenantId?.modelType === "1layer";
 
     if (layerone) {
         mergedValues.showInvest = false;
@@ -3110,7 +3153,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     });
 
     // Add background if needed
-    const finalPdfBuffer = await addBackgroundToPdf(pdfBuffer, mergedValues.backgroundImageUrl);
+    const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, mergedValues.backgroundImageUrl)) || pdfBuffer;
 
     // Adjust margins
     const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
@@ -3194,16 +3237,23 @@ const getpdfcontrolleruser = async (req, res) => {
             (Array.isArray(filteredPackages) && filteredPackages.length > 0)
         );
 
-        // Fallback reconstruction if htmlContent is empty or lacks table structure
-        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) {
-            const reportDoc = await reports.findOne(
+        let reportDoc = null;
+        if (!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table') || !hasPdfMarkup(resolvedHeader)) {
+            reportDoc = await reports.findOne(
                 pdfContext.resolvedReportId && mongoose.Types.ObjectId.isValid(pdfContext.resolvedReportId)
                     ? { _id: pdfContext.resolvedReportId }
                     : { bookingId: pdfContext.resolvedBookingId || bookingId }
             ).lean();
-            if (reportDoc && reportDoc.CategoryAndTest && reportDoc.CategoryAndTest.length > 0) {
-                resolvedHtmlContent = buildHtmlFromReport(reportDoc);
-            }
+        }
+
+        // Fallback reconstruction if htmlContent is empty or lacks table structure
+        if ((!hasPdfMarkup(resolvedHtmlContent) || !resolvedHtmlContent.includes('<table')) && reportDoc?.CategoryAndTest?.length > 0) {
+            resolvedHtmlContent = buildHtmlFromReport(reportDoc);
+        }
+
+        // Fallback reconstruction if header is empty
+        if (!hasPdfMarkup(resolvedHeader) && reportDoc) {
+            resolvedHeader = buildHeaderFromReport(reportDoc);
         }
 
         if (isSelectiveRequest) {
@@ -3345,12 +3395,12 @@ const getpdfcontrolleruser = async (req, res) => {
 
 const savingPdfDatacontroller = async (req, res) => {
 
-    const tenantId = req.user.tenantId._id;
+    const tenantId = getTenantIdFromUser(req.user);
     let userId;
-    if (req.user.role === 'staff') {
-        userId = req.user.parentUser
+    if (req.user?.role === 'staff') {
+        userId = req.user.parentUser;
     } else {
-        userId = req.user._id
+        userId = req.user?._id;
     }
     const { reportId, htmlContent, cssContent, header, footer, backgroundImageUrl,
         headermargin, footermargin, investigationmargin, showlab, showdoctorfirst,
@@ -3440,8 +3490,8 @@ const savingPdfDatacontroller = async (req, res) => {
 
 const savePdfSettingsController = async (req, res) => {
     try {
-        const tenantId = req.user.tenantId._id;
-        const createdBy = req.user.role === 'staff' ? req.user.parentUser : req.user._id;
+        const tenantId = getTenantIdFromUser(req.user);
+        const createdBy = req.user?.role === 'staff' ? req.user.parentUser : req.user?._id;
         const {
             selectedFontSize, RowSpacing, HighLow, HLinred, BoldRow, showInvest,
             showCategory, showTestHeading,
@@ -3591,12 +3641,12 @@ const invoicepdfgenerator = async (req, res) => {
 
         const document = await invoices.findOneAndUpdate(
             {
-                tenantId: req.user.tenantId._id,
+                tenantId: getTenantIdFromUser(req.user),
                 createdBy: invoiceCreatorId,
                 bookingId: bookingId
             },
             {
-                tenantId: req.user.tenantId._id,
+                tenantId: getTenantIdFromUser(req.user),
                 createdBy: invoiceCreatorId,
                 invoiceCss: invoicecss,
                 invoiceHtml: invoiceHtml,
@@ -3633,7 +3683,7 @@ const invoicepdfgenerator = async (req, res) => {
 const getAllInvoices = async (req, res) => {
     try {
         let query = {
-            tenantId: req.user.tenantId._id
+            tenantId: getTenantIdFromUser(req.user)
         };
 
         // Optional start and end date filtering
