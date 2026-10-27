@@ -61,25 +61,28 @@ async function loadfunction() {
 
     // for getting individual parameter lower and upper value
     const patient = { age: booking.year ?? "", gender: booking.gender ?? "" };
-    // For PDF: print categories on separate page only if enabled in printSettings or selected by user
+    // For PDF: print categories on separate page (checked by default)
     const check1Elem = document.getElementById('check1');
+    if (check1Elem) {
+        check1Elem.checked = true;
+        const initialParentLabel = check1Elem.closest('.checkBox');
+        if (initialParentLabel) {
+            initialParentLabel.classList.add('active-pref');
+        }
+        updateCategoryPageBreakBadges(true);
+    }
     const targetBookingId = booking.bookingId || booking._id || urlBookingId;
     let initialCategorized = null;
 
-    // A. Check if booking object already has categorizedPDF flag (e.g. from getbooking or prior save)
-    if (typeof booking?.categorizedPDF === 'boolean') {
-        initialCategorized = booking.categorizedPDF;
-    }
-
-    // B. Check per-booking localStorage preference
-    if (initialCategorized === null && targetBookingId) {
+    // A. Check per-booking localStorage preference (if explicitly toggled by user for this booking)
+    if (targetBookingId) {
         const perBookingPref = localStorage.getItem(`printCategories_${targetBookingId}`);
         if (perBookingPref !== null) {
             initialCategorized = perBookingPref === "true";
         }
     }
 
-    // C. Fetch existing report from server (AWAITED to avoid race condition with renderData)
+    // B. Fetch existing report from server (AWAITED to avoid race condition with renderData)
     if (targetBookingId) {
         try {
             const repRes = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
@@ -89,13 +92,15 @@ async function loadfunction() {
             });
             if (repRes.ok) {
                 const repData = await repRes.json();
-                if (repData && typeof repData.categorizedPDF === 'boolean') {
-                    initialCategorized = repData.categorizedPDF;
+                // If a real (non-draft) saved report exists on server, respect its saved categorizedPDF value
+                if (repData && !repData.isDraft && typeof repData.categorizedPDF === 'boolean') {
+                    if (initialCategorized === null) {
+                        initialCategorized = repData.categorizedPDF;
+                    }
                     booking.categorizedPDF = repData.categorizedPDF;
                     try {
                         localStorage.setItem("booking", JSON.stringify(booking));
                         localStorage.setItem(`printCategories_${targetBookingId}`, String(repData.categorizedPDF));
-                        localStorage.setItem("printCategoriesSeparatePage", String(repData.categorizedPDF));
                     } catch (e) {}
                 }
             }
@@ -104,14 +109,19 @@ async function loadfunction() {
         }
     }
 
-    // D. Global localStorage / printSettings fallback if never set for this booking
+    // C. Check if booking object has categorizedPDF explicitly set to true
+    if (initialCategorized === null && booking?.categorizedPDF === true) {
+        initialCategorized = true;
+    }
+
+    // D. Tenant printSettings preference if explicitly set
+    if (initialCategorized === null && typeof printSettings?.printCategoriesSeparatePage === 'boolean') {
+        initialCategorized = printSettings.printCategoriesSeparatePage;
+    }
+
+    // E. Default is TRUE (checked by default as required)
     if (initialCategorized === null) {
-        const storedPref = localStorage.getItem("printCategoriesSeparatePage");
-        if (storedPref !== null) {
-            initialCategorized = storedPref === "true";
-        } else {
-            initialCategorized = Boolean(printSettings?.printCategoriesSeparatePage);
-        }
+        initialCategorized = true;
     }
 
     if (check1Elem) {
@@ -121,6 +131,12 @@ async function loadfunction() {
             parentLabel.classList.toggle('active-pref', check1Elem.checked);
         }
         updateCategoryPageBreakBadges(check1Elem.checked);
+        if (booking) {
+            booking.categorizedPDF = check1Elem.checked;
+            try {
+                localStorage.setItem("booking", JSON.stringify(booking));
+            } catch (e) {}
+        }
 
         check1Elem.addEventListener('change', async function () {
             const isChecked = this.checked;

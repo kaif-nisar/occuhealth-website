@@ -179,7 +179,7 @@ const TestBookingSchema = new Schema({
     },
     categorizedPDF: {
         type: Boolean,
-        default: false
+        default: true
     },
     discountamount: {
         type: Number,

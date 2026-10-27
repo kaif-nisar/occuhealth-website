@@ -461,7 +461,7 @@ const getReportController = asyncHandler(async (req, res) => {
         if (existingBooking) {
             return res.status(200).json({
                 bookingId: existingBooking.bookingId,
-                categorizedPDF: Boolean(existingBooking.categorizedPDF),
+                categorizedPDF: typeof existingBooking.categorizedPDF === 'boolean' ? existingBooking.categorizedPDF : true,
                 isDraft: true,
                 bookingTableData: existingBooking.tableData || [],
                 printSettings: {}

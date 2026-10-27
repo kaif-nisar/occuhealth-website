@@ -4410,10 +4410,10 @@ const getBookingcontroller = async (req, res) => {
             if (linkedReport && typeof linkedReport.categorizedPDF === "boolean") {
                 booking.categorizedPDF = linkedReport.categorizedPDF;
             } else {
-                booking.categorizedPDF = false;
+                booking.categorizedPDF = true;
             }
         } catch (e) {
-            booking.categorizedPDF = false;
+            booking.categorizedPDF = true;
         }
     }
 

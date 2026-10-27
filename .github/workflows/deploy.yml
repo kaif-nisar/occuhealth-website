@@ -12,20 +12,106 @@ jobs:
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
-
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT || 22 }}
           script: |
-            cd /home/opc/occuhealth
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.npm-global/bin
 
+            echo "=== Node & PM2 Path Check ==="
+            which node || true
+            which npm || true
+            which pm2 || true
+
+            # Auto-detect project directory from PM2 or common locations
+            TARGET_DIR=""
+
+            # 1. Ask PM2 for the running directory of occuhealth or superadmin_lab
+            PM2_DIR=$(node -e '
+              try {
+                const j = JSON.parse(require("child_process").execSync("pm2 jlist").toString());
+                const app = j.find(a => 
+                  a.name === "occuhealth" || 
+                  a.name.toLowerCase().includes("occu") || 
+                  a.name === "superadmin_lab" || 
+                  a.name.toLowerCase().includes("superadmin")
+                ) || j[0];
+                if (app && app.pm2_env && app.pm2_env.pm_cwd) {
+                  console.log(app.pm2_env.pm_cwd);
+                }
+              } catch(e) {}
+            ' 2>/dev/null)
+
+            if [ -n "$PM2_DIR" ] && [ -d "$PM2_DIR" ]; then
+              TARGET_DIR="$PM2_DIR"
+            fi
+
+            # 2. If not found via PM2, check common paths
+            if [ -z "$TARGET_DIR" ]; then
+              for dir in \
+                "/home/opc/occuhealth" \
+                "/home/opc/occuhealth-website" \
+                "$HOME/occuhealth" \
+                "$HOME/occuhealth-website" \
+                "$HOME/13-5" \
+                "/home/ubuntu/occuhealth" \
+                "/home/ubuntu/occuhealth-website" \
+                "/root/occuhealth" \
+                "/root/occuhealth-website" \
+                "/root/13-5" \
+                "/var/www/occuhealth" \
+                "/var/www/occuhealth-website" \
+                "/var/www/html/occuhealth"; do
+                if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+                  TARGET_DIR="$dir"
+                  break
+                fi
+              done
+            fi
+
+            # 3. Last fallback: search filesystem for occuhealth directory
+            if [ -z "$TARGET_DIR" ]; then
+              echo "Searching filesystem for occuhealth directory..."
+              FOUND=$(find /home /root /var -maxdepth 4 -name "package.json" 2>/dev/null | grep -i "occu" | head -n 1)
+              if [ -n "$FOUND" ]; then
+                TARGET_DIR=$(dirname "$FOUND")
+              fi
+            fi
+
+            if [ -z "$TARGET_DIR" ] || [ ! -d "$TARGET_DIR" ]; then
+              echo "Error: Project directory could not be located automatically!"
+              echo "Current user: $(whoami)"
+              echo "Home directory: $HOME"
+              ls -la "$HOME"
+              pm2 list
+              exit 1
+            fi
+
+            echo "Deploying in directory: $TARGET_DIR"
+            cd "$TARGET_DIR"
+
+            # 4. Pull latest code
             git reset --hard
             git clean -fd
-
             git pull origin main
 
-            npm install
+            # 5. Install dependencies
+            npm install --production
 
-            pm2 restart occuhealth --update-env
+            # 6. Restart PM2
+            if pm2 describe occuhealth > /dev/null 2>&1; then
+              pm2 restart occuhealth --update-env
+            elif pm2 describe superadmin_lab > /dev/null 2>&1; then
+              pm2 restart superadmin_lab --update-env
+            elif [ -f "ecosystem.config.cjs" ]; then
+              pm2 restart ecosystem.config.cjs --update-env
+            else
+              pm2 restart all --update-env
+            fi
+
+            echo "=== Deployment Successfully Completed ==="
