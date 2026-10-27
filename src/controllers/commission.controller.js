@@ -430,6 +430,8 @@ const resolveCatalogUserId = async (req, requestedUserId) => {
 
 const getAssignedTests = async (req, res) => {
   try {
+    const role = req.user?.role;
+    const parentRole = req.user?.parentRole;
     const { userId: requestedUserId, oldId } = req.query;
     const userId = await resolveCatalogUserId(req, requestedUserId);
 
@@ -606,6 +608,8 @@ const getAssignedTests = async (req, res) => {
 
 const getAssignedPanels = async (req, res) => {
   try {
+    const role = req.user?.role;
+    const parentRole = req.user?.parentRole;
     const { userId: requestedUserId, oldId } = req.query;
     const userId = await resolveCatalogUserId(req, requestedUserId);
 
@@ -786,6 +790,8 @@ const getAssignedPanels = async (req, res) => {
 
 const getAssignedPackages = async (req, res) => {
   try {
+    const role = req.user?.role;
+    const parentRole = req.user?.parentRole;
     const { userId: requestedUserId, oldId } = req.query;
     const userId = await resolveCatalogUserId(req, requestedUserId);
 
