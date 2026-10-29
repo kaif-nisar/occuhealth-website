@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
     assignTarget,
+    bulkAssignTargets,
     getTargets,
     getFranchiseePerformance,
     updateTargetAchievement,
@@ -21,6 +22,14 @@ router.post(
     authorizeRoles(['admin', 'superFranchisee', 'staff']),
     checkStaffPermission('canManagePayments'),
     assignTarget
+);
+
+// Bulk assign default or custom targets (Admin & SuperFranchisee only)
+router.post(
+    '/bulk-assign',
+    authorizeRoles(['admin', 'superFranchisee', 'staff']),
+    checkStaffPermission('canManagePayments'),
+    bulkAssignTargets
 );
 
 // Get targets for a month

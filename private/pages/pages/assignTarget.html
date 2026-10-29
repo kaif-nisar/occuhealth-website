@@ -3,160 +3,1543 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assign Monthly Target</title>
-    <!-- <link rel="stylesheet" href="../style.css"> -->
+    <title>Assign & Manage Franchise Monthly Targets</title>
     <style>
-        .target-form {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        :root {
+            --at-primary: #1d4ed8;
+            --at-primary-hover: #1e40af;
+            --at-primary-light: #eff6ff;
+            --at-primary-border: #bfdbfe;
+            --at-secondary: #0ea5e9;
+            --at-success: #059669;
+            --at-success-light: #ecfdf5;
+            --at-success-border: #a7f3d0;
+            --at-warning: #d97706;
+            --at-warning-light: #fffbeb;
+            --at-warning-border: #fde68a;
+            --at-danger: #dc2626;
+            --at-danger-light: #fef2f2;
+            --at-danger-border: #fecaca;
+            --at-purple: #7c3aed;
+            --at-purple-light: #f5f3ff;
+            --at-purple-border: #ddd6fe;
+            --at-bg-main: #f8fafc;
+            --at-card-bg: #ffffff;
+            --at-border: #e2e8f0;
+            --at-border-subtle: #f1f5f9;
+            --at-text-title: #0f172a;
+            --at-text-body: #334155;
+            --at-text-muted: #64748b;
+            --at-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --at-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --at-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+            --at-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --at-radius: 12px;
+            --at-radius-sm: 8px;
+            --at-radius-pill: 9999px;
+            --at-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        .target-form .form-group {
-            margin-bottom: 20px;
+        .at-wrap {
+            font-family: var(--at-font);
+            color: var(--at-text-body);
+            background-color: var(--at-bg-main);
+            padding: 24px;
+            min-height: 100%;
+            box-sizing: border-box;
         }
 
-        .target-amount {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
+        .at-wrap * {
+            box-sizing: border-box;
         }
 
-        .target-card {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #eee;
-            border-radius: 10px;
+        /* Top Header Banner */
+        .at-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+            border-radius: var(--at-radius);
+            padding: 24px 28px;
+            color: #ffffff;
+            box-shadow: var(--at-shadow-md);
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            position: relative;
             overflow: hidden;
-            margin-top: 10px;
         }
 
-        .progress-fill {
+        .at-header::before {
+            content: "";
+            position: absolute;
+            top: -40%;
+            right: -10%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .at-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 1;
+        }
+
+        .at-header-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .at-header-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .at-default-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: var(--at-radius-pill);
+            background: rgba(16, 185, 129, 0.25);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #a7f3d0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .at-header-desc {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .at-header-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            z-index: 1;
+        }
+
+        /* Buttons */
+        .at-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--at-radius-sm);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.18s ease-in-out;
+            text-decoration: none;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        .at-btn:active {
+            transform: scale(0.98);
+        }
+
+        .at-btn-white {
+            background: #ffffff;
+            color: var(--at-primary);
+            box-shadow: var(--at-shadow-sm);
+        }
+        .at-btn-white:hover {
+            background: #f8fafc;
+            color: var(--at-primary-hover);
+        }
+
+        .at-btn-white-outline {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(4px);
+        }
+        .at-btn-white-outline:hover {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }
+
+        .at-btn-primary {
+            background: var(--at-primary);
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(29, 78, 216, 0.25);
+        }
+        .at-btn-primary:hover {
+            background: var(--at-primary-hover);
+            box-shadow: 0 4px 8px rgba(29, 78, 216, 0.35);
+        }
+
+        .at-btn-outline {
+            background: #ffffff;
+            color: var(--at-text-body);
+            border-color: var(--at-border);
+        }
+        .at-btn-outline:hover {
+            background: #f1f5f9;
+            color: var(--at-text-title);
+            border-color: #cbd5e1;
+        }
+
+        .at-btn-default-badge {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+        .at-btn-default-badge:hover {
+            background: #fde68a;
+            color: #78350f;
+        }
+
+        .at-btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
+        /* Month Navigation Bar */
+        .at-month-bar {
+            background: var(--at-card-bg);
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius);
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            box-shadow: var(--at-shadow-sm);
+        }
+
+        .at-month-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .at-month-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--at-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .at-month-select {
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--at-text-title);
+            background: var(--at-card-bg);
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius-sm);
+            outline: none;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            min-width: 200px;
+        }
+        .at-month-select:focus {
+            border-color: var(--at-primary);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+        }
+
+        .at-month-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--at-radius-sm);
+            border: 1px solid var(--at-border);
+            background: #ffffff;
+            color: var(--at-text-body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .at-month-btn:hover {
+            background: #f1f5f9;
+            color: var(--at-primary);
+            border-color: #cbd5e1;
+        }
+
+        .at-month-stats-brief {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .at-stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: var(--at-radius-pill);
+            background: #f1f5f9;
+            color: var(--at-text-body);
+            font-weight: 500;
+        }
+
+        .at-stat-pill strong {
+            color: var(--at-text-title);
+            font-weight: 700;
+        }
+
+        /* KPI Summary Grid */
+        .at-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .at-kpi-card {
+            background: var(--at-card-bg);
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius);
+            padding: 18px 20px;
+            box-shadow: var(--at-shadow-sm);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .at-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--at-shadow);
+        }
+
+        .at-kpi-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .at-kpi-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--at-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .at-kpi-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .at-kpi-icon.blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .at-kpi-icon.green {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .at-kpi-icon.purple {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+        .at-kpi-icon.amber {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .at-kpi-value {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--at-text-title);
+            line-height: 1.1;
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+        }
+
+        .at-kpi-sub {
+            font-size: 12px;
+            color: var(--at-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .at-kpi-progress {
+            margin-top: 10px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .at-kpi-progress-bar {
             height: 100%;
-            background: #27ae60;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        /* Two-Column Layout: Assign Form & Targets View */
+        .at-layout-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 1080px) {
+            .at-layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Target Assignment Card */
+        .at-form-card {
+            background: var(--at-card-bg);
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius);
+            box-shadow: var(--at-shadow);
+            overflow: hidden;
+            position: sticky;
+            top: 20px;
+        }
+
+        .at-card-header {
+            padding: 18px 22px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--at-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .at-card-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--at-text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .at-card-body {
+            padding: 22px;
+        }
+
+        .at-form-group {
+            margin-bottom: 18px;
+        }
+
+        .at-form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .at-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--at-text-title);
+            margin-bottom: 6px;
+        }
+
+        .at-label .hint {
+            font-size: 11px;
+            color: var(--at-text-muted);
+            font-weight: 400;
+        }
+
+        .at-select,
+        .at-input,
+        .at-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--at-text-title);
+            background: #ffffff;
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius-sm);
+            outline: none;
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .at-select:focus,
+        .at-input:focus,
+        .at-textarea:focus {
+            border-color: var(--at-primary);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+        }
+
+        .at-textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        /* Preset Amount Chips */
+        .at-chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .at-chip {
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: var(--at-radius-pill);
+            background: #f1f5f9;
+            color: var(--at-text-body);
+            border: 1px solid var(--at-border);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .at-chip:hover {
+            background: #e2e8f0;
+            color: var(--at-text-title);
+        }
+
+        .at-chip.active,
+        .at-chip.default-active {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #93c5fd;
+            font-weight: 700;
+        }
+
+        .at-chip-badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: #2563eb;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .at-amount-preview {
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--at-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .at-selected-user-card {
+            background: #f8fafc;
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius-sm);
+            padding: 10px 12px;
+            margin-top: 8px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .at-selected-user-card.show {
+            display: flex;
+        }
+
+        /* Targets Overview Section */
+        .at-content-card {
+            background: var(--at-card-bg);
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius);
+            box-shadow: var(--at-shadow);
+            overflow: hidden;
+        }
+
+        /* Filter & Controls Bar */
+        .at-filter-bar {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--at-border);
+            background: #ffffff;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .at-filter-left {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .at-search-box {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            max-width: 340px;
+        }
+
+        .at-search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--at-text-muted);
+            font-size: 13px;
+        }
+
+        .at-search-box input {
+            padding-left: 36px;
+        }
+
+        .at-role-filters {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: var(--at-radius-sm);
+        }
+
+        .at-filter-tab {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--at-text-muted);
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .at-filter-tab:hover {
+            color: var(--at-text-title);
+        }
+
+        .at-filter-tab.active {
+            background: #ffffff;
+            color: var(--at-primary);
+            box-shadow: var(--at-shadow-sm);
+        }
+
+        .at-filter-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .at-view-toggle {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
+            border-radius: var(--at-radius-sm);
+            padding: 2px;
+        }
+
+        .at-view-btn {
+            padding: 6px 10px;
+            font-size: 13px;
+            color: var(--at-text-muted);
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .at-view-btn.active {
+            background: #ffffff;
+            color: var(--at-primary);
+            box-shadow: var(--at-shadow-sm);
+        }
+
+        /* Targets Table View */
+        .at-table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .at-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .at-table th {
+            padding: 12px 18px;
+            background: #f8fafc;
+            color: var(--at-text-muted);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--at-border);
+            white-space: nowrap;
+        }
+
+        .at-table td {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--at-border-subtle);
+            color: var(--at-text-body);
+            vertical-align: middle;
+        }
+
+        .at-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Franchisee Profile Cell */
+        .at-user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .at-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #ffffff;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+
+        .at-avatar.super {
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        }
+        .at-avatar.franchisee {
+            background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
+        }
+        .at-avatar.sub {
+            background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+        }
+
+        .at-user-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .at-user-name {
+            font-weight: 700;
+            color: var(--at-text-title);
+            font-size: 13px;
+            text-transform: capitalize;
+        }
+
+        .at-user-handle {
+            font-size: 11px;
+            color: var(--at-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Badges */
+        .at-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: var(--at-radius-pill);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .at-badge-super {
+            background: var(--at-purple-light);
+            color: var(--at-purple);
+            border: 1px solid var(--at-purple-border);
+        }
+
+        .at-badge-franchisee {
+            background: var(--at-primary-light);
+            color: var(--at-primary);
+            border: 1px solid var(--at-primary-border);
+        }
+
+        .at-badge-sub {
+            background: var(--at-success-light);
+            color: var(--at-success);
+            border: 1px solid var(--at-success-border);
+        }
+
+        .at-status-achieved {
+            background: var(--at-success-light);
+            color: var(--at-success);
+            border: 1px solid var(--at-success-border);
+        }
+
+        .at-status-ontrack {
+            background: var(--at-primary-light);
+            color: var(--at-primary);
+            border: 1px solid var(--at-primary-border);
+        }
+
+        .at-status-pending {
+            background: var(--at-warning-light);
+            color: var(--at-warning);
+            border: 1px solid var(--at-warning-border);
+        }
+
+        .at-status-default {
+            background: #ede9fe;
+            color: #6d28d9;
+            border: 1px solid #ddd6fe;
+        }
+
+        /* Progress Pill in Table */
+        .at-progress-cell {
+            min-width: 140px;
+        }
+
+        .at-progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--at-text-muted);
+            margin-bottom: 4px;
+        }
+
+        .at-progress-track {
+            height: 7px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .at-progress-fill {
+            height: 100%;
+            border-radius: 4px;
             transition: width 0.3s ease;
         }
 
-        .month-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+        .at-progress-fill.green {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+        .at-progress-fill.blue {
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+        .at-progress-fill.amber {
+            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
         }
 
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .status-pending {
-            background: #f1c40f;
-            color: #fff;
-        }
-
-        .status-achieved {
-            background: #27ae60;
-            color: #fff;
-        }
-
-        .status-failed {
-            background: #e74c3c;
-            color: #fff;
-        }
-
-        .target-summary {
+        /* Card Grid View */
+        .at-card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+            padding: 20px;
         }
 
-        .summary-card {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .at-target-card-item {
+            background: #ffffff;
+            border: 1px solid var(--at-border);
+            border-radius: var(--at-radius);
+            padding: 18px;
+            box-shadow: var(--at-shadow-sm);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
         }
 
-        .summary-card h3 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
+        .at-target-card-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--at-shadow-md);
+            border-color: #cbd5e1;
         }
 
-        .target-list {
-            margin-top: 20px;
+        .at-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .at-card-amounts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #f8fafc;
+            border-radius: var(--at-radius-sm);
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .at-amount-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .at-amount-box .lbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--at-text-muted);
+            text-transform: uppercase;
+        }
+
+        .at-amount-box .val {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--at-text-title);
+            margin-top: 2px;
+        }
+
+        .at-card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--at-border-subtle);
+        }
+
+        /* Empty & Loading States */
+        .at-empty-state {
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--at-text-muted);
+        }
+
+        .at-empty-state i {
+            font-size: 42px;
+            color: #cbd5e1;
+            margin-bottom: 14px;
+        }
+
+        .at-empty-state h4 {
+            margin: 0 0 6px 0;
+            font-size: 16px;
+            color: var(--at-text-title);
+            font-weight: 700;
+        }
+
+        .at-empty-state p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        /* Modal Overlays */
+        .at-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .at-modal-backdrop.active {
+            display: flex;
+        }
+
+        .at-modal {
+            background: #ffffff;
+            border-radius: var(--at-radius);
+            box-shadow: var(--at-shadow-lg);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            animation: atModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes atModalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .at-modal-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--at-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .at-modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--at-text-title);
+        }
+
+        .at-modal-close {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            color: var(--at-text-muted);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .at-modal-close:hover {
+            background: #f1f5f9;
+            color: var(--at-text-title);
+        }
+
+        .at-modal-body {
+            padding: 22px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .at-modal-footer {
+            padding: 16px 22px;
+            border-top: 1px solid var(--at-border);
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Toast Notifications */
+        .at-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .at-toast {
+            pointer-events: auto;
+            background: #ffffff;
+            color: var(--at-text-title);
+            border-radius: var(--at-radius-sm);
+            padding: 12px 18px;
+            box-shadow: var(--at-shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-left: 4px solid var(--at-primary);
+            animation: atToastSlide 0.25s ease forwards;
+            min-width: 280px;
+            max-width: 400px;
+        }
+
+        .at-toast.success {
+            border-left-color: var(--at-success);
+        }
+        .at-toast.error {
+            border-left-color: var(--at-danger);
+        }
+        .at-toast.warning {
+            border-left-color: var(--at-warning);
+        }
+
+        @keyframes atToastSlide {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Target Assignment Form -->
-        <div class="target-form" id="assignTargetForm">
-            <h2>Assign Monthly Target</h2>
-            <div class="form-group">
-                <label for="franchisee">Select Franchisee</label>
-                <select id="franchisee" required>
-                    <option value="">Select Franchisee</option>
-                </select>
+    <div class="at-wrap">
+        <!-- Main Top Banner -->
+        <div class="at-header">
+            <div class="at-header-left">
+                <div class="at-header-icon">
+                    <i class="fa-solid fa-bullseye"></i>
+                </div>
+                <div>
+                    <h1 class="at-header-title">
+                        Franchise Monthly Targets
+                        <span class="at-default-pill">
+                            <i class="fa-solid fa-sparkles"></i> Default Target: ₹2 Lakhs
+                        </span>
+                    </h1>
+                    <p class="at-header-desc">
+                        Manage, allocate, and monitor monthly sales revenue targets across Super Franchisees, Franchisees &amp; Sub Franchisees.
+                    </p>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="targetMonth">Month & Year</label>
-                <input type="month" id="targetMonth" required>
+            <div class="at-header-actions">
+                <button type="button" class="at-btn at-btn-white" id="btnBulkAssignModal">
+                    <i class="fa-solid fa-bolt"></i> Set ₹2 Lakh for All
+                </button>
+                <button type="button" class="at-btn at-btn-white-outline" id="btnExportCSV">
+                    <i class="fa-solid fa-file-arrow-down"></i> Export CSV
+                </button>
+                <button type="button" class="at-btn at-btn-white-outline" id="btnRefreshPage" title="Refresh data">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
             </div>
-            <div class="form-group">
-                <label for="targetAmount">Target Amount (₹)</label>
-                <input type="number" id="targetAmount" required min="0" step="1000" placeholder="Enter target amount">
-            </div>
-            <div class="form-group">
-                <label for="remarks">Remarks</label>
-                <textarea id="remarks" rows="3" placeholder="Add any remarks or notes"></textarea>
-            </div>
-            <button type="button" id="submitTarget" class="btn-primary">Assign Target</button>
         </div>
 
-        <!-- Target List and Progress -->
-        <div class="target-list">
-            <h2>Targets Overview</h2>
-            
-            <!-- Month selector -->
-            <div class="month-selector">
-                <select id="viewMonth">
-                    <!-- Will be populated with last 12 months -->
+        <!-- Month Navigation Bar -->
+        <div class="at-month-bar">
+            <div class="at-month-nav">
+                <span class="at-month-label"><i class="fa-regular fa-calendar-days"></i> Target Period:</span>
+                <button type="button" class="at-month-btn" id="btnPrevMonth" title="Previous Month">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <select id="viewMonth" class="at-month-select" title="Select target month">
+                    <!-- Populated dynamically -->
                 </select>
+                <button type="button" class="at-month-btn" id="btnNextMonth" title="Next Month">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" class="at-btn at-btn-outline at-btn-sm" id="btnCurrentMonth">
+                    Current Month
+                </button>
+            </div>
+            <div class="at-month-stats-brief">
+                <span class="at-stat-pill">
+                    <i class="fa-solid fa-users" style="color: #2563eb;"></i> Franchises: <strong id="headerFranchiseeCount">0</strong>
+                </span>
+                <span class="at-stat-pill">
+                    <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Achieved: <strong id="headerAchievedCount">0</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="at-summary-grid">
+            <!-- Total Target -->
+            <div class="at-kpi-card">
+                <div>
+                    <div class="at-kpi-top">
+                        <span class="at-kpi-title">Total Target Allocated</span>
+                        <div class="at-kpi-icon blue">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </div>
+                    </div>
+                    <div class="at-kpi-value" id="totalTarget">₹0</div>
+                </div>
+                <div class="at-kpi-sub">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="targetFranchiseeSub">Allocated for selected month</span>
+                </div>
             </div>
 
-            <!-- Summary Cards -->
-            <div class="target-summary">
-                <div class="summary-card">
-                    <h3>Total Target</h3>
-                    <div class="target-amount" id="totalTarget">₹0</div>
+            <!-- Total Achieved -->
+            <div class="at-kpi-card">
+                <div>
+                    <div class="at-kpi-top">
+                        <span class="at-kpi-title">Total Achieved Revenue</span>
+                        <div class="at-kpi-icon green">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div class="at-kpi-value" id="totalAchieved">₹0</div>
                 </div>
-                <div class="summary-card">
-                    <h3>Achieved</h3>
-                    <div class="target-amount" id="totalAchieved">₹0</div>
-                </div>
-                <div class="summary-card">
-                    <h3>Achievement Rate</h3>
-                    <div class="target-amount" id="achievementRate">0%</div>
+                <div>
+                    <div class="at-kpi-progress">
+                        <div class="at-kpi-progress-bar" id="kpiProgressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="at-kpi-sub" style="margin-top: 6px;">
+                        <span id="remainingBalanceText">Shortfall: ₹0</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Target Cards List -->
-            <div id="targetCards">
-                <!-- Target cards will be dynamically added here -->
+            <!-- Achievement Rate -->
+            <div class="at-kpi-card">
+                <div>
+                    <div class="at-kpi-top">
+                        <span class="at-kpi-title">Overall Achievement Rate</span>
+                        <div class="at-kpi-icon amber">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                    </div>
+                    <div class="at-kpi-value" id="achievementRate">0%</div>
+                </div>
+                <div class="at-kpi-sub">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span id="achievementRateStatus">Pending targets</span>
+                </div>
+            </div>
+
+            <!-- Franchise Status -->
+            <div class="at-kpi-card">
+                <div>
+                    <div class="at-kpi-top">
+                        <span class="at-kpi-title">Franchise Performance</span>
+                        <div class="at-kpi-icon purple">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                    </div>
+                    <div class="at-kpi-value" id="achievedRateRatio">0 / 0</div>
+                </div>
+                <div class="at-kpi-sub">
+                    <i class="fa-solid fa-circle-check" style="color: #059669;"></i>
+                    <span id="achievedRateSub">0 Achieved (>=100%)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout Grid: Form (Left) & Targets Table (Right) -->
+        <div class="at-layout-grid">
+            <!-- Target Assignment / Update Form -->
+            <div class="at-form-card" id="assignTargetForm">
+                <div class="at-card-header">
+                    <h3 id="formTitle">
+                        <i class="fa-solid fa-sliders" style="color: #2563eb;"></i> Assign / Update Target
+                    </h3>
+                    <span class="at-badge at-badge-franchisee" id="formModeBadge">New Target</span>
+                </div>
+                <div class="at-card-body">
+                    <!-- Franchisee Selection -->
+                    <div class="at-form-group">
+                        <label class="at-label" for="franchisee">
+                            <span>Select Franchisee <span style="color: #dc2626;">*</span></span>
+                            <span class="hint" id="franchiseeCountHint">Loading...</span>
+                        </label>
+                        <select id="franchisee" class="at-select" required>
+                            <option value="">Select Franchisee</option>
+                        </select>
+                        <div id="selectedUserCard" class="at-selected-user-card">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="selectedUserRoleBadge" class="at-badge at-badge-franchisee">Franchisee</span>
+                                <span id="selectedUserPhone" style="font-size: 11px; color: #64748b;"></span>
+                            </div>
+                            <span id="selectedUserCurrentTarget" style="font-size: 12px; font-weight: 700; color: #1d4ed8;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Target Month -->
+                    <div class="at-form-group">
+                        <label class="at-label" for="targetMonth">
+                            <span>Month &amp; Year <span style="color: #dc2626;">*</span></span>
+                        </label>
+                        <input type="month" id="targetMonth" class="at-input" required>
+                    </div>
+
+                    <!-- Target Amount -->
+                    <div class="at-form-group">
+                        <label class="at-label" for="targetAmount">
+                            <span>Target Amount (₹) <span style="color: #dc2626;">*</span></span>
+                            <span class="hint" style="color: #059669; font-weight: 600;">Default: ₹2,00,000</span>
+                        </label>
+                        <input type="number" id="targetAmount" class="at-input" required min="0" step="5000" value="200000" placeholder="200000">
+                        <div id="targetAmountPreview" class="at-amount-preview">
+                            <i class="fa-solid fa-check-circle"></i> ₹2,00,000 (Two Lakhs)
+                        </div>
+                        <!-- Quick Preset Chips -->
+                        <div class="at-chip-group">
+                            <span class="at-chip" data-amount="100000">₹1 Lakh</span>
+                            <span class="at-chip active default-active" data-amount="200000">
+                                ₹2 Lakh <span class="at-chip-badge">Default</span>
+                            </span>
+                            <span class="at-chip" data-amount="300000">₹3 Lakh</span>
+                            <span class="at-chip" data-amount="500000">₹5 Lakh</span>
+                            <span class="at-chip" data-amount="1000000">₹10 Lakh</span>
+                        </div>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="at-form-group">
+                        <label class="at-label" for="remarks">
+                            <span>Remarks / Notes</span>
+                            <span class="hint">Optional</span>
+                        </label>
+                        <textarea id="remarks" class="at-textarea" placeholder="e.g., Monthly standard target for lab franchise bookings"></textarea>
+                    </div>
+
+                    <!-- Form Buttons -->
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" id="submitTarget" class="at-btn at-btn-primary" style="flex: 1;">
+                            <i class="fa-solid fa-check"></i> <span id="submitBtnText">Assign Target</span>
+                        </button>
+                        <button type="button" id="resetTargetForm" class="at-btn at-btn-outline" title="Reset form to defaults">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Targets List & Management View -->
+            <div class="at-content-card">
+                <!-- Filters Bar -->
+                <div class="at-filter-bar">
+                    <div class="at-filter-left">
+                        <!-- Search input -->
+                        <div class="at-search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="targetSearchInput" class="at-input" placeholder="Search franchise or username...">
+                        </div>
+                        <!-- Role Filters -->
+                        <div class="at-role-filters">
+                            <button type="button" class="at-filter-tab active" data-role="all">All Roles</button>
+                            <button type="button" class="at-filter-tab" data-role="superFranchisee">Super</button>
+                            <button type="button" class="at-filter-tab" data-role="franchisee">Franchisee</button>
+                            <button type="button" class="at-filter-tab" data-role="subFranchisee">Sub</button>
+                        </div>
+                        <!-- Status Filter -->
+                        <select id="statusFilter" class="at-select" style="width: auto; padding: 7px 12px; font-size: 12px;">
+                            <option value="all">All Statuses</option>
+                            <option value="achieved">Achieved (100%+)</option>
+                            <option value="ontrack">On Track (50-99%)</option>
+                            <option value="pending">Pending (&lt;50%)</option>
+                            <option value="default">Default ₹2L (Unsaved)</option>
+                        </select>
+                    </div>
+                    <div class="at-filter-right">
+                        <!-- View switcher -->
+                        <div class="at-view-toggle">
+                            <button type="button" class="at-view-btn active" id="viewModeTable" title="Table View">
+                                <i class="fa-solid fa-table-list"></i>
+                            </button>
+                            <button type="button" class="at-view-btn" id="viewModeGrid" title="Card Grid View">
+                                <i class="fa-solid fa-grip"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table View Container -->
+                <div id="tableViewContainer" class="at-table-responsive">
+                    <table class="at-table">
+                        <thead>
+                            <tr>
+                                <th>Franchisee Details</th>
+                                <th>Role</th>
+                                <th>Target Amount</th>
+                                <th>Achieved</th>
+                                <th style="min-width: 160px;">Progress</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="targetsTableBody">
+                            <!-- Dynamically generated rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Grid View Container -->
+                <div id="targetCards" class="at-card-grid" style="display: none;">
+                    <!-- Dynamically generated cards -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyTargetsState" class="at-empty-state" style="display: none;">
+                    <i class="fa-solid fa-inbox"></i>
+                    <h4>No Franchise Targets Found</h4>
+                    <p id="emptyStateDesc">No franchises match your current search or filter criteria.</p>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Quick Edit Target Modal -->
+    <div class="at-modal-backdrop" id="editTargetModal">
+        <div class="at-modal">
+            <div class="at-modal-header">
+                <h3><i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> Update Target</h3>
+                <button type="button" class="at-modal-close" id="closeEditModal">&times;</button>
+            </div>
+            <div class="at-modal-body">
+                <input type="hidden" id="modalFranchiseeId">
+                <input type="hidden" id="modalFullName">
+                
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700;">Franchisee</div>
+                    <div id="modalUserTitle" style="font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 2px;"></div>
+                    <div id="modalUserSub" style="font-size: 12px; color: #64748b;"></div>
+                </div>
+
+                <div class="at-form-group">
+                    <label class="at-label" for="modalTargetAmount">
+                        <span>Target Amount (₹) <span style="color: #dc2626;">*</span></span>
+                        <span class="hint" style="color: #059669; font-weight: 600;">Default: ₹2,00,000</span>
+                    </label>
+                    <input type="number" id="modalTargetAmount" class="at-input" min="0" step="5000" value="200000">
+                    <div id="modalAmountPreview" class="at-amount-preview">
+                        <i class="fa-solid fa-check-circle"></i> ₹2,00,000 (Two Lakhs)
+                    </div>
+                    <div class="at-chip-group">
+                        <span class="at-chip modal-chip" data-amount="100000">₹1 Lakh</span>
+                        <span class="at-chip modal-chip default-active" data-amount="200000">
+                            ₹2 Lakh <span class="at-chip-badge">Default</span>
+                        </span>
+                        <span class="at-chip modal-chip" data-amount="300000">₹3 Lakh</span>
+                        <span class="at-chip modal-chip" data-amount="500000">₹5 Lakh</span>
+                        <span class="at-chip modal-chip" data-amount="1000000">₹10 Lakh</span>
+                    </div>
+                </div>
+
+                <div class="at-form-group">
+                    <label class="at-label" for="modalRemarks">Remarks / Notes</label>
+                    <textarea id="modalRemarks" class="at-textarea" placeholder="Updated target notes"></textarea>
+                </div>
+            </div>
+            <div class="at-modal-footer">
+                <button type="button" class="at-btn at-btn-outline" id="cancelEditModal">Cancel</button>
+                <button type="button" class="at-btn at-btn-primary" id="saveEditModal">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Target
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Assign Default Modal -->
+    <div class="at-modal-backdrop" id="bulkAssignModal">
+        <div class="at-modal">
+            <div class="at-modal-header">
+                <h3><i class="fa-solid fa-bolt" style="color: #d97706;"></i> Bulk Assign Default Target</h3>
+                <button type="button" class="at-modal-close" id="closeBulkModal">&times;</button>
+            </div>
+            <div class="at-modal-body">
+                <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-top: 0;">
+                    Assign the default <strong>₹2,00,000 (2 Lakhs)</strong> monthly target to franchises for the month of <strong id="bulkModalMonthText"></strong>.
+                </p>
+
+                <div class="at-form-group">
+                    <label class="at-label" for="bulkTargetAmount">Default Target Amount (₹)</label>
+                    <input type="number" id="bulkTargetAmount" class="at-input" value="200000" min="0" step="5000">
+                    <div class="at-chip-group">
+                        <span class="at-chip bulk-chip" data-amount="100000">₹1 Lakh</span>
+                        <span class="at-chip bulk-chip default-active" data-amount="200000">₹2 Lakh (Default)</span>
+                        <span class="at-chip bulk-chip" data-amount="300000">₹3 Lakh</span>
+                        <span class="at-chip bulk-chip" data-amount="500000">₹5 Lakh</span>
+                    </div>
+                </div>
+
+                <div class="at-form-group">
+                    <label class="at-label">Target Audience</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="bulkScope" value="unassigned" checked>
+                            <span>Only unassigned / default franchises (<strong id="bulkUnassignedCount">0</strong> franchises)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="bulkScope" value="all">
+                            <span>All franchises (overwrite existing targets to default)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="at-form-group">
+                    <label class="at-label" for="bulkRemarks">Remarks</label>
+                    <input type="text" id="bulkRemarks" class="at-input" value="Default monthly target ₹2,00,000">
+                </div>
+            </div>
+            <div class="at-modal-footer">
+                <button type="button" class="at-btn at-btn-outline" id="cancelBulkModal">Cancel</button>
+                <button type="button" class="at-btn at-btn-primary" id="confirmBulkAssign">
+                    <i class="fa-solid fa-bolt"></i> Apply Default Targets
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance History Modal -->
+    <div class="at-modal-backdrop" id="performanceModal">
+        <div class="at-modal" style="max-width: 580px;">
+            <div class="at-modal-header">
+                <h3><i class="fa-solid fa-chart-simple" style="color: #7c3aed;"></i> Performance History</h3>
+                <button type="button" class="at-modal-close" id="closePerfModal">&times;</button>
+            </div>
+            <div class="at-modal-body">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div id="perfUserName" style="font-size: 15px; font-weight: 700; color: #0f172a;"></div>
+                        <div id="perfUserSub" style="font-size: 12px; color: #64748b;"></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700;">Avg. Rate</div>
+                        <div id="perfAvgRate" style="font-size: 18px; font-weight: 800; color: #059669;">0%</div>
+                    </div>
+                </div>
+
+                <div id="perfHistoryList" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+            <div class="at-modal-footer">
+                <button type="button" class="at-btn at-btn-outline" id="cancelPerfModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="at-toast-container" id="atToastContainer"></div>
 
     <script src="../admin.js"></script>
     <script src="assignTarget.js"></script>

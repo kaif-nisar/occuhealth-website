@@ -15,9 +15,11 @@ const assignTarget = asyncHandler(async (req, res) => {
         remarks
     } = req.body;
     // Validation
-    if (!franchiseeId || !month || !amount) {
-        throw new ApiError(400, "All fields are required");
+    if (!franchiseeId || !month || amount === undefined || amount === null) {
+        throw new ApiError(400, "Franchisee, month and target amount are required");
     }
+
+    const numericAmount = Number(amount) >= 0 ? Number(amount) : 200000;
 
     // Check if franchisee exists
     const franchisee = await User.findById(franchiseeId);
@@ -34,8 +36,9 @@ const assignTarget = asyncHandler(async (req, res) => {
 
     if (existingTarget) {
         // Update existing target
-        existingTarget.amount = amount;
-        existingTarget.remarks = remarks;
+        existingTarget.amount = numericAmount;
+        if (remarks !== undefined) existingTarget.remarks = remarks;
+        if (fullName) existingTarget.fullName = fullName;
         existingTarget.lastUpdated = new Date();
         await existingTarget.save();
 
@@ -47,11 +50,11 @@ const assignTarget = asyncHandler(async (req, res) => {
     // Create new target
     const target = await Target.create({
         franchiseeId,
-        fullName,
+        fullName: fullName || franchisee.fullName || franchisee.username,
         assignedBy: req.user._id,
         month,
-        amount,
-        remarks,
+        amount: numericAmount,
+        remarks: remarks || "",
         tenantId: req.user.tenantId
     });
 
@@ -79,8 +82,8 @@ const getTargets = asyncHandler(async (req, res) => {
     }
 
     const targets = await Target.find(query)
-        .populate('franchiseeId', 'username fullName')
-        .populate('assignedBy', 'username fullName')
+        .populate('franchiseeId', 'username fullName role email phoneNumber phoneNo')
+        .populate('assignedBy', 'username fullName role')
         .sort('-createdAt');
 
     // Calculate summary statistics
@@ -131,23 +134,23 @@ const updateTargetAchievement = asyncHandler(async (req, res) => {
     });
 
     if (!target) {
-        // If no target exists, log the achievement anyway
+        // If no target exists, log the achievement with default target 200,000 (2 Lakhs)
         const newTarget = await Target.create({
             franchiseeId,
             assignedBy: req.user._id,
             month: currentMonth,
-            amount: 0, // No target set
+            amount: 200000, // Default target 2 Lakhs
             achieved: amount,
             tenantId: req.user.tenantId,
             history: [{
                 amount,
                 bookingId,
-                description: 'Booking completed (No target set)'
+                description: 'Booking completed (Default 2L target)'
             }]
         });
 
         return res.status(200).json(
-            new ApiResponse(200, newTarget, "Achievement recorded without target")
+            new ApiResponse(200, newTarget, "Achievement recorded with default target")
         );
     }
 
@@ -168,7 +171,9 @@ async function getUserHierarchy(userId) {
     
     // If user is superFranchisee, include all their franchisees
     if (user.role === 'superFranchisee') {
-        const franchisees = await User.find({ parentUser: userId });
+        const franchisees = await User.find({
+            $or: [{ parentUser: userId }, { createdBy: userId }]
+        });
         userIds = userIds.concat(franchisees.map(f => f._id));
     }
     
@@ -186,15 +191,15 @@ const getCurrentMonthTarget = asyncHandler(async (req, res) => {
         tenantId: req.user.tenantId._id
     }).select('month amount achieved status');
 
-    // If no target exists for current month
+    // If no target exists for current month, return default 2 Lakhs target
     if (!target) {
         return res.status(200).json(
             new ApiResponse(200, {
                 month: currentMonth,
-                amount: 0,
+                amount: 200000,
                 achieved: 0,
                 status: 'pending'
-            }, "No target set for current month")
+            }, "Default target for current month (₹2,00,000)")
         );
     }
 
@@ -286,8 +291,75 @@ const getTargetAnalytics = asyncHandler(async (req, res) => {
     );
 });
 
+// Bulk assign or update targets (e.g. set default 2 Lakhs to all or multiple franchisees)
+const bulkAssignTargets = asyncHandler(async (req, res) => {
+    const { month, amount = 200000, targets = [], remarks = "Default monthly target" } = req.body;
+
+    if (!month) {
+        throw new ApiError(400, "Target month is required");
+    }
+
+    const defaultAmount = Number(amount) >= 0 ? Number(amount) : 200000;
+    const authTenantId = req.user.tenantId?._id?.toString() || req.user.tenantId?.toString();
+
+    let itemsToProcess = [];
+    if (Array.isArray(targets) && targets.length > 0) {
+        itemsToProcess = targets;
+    } else {
+        // Find all franchisees (superFranchisee, franchisee, subFranchisee) for this tenant
+        const users = await User.find({
+            tenantId: authTenantId,
+            role: { $in: ['superFranchisee', 'franchisee', 'subFranchisee'] }
+        }).select('_id fullName username role');
+
+        itemsToProcess = users.map(u => ({
+            franchiseeId: u._id,
+            fullName: u.fullName || u.username,
+            amount: defaultAmount,
+            remarks: remarks
+        }));
+    }
+
+    const updated = [];
+    for (const item of itemsToProcess) {
+        if (!item.franchiseeId) continue;
+        const targetAmount = item.amount !== undefined ? Number(item.amount) : defaultAmount;
+        
+        const existing = await Target.findOne({
+            franchiseeId: item.franchiseeId,
+            month,
+            tenantId: req.user.tenantId
+        });
+
+        if (existing) {
+            existing.amount = targetAmount;
+            if (item.remarks) existing.remarks = item.remarks;
+            if (item.fullName) existing.fullName = item.fullName;
+            existing.lastUpdated = new Date();
+            await existing.save();
+            updated.push(existing);
+        } else {
+            const created = await Target.create({
+                franchiseeId: item.franchiseeId,
+                fullName: item.fullName || "Franchisee",
+                assignedBy: req.user._id,
+                month,
+                amount: targetAmount,
+                remarks: item.remarks || remarks,
+                tenantId: req.user.tenantId
+            });
+            updated.push(created);
+        }
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, { count: updated.length, targets: updated }, "Targets assigned/updated successfully")
+    );
+});
+
 export {
     assignTarget,
+    bulkAssignTargets,
     getTargets,
     getFranchiseePerformance,
     updateTargetAchievement,

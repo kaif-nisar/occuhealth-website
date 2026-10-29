@@ -8,26 +8,74 @@ let BASE_URL = window.location.origin;
 window.BASE_URL = BASE_URL;
 const SUBSCRIPTION_POPUP_WARNING_DAYS = 5;
 
-// Select elements
+// ==========================================
+// 🌓 THEME SYSTEM (Light / Dark Mode Persistence)
+// ==========================================
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeIcon(newTheme);
+}
+window.toggleTheme = toggleTheme;
+
+function updateThemeIcon(theme) {
+  const themeIcon = document.getElementById('themeIcon');
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeIcon) {
+    if (theme === 'dark') {
+      themeIcon.className = 'fa-solid fa-sun';
+      if (themeBtn) themeBtn.title = 'Switch to Light Mode';
+    } else {
+      themeIcon.className = 'fa-solid fa-moon';
+      if (themeBtn) themeBtn.title = 'Switch to Dark Mode';
+    }
+  }
+}
+
+// Initialize theme as soon as script runs
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTheme);
+} else {
+  initTheme();
+}
+
+// Help Dropdown Toggle (Directly attached under Help button, zero background dimming)
 const helpDiv = document.querySelector(".help-div");
 const helpPopup = document.getElementById("helpPopup");
 const closeHelpBtn = document.getElementById("closeHelpBtn");
 
-// Show popup when Help is clicked
-helpDiv.addEventListener("click", () => {
-  if (helpPopup.style.display === "block") {
-    helpPopup.style.display = "none";
-  } else {
-    helpPopup.style.display = "block";
-  }
-});
+if (helpDiv && helpPopup) {
+  helpDiv.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const userPopup = document.getElementById("userPopup");
+    const notificationContainer = document.getElementById("notificationContainer");
+    if (userPopup) userPopup.style.display = "none";
+    if (notificationContainer) notificationContainer.classList.remove("show");
 
-// Also hide if clicking outside the popup
-window.addEventListener("click", (e) => {
-  if (e.target === helpPopup) {
-    helpPopup.style.display = "none";
+    helpPopup.style.display = helpPopup.style.display === "block" ? "none" : "block";
+  });
+
+  if (closeHelpBtn) {
+    closeHelpBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      helpPopup.style.display = "none";
+    });
   }
-});
+
+  document.addEventListener("click", (e) => {
+    if (helpPopup.style.display === "block" && !helpDiv.contains(e.target) && !helpPopup.contains(e.target)) {
+      helpPopup.style.display = "none";
+    }
+  });
+}
 
 
 function notifications() {
@@ -44,25 +92,44 @@ notifications();
 
 // Toggle sidebar functionality
 function toggleSidebar() {
-  let sidebar = document.getElementById("left-navbar");
-  let mainContent = document.getElementById("content-box");
-  sidebar.classList.toggle("hidden");
-  mainContent.classList.toggle("collapsed");
+  const sidebar = document.getElementById("left-navbar");
+  const mainContent = document.getElementById("content-box");
+  const topNavbar = document.getElementById("top-navbar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  if (!sidebar) return;
+
+  const isMobile = window.innerWidth <= 1024;
+
+  if (isMobile) {
+    const isOpen = sidebar.classList.toggle("mobile-open");
+    if (backdrop) {
+      if (isOpen) {
+        backdrop.classList.add("show");
+      } else {
+        backdrop.classList.remove("show");
+      }
+    }
+  } else {
+    sidebar.classList.toggle("hidden");
+    if (mainContent) mainContent.classList.toggle("collapsed");
+    if (topNavbar) topNavbar.classList.toggle("collapsed");
+  }
 }
 
 // Toggle submenu items
 function toggleSubItems(id) {
   var subItems = document.getElementById(id);
+  if (!subItems) return;
   var toggleItem = subItems.previousElementSibling;
 
   // Toggle the visibility of the sub-items
   if (subItems.style.display === "block") {
     subItems.style.display = "none";
+    if (toggleItem) toggleItem.classList.remove("expanded");
   } else {
     subItems.style.display = "block";
+    if (toggleItem) toggleItem.classList.add("expanded");
   }
-  // Toggle the class for the rotation of the toggle symbol
-  toggleItem.classList.toggle("expanded");
 }
 
 // Logout functionality
@@ -486,13 +553,12 @@ async function verifyAccessToken() {
         user.pdfFormat = data.user.createdBy.pdfFormat;
       }
       showVerificationBanner(user);
-      document.getElementById('logo').src = user.tenantId.logo;
+      const activeLogoSrc = (user && user.tenantId && user.tenantId.logo) ? user.tenantId.logo : '/logoPng.png';
+      const logoEl = document.getElementById('logo');
+      if (logoEl) logoEl.src = activeLogoSrc;
       console.log("Staff user role:");
       usericon(user);
-
-    }
-
-    else {
+    } else {
       console.log("User role:");
       userId = data.user._id;
       username = data.user.username;
@@ -500,9 +566,10 @@ async function verifyAccessToken() {
       userRole = data.user.role;
       user = data.user;
       showVerificationBanner(user);
-      document.getElementById('logo').src = user.tenantId.logo;
+      const activeLogoSrc = (user && user.tenantId && user.tenantId.logo) ? user.tenantId.logo : '/logoPng.png';
+      const logoEl = document.getElementById('logo');
+      if (logoEl) logoEl.src = activeLogoSrc;
       usericon(user);
-
     }
     // console.log("userdetails:", user);
 
@@ -546,51 +613,203 @@ async function verifyAccessToken() {
   }
 }
 
+// Logo Upload Modal & Handler
+function openLogoUploadModal() {
+  const modal = document.getElementById('logoUploadModal');
+  const statusEl = document.getElementById('logoUploadStatus');
+  const fileInput = document.getElementById('labLogoFileInput');
+  const preview = document.getElementById('logoUploadPreview');
+  const activeLogo = (user && user.tenantId && user.tenantId.logo) ? user.tenantId.logo : '/logoPng.png';
+
+  if (fileInput) fileInput.value = '';
+  if (preview) preview.src = activeLogo;
+  if (statusEl) {
+    statusEl.style.display = 'none';
+    statusEl.textContent = '';
+  }
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeLogoUploadModal() {
+  const modal = document.getElementById('logoUploadModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitLogoUpload() {
+  const fileInput = document.getElementById('labLogoFileInput');
+  const statusEl = document.getElementById('logoUploadStatus');
+  const saveBtn = document.getElementById('saveLogoUploadBtn');
+
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'Please choose a logo file first.';
+    }
+    return;
+  }
+
+  const file = fileInput.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'File is too large. Max size is 5MB.';
+    }
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+  }
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#2563eb';
+    statusEl.textContent = 'Uploading lab logo to server...';
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    if (user) {
+      formData.append('fullName', user.fullName || user.username || 'Admin');
+      formData.append('clinicName', user.clinicName || user.fullName || 'Occuhealth Lab');
+      formData.append('address', user.address || '');
+      formData.append('phoneNo', user.phoneNo || '');
+      formData.append('email', user.email || '');
+      formData.append('username', user.username || '');
+      formData.append('password', user.password || '');
+      formData.append('isActive', String(Boolean(user.isActive !== false)));
+    }
+
+    const targetUserId = user?._id || userId;
+    const response = await fetch(`${BASE_URL}/api/v1/user/superFranchisee-update?_id=${encodeURIComponent(targetUserId)}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Authorization': 'Bearer ' + (localStorage.getItem('token') || localStorage.getItem('accessToken') || '')
+      },
+      body: formData
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to update logo');
+    }
+
+    const newLogo = result.data?.tenantId?.logo || result.data?.logo;
+    if (newLogo) {
+      if (user && user.tenantId) user.tenantId.logo = newLogo;
+      const logoEl = document.getElementById('logo');
+      const previewEl = document.getElementById('logoUploadPreview');
+      if (logoEl) logoEl.src = newLogo;
+      if (previewEl) previewEl.src = newLogo;
+    }
+
+    if (statusEl) {
+      statusEl.style.color = '#10b981';
+      statusEl.textContent = 'Logo updated successfully!';
+    }
+
+    setTimeout(() => {
+      closeLogoUploadModal();
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Upload & Apply';
+      }
+    }, 1200);
+  } catch (err) {
+    console.error('Logo upload error:', err);
+    if (statusEl) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = err.message || 'Upload failed. Please try again.';
+    }
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Upload & Apply';
+    }
+  }
+}
+
+// Live file selection preview
+window.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('labLogoFileInput');
+  const preview = document.getElementById('logoUploadPreview');
+  if (fileInput && preview) {
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+});
+
 async function usericon(user) {
   const userAvatar = document.getElementById("userAvatar");
   const userPopup = document.getElementById("userPopup");
 
   if (user.showtestdatabase === false) {
-    document.getElementById('testdatabase').style.display = "none";
+    const testDbEl = document.getElementById('testdatabase');
+    if (testDbEl) testDbEl.style.display = "none";
   }
 
-  if (user.tenantId.modelType === "1layer") {
+  if (user.tenantId && user.tenantId.modelType === "1layer") {
     const divs = document.querySelectorAll('.forhide');
     divs.forEach(elem => {
       elem.style.display = "none";
-    })
+    });
   }
 
+  // Update logo: Use client lab logo or default Occuhealth logo
+  const logoImg = document.getElementById('logo');
+  const previewImg = document.getElementById('logoUploadPreview');
+  const activeLogo = (user && user.tenantId && user.tenantId.logo) ? user.tenantId.logo : '/logoPng.png';
+  if (logoImg) logoImg.src = activeLogo;
+  if (previewImg) previewImg.src = activeLogo;
+
   // Toggle popup on avatar click
-  userAvatar.addEventListener("click", () => {
-    userPopup.style.display = userPopup.style.display === "block" ? "none" : "block";
-  });
+  if (userAvatar && userPopup) {
+    userAvatar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      userPopup.style.display = userPopup.style.display === "block" ? "none" : "block";
+    });
 
-  // Close popup if click happens outside
-  document.addEventListener("click", (e) => {
-    if (!userAvatar.contains(e.target) && !userPopup.contains(e.target)) {
-      userPopup.style.display = "none";
-    }
-  });
+    // Close popup if click happens outside
+    document.addEventListener("click", (e) => {
+      if (!userAvatar.contains(e.target) && !userPopup.contains(e.target)) {
+        userPopup.style.display = "none";
+      }
+    });
+  }
 
-  // Example logout action
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    alert("Logged out!");
-    // window.location.href = "/login";
-  });
+  // Wire up popup logout button to real logout
+  const popupLogoutBtn = document.getElementById("logoutBtn");
+  if (popupLogoutBtn) {
+    popupLogoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      logout();
+    });
+  }
 
-  // Example: Set user data dynamically
-  // const user = {
-  //   name: "John Doe",
-  //   email: "john@example.com",
-  //   avatarSmall: "https://i.pravatar.cc/40?img=5",
-  //   avatarLarge: "https://i.pravatar.cc/80?img=5"
-  // };
-
-  document.getElementById("userName").textContent = user.fullName;
-  document.getElementById("userEmail").textContent = user.email;
-  document.getElementById("userAvatarImg").src = user.profileimage;
-  document.getElementById("popupAvatar").src = user.profileimage;
+  if (user.fullName && document.getElementById("userName")) {
+    document.getElementById("userName").textContent = user.fullName;
+  }
+  if (user.email && document.getElementById("userEmail")) {
+    document.getElementById("userEmail").textContent = user.email;
+  }
+  const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='avatarGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6'/%3E%3Cstop offset='100%25' stop-color='%231d4ed8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='64' cy='64' r='64' fill='url(%23avatarGrad)'/%3E%3Ccircle cx='64' cy='48' r='24' fill='%23ffffff' opacity='0.95'/%3E%3Cpath d='M24 108c0-22.1 17.9-40 40-40s40 17.9 40 40z' fill='%23ffffff' opacity='0.95'/%3E%3C/svg%3E";
+  const avatarSmall = document.getElementById("userAvatarImg");
+  const avatarLarge = document.getElementById("popupAvatar");
+  const avatarSrc = user.profileimage || defaultAvatar;
+  if (avatarSmall) avatarSmall.src = avatarSrc;
+  if (avatarLarge) avatarLarge.src = avatarSrc;
 }
 
 // Function to initialize menu based on user role and tenant layer
@@ -1172,12 +1391,16 @@ async function loadPage(page, Name, _id, BASE_URL, name) {
   document.querySelectorAll('script[data-dynamic-page-script="true"]').forEach((script) => script.remove());
 
   const assetVersion = String(Date.now());
+  const container = document.querySelector(".content-box");
+  if (container) container.classList.add("loading");
 
   fetch(`pages/pages/${page}.html?v=${assetVersion}`)
-    .then((response) => response.text())
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return response.text();
+    })
     .then((html) => {
-      const container = document.querySelector(".content-box");
-      container.innerHTML = html;
+      if (container) container.innerHTML = html;
 
       // Load associated scripts
       loadScript(`./editor.js?v=${assetVersion}`)
@@ -1185,6 +1408,7 @@ async function loadPage(page, Name, _id, BASE_URL, name) {
           // Script loaded successfully
         })
         .catch((error) => console.error(error));
+
       loadScript(`pages/pages/${page}.js?v=${assetVersion}`)
         .then(() => {
           // Script loaded successfully
@@ -1206,12 +1430,24 @@ async function loadPage(page, Name, _id, BASE_URL, name) {
       // Highlight active menu item
       highlightActiveMenuItem(page);
     })
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      console.error(error);
+      if (container) {
+        container.innerHTML = `<div class="error-message" style="text-align:center; padding:40px; color:#ef4444; font-weight:600;">
+          <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>
+          Failed to load page "${page}". Please check network or try again.
+        </div>`;
+      }
+    })
+    .finally(() => {
+      if (container) container.classList.remove("loading");
+    });
 }
 
 // Helper functions
 function clearOldPage() {
   const container = document.querySelector(".content-box");
+  if (!container) return;
   container.innerHTML = "";
   const oldScripts = container.querySelectorAll("script");
   oldScripts.forEach((script) => script.remove());
@@ -1221,6 +1457,8 @@ function highlightActiveMenuItem(page) {
   // Remove active class from all menu items
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.classList.remove("active");
+    const mDash = item.closest(".m_dash");
+    if (mDash) mDash.classList.remove("active");
   });
 
   // Add active class to current menu item
@@ -1229,6 +1467,18 @@ function highlightActiveMenuItem(page) {
   );
   activeItems.forEach((item) => {
     item.classList.add("active");
+    const mDash = item.closest(".m_dash");
+    if (mDash) mDash.classList.add("active");
+
+    // Automatically expand parent subItem if this item is nested inside a sub-menu
+    const parentSub = item.closest(".subItem");
+    if (parentSub) {
+      parentSub.style.display = "block";
+      const trigger = parentSub.previousElementSibling;
+      if (trigger) {
+        trigger.classList.add("expanded");
+      }
+    }
   });
 }
 
@@ -1254,14 +1504,22 @@ function attachMenuEventListeners() {
     item.addEventListener("click", (e) => {
       e.preventDefault();
 
-      // Debounce clicks
+      // Close mobile drawer on item tap
+      if (window.innerWidth <= 1024) {
+        const sidebar = document.getElementById("left-navbar");
+        const backdrop = document.getElementById("sidebarBackdrop");
+        if (sidebar) sidebar.classList.remove("mobile-open");
+        if (backdrop) backdrop.classList.remove("show");
+      }
+
+      // Debounce clicks for smooth instantaneous response
       clearTimeout(debounceTimeout);
       debounceTimeout = setTimeout(() => {
         const page = item.getAttribute("data-page");
         if (page) {
           loadPage(page);
         }
-      }, 300); // 300ms debounce delay
+      }, 120);
     });
   });
 }
@@ -1366,12 +1624,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       loadPage(event.state.page);
     }
   });
-
-  // Set up sidebar toggle if needed
-  const toggleBtn = document.getElementById("toggle");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", toggleSidebar);
-  }
 
   // Initialize debug tools if needed
   debugAdminLayer();

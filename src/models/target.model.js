@@ -24,7 +24,8 @@ const targetSchema = new mongoose.Schema({
     amount: {
         type: Number,
         required: true,
-        min: 0
+        min: 0,
+        default: 200000
     },
     achieved: {
         type: Number,
