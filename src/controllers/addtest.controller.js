@@ -12,7 +12,7 @@ import { Package } from "../models/addPackage.model.js";
 import { Tenant } from "../models/tenant.model.js";
 import { User } from "../models/user.model.js";
 import { SuperAdmin } from "../models/superAdmin.model.js";
-import { create } from "browser-sync";
+
 
 const normalizeShortNameList = (shortNames = [], defaultShortName = "") => {
     const uniqueShortNames = [...new Set(

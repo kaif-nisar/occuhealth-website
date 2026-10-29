@@ -114,4 +114,16 @@ jobs:
               pm2 restart all --update-env
             fi
 
+            # 7. Verify PM2 Health & Log Status (Zero Silent 502s)
+            sleep 4
+            echo "=== PM2 Process Status ==="
+            pm2 status
+
+            if pm2 list | grep -E "occuhealth|superadmin_lab" | grep -qi "errored"; then
+              echo "❌ ERROR: PM2 process entered ERRORED state!"
+              echo "=== Recent PM2 Logs ==="
+              pm2 logs --lines 50 --nostream
+              exit 1
+            fi
+
             echo "=== Deployment Successfully Completed ==="
