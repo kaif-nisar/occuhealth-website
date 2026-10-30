@@ -1,0 +1,1939 @@
+<div class="fb-dashboard-wrap" id="fbDashboardWrap">
+    <!-- Single Layer Locked Notice (Hidden by default, shown only if user is 1layer) -->
+    <div id="fbSingleLayerRestricted" class="fb-restricted-overlay" style="display: none;">
+        <div class="fb-restricted-card">
+            <div class="fb-restricted-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2>Franchisee Business Portal Restricted</h2>
+            <p>
+                This module is exclusively available for <strong>Multi-Layer Lab Networks</strong> (2-Layer, 3-Layer &amp; 4-Layer franchise models).
+            </p>
+            <div class="fb-restricted-notice">
+                <i class="fa-solid fa-circle-info"></i>
+                <span>Your account is currently running on a <strong>Single-Layer (Direct Lab)</strong> license without a franchisee distribution tier.</span>
+            </div>
+            <p class="fb-restricted-sub">
+                To enable franchisee networks, multi-center revenue sharing, and target tracking, please contact support or upgrade your subscription.
+            </p>
+            <div class="fb-restricted-actions">
+                <button type="button" class="fb-btn fb-btn-primary" onclick="loadPage('dashboard')">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Lab Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="fbMainContent" class="fb-main-container">
+        <!-- Top Executive Banner -->
+        <header class="fb-header">
+            <div class="fb-header-left">
+                <div class="fb-header-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div>
+                    <div class="fb-title-row">
+                        <h1 class="fb-title">Franchise Business &amp; Performance Analytics</h1>
+                        <span class="fb-badge-default-quota">
+                            <i class="fa-solid fa-bullseye"></i> Default Target: ₹2,00,000 / mo
+                        </span>
+                        <span id="fbActiveScopePill" class="fb-pill-scope">All Franchisees</span>
+                    </div>
+                    <p class="fb-subtitle">
+                        Real-time revenue tracking, tube &amp; sample volume, target quotas vs actual sales, and daily performance averages.
+                    </p>
+                </div>
+            </div>
+            <div class="fb-header-actions">
+                <button type="button" class="fb-btn fb-btn-white" id="fbOpenBulkTargetModalBtn">
+                    <i class="fa-solid fa-sliders"></i> Bulk Set Targets
+                </button>
+                <button type="button" class="fb-btn fb-btn-white-outline" id="fbExportExcelBtn">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel
+                </button>
+                <button type="button" class="fb-btn fb-btn-white-outline" id="fbRefreshBtn">
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <!-- Command & Filter Toolbar -->
+        <section class="fb-toolbar">
+            <div class="fb-toolbar-row">
+                <!-- Franchisee Dropdown Selector -->
+                <div class="fb-filter-group fb-franchisee-select-wrap">
+                    <label for="fbFranchiseeSelect" class="fb-filter-label">
+                        <i class="fa-solid fa-store"></i> Franchisee Selection:
+                    </label>
+                    <select id="fbFranchiseeSelect" class="fb-select">
+                        <option value="all">⚡ All Franchisees (Aggregated)</option>
+                    </select>
+                </div>
+
+                <!-- Quick Period Filter Buttons (1 Day, 1 Week, 1 Month, Custom) -->
+                <div class="fb-filter-group fb-period-group">
+                    <label class="fb-filter-label">
+                        <i class="fa-regular fa-calendar"></i> Quick Period:
+                    </label>
+                    <div class="fb-pill-buttons" role="group">
+                        <button type="button" class="fb-pill-btn" data-period="today">
+                            <i class="fa-solid fa-calendar-day"></i> 1 Day (Today)
+                        </button>
+                        <button type="button" class="fb-pill-btn" data-period="week">
+                            <i class="fa-solid fa-calendar-week"></i> 1 Week
+                        </button>
+                        <button type="button" class="fb-pill-btn active" data-period="month">
+                            <i class="fa-solid fa-calendar-days"></i> 1 Month (Current)
+                        </button>
+                        <button type="button" class="fb-pill-btn" data-period="custom">
+                            <i class="fa-solid fa-sliders"></i> Custom Range
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Calendar Month Selector (for target tracking) -->
+                <div class="fb-filter-group fb-month-group">
+                    <label for="fbMonthPicker" class="fb-filter-label">
+                        <i class="fa-solid fa-calendar"></i> Target Month:
+                    </label>
+                    <input type="month" id="fbMonthPicker" class="fb-input-date" />
+                </div>
+
+                <!-- Data View Mode Selector: Exact Data vs Daily Average Data vs Both Views -->
+                <div class="fb-filter-group fb-view-mode-group">
+                    <label class="fb-filter-label">
+                        <i class="fa-solid fa-chart-column"></i> Data View Mode:
+                    </label>
+                    <div class="fb-pill-buttons fb-mode-toggle-group" role="group">
+                        <button type="button" class="fb-pill-btn fb-mode-btn active" data-mode="exact" title="Show Exact Figures (Actual Totals for Selected Period)">
+                            <i class="fa-solid fa-list-check"></i> Exact Data
+                        </button>
+                        <button type="button" class="fb-pill-btn fb-mode-btn" data-mode="average" title="Show Daily Average Metrics">
+                            <i class="fa-solid fa-calculator"></i> Daily Averages
+                        </button>
+                        <button type="button" class="fb-pill-btn fb-mode-btn" data-mode="both" title="Show Both Exact Totals and Daily Averages">
+                            <i class="fa-solid fa-table-columns"></i> Both Views
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Date Range Row (Collapsible) -->
+            <div id="fbCustomDateRow" class="fb-custom-date-row" style="display: none;">
+                <div class="fb-custom-date-fields">
+                    <div class="fb-field-inline">
+                        <label for="fbStartDateInput">Start Date:</label>
+                        <input type="date" id="fbStartDateInput" class="fb-input-date" />
+                    </div>
+                    <div class="fb-field-inline">
+                        <label for="fbEndDateInput">End Date:</label>
+                        <input type="date" id="fbEndDateInput" class="fb-input-date" />
+                    </div>
+                    <button type="button" class="fb-btn fb-btn-primary fb-btn-sm" id="fbApplyCustomDateBtn">
+                        <i class="fa-solid fa-check"></i> Apply Range
+                    </button>
+                </div>
+                <div class="fb-date-summary-text" id="fbDateSummaryText">
+                    Showing data for selected range
+                </div>
+            </div>
+        </section>
+
+        <!-- Mode Indicator Strip -->
+        <div class="fb-kpi-mode-strip">
+            <div class="fb-mode-active-pill">
+                <span class="fb-mode-indicator-dot"></span>
+                <span id="fbActiveModeTitle">Active View: <strong>Exact Data (Period Totals)</strong></span>
+            </div>
+            <div class="fb-mode-hint-text" id="fbActiveModeDesc">
+                Displaying actual booking figures for the selected period. Switch between Exact Data, Daily Averages, or Both at any time.
+            </div>
+        </div>
+
+        <!-- KPI Executive Summary Cards -->
+        <section class="fb-kpi-grid">
+            <!-- 1. Total Target vs Achieved -->
+            <div class="fb-kpi-card fb-card-target">
+                <div class="fb-kpi-top">
+                    <div class="fb-kpi-info">
+                        <span class="fb-kpi-title">Monthly Quota / Target</span>
+                        <h2 class="fb-kpi-value" id="kpiTargetAmount">₹0</h2>
+                    </div>
+                    <div class="fb-kpi-icon fb-icon-target">
+                        <i class="fa-solid fa-bullseye"></i>
+                    </div>
+                </div>
+                <div class="fb-progress-wrap">
+                    <div class="fb-progress-meta">
+                        <span class="fb-progress-achieved" id="kpiTargetAchievedLabel">Achieved: ₹0</span>
+                        <span class="fb-progress-pct" id="kpiTargetPct">0%</span>
+                    </div>
+                    <div class="fb-progress-bar">
+                        <div class="fb-progress-fill" id="kpiTargetProgressFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="fb-kpi-foot">
+                    <span id="kpiTargetDeficit" class="fb-deficit-pill">Remaining: ₹0</span>
+                    <span id="kpiTargetCount" class="fb-foot-sub">0 Franchisees</span>
+                </div>
+            </div>
+
+            <!-- 2. Total Revenue / Sale (in ₹) & Daily Average -->
+            <div class="fb-kpi-card fb-card-revenue">
+                <div class="fb-kpi-top">
+                    <div class="fb-kpi-info">
+                        <div class="fb-kpi-header-badges">
+                            <span class="fb-kpi-title">Total Sale / Revenue</span>
+                            <span class="fb-metric-badge badge-exact">Exact Total</span>
+                        </div>
+                        <h2 class="fb-kpi-value text-emerald" id="kpiTotalRevenue">₹0</h2>
+                    </div>
+                    <div class="fb-kpi-icon fb-icon-revenue">
+                        <i class="fa-solid fa-indian-rupee-sign"></i>
+                    </div>
+                </div>
+                <!-- Daily Average Metric -->
+                <div class="fb-avg-highlight">
+                    <div class="fb-avg-item">
+                        <span class="fb-avg-label"><i class="fa-solid fa-chart-line"></i> Daily Avg Revenue:</span>
+                        <span class="fb-avg-val text-emerald" id="kpiAvgRevenuePerDay">₹0 / day</span>
+                    </div>
+                </div>
+                <div class="fb-kpi-foot">
+                    <span class="fb-foot-sub" id="kpiAvgTicketSize">Avg / Sample: ₹0</span>
+                    <span class="fb-foot-sub" id="kpiDaysLabel">Period: 30 days</span>
+                </div>
+            </div>
+
+            <!-- 3. Samples Volume & Daily Average -->
+            <div class="fb-kpi-card fb-card-samples">
+                <div class="fb-kpi-top">
+                    <div class="fb-kpi-info">
+                        <div class="fb-kpi-header-badges">
+                            <span class="fb-kpi-title">Patient Samples</span>
+                            <span class="fb-metric-badge badge-exact">Exact Total</span>
+                        </div>
+                        <h2 class="fb-kpi-value text-blue" id="kpiTotalSamples">0</h2>
+                    </div>
+                    <div class="fb-kpi-icon fb-icon-samples">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
+                </div>
+                <!-- Daily Average Metric -->
+                <div class="fb-avg-highlight">
+                    <div class="fb-avg-item">
+                        <span class="fb-avg-label"><i class="fa-solid fa-calculator"></i> Daily Avg Samples:</span>
+                        <span class="fb-avg-val text-blue" id="kpiAvgSamplesPerDay">0 / day</span>
+                    </div>
+                </div>
+                <div class="fb-kpi-foot">
+                    <span class="fb-foot-sub">Total Booked Cases</span>
+                    <span class="fb-foot-sub" id="kpiAchievedCount">0 Met Target</span>
+                </div>
+            </div>
+
+            <!-- 4. Total Tests Count & Daily Average -->
+            <div class="fb-kpi-card fb-card-tests">
+                <div class="fb-kpi-top">
+                    <div class="fb-kpi-info">
+                        <div class="fb-kpi-header-badges">
+                            <span class="fb-kpi-title">Number of Tests</span>
+                            <span class="fb-metric-badge badge-exact">Exact Total</span>
+                        </div>
+                        <h2 class="fb-kpi-value text-purple" id="kpiTotalTests">0</h2>
+                    </div>
+                    <div class="fb-kpi-icon fb-icon-tests">
+                        <i class="fa-solid fa-microscope"></i>
+                    </div>
+                </div>
+                <!-- Daily Average Metric -->
+                <div class="fb-avg-highlight">
+                    <div class="fb-avg-item">
+                        <span class="fb-avg-label"><i class="fa-solid fa-flask-vial"></i> Daily Avg Tests:</span>
+                        <span class="fb-avg-val text-purple" id="kpiAvgTestsPerDay">0 / day</span>
+                    </div>
+                </div>
+                <div class="fb-kpi-foot">
+                    <span class="fb-foot-sub" id="kpiTestsPerSample">0 Tests / Sample</span>
+                    <span class="fb-foot-sub">Investigations</span>
+                </div>
+            </div>
+
+            <!-- 5. Total Tubes Booked & Daily Average -->
+            <div class="fb-kpi-card fb-card-tubes">
+                <div class="fb-kpi-top">
+                    <div class="fb-kpi-info">
+                        <div class="fb-kpi-header-badges">
+                            <span class="fb-kpi-title">Number of Tubes Booked</span>
+                            <span class="fb-metric-badge badge-exact">Exact Total</span>
+                        </div>
+                        <h2 class="fb-kpi-value text-amber" id="kpiTotalTubes">0</h2>
+                    </div>
+                    <div class="fb-kpi-icon fb-icon-tubes">
+                        <i class="fa-solid fa-vials"></i>
+                    </div>
+                </div>
+                <!-- Daily Average Metric -->
+                <div class="fb-avg-highlight">
+                    <div class="fb-avg-item">
+                        <span class="fb-avg-label"><i class="fa-solid fa-barcode"></i> Daily Avg Tubes:</span>
+                        <span class="fb-avg-val text-amber" id="kpiAvgTubesPerDay">0 / day</span>
+                    </div>
+                </div>
+                <div class="fb-kpi-foot">
+                    <span class="fb-foot-sub" id="kpiTubesPerSample">0 Tubes / Sample</span>
+                    <span class="fb-foot-sub">Barcoded Vials</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Graphical Analytics Visualizations (Two Rows, No Overflow) -->
+        <section class="fb-charts-container">
+            <!-- Row 1: Timeline Trend & Tube Types Breakdown -->
+            <div class="fb-charts-row fb-charts-row-timeline">
+                <!-- Left Chart: Timeline Trend (Revenue & Samples) -->
+                <div class="fb-chart-card">
+                    <div class="fb-chart-head">
+                        <div>
+                            <h3 class="fb-chart-title">
+                                <i class="fa-solid fa-chart-line text-blue-600"></i> Revenue &amp; Sample Timeline Trend
+                            </h3>
+                            <p class="fb-chart-sub">Daily breakdown of sale generation, sample volume and tube count</p>
+                        </div>
+                        <div class="fb-chart-legend-custom">
+                            <span class="fb-legend-dot dot-revenue"></span> Revenue (₹)
+                            <span class="fb-legend-dot dot-samples ml-3"></span> Samples
+                            <span class="fb-legend-dot dot-tubes ml-3"></span> Tubes
+                        </div>
+                    </div>
+                    <div class="fb-chart-body">
+                        <canvas id="fbTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right Chart: Tube Types Breakdown -->
+                <div class="fb-chart-card">
+                    <div class="fb-chart-head">
+                        <div>
+                            <h3 class="fb-chart-title">
+                                <i class="fa-solid fa-vial-circle-check text-amber-500"></i> Tube Types Booked
+                            </h3>
+                            <p class="fb-chart-sub">EDTA, Serum, Fluoride &amp; Vials</p>
+                        </div>
+                    </div>
+                    <div class="fb-chart-body fb-donut-wrap">
+                        <canvas id="fbTubeTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Top Booked Tests & Quota Performance Comparison -->
+            <div class="fb-charts-row fb-charts-row-equal">
+                <!-- Top Booked Tests -->
+                <div class="fb-chart-card">
+                    <div class="fb-chart-head">
+                        <div>
+                            <h3 class="fb-chart-title">
+                                <i class="fa-solid fa-dna text-purple-600"></i> Top Booked Tests &amp; Profiles
+                            </h3>
+                            <p class="fb-chart-sub">Most frequently requested laboratory investigations</p>
+                        </div>
+                    </div>
+                    <div class="fb-chart-body">
+                        <canvas id="fbTopTestsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Target vs Achieved Leaderboard (Top Franchisees) -->
+                <div class="fb-chart-card">
+                    <div class="fb-chart-head">
+                        <div>
+                            <h3 class="fb-chart-title">
+                                <i class="fa-solid fa-trophy text-emerald-600"></i> Quota Performance Comparison
+                            </h3>
+                            <p class="fb-chart-sub">Target assigned vs sale achieved by top partners</p>
+                        </div>
+                    </div>
+                    <div class="fb-chart-body">
+                        <canvas id="fbTargetComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Performance Data Table -->
+        <section class="fb-table-card">
+            <!-- Table Action & Search Toolbar -->
+            <div class="fb-table-toolbar">
+                <div class="fb-table-toolbar-left">
+                    <div class="fb-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="fbTableSearchInput" placeholder="Search franchisee by name, clinic, username or phone..." />
+                    </div>
+
+                    <!-- Table Data View Mode Switcher -->
+                    <div class="fb-table-mode-group">
+                        <span class="fb-table-mode-label"><i class="fa-solid fa-sliders"></i> Display:</span>
+                        <div class="fb-pill-buttons fb-table-mode-pills" role="group">
+                            <button type="button" class="fb-pill-btn fb-table-mode-btn active" data-mode="exact" title="Show Exact Figures (Actual Totals)">
+                                <i class="fa-solid fa-list-check"></i> Exact Data
+                            </button>
+                            <button type="button" class="fb-pill-btn fb-table-mode-btn" data-mode="average" title="Show Daily Average Metrics">
+                                <i class="fa-solid fa-calculator"></i> Daily Averages
+                            </button>
+                            <button type="button" class="fb-pill-btn fb-table-mode-btn" data-mode="both" title="Show Both Exact Totals and Daily Averages">
+                                <i class="fa-solid fa-table-columns"></i> Both Views
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="fb-status-tabs" role="tablist">
+                        <button type="button" class="fb-tab-btn active" data-status="all">All (<span id="tabCountAll">0</span>)</button>
+                        <button type="button" class="fb-tab-btn" data-status="achieved">Achieved (<span id="tabCountAchieved">0</span>)</button>
+                        <button type="button" class="fb-tab-btn" data-status="on_track">On Track (<span id="tabCountOnTrack">0</span>)</button>
+                        <button type="button" class="fb-tab-btn" data-status="pending">Pending (<span id="tabCountPending">0</span>)</button>
+                    </div>
+                </div>
+                <div class="fb-table-toolbar-right">
+                    <div class="fb-sort-wrap">
+                        <label for="fbSortSelect">Sort by:</label>
+                        <select id="fbSortSelect" class="fb-select-sm">
+                            <option value="revenue-desc">Highest Revenue (Exact ₹)</option>
+                            <option value="revenue-asc">Lowest Revenue (Exact ₹)</option>
+                            <option value="avg-revenue-desc">Highest Daily Avg Revenue (₹/day)</option>
+                            <option value="pct-desc">Highest % Achieved</option>
+                            <option value="pct-asc">Lowest % Achieved</option>
+                            <option value="samples-desc">Highest Total Samples (Exact)</option>
+                            <option value="avg-samples-desc">Highest Daily Avg Samples</option>
+                            <option value="tests-desc">Highest Total Tests (Exact)</option>
+                            <option value="tubes-desc">Highest Total Tubes (Exact)</option>
+                            <option value="name-asc">Franchisee Name (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="fb-table-responsive">
+                <table class="fb-table" id="fbFranchiseeTable">
+                    <thead id="fbTableHeader">
+                        <!-- Populated dynamically by JS based on currentDataMode ('exact', 'average', 'both') -->
+                    </thead>
+                    <tbody id="fbTableBody">
+                        <tr>
+                            <td colspan="14" class="fb-loading-row">
+                                <div class="fb-spinner-wrap">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> Loading franchise business intelligence...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer -->
+            <div class="fb-table-footer">
+                <div class="fb-footer-info" id="fbTableRecordCount">Showing 0 franchisees</div>
+                <div class="fb-footer-actions">
+                    <button type="button" class="fb-btn-plain" id="fbPrintTableBtn">
+                        <i class="fa-solid fa-print"></i> Print Report
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal: Individual Target Update -->
+    <div id="fbTargetEditModal" class="fb-modal" style="display: none;">
+        <div class="fb-modal-dialog">
+            <div class="fb-modal-header">
+                <div class="fb-modal-title-row">
+                    <i class="fa-solid fa-bullseye text-blue-600"></i>
+                    <h3>Adjust Monthly Target</h3>
+                </div>
+                <button type="button" class="fb-modal-close" id="fbCloseTargetModalBtn">&times;</button>
+            </div>
+            <div class="fb-modal-body">
+                <div class="fb-target-user-card" id="fbTargetModalUserCard">
+                    <div class="fb-user-avatar-circle" id="fbModalUserAvatar">F</div>
+                    <div>
+                        <h4 id="fbModalUserName">Franchisee Name</h4>
+                        <p id="fbModalUserRole" class="text-sm text-slate-500">Franchisee</p>
+                    </div>
+                </div>
+
+                <form id="fbTargetEditForm">
+                    <input type="hidden" id="fbModalFranchiseeId" />
+                    
+                    <div class="fb-form-group">
+                        <label for="fbModalMonthInput" class="fb-label">Target Month:</label>
+                        <input type="month" id="fbModalMonthInput" class="fb-input" required />
+                    </div>
+
+                    <div class="fb-form-group">
+                        <label for="fbModalAmountInput" class="fb-label">
+                            Target Amount (₹):
+                        </label>
+                        <div class="fb-input-currency-wrap">
+                            <span class="fb-currency-symbol">₹</span>
+                            <input type="number" id="fbModalAmountInput" class="fb-input fb-input-currency" min="0" step="5000" placeholder="200000" required />
+                        </div>
+                        <div class="fb-amount-words" id="fbModalAmountWords">Two Lakh Rupees (Standard Default)</div>
+                    </div>
+
+                    <!-- Preset Amount Quick Chips -->
+                    <div class="fb-quick-chips-group">
+                        <span class="fb-chips-label">Quick Presets:</span>
+                        <div class="fb-chips-row">
+                            <button type="button" class="fb-chip" data-amount="100000">₹1 Lakh</button>
+                            <button type="button" class="fb-chip active" data-amount="200000">₹2 Lakhs (Default)</button>
+                            <button type="button" class="fb-chip" data-amount="300000">₹3 Lakhs</button>
+                            <button type="button" class="fb-chip" data-amount="500000">₹5 Lakhs</button>
+                        </div>
+                    </div>
+
+                    <div class="fb-form-group mt-3">
+                        <label for="fbModalRemarksInput" class="fb-label">Remarks / Note (Optional):</label>
+                        <input type="text" id="fbModalRemarksInput" class="fb-input" placeholder="e.g. Monthly franchise quota set" />
+                    </div>
+
+                    <div id="fbModalStatusMsg" class="fb-alert" style="display: none;"></div>
+
+                    <div class="fb-modal-footer">
+                        <button type="button" class="fb-btn fb-btn-plain" id="fbCancelTargetModalBtn">Cancel</button>
+                        <button type="submit" class="fb-btn fb-btn-primary" id="fbSaveTargetBtn">
+                            <i class="fa-solid fa-check"></i> Save &amp; Apply Target
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Bulk Target Assignment -->
+    <div id="fbBulkTargetModal" class="fb-modal" style="display: none;">
+        <div class="fb-modal-dialog">
+            <div class="fb-modal-header">
+                <div class="fb-modal-title-row">
+                    <i class="fa-solid fa-layer-group text-purple-600"></i>
+                    <h3>Bulk Assign Targets to All Franchisees</h3>
+                </div>
+                <button type="button" class="fb-modal-close" id="fbCloseBulkModalBtn">&times;</button>
+            </div>
+            <div class="fb-modal-body">
+                <p class="fb-modal-desc">
+                    Instantly set a standard target (such as <strong>₹2,00,000 / 2 Lakhs</strong>) across all your franchisees for any month in one click.
+                </p>
+
+                <form id="fbBulkTargetForm">
+                    <div class="fb-form-group">
+                        <label for="fbBulkMonthInput" class="fb-label">Target Month:</label>
+                        <input type="month" id="fbBulkMonthInput" class="fb-input" required />
+                    </div>
+
+                    <div class="fb-form-group">
+                        <label for="fbBulkAmountInput" class="fb-label">Default Target per Franchisee (₹):</label>
+                        <div class="fb-input-currency-wrap">
+                            <span class="fb-currency-symbol">₹</span>
+                            <input type="number" id="fbBulkAmountInput" class="fb-input fb-input-currency" min="0" step="5000" value="200000" required />
+                        </div>
+                        <div class="fb-amount-words" id="fbBulkAmountWords">Two Lakh Rupees (Standard Default)</div>
+                    </div>
+
+                    <div class="fb-quick-chips-group">
+                        <span class="fb-chips-label">Quick Presets:</span>
+                        <div class="fb-chips-row">
+                            <button type="button" class="fb-bulk-chip" data-amount="100000">₹1 Lakh</button>
+                            <button type="button" class="fb-bulk-chip active" data-amount="200000">₹2 Lakhs (Default)</button>
+                            <button type="button" class="fb-bulk-chip" data-amount="300000">₹3 Lakhs</button>
+                            <button type="button" class="fb-bulk-chip" data-amount="500000">₹5 Lakhs</button>
+                        </div>
+                    </div>
+
+                    <div class="fb-form-group mt-3">
+                        <label for="fbBulkRemarksInput" class="fb-label">Batch Description:</label>
+                        <input type="text" id="fbBulkRemarksInput" class="fb-input" value="Standard 2 Lakh monthly quota" />
+                    </div>
+
+                    <div id="fbBulkModalStatusMsg" class="fb-alert" style="display: none;"></div>
+
+                    <div class="fb-modal-footer">
+                        <button type="button" class="fb-btn fb-btn-plain" id="fbCancelBulkModalBtn">Cancel</button>
+                        <button type="submit" class="fb-btn fb-btn-primary" id="fbSaveBulkBtn">
+                            <i class="fa-solid fa-bolt"></i> Apply to All Franchisees
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Franchisee Deep-Dive View -->
+    <div id="fbDetailModal" class="fb-modal" style="display: none;">
+        <div class="fb-modal-dialog fb-modal-dialog-large">
+            <div class="fb-modal-header">
+                <div class="fb-modal-title-row">
+                    <i class="fa-solid fa-chart-simple text-blue-600"></i>
+                    <h3 id="fbDetailModalTitle">Franchisee Business Drill-Down</h3>
+                </div>
+                <button type="button" class="fb-modal-close" id="fbCloseDetailModalBtn">&times;</button>
+            </div>
+            <div class="fb-modal-body" id="fbDetailModalContent">
+                <!-- Injected dynamically by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ==========================================================================
+   FRANCHISEE BUSINESS ANALYTICS STYLES
+   Tailored, High-Density Executive Design System
+   ========================================================================== */
+.fb-dashboard-wrap {
+    --fb-primary: #1e40af;
+    --fb-primary-hover: #1d4ed8;
+    --fb-primary-light: #eff6ff;
+    --fb-primary-border: #bfdbfe;
+    --fb-slate-900: #0f172a;
+    --fb-slate-800: #1e293b;
+    --fb-slate-700: #334155;
+    --fb-slate-600: #475569;
+    --fb-slate-500: #64748b;
+    --fb-slate-400: #94a3b8;
+    --fb-slate-200: #e2e8f0;
+    --fb-slate-100: #f1f5f9;
+    --fb-slate-50: #f8fafc;
+    --fb-emerald: #059669;
+    --fb-emerald-light: #ecfdf5;
+    --fb-emerald-border: #a7f3d0;
+    --fb-amber: #d97706;
+    --fb-amber-light: #fffbeb;
+    --fb-amber-border: #fde68a;
+    --fb-purple: #7c3aed;
+    --fb-purple-light: #f5f3ff;
+    --fb-purple-border: #ddd6fe;
+    --fb-rose: #e11d48;
+    --fb-rose-light: #fff1f2;
+    --fb-rose-border: #fecdd3;
+    --fb-radius: 14px;
+    --fb-radius-sm: 8px;
+    --fb-radius-pill: 9999px;
+    --fb-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+    --fb-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --fb-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.09), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--fb-slate-700);
+    background-color: var(--fb-slate-50);
+    padding: 24px;
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
+.fb-dashboard-wrap * {
+    box-sizing: border-box;
+}
+
+/* Single Layer Restricted Banner */
+.fb-restricted-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    min-height: 70vh;
+}
+
+.fb-restricted-card {
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: 18px;
+    padding: 40px;
+    max-width: 580px;
+    text-align: center;
+    box-shadow: var(--fb-shadow-lg);
+}
+
+.fb-restricted-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: #fef2f2;
+    color: var(--fb-rose);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 20px;
+    border: 2px solid #fee2e2;
+}
+
+.fb-restricted-card h2 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--fb-slate-900);
+    margin-bottom: 12px;
+}
+
+.fb-restricted-card p {
+    font-size: 14.5px;
+    color: var(--fb-slate-600);
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.fb-restricted-notice {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    color: #92400e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    margin-bottom: 16px;
+}
+
+.fb-restricted-notice i {
+    font-size: 18px;
+    color: #b45309;
+    flex-shrink: 0;
+}
+
+.fb-restricted-sub {
+    font-size: 13px !important;
+    color: var(--fb-slate-500) !important;
+}
+
+.fb-restricted-actions {
+    margin-top: 24px;
+}
+
+/* Header Banner */
+.fb-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+    border-radius: var(--fb-radius);
+    padding: 24px 30px;
+    color: #ffffff;
+    box-shadow: var(--fb-shadow-md);
+    margin-bottom: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.fb-header::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -5%;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.fb-header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    z-index: 1;
+}
+
+.fb-header-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    flex-shrink: 0;
+}
+
+.fb-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fb-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+}
+
+.fb-badge-default-quota {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--fb-radius-pill);
+    background: rgba(16, 185, 129, 0.22);
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    color: #a7f3d0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fb-pill-scope {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: var(--fb-radius-pill);
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.fb-subtitle {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 680px;
+}
+
+.fb-header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    z-index: 1;
+}
+
+/* Buttons */
+.fb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--fb-radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    text-decoration: none;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.fb-btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.fb-btn:active {
+    transform: scale(0.98);
+}
+
+.fb-btn-white {
+    background: #ffffff;
+    color: var(--fb-primary);
+    box-shadow: var(--fb-shadow-sm);
+}
+
+.fb-btn-white:hover {
+    background: #f8fafc;
+    color: var(--fb-primary-hover);
+}
+
+.fb-btn-white-outline {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+.fb-btn-white-outline:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+
+.fb-btn-primary {
+    background: var(--fb-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(30, 64, 175, 0.25);
+}
+
+.fb-btn-primary:hover {
+    background: var(--fb-primary-hover);
+}
+
+.fb-btn-plain {
+    background: #ffffff;
+    color: var(--fb-slate-700);
+    border: 1px solid var(--fb-slate-200);
+}
+
+.fb-btn-plain:hover {
+    background: var(--fb-slate-100);
+}
+
+/* Toolbar & Filters */
+.fb-toolbar {
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius);
+    padding: 16px 20px;
+    box-shadow: var(--fb-shadow-sm);
+    margin-bottom: 22px;
+}
+
+.fb-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.fb-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fb-filter-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fb-slate-500);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fb-franchisee-select-wrap {
+    flex: 1;
+    min-width: 240px;
+    max-width: 380px;
+}
+
+.fb-select,
+.fb-input-date,
+.fb-input {
+    height: 38px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fb-slate-800);
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    outline: none;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+
+.fb-select:focus,
+.fb-input-date:focus,
+.fb-input:focus {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+/* Quick Period Pill Buttons */
+.fb-pill-buttons {
+    display: inline-flex;
+    align-items: center;
+    background: var(--fb-slate-100);
+    padding: 3px;
+    border-radius: var(--fb-radius-sm);
+    border: 1px solid var(--fb-slate-200);
+    gap: 2px;
+}
+
+.fb-pill-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.fb-pill-btn:hover {
+    color: var(--fb-slate-900);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.fb-pill-btn.active {
+    background: #ffffff;
+    color: var(--fb-primary);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.fb-month-group {
+    min-width: 170px;
+}
+
+/* Custom Date Range Row */
+.fb-custom-date-row {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--fb-slate-200);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fb-custom-date-fields {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.fb-field-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+}
+
+.fb-date-summary-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-primary);
+    background: var(--fb-primary-light);
+    padding: 4px 10px;
+    border-radius: var(--fb-radius-pill);
+    border: 1px solid var(--fb-primary-border);
+}
+
+/* KPI Grid */
+.fb-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.fb-kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius);
+    padding: 18px;
+    box-shadow: var(--fb-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fb-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--fb-shadow-md);
+}
+
+.fb-kpi-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.fb-kpi-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--fb-slate-500);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.fb-kpi-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--fb-slate-900);
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.fb-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+}
+
+.fb-icon-target { background: #eff6ff; color: #2563eb; }
+.fb-icon-revenue { background: #ecfdf5; color: #059669; }
+.fb-icon-samples { background: #e0f2fe; color: #0284c7; }
+.fb-icon-tests { background: #f5f3ff; color: #7c3aed; }
+.fb-icon-tubes { background: #fffbeb; color: #d97706; }
+
+.text-emerald { color: #059669 !important; }
+.text-blue { color: #2563eb !important; }
+.text-purple { color: #7c3aed !important; }
+.text-amber { color: #d97706 !important; }
+
+/* Average Highlights inside Cards */
+.fb-avg-highlight {
+    background: var(--fb-slate-50);
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    padding: 8px 10px;
+    margin-bottom: 10px;
+}
+
+.fb-avg-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.fb-avg-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.fb-avg-val {
+    font-size: 13.5px;
+    font-weight: 800;
+}
+
+/* Progress bar inside target card */
+.fb-progress-wrap {
+    margin-bottom: 10px;
+}
+
+.fb-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.fb-progress-achieved {
+    color: var(--fb-slate-600);
+}
+
+.fb-progress-pct {
+    color: var(--fb-primary);
+}
+
+.fb-progress-bar {
+    width: 100%;
+    height: 7px;
+    border-radius: var(--fb-radius-pill);
+    background: var(--fb-slate-100);
+    overflow: hidden;
+}
+
+.fb-progress-fill {
+    height: 100%;
+    border-radius: var(--fb-radius-pill);
+    background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+    transition: width 0.5s ease;
+}
+
+.fb-kpi-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--fb-slate-500);
+}
+
+.fb-deficit-pill {
+    padding: 2px 8px;
+    border-radius: var(--fb-radius-pill);
+    background: #fef2f2;
+    color: #dc2626;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.fb-foot-sub {
+    font-weight: 600;
+}
+
+/* Mode Indicator Banner */
+.fb-kpi-mode-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    box-shadow: var(--fb-shadow-sm);
+}
+
+.fb-mode-active-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--fb-slate-800);
+    font-size: 13px;
+}
+
+.fb-mode-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.fb-mode-hint-text {
+    color: var(--fb-slate-500);
+    font-size: 12px;
+}
+
+/* KPI Header Badges */
+.fb-kpi-header-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.fb-metric-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+}
+
+.badge-exact {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.badge-avg {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+/* Table Mode Selector Group */
+.fb-table-mode-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fb-table-mode-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--fb-slate-500);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Charts Section (Prevents Horizontal Overflow) */
+.fb-charts-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-bottom: 22px;
+    box-sizing: border-box;
+}
+
+.fb-charts-row {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 18px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.fb-charts-row-timeline {
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1.35fr);
+}
+
+.fb-charts-row-equal {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.fb-chart-card {
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius);
+    padding: 18px 20px;
+    box-shadow: var(--fb-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.fb-chart-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    min-width: 0;
+}
+
+.fb-chart-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fb-slate-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fb-chart-sub {
+    margin: 3px 0 0 0;
+    font-size: 12px;
+    color: var(--fb-slate-500);
+}
+
+.fb-chart-legend-custom {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.fb-legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+}
+
+.dot-revenue { background: #2563eb; }
+.dot-samples { background: #059669; }
+.dot-tubes { background: #d97706; }
+
+.fb-chart-body {
+    position: relative;
+    flex: 1;
+    min-height: 250px;
+    height: 270px;
+    max-height: 280px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.fb-chart-body canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 280px !important;
+    display: block;
+}
+
+.fb-donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Table Card */
+.fb-table-card {
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius);
+    box-shadow: var(--fb-shadow-sm);
+    overflow: hidden;
+}
+
+.fb-table-toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--fb-slate-200);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.fb-table-toolbar-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    flex: 1;
+}
+
+.fb-search-wrap {
+    position: relative;
+    min-width: 260px;
+    max-width: 380px;
+    flex: 1;
+}
+
+.fb-search-wrap i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fb-slate-400);
+    font-size: 13px;
+}
+
+.fb-search-wrap input {
+    width: 100%;
+    height: 38px;
+    padding-left: 36px;
+    padding-right: 12px;
+    font-size: 13px;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    outline: none;
+    font-family: inherit;
+}
+
+.fb-search-wrap input:focus {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.fb-status-tabs {
+    display: inline-flex;
+    background: var(--fb-slate-100);
+    padding: 3px;
+    border-radius: var(--fb-radius-sm);
+    gap: 2px;
+}
+
+.fb-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.fb-tab-btn.active {
+    background: #ffffff;
+    color: var(--fb-primary);
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.fb-sort-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--fb-slate-600);
+}
+
+.fb-select-sm {
+    height: 34px;
+    padding: 4px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    background: #ffffff;
+    outline: none;
+}
+
+/* Table */
+.fb-table-responsive {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.fb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.fb-table th {
+    background: #f8fafc;
+    color: var(--fb-slate-600);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--fb-slate-200);
+    white-space: nowrap;
+}
+
+.fb-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--fb-slate-100);
+    vertical-align: middle;
+}
+
+.fb-table tbody tr {
+    transition: background 0.12s ease;
+}
+
+.fb-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.th-center { text-align: center !important; }
+.th-right { text-align: right !important; }
+
+/* Special Highlighting on Average Columns */
+.fb-th-highlight {
+    background: #eff6ff !important;
+    color: #1e40af !important;
+    border-bottom-color: #bfdbfe !important;
+}
+
+.fb-td-avg {
+    background: #fbfdff;
+    font-weight: 800;
+    color: #1e3a8a;
+    text-align: center;
+}
+
+.fb-avg-pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: var(--fb-radius-pill);
+    background: #eff6ff;
+    color: #1e40af;
+    font-weight: 800;
+    font-size: 12px;
+    border: 1px solid #bfdbfe;
+    white-space: nowrap;
+}
+
+.fb-avg-revenue-pill {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: var(--fb-radius-pill);
+    background: #ecfdf5;
+    color: #047857;
+    font-weight: 800;
+    font-size: 12px;
+    border: 1px solid #a7f3d0;
+    white-space: nowrap;
+}
+
+/* Franchisee cell formatting */
+.fb-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+}
+
+.fb-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.fb-user-name {
+    font-weight: 700;
+    color: var(--fb-slate-900);
+    margin: 0;
+    font-size: 13.5px;
+}
+
+.fb-user-meta {
+    font-size: 11.5px;
+    color: var(--fb-slate-500);
+    margin: 2px 0 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fb-role-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.role-super { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.role-franchisee { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.role-sub { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+/* Status Badges */
+.fb-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--fb-radius-pill);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.status-achieved {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.status-on-track {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.status-pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+/* Action button inside table */
+.fb-action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--fb-slate-200);
+    background: #ffffff;
+    color: var(--fb-slate-600);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.fb-action-btn:hover {
+    background: var(--fb-primary-light);
+    color: var(--fb-primary);
+    border-color: var(--fb-primary-border);
+}
+
+.fb-table-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--fb-slate-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--fb-slate-500);
+}
+
+/* Modals */
+.fb-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.fb-modal-dialog {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    max-width: 520px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--fb-slate-200);
+    animation: fbFadeIn 0.2s ease-out;
+}
+
+.fb-modal-dialog-large {
+    max-width: 840px;
+}
+
+@keyframes fbFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.fb-modal-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--fb-slate-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+}
+
+.fb-modal-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fb-modal-title-row h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--fb-slate-900);
+}
+
+.fb-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: var(--fb-slate-400);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.fb-modal-close:hover {
+    color: var(--fb-slate-700);
+}
+
+.fb-modal-body {
+    padding: 22px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.fb-modal-desc {
+    font-size: 13.5px;
+    color: var(--fb-slate-600);
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+.fb-target-user-card {
+    background: var(--fb-slate-50);
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.fb-user-avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fb-target-user-card h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fb-slate-900);
+}
+
+.fb-form-group {
+    margin-bottom: 16px;
+}
+
+.fb-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--fb-slate-700);
+    margin-bottom: 6px;
+}
+
+.fb-input-currency-wrap {
+    position: relative;
+}
+
+.fb-currency-symbol {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fb-slate-400);
+}
+
+.fb-input-currency {
+    padding-left: 28px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: var(--fb-primary) !important;
+}
+
+.fb-amount-words {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--fb-primary);
+    margin-top: 5px;
+}
+
+.fb-quick-chips-group {
+    margin-bottom: 16px;
+}
+
+.fb-chips-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--fb-slate-500);
+    margin-bottom: 6px;
+}
+
+.fb-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fb-chip, .fb-bulk-chip {
+    background: var(--fb-slate-100);
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-pill);
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fb-slate-700);
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.fb-chip:hover, .fb-bulk-chip:hover {
+    background: var(--fb-slate-200);
+}
+
+.fb-chip.active, .fb-bulk-chip.active {
+    background: var(--fb-primary-light);
+    color: var(--fb-primary);
+    border-color: var(--fb-primary-border);
+    font-weight: 700;
+}
+
+.fb-alert {
+    padding: 10px 14px;
+    border-radius: var(--fb-radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+.fb-alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.fb-alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+.fb-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--fb-slate-100);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1100px) {
+    .fb-charts-row-timeline,
+    .fb-charts-row-equal {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .fb-dashboard-wrap {
+        padding: 14px;
+    }
+    .fb-header {
+        padding: 18px 20px;
+    }
+    .fb-toolbar-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .fb-franchisee-select-wrap {
+        max-width: 100%;
+    }
+}
+</style>

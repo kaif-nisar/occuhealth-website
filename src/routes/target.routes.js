@@ -6,7 +6,8 @@ import {
     getFranchiseePerformance,
     updateTargetAchievement,
     getTargetAnalytics,
-    getCurrentMonthTarget
+    getCurrentMonthTarget,
+    getFranchiseeBusinessAnalytics
 } from '../controllers/target.controller.js';
 import { verifyJWT } from '../../middlewares/auth.middleware.js';
 import { authorizeRoles, checkStaffPermission } from '../../middlewares/role.middleware.js';
@@ -56,6 +57,14 @@ router.get(
     checkStaffPermission('canViewReports'),
     getTargetAnalytics
 );
+// Get comprehensive Franchisee Business Analytics
+router.get(
+    '/business-analytics',
+    authorizeRoles(['admin', 'superFranchisee', 'franchisee', 'subFranchisee', 'staff']),
+    checkStaffPermission('canViewReports'),
+    getFranchiseeBusinessAnalytics
+);
+
 // Get current month target for logged-in franchisee
 router.get(
     '/targets/current',

@@ -323,6 +323,7 @@ function applyStaffPermissions(user) {
     hideSectionById('subItems-d');
     hidePageElements('Assign_credit');
     hidePageElements('assignTarget');
+    hidePageElements('franchiseeBusiness');
     hidePageElements('Credit_history');
     
     // Hide MY FRANCHISEE heading
@@ -385,6 +386,7 @@ function applyStaffPermissions(user) {
     hideSectionById('subItems-d');
     hidePageElements('Assign_credit');
     hidePageElements('assignTarget');
+    hidePageElements('franchiseeBusiness');
     hidePageElements('Credit_history');
     
     // Hide Expense heading
