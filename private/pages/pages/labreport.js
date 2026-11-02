@@ -1629,19 +1629,34 @@ async function loadfunction() {
             (c.title && c.title === title)
         );
 
+        const hasDocumentedTest = Array.isArray(data) && data.some(t => t?.isDocumentedTest);
+        const allDocumentedTests = Array.isArray(data) && data.length > 0 && data.every(t => t?.isDocumentedTest);
+
+        const isDuplicateOfDocTest = (candidateHtml) => {
+            if (!candidateHtml || !Array.isArray(data)) return false;
+            const candText = stripHtmlToText(candidateHtml);
+            if (!candText) return false;
+            return data.some(t => {
+                if (!t?.isDocumentedTest) return false;
+                const docText = t.interpretation ? stripHtmlToText(t.interpretation) : "";
+                if (!docText) return false;
+                return candText === docText || (candText.length > 20 && (docText.includes(candText) || candText.includes(docText)));
+            });
+        };
+
         let initialInterpretation = "";
-        if (savedCat && savedCat.interpretation && stripHtmlToText(savedCat.interpretation).trim()) {
+        if (savedCat && savedCat.interpretation && stripHtmlToText(savedCat.interpretation).trim() && !isDuplicateOfDocTest(savedCat.interpretation) && !allDocumentedTests) {
             initialInterpretation = savedCat.interpretation;
         } else if (panelDetails?.interpretation && stripHtmlToText(panelDetails.interpretation).trim()) {
             initialInterpretation = panelDetails.interpretation;
         } else if (!isPanel && Array.isArray(data)) {
-            const testWithInterp = data.find((t) => t.interpretation && stripHtmlToText(t.interpretation).trim());
+            const testWithInterp = data.find((t) => !t.isDocumentedTest && t.interpretation && stripHtmlToText(t.interpretation).trim());
             if (testWithInterp) {
                 initialInterpretation = testWithInterp.interpretation;
             }
         }
 
-        const shouldRenderInterpRow = isPanel || Boolean(initialInterpretation && stripHtmlToText(initialInterpretation).trim());
+        const shouldRenderInterpRow = isPanel || (!allDocumentedTests && Boolean(initialInterpretation && stripHtmlToText(initialInterpretation).trim()));
 
         // Add buttons for Notes, Advice, and Remarks
         const buttonsRow = document.createElement("tr");
@@ -3270,6 +3285,20 @@ async function loadfunction() {
                 }
             }
 
+            // If table has documented test(s) and tableInterpretation duplicates the documented content, clear it
+            if (tableInterpretation) {
+                const isDupeOfDoc = tableData.some(t => {
+                    if (!t.isDocumented) return false;
+                    const docText = t.testName ? stripHtmlToText(t.testName) : "";
+                    const interpText = stripHtmlToText(tableInterpretation);
+                    if (!docText || !interpText) return false;
+                    return interpText === docText || (interpText.length > 20 && (docText.includes(interpText) || interpText.includes(docText)));
+                });
+                if (isDupeOfDoc) {
+                    tableInterpretation = null;
+                }
+            }
+
             // Fallback: if tableInterpretation is still null, but panelDetails had an interpretation
             const fallbackInterpretation = panelDetails?.interpretation ||
                 section?.getAttribute("data-panel-interpretation") ||
@@ -3277,7 +3306,16 @@ async function loadfunction() {
                 null;
 
             if (!tableInterpretation && fallbackInterpretation && stripHtmlToText(fallbackInterpretation).trim()) {
-                tableInterpretation = sanitizeDetailsHtml(fallbackInterpretation);
+                const isDupeOfDoc = tableData.some(t => {
+                    if (!t.isDocumented) return false;
+                    const docText = t.testName ? stripHtmlToText(t.testName) : "";
+                    const fallbackText = stripHtmlToText(fallbackInterpretation);
+                    if (!docText || !fallbackText) return false;
+                    return fallbackText === docText || (fallbackText.length > 20 && (docText.includes(fallbackText) || fallbackText.includes(docText)));
+                });
+                if (!isDupeOfDoc) {
+                    tableInterpretation = sanitizeDetailsHtml(fallbackInterpretation);
+                }
             }
 
             if (tableHasMeaningfulRows || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {

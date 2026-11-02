@@ -1413,7 +1413,15 @@
             table.appendChild(tbody);
 
             // ✅ FIXED: Interpretation (can contain CKEditor content)
-            if (categoryData.interpretation) {
+            const hasDocTest = Array.isArray(categoryData.tests) && categoryData.tests.some(t => t.isDocumented);
+            const isDupe = hasDocTest && categoryData.tests.some(t => {
+                if (!t.isDocumented) return false;
+                const docText = stripHtmlToText(t.testName || '');
+                const interpText = stripHtmlToText(categoryData.interpretation);
+                return docText && interpText && (docText === interpText || (interpText.length > 20 && (docText.includes(interpText) || interpText.includes(docText))));
+            });
+
+            if (categoryData.interpretation && !isDupe) {
                 const interpretationRow = document.createElement("tr");
                 const interpretationCellEmpty = document.createElement("td");
                 interpretationCellEmpty.classList.add("wrong");

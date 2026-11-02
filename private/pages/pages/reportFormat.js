@@ -838,7 +838,14 @@
                 // Check if category has interpretation that is missing in the saved table
                 if (categoryData && categoryData.interpretation && stripHtmlToText(categoryData.interpretation).trim()) {
                     const hasInterp = table.querySelector('.interpretation');
-                    if (!hasInterp) {
+                    const hasDocTest = Array.isArray(categoryData.tests) && categoryData.tests.some(t => t.isDocumented);
+                    const isDupe = hasDocTest && categoryData.tests.some(t => {
+                        if (!t.isDocumented) return false;
+                        const docText = stripHtmlToText(t.testName || '');
+                        const interpText = stripHtmlToText(categoryData.interpretation);
+                        return docText && interpText && (docText === interpText || (interpText.length > 20 && (docText.includes(interpText) || interpText.includes(docText))));
+                    });
+                    if (!hasInterp && !isDupe) {
                         const tbody = table.querySelector('tbody') || table;
                         const row = document.createElement('tr');
                         const empty = document.createElement('td');
@@ -1051,7 +1058,15 @@
             if (categoryData.notes) appendLabelRow('Notes', 'notes', categoryData.notes);
             if (categoryData.remarks) appendLabelRow('Remarks', 'remarks', categoryData.remarks);
 
-            if (categoryData.interpretation && stripHtmlToText(categoryData.interpretation).trim()) {
+            const hasDocTest = Array.isArray(categoryData.tests) && categoryData.tests.some(t => t.isDocumented);
+            const isDupe = hasDocTest && categoryData.tests.some(t => {
+                if (!t.isDocumented) return false;
+                const docText = stripHtmlToText(t.testName || '');
+                const interpText = stripHtmlToText(categoryData.interpretation);
+                return docText && interpText && (docText === interpText || (interpText.length > 20 && (docText.includes(interpText) || interpText.includes(docText))));
+            });
+
+            if (categoryData.interpretation && stripHtmlToText(categoryData.interpretation).trim() && !isDupe) {
                 const row = document.createElement('tr');
                 const empty = document.createElement('td');
                 empty.className = 'wrong';
