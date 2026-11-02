@@ -1204,6 +1204,9 @@ async function loadfunction() {
         if (isPanel && panelDetails) {
             section.setAttribute("data-panel-id", panelDetails._id || "");
             section.setAttribute("data-panel-name", title || "");
+            if (panelDetails.interpretation) {
+                section.setAttribute("data-panel-interpretation", panelDetails.interpretation);
+            }
         } else {
             section.setAttribute("data-test-group", title || "");
         }
@@ -1557,8 +1560,8 @@ async function loadfunction() {
 
             // Panel-specific details
             if (isPanel) {
-                const hideInterpretation = panelDetails.hideInterpretation;
-                const hideMethodInstrument = panelDetails.hideMethodInstrument;
+                const hideInterpretation = panelDetails?.hideInterpretation;
+                const hideMethodInstrument = panelDetails?.hideMethodInstrument;
 
                 if (!hideMethodInstrument || !hideInterpretation) {
                     const detailsDiv = document.createElement("div");
@@ -3082,6 +3085,11 @@ async function loadfunction() {
             const isPanel = section?.getAttribute("data-type") === "panel" || (title && title !== category && !title.includes("Unknown Title"));
             const panelId = section?.getAttribute("data-panel-id") || null;
             const panelName = isPanel ? (section?.getAttribute("data-panel-name") || title) : null;
+            const panelDetails = isPanel
+                ? (Array.isArray(testpanels?.panels)
+                    ? testpanels.panels.find(p => (panelId && String(p._id) === String(panelId)) || (panelName && (p.name === panelName || p.panelName === panelName)))
+                    : null)
+                : null;
 
             const rows = table.querySelectorAll("tbody tr:not(.exclude)");
             const tableData = [];
@@ -3263,8 +3271,13 @@ async function loadfunction() {
             }
 
             // Fallback: if tableInterpretation is still null, but panelDetails had an interpretation
-            if (!tableInterpretation && panelDetails?.interpretation && stripHtmlToText(panelDetails.interpretation).trim()) {
-                tableInterpretation = sanitizeDetailsHtml(panelDetails.interpretation);
+            const fallbackInterpretation = panelDetails?.interpretation ||
+                section?.getAttribute("data-panel-interpretation") ||
+                (isPanel ? existingReportCategories.find(c => (panelId && String(c.panelId) === String(panelId)) || (panelName && (c.panelName === panelName || c.title === panelName)))?.interpretation : null) ||
+                null;
+
+            if (!tableInterpretation && fallbackInterpretation && stripHtmlToText(fallbackInterpretation).trim()) {
+                tableInterpretation = sanitizeDetailsHtml(fallbackInterpretation);
             }
 
             if (tableHasMeaningfulRows || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {
