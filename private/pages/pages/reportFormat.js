@@ -834,6 +834,26 @@
                         testNameCell.style.setProperty('padding-left', '20px', 'important');
                     }
                 });
+
+                // Check if category has interpretation that is missing in the saved table
+                if (categoryData && categoryData.interpretation && stripHtmlToText(categoryData.interpretation).trim()) {
+                    const hasInterp = table.querySelector('.interpretation');
+                    if (!hasInterp) {
+                        const tbody = table.querySelector('tbody') || table;
+                        const row = document.createElement('tr');
+                        const empty = document.createElement('td');
+                        empty.className = 'wrong';
+                        const cell = document.createElement('td');
+                        cell.colSpan = 4;
+                        cell.className = 'details-row interpretation-row';
+                        cell.innerHTML =
+                            '<div class="interpretation"><p style="font-weight:bold;">Interpretation</p>' +
+                            '<div class="documented-content cell-edit" data-field="interpretation">' + cleanDocumentedHtml(categoryData.interpretation) + '</div></div>';
+                        row.appendChild(empty);
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
+                    }
+                }
             }
             wireSectionDelete(section);
         });
@@ -932,7 +952,7 @@
             (categoryData.tests || []).forEach((test) => {
                 if (!test) return;
 
-                if (test.isInterpretation) {
+                if (test.isInterpretation && stripHtmlToText(test.details).trim()) {
                     inMultiHeader = false;
                     const row = document.createElement('tr');
                     const empty = document.createElement('td');
@@ -942,7 +962,7 @@
                     cell.className = 'details-row interpretation-row';
                     cell.innerHTML =
                         '<div class="interpretation"><p style="font-weight:bold;">Interpretation</p>' +
-                        '<div class="documented-content">' + cleanDocumentedHtml(test.details || '') + '</div></div>';
+                        '<div class="documented-content cell-edit" data-field="interpretation">' + cleanDocumentedHtml(test.details || '') + '</div></div>';
                     row.appendChild(empty);
                     row.appendChild(cell);
                     tbody.appendChild(row);
@@ -984,7 +1004,7 @@
                 const rawName = String(test.testName || '').trim();
                 if (!rawName || rawName === 'null') {
                     if (test.remark) tbody.appendChild(buildRemarkRow(test));
-                    if (test.details) tbody.appendChild(buildDetailsRow(test));
+                    if (test.details && stripHtmlToText(test.details).trim()) tbody.appendChild(buildDetailsRow(test));
                     return;
                 }
 
@@ -1010,7 +1030,7 @@
                 tbody.appendChild(testRow);
 
                 if (test.remark) tbody.appendChild(buildRemarkRow(test));
-                if (test.details) tbody.appendChild(buildDetailsRow(test));
+                if (test.details && stripHtmlToText(test.details).trim()) tbody.appendChild(buildDetailsRow(test));
             });
 
             /* --- table-level annotation rows (legacy structure kept) --- */
@@ -1031,15 +1051,16 @@
             if (categoryData.notes) appendLabelRow('Notes', 'notes', categoryData.notes);
             if (categoryData.remarks) appendLabelRow('Remarks', 'remarks', categoryData.remarks);
 
-            if (categoryData.interpretation) {
+            if (categoryData.interpretation && stripHtmlToText(categoryData.interpretation).trim()) {
                 const row = document.createElement('tr');
                 const empty = document.createElement('td');
                 empty.className = 'wrong';
                 const cell = document.createElement('td');
                 cell.colSpan = 4;
+                cell.className = 'details-row interpretation-row';
                 cell.innerHTML =
                     '<div class="interpretation"><p style="font-weight:bold;">Interpretation</p>' +
-                    '<div class="documented-content">' + cleanDocumentedHtml(categoryData.interpretation) + '</div></div>';
+                    '<div class="documented-content cell-edit" data-field="interpretation">' + cleanDocumentedHtml(categoryData.interpretation) + '</div></div>';
                 row.appendChild(empty);
                 row.appendChild(cell);
                 tbody.appendChild(row);
@@ -1525,11 +1546,28 @@
         document.body.addEventListener('input', (event) => {
             const cell = event.target.closest && event.target.closest('.cell-edit[data-field]');
             if (!cell || !document.body.classList.contains('editing')) return;
+            const field = cell.getAttribute('data-field');
+
+            if (field === 'interpretation') {
+                const section = cell.closest('.section');
+                const categoryHeading = $('.headings h2', section)?.textContent?.trim();
+                const titleHeading = $('.headings h3', section)?.textContent?.trim();
+                const categories = state.report && state.report.CategoryAndTest || [];
+                const category = categories.find((item) =>
+                    String(item.category || '').trim() === categoryHeading &&
+                    (!titleHeading || String(item.title || '').trim() === titleHeading)
+                );
+                if (category) {
+                    category.interpretation = cell.innerHTML;
+                }
+                onContentMutated();
+                return;
+            }
+
             const row = cell.closest('tr');
             const test = testForRow(row);
             if (!test) return;
 
-            const field = cell.getAttribute('data-field');
             const value = cell.textContent.trim();
             test[field] = value;
 
@@ -1558,7 +1596,12 @@
         });
 
         document.body.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && event.target.closest && event.target.closest('.cell-edit')) {
+            const cell = event.target.closest && event.target.closest('.cell-edit');
+            if (event.key === 'Enter' && cell) {
+                if (cell.getAttribute('data-field') === 'interpretation') {
+                    // Allow multi-line newlines in interpretation
+                    return;
+                }
                 event.preventDefault();
                 event.target.blur();
             }
@@ -2239,6 +2282,13 @@
        ======================================================================== */
     async function boot() {
         try {
+            try {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                if (!document.documentElement.hasAttribute('data-theme')) {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                }
+            } catch (e) {}
+
             const urlParams = new URLSearchParams(window.location.search);
             const value1 = urlParams.get('value1');
             if (!value1) throw new Error('No report reference supplied (?value1=).');

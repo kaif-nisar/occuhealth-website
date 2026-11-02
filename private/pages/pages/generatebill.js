@@ -75,10 +75,39 @@
             .replace(/'/g, "&#39;");
     }
 
-    /** Format a date (Date / ISO string / "yyyy-mm-dd" string). */
+    /** Format a date (Date / ISO string / "yyyy-mm-dd" / "dd-mm-yyyy" string). */
     function formatDate(value) {
         if (!value) return "";
-        var parsed = new Date(value);
+        if (value instanceof Date) {
+            if (isNaN(value.getTime())) return "";
+            return value.toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            });
+        }
+        var str = String(value).trim();
+        if (!str || str.toLowerCase() === "invalid date" || str.toLowerCase() === "undefined" || str.toLowerCase() === "null") {
+            return "";
+        }
+
+        // Check if DD-MM-YYYY or DD/MM/YYYY
+        var ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (ddmmyyyy) {
+            var day = parseInt(ddmmyyyy[1], 10);
+            var month = parseInt(ddmmyyyy[2], 10) - 1;
+            var year = parseInt(ddmmyyyy[3], 10);
+            var parsedDMY = new Date(year, month, day);
+            if (!isNaN(parsedDMY.getTime())) {
+                return parsedDMY.toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric"
+                });
+            }
+        }
+
+        var parsed = new Date(str);
         if (!isNaN(parsed.getTime())) {
             return parsed.toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -86,21 +115,54 @@
                 year: "numeric"
             });
         }
-        return String(value).split("T")[0] || "";
+        return "";
     }
 
-    /** Format a time value ("HH:mm:ss" or ISO). */
+    /** Format a time value ("HH:mm:ss", "HH:mm", "hh:mm AM/PM", Date or ISO). */
     function formatTime(value) {
         if (!value) return "";
+        if (value instanceof Date) {
+            if (isNaN(value.getTime())) return "";
+            return value.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        }
+        var str = String(value).trim();
+        if (!str || str.toLowerCase() === "invalid date" || str.toLowerCase() === "undefined" || str.toLowerCase() === "null") {
+            return "";
+        }
+
+        // 1. If already in 12-hour format with AM/PM (e.g. "02:11 PM", "2:11 pm")
+        var m12 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)$/i);
+        if (m12) {
+            var hrs = String(parseInt(m12[1], 10)).padStart(2, "0");
+            return hrs + ":" + m12[2] + " " + m12[4].toUpperCase();
+        }
+
+        // 2. If in 24-hour format (e.g. "13:46", "13:46:00", "09:30")
+        var m24 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (m24) {
+            var h = parseInt(m24[1], 10);
+            var m = parseInt(m24[2], 10);
+            if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+                var ampm = h >= 12 ? "PM" : "AM";
+                var h12 = h % 12 || 12;
+                return String(h12).padStart(2, "0") + ":" + m24[2] + " " + ampm;
+            }
+        }
+
+        // 3. Try parsing as full Date / ISO string
+        var parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        }
+
+        // 4. Try parsing with dummy date prefix (e.g. "1970-01-01T...")
         try {
-            var parsed = new Date("1970-01-01T" + value);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+            var parsed1970 = new Date("1970-01-01T" + str);
+            if (!isNaN(parsed1970.getTime())) {
+                return parsed1970.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
             }
         } catch (_) { /* ignore */ }
-        try {
-            return new Date(value).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-        } catch (_) { /* ignore */ }
+
         return "";
     }
 
@@ -225,16 +287,26 @@
                 console.warn("Could not load saved invoice prices:", invoiceError);
             }
             var billingPrices = {};
+            var invoiceCreatedDates = {};
             (invoiceData && Array.isArray(invoiceData.data) ? invoiceData.data : []).forEach(function (invoice) {
-                if (invoice && invoice.bookingId && invoice.billingPrice != null) {
-                    billingPrices[String(invoice.bookingId)] = Number(invoice.billingPrice);
+                if (invoice && invoice.bookingId) {
+                    var bId = String(invoice.bookingId);
+                    if (invoice.billingPrice != null) {
+                        billingPrices[bId] = Number(invoice.billingPrice);
+                    }
+                    if (invoice.createdAt) {
+                        invoiceCreatedDates[bId] = invoice.createdAt;
+                    }
                 }
             });
             state.allBookings = bookings.map(function (booking) {
-                var savedPrice = billingPrices[String(booking.bookingId)];
-                return savedPrice != null && isFinite(savedPrice)
-                    ? Object.assign({}, booking, { _billingPrice: savedPrice })
-                    : booking;
+                var bId = String(booking.bookingId);
+                var savedPrice = billingPrices[bId];
+                var savedDate = invoiceCreatedDates[bId];
+                var ext = {};
+                if (savedPrice != null && isFinite(savedPrice)) ext._billingPrice = savedPrice;
+                if (savedDate) ext._invoiceCreatedAt = savedDate;
+                return Object.keys(ext).length > 0 ? Object.assign({}, booking, ext) : booking;
             });
             state.total = Number.isFinite(Number(data.total)) ? Number(data.total) : bookings.length;
             state.fetchedOnce = true;
@@ -523,7 +595,7 @@
         }
 
         var bookingDate = formatDate(booking.date || booking.createdAt);
-        var bookingTime = formatTime(booking.time || booking.createdAt);
+        var bookingTime = formatTime(booking.time) || formatTime(booking.createdAt);
 
         // Modal info cards
         var mlAuto = $q(".ml-auto");
@@ -548,7 +620,10 @@
 
         var bookingDateTimeEl = $id("booking-date-time");
         if (bookingDateTimeEl) {
-            bookingDateTimeEl.textContent = ("Booking Time : " + bookingDate + " " + bookingTime).trim();
+            var dateTimeParts = [bookingDate, bookingTime].filter(Boolean);
+            bookingDateTimeEl.textContent = dateTimeParts.length > 0
+                ? "Booking Time : " + dateTimeParts.join(" ")
+                : "";
         }
 
         // Patient details block
@@ -562,7 +637,8 @@
 
         var invoiceDateTimeEl = $id("invoice-date-time");
         if (invoiceDateTimeEl) {
-            invoiceDateTimeEl.textContent = "Invoice Date : " + new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+            var invoiceDateVal = formatDate(booking._invoiceCreatedAt) || formatDate(booking.createdAt) || formatDate(new Date());
+            invoiceDateTimeEl.textContent = "Invoice Date : " + invoiceDateVal;
         }
 
         // Grand total

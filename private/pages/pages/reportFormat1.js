@@ -714,17 +714,27 @@
     await qrcodegenerator();
 
     async function barcodegenerator() {
-        const booking = JSON.parse(localStorage.getItem('booking')) || {};
-        const barcodeList = getBookingBarcodeList();
-        const barcodeNumber = barcodeList[0] || booking.bookingId || report.bookingId;
+        let booking = {};
+        try {
+            booking = JSON.parse(localStorage.getItem('booking') || '{}') || {};
+        } catch (e) {
+            booking = {};
+        }
+        const barcodeList = (typeof getBookingBarcodeList === 'function') ? getBookingBarcodeList() : [];
+        const barcodeNumber = barcodeList[0] || booking.acceptedbarcode?.[0] || booking.bookingId || report?.bookingId || report?.reg_id;
 
         if (!barcodeNumber) {
             console.warn("Barcode source not available for reportFormat1");
             return;
         }
 
+        const barcodeImg = document.getElementById("barcodeImage");
+        if (!barcodeImg) return;
+
+        let generated = false;
+
         try {
-            const response = await fetch(`/api/v1/user/generate-barcode?nonumber=${true}`, {
+            const response = await fetch(`/api/v1/user/generate-barcode?nonumber=true`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -734,15 +744,34 @@
 
             if (response.ok) {
                 const data = await response.json();
-                document.getElementById("barcodeImage").src = data.barcode; // Display the barcode image
-            } else {
-                alert("Failed to generate barcode!");
+                if (data && data.barcode) {
+                    barcodeImg.src = data.barcode;
+                    generated = true;
+                }
             }
         } catch (error) {
-            console.error("Error generating barcode:", error);
-            alert("An error occurred. Please try again.");
+            console.warn("Server barcode generation failed, falling back to client-side:", error);
+        }
+
+        if (!generated) {
+            try {
+                if (typeof JsBarcode === "function") {
+                    JsBarcode(barcodeImg, String(barcodeNumber), {
+                        format: "CODE128",
+                        displayValue: false,
+                        margin: 0,
+                        height: 35,
+                        width: 2
+                    });
+                    generated = true;
+                }
+            } catch (err) {
+                console.error("Client-side barcode generation error:", err);
+            }
         }
     }
+
+    await barcodegenerator();
 
     function escapeHtml(value) {
         if (!value && value !== 0) return '';

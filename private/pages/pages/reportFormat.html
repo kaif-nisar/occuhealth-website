@@ -1328,7 +1328,203 @@ body.editing .cell-edit:focus {
         animation-duration: .01ms !important;
         transition-duration: .01ms !important;
     }
-}</style>
+}
+
+/* =====================================================================
+   🌓 DARK MODE SUPPORT & REPORT PREVIEW ISOLATION (SCREEN-ONLY)
+   Preserves 100% print-fidelity for A4 pathology sheets (black ink on white paper).
+   Prevents admin dark theme rules from washing out text inside the report preview.
+   ===================================================================== */
+[data-theme="dark"] body {
+    background: #090d16 !important;
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .app-toolbar {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-bottom-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toolbar-title {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] .toolbar-subtitle {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .edit-toggle {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .edit-toggle:hover {
+    border-color: var(--brand) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .report-viewport,
+[data-theme="dark"] .report-viewport .container,
+[data-theme="dark"] [data-report-section="document-root"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* --- Document Paper Sheets: Always authentic crisp white paper with high-contrast text --- */
+[data-theme="dark"] .sheet-page {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .sheet-head,
+[data-theme="dark"] .sheet-body,
+[data-theme="dark"] .sheet-foot {
+    background-color: transparent !important;
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .section {
+    background-color: transparent !important;
+    color: #000000 !important;
+    border: none !important;
+}
+
+[data-theme="dark"] .sheet-page h1,
+[data-theme="dark"] .sheet-page h2,
+[data-theme="dark"] .sheet-page h3,
+[data-theme="dark"] .sheet-page h4,
+[data-theme="dark"] .sheet-page h5,
+[data-theme="dark"] .sheet-page h6,
+[data-theme="dark"] .sheet-page .category-heading {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .report-details,
+[data-theme="dark"] .sheet-page .report-details *,
+[data-theme="dark"] .sheet-page .infor-div,
+[data-theme="dark"] .sheet-page .tags,
+[data-theme="dark"] .sheet-page .value {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .report-details-innerDiv2 {
+    border-color: #000000 !important;
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .sheet-page table {
+    background-color: transparent !important;
+    color: #000000 !important;
+    border-color: rgb(44, 44, 44) !important;
+}
+
+[data-theme="dark"] .sheet-page table thead tr {
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .sheet-page table th {
+    background-color: transparent !important;
+    color: rgb(44, 44, 44) !important;
+    border-color: rgb(44, 44, 44) !important;
+    font-weight: 700 !important;
+}
+
+[data-theme="dark"] .sheet-page table td {
+    background-color: transparent !important;
+    color: #000000 !important;
+    border-color: rgb(44, 44, 44) !important;
+}
+
+[data-theme="dark"] .sheet-page table tr:hover td,
+[data-theme="dark"] .sheet-page table tbody tr:hover td {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page tbody {
+    border-bottom: 1px solid rgb(44, 44, 44) !important;
+}
+
+[data-theme="dark"] .sheet-page .test-name,
+[data-theme="dark"] .sheet-page .multi-test-name,
+[data-theme="dark"] .sheet-page .parameter-name,
+[data-theme="dark"] .sheet-page .high-low span,
+[data-theme="dark"] .sheet-page .unit,
+[data-theme="dark"] .sheet-page .reference {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .HL span.flag-H {
+    color: #dc2626 !important;
+    font-weight: bold !important;
+}
+
+[data-theme="dark"] .sheet-page .HL span.flag-L {
+    color: #2563eb !important;
+    font-weight: bold !important;
+}
+
+[data-theme="dark"] .sheet-page .notes,
+[data-theme="dark"] .sheet-page .remark-row,
+[data-theme="dark"] .sheet-page .advice,
+[data-theme="dark"] .sheet-page .remarks,
+[data-theme="dark"] .sheet-page .moreDetails,
+[data-theme="dark"] .sheet-page .moreDetails * {
+    color: #000000 !important;
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .sheet-page .interpretation,
+[data-theme="dark"] .sheet-page .interpretation * {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .documented-content {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .documented-content * {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .sheet-page .documented-content table td,
+[data-theme="dark"] .sheet-page .documented-content table th {
+    border-color: #ddd !important;
+    color: #000000 !important;
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .sheet-page .signdivstyleclass .textspan {
+    color: #334155 !important;
+    border-top-color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .sheet-page .sheet-meta-row,
+[data-theme="dark"] .sheet-page .page-indicator,
+[data-theme="dark"] .sheet-page .foot-disclaimer,
+[data-theme="dark"] .sheet-page .end-report {
+    color: #64748b !important;
+}
+
+[data-theme="dark"] .sheet-page .cell-edit {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] body.editing .sheet-page .cell-edit {
+    color: #000000 !important;
+    background: rgba(14, 116, 144, 0.08) !important;
+}
+
+[data-theme="dark"] body.editing .sheet-page .cell-edit:focus {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+</style>
 </head>
 <body>
     <!-- ================= SKELETON BOOT SCREEN ================= -->

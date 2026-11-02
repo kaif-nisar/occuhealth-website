@@ -82,6 +82,7 @@ async function loadfunction() {
         }
     }
 
+    let existingReportCategories = [];
     // B. Fetch existing report from server (AWAITED to avoid race condition with renderData)
     if (targetBookingId) {
         try {
@@ -92,6 +93,9 @@ async function loadfunction() {
             });
             if (repRes.ok) {
                 const repData = await repRes.json();
+                if (repData && Array.isArray(repData.CategoryAndTest)) {
+                    existingReportCategories = repData.CategoryAndTest;
+                }
                 // If a real (non-draft) saved report exists on server, respect its saved categorizedPDF value
                 if (repData && !repData.isDraft && typeof repData.categorizedPDF === 'boolean') {
                     if (initialCategorized === null) {
@@ -1557,61 +1561,84 @@ async function loadfunction() {
                 const hideMethodInstrument = panelDetails.hideMethodInstrument;
 
                 if (!hideMethodInstrument || !hideInterpretation) {
-                    const detailsRow = document.createElement("tr");
-                    detailsRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
-                    const detailsCell = document.createElement("td");
-                    detailsCell.colSpan = 4;
-
                     const detailsDiv = document.createElement("div");
                     detailsDiv.classList.add("test-details");
 
                     if (!hideMethodInstrument) {
-                        detailsDiv.innerHTML += `
-                        ${test.method ? `<p class="methods">Method: ${test.method || ""}</p>` : ""}
-                        ${test.instrument ? `<p class="methods">Instrument: ${test.instrument || ""}</p>` : ""}
-                    `;
+                        if (test.method) detailsDiv.innerHTML += `<p class="methods">Method: ${test.method || ""}</p>`;
+                        if (test.instrument) detailsDiv.innerHTML += `<p class="methods">Instrument: ${test.instrument || ""}</p>`;
                     }
 
-                    if (!hideInterpretation) {
-                        detailsDiv.innerHTML += `
-                        <p>${test.interpretation || ""}</p>
-                    `;
+                    if (!hideInterpretation && test.interpretation && stripHtmlToText(test.interpretation).trim()) {
+                        detailsDiv.innerHTML += `<p class="test-interp">${test.interpretation}</p>`;
                     }
 
-                    const pagebreakCell = document.createElement("td");
-                    pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
+                    if (detailsDiv.innerHTML.trim()) {
+                        const detailsRow = document.createElement("tr");
+                        detailsRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
+                        const detailsCell = document.createElement("td");
+                        detailsCell.colSpan = 4;
+                        const pagebreakCell = document.createElement("td");
+                        pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
 
-                    detailsCell.appendChild(detailsDiv);
-                    detailsRow.appendChild(pagebreakCell);
-                    detailsRow.appendChild(detailsCell);
-                    tbody.appendChild(detailsRow);
+                        detailsCell.appendChild(detailsDiv);
+                        detailsRow.appendChild(pagebreakCell);
+                        detailsRow.appendChild(detailsCell);
+                        tbody.appendChild(detailsRow);
+                    }
                 }
             } else {
-                const detailsRow2 = document.createElement("tr");
-                detailsRow2.setAttribute("data-order", test.order); // Set a data attribute for sorting
-                const detailsCell2 = document.createElement("td");
-                detailsCell2.colSpan = 4;
-
                 const detailsDiv2 = document.createElement("div");
                 detailsDiv2.classList.add("test-details");
 
-                detailsDiv2.innerHTML += `
-                ${test.method ? `<p>Method: ${test.method || ""}</p>` : ""}
-                ${test.instrument ? `<p>Instrument: ${test.instrument || ""}</p>` : ""}
-            `;
+                if (test.method) {
+                    detailsDiv2.innerHTML += `<p class="methods">Method: ${test.method || ""}</p>`;
+                }
+                if (test.instrument) {
+                    detailsDiv2.innerHTML += `<p class="methods">Instrument: ${test.instrument || ""}</p>`;
+                }
 
-                detailsDiv2.innerHTML += `
-                <p>${test.interpretation || ""}</p>
-            `;
-
-                const pagebreakCell = document.createElement("td");
-                pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
-                detailsCell2.appendChild(detailsDiv2);
-                detailsRow2.appendChild(pagebreakCell);
-                detailsRow2.appendChild(detailsCell2);
-                tbody.appendChild(detailsRow2);
+                if (detailsDiv2.innerHTML.trim()) {
+                    const detailsRow2 = document.createElement("tr");
+                    detailsRow2.setAttribute("data-order", test.order); // Set a data attribute for sorting
+                    const detailsCell2 = document.createElement("td");
+                    detailsCell2.colSpan = 4;
+                    const pagebreakCell = document.createElement("td");
+                    pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
+                    detailsCell2.appendChild(detailsDiv2);
+                    detailsRow2.appendChild(pagebreakCell);
+                    detailsRow2.appendChild(detailsCell2);
+                    tbody.appendChild(detailsRow2);
+                }
             }
         }
+
+        // Determine table unique ID
+        const tableId = (isPanel && panelDetails?._id)
+            ? String(panelDetails._id)
+            : (data?.[0]?._id ? String(data[0]._id) : ("table-" + Math.random().toString(36).substr(2, 8)));
+        section.setAttribute("data-table-id", tableId);
+
+        // Find if this panel/category already had an interpretation saved previously
+        const savedCat = existingReportCategories.find((c) =>
+            (panelDetails?._id && String(c.panelId) === String(panelDetails._id)) ||
+            (c.panelName && c.panelName === title) ||
+            (c.title && c.title === title)
+        );
+
+        let initialInterpretation = "";
+        if (savedCat && savedCat.interpretation && stripHtmlToText(savedCat.interpretation).trim()) {
+            initialInterpretation = savedCat.interpretation;
+        } else if (panelDetails?.interpretation && stripHtmlToText(panelDetails.interpretation).trim()) {
+            initialInterpretation = panelDetails.interpretation;
+        } else if (!isPanel && Array.isArray(data)) {
+            const testWithInterp = data.find((t) => t.interpretation && stripHtmlToText(t.interpretation).trim());
+            if (testWithInterp) {
+                initialInterpretation = testWithInterp.interpretation;
+            }
+        }
+
+        const shouldRenderInterpRow = isPanel || Boolean(initialInterpretation && stripHtmlToText(initialInterpretation).trim());
 
         // Add buttons for Notes, Advice, and Remarks
         const buttonsRow = document.createElement("tr");
@@ -1654,44 +1681,83 @@ async function loadfunction() {
             buttonsCell.appendChild(button);
         });
 
+        // If interpretation row wasn't rendered automatically, allow adding it via button
+        if (!shouldRenderInterpRow) {
+            const addInterpBtn = document.createElement("button");
+            addInterpBtn.textContent = "Add Interpretation";
+            addInterpBtn.classList.add("add-row-button");
+            addInterpBtn.setAttribute('tabindex', '-1');
+
+            addInterpBtn.addEventListener("click", async () => {
+                addInterpBtn.style.display = "none";
+                const interpRow = document.createElement("tr");
+                interpRow.className = "exclude interpretation-tr";
+                const interpCell = document.createElement("td");
+                interpCell.colSpan = 5;
+                interpCell.classList.add("interpretation-row");
+
+                const interpDiv = document.createElement("div");
+                interpDiv.classList.add("interpretations");
+                interpDiv.id = `displayArea-${tableId}`;
+                interpDiv.innerHTML = `<h3 id="editButton-${tableId}"><span class="interpretation-title">Interpretation</span> <i class="fas fa-edit" title="Edit Interpretation"></i></h3>
+                <div class="pannelInterpretation" id="interpretationText-${tableId}"></div>`;
+                interpCell.appendChild(interpDiv);
+
+                const edDiv = document.createElement("div");
+                edDiv.id = `editorContainer-${tableId}`;
+                edDiv.classList.add("editorContainer");
+                edDiv.style.display = "none";
+                edDiv.innerHTML = `<div id="editor-${tableId}"></div>
+                <button id="saveButton-${tableId}" tabindex="-1">Save</button>
+                <button id="cancelButton-${tableId}" tabindex="-1">Cancel</button>`;
+                interpCell.appendChild(edDiv);
+
+                interpRow.appendChild(interpCell);
+                table.appendChild(interpRow);
+
+                await setupInterpretationEdit(tableId);
+                document.getElementById(`editButton-${tableId}`)?.click();
+            });
+
+            buttonsCell.appendChild(addInterpBtn);
+        }
+
         table.appendChild(tbody);
         buttonsRow.appendChild(buttonsCell);
         table.appendChild(buttonsRow);
 
-        if (isPanel) {
-            if (panelDetails.hideInterpretation) {
-                const interpretationrow = document.createElement("tr");
-                const interpretationCell = document.createElement("td");
-                interpretationCell.colSpan = 5;
-                interpretationCell.classList.add("interpretation-row");
-                const interpretationDiv = document.createElement("div");
-                interpretationDiv.classList.add("interpretations");
-                interpretationDiv.id = `displayArea-${panelDetails._id}`;
-                interpretationDiv.innerHTML = `<h3 id="editButton-${panelDetails._id}">${panelDetails.interpretation ? 'Interpretations' : ''} <i class="fas fa-edit"></i></h3>
-                <div class="pannelInterpretation" id="interpretationText-${panelDetails._id}">${panelDetails.interpretation || ""}</div>`;
-                interpretationCell.appendChild(interpretationDiv);
+        if (shouldRenderInterpRow) {
+            const interpretationrow = document.createElement("tr");
+            interpretationrow.className = "exclude interpretation-tr";
+            const interpretationCell = document.createElement("td");
+            interpretationCell.colSpan = 5;
+            interpretationCell.classList.add("interpretation-row");
+            const interpretationDiv = document.createElement("div");
+            interpretationDiv.classList.add("interpretations");
+            interpretationDiv.id = `displayArea-${tableId}`;
+            const hasInitial = Boolean(initialInterpretation && stripHtmlToText(initialInterpretation).trim());
+            interpretationDiv.innerHTML = `<h3 id="editButton-${tableId}"><span class="interpretation-title">${hasInitial ? 'Interpretation' : 'Add Interpretation'}</span> <i class="fas fa-edit" title="Edit Interpretation"></i></h3>
+            <div class="pannelInterpretation" id="interpretationText-${tableId}">${initialInterpretation || ""}</div>`;
+            interpretationCell.appendChild(interpretationDiv);
 
-                const editorDiv = document.createElement("div");
-                editorDiv.id = `editorContainer-${panelDetails._id}`;
-                editorDiv.classList.add("editorContainer");
-                editorDiv.style.display = "none";  // Hide the editor initially
-                editorDiv.innerHTML = `<div id="editor-${panelDetails._id}"></div>
-                <button id="saveButton-${panelDetails._id}" tabindex="-1">Save</button>
-                <button id="cancelButton-${panelDetails._id}" tabindex="-1">Cancel</button>`;
-                interpretationCell.appendChild(editorDiv);
+            const editorDiv = document.createElement("div");
+            editorDiv.id = `editorContainer-${tableId}`;
+            editorDiv.classList.add("editorContainer");
+            editorDiv.style.display = "none";  // Hide the editor initially
+            editorDiv.innerHTML = `<div id="editor-${tableId}"></div>
+            <button id="saveButton-${tableId}" tabindex="-1">Save</button>
+            <button id="cancelButton-${tableId}" tabindex="-1">Cancel</button>`;
+            interpretationCell.appendChild(editorDiv);
 
-                interpretationrow.appendChild(interpretationCell);
-                table.appendChild(interpretationrow);
-                // table.appendChild(tbody);
-            }
+            interpretationrow.appendChild(interpretationCell);
+            table.appendChild(interpretationrow);
         }
-        // table.appendChild(buttonsRow);
+
         section.appendChild(table);
         document.getElementById("tables-container").appendChild(section);
-        if (isPanel) {
-            if (panelDetails.hideInterpretation) {
-                await setupInterpretationEdit(panelDetails._id);
-            }
+
+        if (shouldRenderInterpRow) {
+            await setupInterpretationEdit(tableId);
         }
         setupListeners();
     }
@@ -2937,6 +3003,9 @@ async function loadfunction() {
                 const content = getEditorContent(editorKey);
                 if (content !== null) {
                     interpretationText.innerHTML = content;
+                    const hasText = Boolean(stripHtmlToText(content).trim());
+                    const titleSpan = editButton.querySelector('.interpretation-title');
+                    if (titleSpan) titleSpan.textContent = hasText ? 'Interpretation' : 'Add Interpretation';
                 }
 
                 // Editor ko destroy karo
@@ -3150,14 +3219,52 @@ async function loadfunction() {
 
             // Check for Interpretation row
             const interpretationRow = Array.from(table.querySelectorAll("tr")).find(row =>
-                row.querySelector(".interpretation-row")
+                row.querySelector(".interpretation-row") || row.classList.contains("interpretation-row") || row.querySelector(".interpretations")
             );
 
             if (interpretationRow) {
-                const interpretationCell = interpretationRow.querySelector(".interpretations");
-                if (interpretationCell) {
-                    tableInterpretation = sanitizeDetailsHtml(interpretationCell.querySelector(".pannelInterpretation")?.innerHTML?.trim() || null);
+                const interpCell = interpretationRow.querySelector(".interpretations") || interpretationRow.querySelector(".interpretation-row") || interpretationRow;
+                const panelIdAttr = section?.getAttribute("data-panel-id") || section?.getAttribute("data-table-id");
+
+                let rawInterp = null;
+                // 1. Check if CKEditor instance is currently open/active
+                const candidateKeys = [
+                    panelIdAttr ? `panel-${panelIdAttr}` : null,
+                    panelId ? `panel-${panelId}` : null
+                ].filter(Boolean);
+
+                for (const key of candidateKeys) {
+                    if (editorInstances.has(key)) {
+                        const edVal = getEditorContent(key);
+                        if (edVal !== null && edVal !== undefined) {
+                            rawInterp = edVal;
+                            const textEl = interpCell.querySelector(".pannelInterpretation");
+                            if (textEl) textEl.innerHTML = edVal;
+                            break;
+                        }
+                    }
                 }
+
+                // 2. Otherwise read from DOM display element
+                if (rawInterp === null || rawInterp === undefined) {
+                    const textEl = interpCell.querySelector(".pannelInterpretation");
+                    rawInterp = textEl?.innerHTML?.trim() || null;
+                }
+
+                // 3. Check for textarea if added
+                if (!rawInterp) {
+                    const ta = interpCell.querySelector("textarea");
+                    if (ta && ta.value?.trim()) rawInterp = ta.value.trim();
+                }
+
+                if (rawInterp && stripHtmlToText(rawInterp).trim()) {
+                    tableInterpretation = sanitizeDetailsHtml(rawInterp);
+                }
+            }
+
+            // Fallback: if tableInterpretation is still null, but panelDetails had an interpretation
+            if (!tableInterpretation && panelDetails?.interpretation && stripHtmlToText(panelDetails.interpretation).trim()) {
+                tableInterpretation = sanitizeDetailsHtml(panelDetails.interpretation);
             }
 
             if (tableHasMeaningfulRows || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {

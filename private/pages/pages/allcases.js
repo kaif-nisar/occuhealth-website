@@ -1182,19 +1182,64 @@ async function allcases() {
 
     function formatInvoiceDate(value) {
         if (!value) return "";
-        const parsed = new Date(value);
+        if (value instanceof Date) {
+            if (isNaN(value.getTime())) return "";
+            return value.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        }
+        const str = String(value).trim();
+        if (!str || str.toLowerCase() === "invalid date" || str.toLowerCase() === "undefined" || str.toLowerCase() === "null") {
+            return "";
+        }
+        const ddmmyyyy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (ddmmyyyy) {
+            const day = parseInt(ddmmyyyy[1], 10);
+            const month = parseInt(ddmmyyyy[2], 10) - 1;
+            const year = parseInt(ddmmyyyy[3], 10);
+            const parsedDMY = new Date(year, month, day);
+            if (!isNaN(parsedDMY.getTime())) {
+                return parsedDMY.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+            }
+        }
+        const parsed = new Date(str);
         if (!isNaN(parsed.getTime())) {
             return parsed.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
         }
-        return String(value).split("T")[0] || "";
+        return "";
     }
 
     function formatInvoiceTime(value) {
         if (!value) return "";
+        if (value instanceof Date) {
+            if (isNaN(value.getTime())) return "";
+            return value.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        }
+        const str = String(value).trim();
+        if (!str || str.toLowerCase() === "invalid date" || str.toLowerCase() === "undefined" || str.toLowerCase() === "null") {
+            return "";
+        }
+        const m12 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)$/i);
+        if (m12) {
+            const hrs = String(parseInt(m12[1], 10)).padStart(2, "0");
+            return hrs + ":" + m12[2] + " " + m12[4].toUpperCase();
+        }
+        const m24 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (m24) {
+            const h = parseInt(m24[1], 10);
+            const m = parseInt(m24[2], 10);
+            if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+                const ampm = h >= 12 ? "PM" : "AM";
+                const h12 = h % 12 || 12;
+                return String(h12).padStart(2, "0") + ":" + m24[2] + " " + ampm;
+            }
+        }
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        }
         try {
-            const parsed = new Date("1970-01-01T" + value);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+            const parsed1970 = new Date("1970-01-01T" + str);
+            if (!isNaN(parsed1970.getTime())) {
+                return parsed1970.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
             }
         } catch (_) { /* ignore */ }
         return "";
