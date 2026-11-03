@@ -233,6 +233,7 @@ async function loadfunction() {
     let testArray2 = [];
     let testpanels;
     let receivedBarcodeIds = [];
+    let allBarcodeEntries = [];
     const loadedTemplateEditors = new Set();
     // for sample receiving time 
     let recievedOn;
@@ -510,6 +511,7 @@ async function loadfunction() {
         console.log("my data:", data);
         testpanels = data?.[0];
         const barcodeEntries = data?.[0]?.barcodes?.barcodes || [];
+        allBarcodeEntries = barcodeEntries;
         receivedBarcodeIds = [...new Set(
             barcodeEntries.map((entry) => normalizeShortName(entry?.barcode)).filter(Boolean)
         )];
@@ -2679,6 +2681,236 @@ async function loadfunction() {
         }
     };
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function getSampleTypeColorClass(sampleType) {
+        if (!sampleType) return "sample-default";
+        const st = String(sampleType).toLowerCase();
+        if (st.includes("edta") || st.includes("lavender") || st.includes("purple") || st.includes("whole blood")) {
+            return "sample-edta";
+        } else if (st.includes("serum") || st.includes("clot") || st.includes("sst") || st.includes("red") || st.includes("gold")) {
+            return "sample-serum";
+        } else if (st.includes("fluoride") || st.includes("grey") || st.includes("gray") || st.includes("sugar") || st.includes("glucose")) {
+            return "sample-fluoride";
+        } else if (st.includes("urine")) {
+            return "sample-urine";
+        } else if (st.includes("citrate") || st.includes("blue") || st.includes("plasma")) {
+            return "sample-citrate";
+        } else if (st.includes("heparin") || st.includes("green")) {
+            return "sample-heparin";
+        }
+        return "sample-default";
+    }
+
+    function getAcceptedBarcodesList() {
+        const result = [];
+        const seen = new Set();
+
+        const addBarcode = (rawBarcode, rawSampleType, rawTests) => {
+            const barcode = normalizeShortName(rawBarcode);
+            const sampleType = normalizeShortName(rawSampleType);
+            if (!barcode) return;
+
+            const key = barcode.toLowerCase();
+            const existing = result.find((item) => item.barcode.toLowerCase() === key);
+            if (existing) {
+                if (!existing.sampleType && sampleType) {
+                    existing.sampleType = sampleType;
+                }
+                const extraTests = Array.isArray(rawTests)
+                    ? rawTests
+                    : (rawTests ? String(rawTests).split(",") : []);
+                extraTests.map((t) => String(t).trim()).filter(Boolean).forEach((t) => {
+                    if (!existing.tests.includes(t)) {
+                        existing.tests.push(t);
+                    }
+                });
+                return;
+            }
+
+            seen.add(key);
+            const testsArray = Array.isArray(rawTests)
+                ? rawTests.map((t) => String(t).trim()).filter(Boolean)
+                : (rawTests ? String(rawTests).split(",").map((t) => t.trim()).filter(Boolean) : []);
+            result.push({
+                barcode: barcode,
+                sampleType: sampleType || "",
+                tests: testsArray
+            });
+        };
+
+        // Source 1: allBarcodeEntries (directly from getbarcodeTests API response)
+        if (Array.isArray(allBarcodeEntries) && allBarcodeEntries.length > 0) {
+            allBarcodeEntries.forEach((entry) => {
+                addBarcode(entry?.barcode, entry?.sampleType, entry?.testandpannelArray);
+            });
+        }
+
+        // Source 2: acceptedSampleIndex
+        if (Array.isArray(acceptedSampleIndex) && acceptedSampleIndex.length > 0) {
+            acceptedSampleIndex.forEach((entry) => {
+                addBarcode(entry?.barcodeId, entry?.sampleType, entry?.testNames);
+            });
+        }
+
+        // Source 3: receivedBarcodeIds
+        if (Array.isArray(receivedBarcodeIds) && receivedBarcodeIds.length > 0) {
+            receivedBarcodeIds.forEach((id) => {
+                addBarcode(id, "", []);
+            });
+        }
+
+        // Source 4: booking.tableData
+        if (Array.isArray(booking?.tableData)) {
+            booking.tableData.forEach((row) => {
+                const bId = row?.barcodeId || row?.confirmBarcodeId;
+                const sType = row?.typeOfSample || row?.sampleType;
+                const tName = row?.testName;
+                if (bId) {
+                    addBarcode(bId, sType, tName);
+                }
+            });
+        }
+
+        // Source 5: booking.acceptedbarcode
+        if (Array.isArray(booking?.acceptedbarcode)) {
+            booking.acceptedbarcode.forEach((item) => {
+                if (typeof item === "string") {
+                    addBarcode(item, "", []);
+                } else if (item && typeof item === "object") {
+                    addBarcode(item.barcode || item.barcodeId, item.sampleType || item.typeOfSample, item.testandpannelArray || item.testName);
+                }
+            });
+        }
+
+        // Source 6: Fallback to booking.bookingId if no barcodes found
+        if (result.length === 0 && (booking?.bookingId || booking?._id)) {
+            addBarcode(booking.bookingId || booking._id, "Booking ID", []);
+        }
+
+        return result;
+    }
+
+    function renderAcceptedBarcodesHtml() {
+        const barcodesList = getAcceptedBarcodesList();
+        const totalCount = barcodesList.length;
+        const countBadgeText = totalCount === 1 ? "1 Specimen" : `${totalCount} Specimens`;
+
+        if (totalCount === 0) {
+            return `
+                <div class="barcode-box-header">
+                    <span class="barcode-box-title"><i class="fa-solid fa-barcode"></i> Accepted Barcodes</span>
+                    <span class="barcode-box-count">0</span>
+                </div>
+                <div class="barcode-empty-state">No barcodes recorded</div>
+                <img id="barcodeImage" alt="Specimen Barcode" style="display:none;" />
+            `;
+        }
+
+        const itemsHtml = barcodesList.map((item) => {
+            const sampleTypeDisplay = item.sampleType || "Sample";
+            const sampleClass = getSampleTypeColorClass(item.sampleType);
+            const tooltipTests = item.tests && item.tests.length > 0 
+                ? `Tests: ${item.tests.join(', ')}` 
+                : `Barcode: ${item.barcode}`;
+
+            return `
+                <div class="barcode-item-card" data-barcode="${escapeHtml(item.barcode)}" title="${escapeHtml(tooltipTests)}" onclick="copyBarcodeFromElement(this, event)">
+                    <div class="barcode-item-main">
+                        <span class="barcode-sample-tag ${sampleClass}">
+                            <i class="fa-solid fa-vial"></i> ${escapeHtml(sampleTypeDisplay)}
+                        </span>
+                        <span class="barcode-num-text" title="Barcode: ${escapeHtml(item.barcode)}">${escapeHtml(item.barcode)}</span>
+                    </div>
+                    <button type="button" class="barcode-copy-action" title="Copy ${escapeHtml(item.barcode)}" onclick="copyBarcodeFromBtn(this, event)">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            `;
+        }).join("");
+
+        return `
+            <div class="barcode-box-header">
+                <span class="barcode-box-title">
+                    <i class="fa-solid fa-barcode"></i> Accepted Barcodes
+                </span>
+                <span class="barcode-box-count">${countBadgeText}</span>
+            </div>
+            <div class="barcode-cards-scroll">
+                ${itemsHtml}
+            </div>
+            <img id="barcodeImage" alt="Specimen Barcode" style="display:none;" />
+        `;
+    }
+
+    window.copyBarcodeFromElement = function (cardEl, ev) {
+        if (!cardEl) return;
+        const barcode = cardEl.getAttribute("data-barcode") || "";
+        const btn = cardEl.querySelector(".barcode-copy-action");
+        window.copyBarcodeText(barcode, btn, ev);
+    };
+
+    window.copyBarcodeFromBtn = function (btnEl, ev) {
+        if (ev) ev.stopPropagation();
+        if (!btnEl) return;
+        const cardEl = btnEl.closest(".barcode-item-card");
+        const barcode = (cardEl && cardEl.getAttribute("data-barcode")) || "";
+        window.copyBarcodeText(barcode, btnEl, ev);
+    };
+
+    window.copyBarcodeText = function (text, btnElement, event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        if (!text) return;
+
+        const notifySuccess = () => {
+            if (btnElement) {
+                const originalHtml = btnElement.innerHTML;
+                btnElement.innerHTML = '<i class="fa-solid fa-check"></i>';
+                btnElement.classList.add("copied");
+                setTimeout(() => {
+                    btnElement.innerHTML = originalHtml;
+                    btnElement.classList.remove("copied");
+                }, 1500);
+            }
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(notifySuccess).catch(() => {
+                fallbackCopy(text, notifySuccess);
+            });
+        } else {
+            fallbackCopy(text, notifySuccess);
+        }
+    };
+
+    function fallbackCopy(text, onSuccess) {
+        try {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            ta.style.top = "-9999px";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            if (typeof onSuccess === "function") onSuccess();
+        } catch (e) {
+            console.warn("Clipboard copy fallback failed", e);
+        }
+    }
+
     // for populating patient information
     function populateHea() {
         console.log("booking data in report page:", booking);
@@ -2738,12 +2970,7 @@ async function loadfunction() {
                 </div>
             </div>
             <div class="barcode-div2">
-                <div class="barcode2">
-                    <div id="barcodeContainer2">
-                        <img id="barcodeImage" alt="Specimen Barcode"></img>
-                    </div>
-                    <div class="barcode-subtext">Specimen Barcode</div>
-                </div>
+                ${renderAcceptedBarcodesHtml()}
             </div>
 `;
 
@@ -2837,37 +3064,10 @@ async function loadfunction() {
     //initialization
     await populateHea();
 
-    // for generating barcode
+    // for generating barcode (retained for backward compatibility; all accepted barcodes are directly rendered)
     async function barcodegenerator() {
-        const barcodeList = getBookingBarcodeList();
-        const barcodeNumber = barcodeList[0] || booking.bookingId;
-
-        if (!barcodeNumber) {
-            console.warn("Barcode source not available for labreport");
-            return;
-        }
-
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/generate-barcode`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ number: barcodeNumber }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const barcodeImg = document.getElementById("barcodeImage");
-                if (barcodeImg && data.barcode) {
-                    barcodeImg.src = data.barcode;
-                }
-            } else {
-                console.warn("Failed to generate barcode image");
-            }
-        } catch (error) {
-            console.error("Error generating barcode:", error);
-        }
+        const barcodeImg = document.getElementById("barcodeImage");
+        if (!barcodeImg) return;
     }
 
     //initialization

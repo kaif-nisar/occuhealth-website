@@ -47,20 +47,77 @@
         return '<span>—</span>';
     }
 
+    function formatAge(value) {
+        if (value === undefined || value === null || value === "") {
+            return "—";
+        }
+        const str = String(value).trim();
+        if (!str || str.toLowerCase() === "n/a" || str.toLowerCase() === "null") {
+            return "—";
+        }
+        if (/^\d+$/.test(str)) {
+            return `${str} Yrs`;
+        }
+        const yrMatch = str.match(/^(\d+)\s*(?:years?|yrs?|y)$/i);
+        if (yrMatch) {
+            return `${yrMatch[1]} Yrs`;
+        }
+        const moMatch = str.match(/^(\d+)\s*(?:months?|mos?|m)$/i);
+        if (moMatch) {
+            return `${moMatch[1]} Mos`;
+        }
+        const dMatch = str.match(/^(\d+)\s*(?:days?|d)$/i);
+        if (dMatch) {
+            return `${dMatch[1]} Days`;
+        }
+        return str;
+    }
+
+    function formatGenderBadge(value) {
+        if (!value) {
+            return `<span class="lb-gender-badge lb-gender-na"><i class="fas fa-genderless"></i> N/A</span>`;
+        }
+        const g = String(value).trim().toLowerCase();
+        if (g === "male" || g === "m") {
+            return `<span class="lb-gender-badge lb-gender-male"><i class="fas fa-mars"></i> Male</span>`;
+        }
+        if (g === "female" || g === "f") {
+            return `<span class="lb-gender-badge lb-gender-female"><i class="fas fa-venus"></i> Female</span>`;
+        }
+        if (g === "other" || g === "o") {
+            return `<span class="lb-gender-badge lb-gender-other"><i class="fas fa-genderless"></i> Other</span>`;
+        }
+        return `<span class="lb-gender-badge lb-gender-na">${value}</span>`;
+    }
+
+    function formatStatusLabel(status) {
+        if (!status) return "N/A";
+        const s = String(status).trim();
+        const lower = s.toLowerCase();
+        if (lower === "booked") return "Booked";
+        if (lower === "pending") return "Pending";
+        if (lower === "completed") return "Completed";
+        if (lower === "partially completed" || lower === "partial completed" || lower === "partial" || lower === "partially ready") return "Partially Completed";
+        if (lower === "hold" || lower === "on hold") return "On Hold";
+        if (lower === "clinical" || lower === "clinical stated") return "Clinical";
+        if (lower === "cancelled" || lower === "canceled") return "Cancelled";
+        return s;
+    }
+
     function getStatusMeta(status) {
         const normalized = (status || "").trim().toLowerCase();
 
         if (normalized === "completed") {
             return {
-                rowColor: "rgba(22, 163, 74, 0.10)",
+                rowColor: "rgba(22, 163, 74, 0.08)",
                 badgeBg: "#dcfce7",
                 badgeColor: "#166534"
             };
         }
 
-        if (normalized === "partially completed") {
+        if (normalized.includes("partial")) {
             return {
-                rowColor: "rgba(37, 99, 235, 0.10)",
+                rowColor: "rgba(37, 99, 235, 0.08)",
                 badgeBg: "#dbeafe",
                 badgeColor: "#1d4ed8"
             };
@@ -68,30 +125,46 @@
 
         if (normalized === "pending") {
             return {
-                rowColor: "rgba(217, 119, 6, 0.10)",
+                rowColor: "rgba(217, 119, 6, 0.08)",
                 badgeBg: "#fef3c7",
                 badgeColor: "#b45309"
             };
         }
 
-        if (normalized === "hold" || normalized === "on hold") {
+        if (normalized === "booked") {
             return {
-                rowColor: "rgba(220, 38, 38, 0.10)",
+                rowColor: "rgba(99, 102, 241, 0.08)",
+                badgeBg: "#ede9fe",
+                badgeColor: "#6d28d9"
+            };
+        }
+
+        if (normalized.includes("hold")) {
+            return {
+                rowColor: "rgba(220, 38, 38, 0.08)",
                 badgeBg: "#fee2e2",
                 badgeColor: "#b91c1c"
             };
         }
 
-        if (normalized === "clinical" || normalized === "clinical stated") {
+        if (normalized.includes("clinical")) {
             return {
-                rowColor: "rgba(13, 148, 136, 0.10)",
+                rowColor: "rgba(13, 148, 136, 0.08)",
                 badgeBg: "#ccfbf1",
                 badgeColor: "#0f766e"
             };
         }
 
+        if (normalized === "cancelled" || normalized === "canceled") {
+            return {
+                rowColor: "rgba(239, 68, 68, 0.08)",
+                badgeBg: "#fee2e2",
+                badgeColor: "#991b1b"
+            };
+        }
+
         return {
-            rowColor: "rgba(71, 85, 105, 0.08)",
+            rowColor: "rgba(71, 85, 105, 0.06)",
             badgeBg: "#e2e8f0",
             badgeColor: "#334155"
         };
@@ -160,7 +233,7 @@
         selectors.summaryTotal.textContent = summary.total || 0;
         selectors.summaryPending.textContent = summary.pending || 0;
         selectors.summaryCompleted.textContent = summary.completed || 0;
-        selectors.summaryAttention.textContent = (summary.partiallyCompleted || 0) + (summary.hold || 0);
+        selectors.summaryAttention.textContent = (summary.partiallyCompleted || 0) + (summary.hold || 0) + (summary.clinical || 0);
     }
 
     function cacheBooking(booking) {
@@ -217,12 +290,14 @@
                     <span class="lb-subtext">${booking.time || formatDateTime(booking.createdAt)}</span>
                 </td>
                 <td>
-                    ${booking.patientName || "N/A"}
-                    <span class="lb-subtext">${booking.gender || "N/A"}${booking.year ? `, ${booking.year}` : ""}</span>
+                    <span style="font-weight: 700; color: #16324f;">${booking.patientName || "N/A"}</span>
+                    <span class="lb-subtext">${booking.doctorName || booking.labName || "Direct / Walk-in"}</span>
                 </td>
                 <td>
-                    ${booking.patientPhone || "N/A"}
-                    <span class="lb-subtext">${booking.labName || booking.doctorName || "No lab / doctor"}</span>
+                    <div class="lb-demographics">
+                        <span class="lb-age-badge"><i class="fas fa-user-clock"></i> ${formatAge(booking.year)}</span>
+                        ${formatGenderBadge(booking.gender)}
+                    </div>
                 </td>
                 <td>
                     ${booking.createdBy?.fullName || booking.createdbyuser || "N/A"}
@@ -245,7 +320,7 @@
                 </div>
                 </td>
                 <td>
-                    <span class="lb-status-badge" style="background:${statusMeta.badgeBg}; color:${statusMeta.badgeColor};">${booking.status || "N/A"}</span>
+                    <span class="lb-status-badge" style="background:${statusMeta.badgeBg}; color:${statusMeta.badgeColor};">${formatStatusLabel(booking.status)}</span>
                 </td>
                 <td style="text-align:center;white-space:nowrap;">
                     ${printAuditBadge(booking)}
@@ -384,11 +459,12 @@
             "Booking ID": booking.bookingId,
             "Booking Date": formatDate(booking.date || booking.createdAt),
             "Patient Name": booking.patientName || "",
-            "Mobile Number": booking.patientPhone || "",
+            "Age": formatAge(booking.year),
+            "Gender": booking.gender || "",
             "Created User": booking.createdBy?.fullName || booking.createdbyuser || "",
             "Role": booking.createdBy?.role || "",
             "Barcodes": (booking.barcodeList || []).join(", "),
-            "Status": booking.status || "",
+            "Status": formatStatusLabel(booking.status),
             "Lab Name": booking.labName || "",
             "Doctor Name": booking.doctorName || ""
         }));
@@ -409,17 +485,17 @@
             booking.bookingId,
             formatDate(booking.date || booking.createdAt),
             booking.patientName || "",
-            booking.patientPhone || "",
+            `${formatAge(booking.year)} / ${booking.gender || "N/A"}`,
             booking.createdBy?.fullName || booking.createdbyuser || "",
             (booking.barcodeList || []).join(", "),
-            booking.status || ""
+            formatStatusLabel(booking.status)
         ]));
 
         doc.setFontSize(15);
         doc.text("List Booking", 14, 16);
         doc.autoTable({
             startY: 24,
-            head: [["Booking ID", "Date", "Patient", "Mobile", "User", "Barcodes", "Status"]],
+            head: [["Booking ID", "Date", "Patient", "Age / Gender", "User", "Barcodes", "Status"]],
             body: tableRows,
             styles: { fontSize: 9, cellPadding: 3 },
             headStyles: { fillColor: [15, 108, 189] }

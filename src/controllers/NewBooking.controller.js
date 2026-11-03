@@ -71,18 +71,19 @@ async function findAssignedBookingItem(model, itemId, tenantId, actorId, allowAd
     };
 }
 const BOOKING_STATUS_ALIAS_MAP = {
-    pending: ["pending"],
-    completed: ["completed"],
-    "partially completed": ["Partially Completed", "partial completed", "partial"],
-    "partial completed": ["Partially Completed", "partial completed", "partial"],
-    partial: ["Partially Completed", "partial completed", "partial"],
-    "partially ready": ["Partially Completed", "partial completed", "partial"],
-    hold: ["Hold", "hold"],
-    "on hold": ["On Hold", "on hold"],
-    clinical: ["clinical", "clinical stated"],
-    "clinical stated": ["clinical", "clinical stated"],
-    cancelled: ["cancelled", "canceled"],
-    canceled: ["cancelled", "canceled"],
+    booked: ["booked", "Booked"],
+    pending: ["pending", "Pending"],
+    completed: ["completed", "Completed"],
+    "partially completed": ["Partially Completed", "partial completed", "partial", "partially ready"],
+    "partial completed": ["Partially Completed", "partial completed", "partial", "partially ready"],
+    partial: ["Partially Completed", "partial completed", "partial", "partially ready"],
+    "partially ready": ["Partially Completed", "partial completed", "partial", "partially ready"],
+    hold: ["Hold", "hold", "On Hold", "on hold"],
+    "on hold": ["On Hold", "on hold", "Hold", "hold"],
+    clinical: ["clinical", "clinical stated", "Clinical", "Clinical Stated"],
+    "clinical stated": ["clinical", "clinical stated", "Clinical", "Clinical Stated"],
+    cancelled: ["cancelled", "canceled", "Cancelled", "Canceled"],
+    canceled: ["cancelled", "canceled", "Cancelled", "Canceled"],
 };
 
 // ✅ "All Cases" page par ye statuses kabhi nahi dikhne chahiye.
@@ -2311,6 +2312,7 @@ const getAllBookingsController = asyncHandler(async (req, res) => {
                             patientName: 1,
                             patientPhone: 1,
                             gender: 1,
+                            year: 1,
                             doctorName: 1,
                             labName: 1,
                             franchisee: 1,
@@ -2567,15 +2569,17 @@ async function attachBookingBarcodeDetails(bookings, tenantId) {
 }
 
 function normalizeBookingStatusKey(status = "") {
-    const normalized = status.trim().toLowerCase();
+    const normalized = (status || "").trim().toLowerCase();
 
     if (normalized === "completed") return "completed";
     if (normalized === "pending") return "pending";
-    if (normalized === "partially completed" || normalized === "partial completed" || normalized === "partial") {
+    if (normalized === "partially completed" || normalized === "partial completed" || normalized === "partial" || normalized === "partially ready") {
         return "partiallyCompleted";
     }
     if (normalized === "hold" || normalized === "on hold") return "hold";
     if (normalized === "clinical" || normalized === "clinical stated") return "clinical";
+    if (normalized === "booked") return "booked";
+    if (normalized === "cancelled" || normalized === "canceled") return "cancelled";
 
     return "other";
 }
@@ -2598,9 +2602,9 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
         sortOrder = "desc"
     } = req.query;
 
+    const hasSpecificBookingLookup = Boolean(bookingOrBarcode.trim());
     const andConditions = [
-        { tenantId },
-        { status: { $nin: ["cancelled", "cancelled"] } }
+        { tenantId }
     ];
 
     if (patientName.trim()) {
@@ -2616,8 +2620,15 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
     }
 
     if (status.trim()) {
+        if (status.trim().toLowerCase() !== "all") {
+            const statusQuery = buildBookingStatusQuery(status.trim());
+            if (statusQuery) {
+                andConditions.push({ status: statusQuery });
+            }
+        }
+    } else if (!hasSpecificBookingLookup) {
         andConditions.push({
-            status: { $regex: `^${escapeRegex(status.trim())}$`, $options: "i" }
+            status: { $nin: ["cancelled", "canceled", "Cancelled", "Canceled"] }
         });
     }
 
@@ -2726,6 +2737,7 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
                             patientName: 1,
                             patientPhone: 1,
                             gender: 1,
+                            year: 1,
                             doctorName: 1,
                             labName: 1,
                             franchisee: 1,
@@ -2774,6 +2786,8 @@ const getAdminListBookingsController = asyncHandler(async (req, res) => {
         partiallyCompleted: 0,
         hold: 0,
         clinical: 0,
+        booked: 0,
+        cancelled: 0,
         other: 0
     };
 
