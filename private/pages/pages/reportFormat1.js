@@ -1,4 +1,4 @@
-
+﻿
 (async function () {
     const downloadPdfDiv = document.querySelector('.download-pdf-div');
     if (downloadPdfDiv) downloadPdfDiv.style.display = 'none';
@@ -522,12 +522,14 @@
     }
     function parseSafeDate(dateVal, timeVal) {
         if (!dateVal) return null;
-        let y, m, d;
+        let y, m, d, hrs = 0, mins = 0;
         if (dateVal instanceof Date) {
             if (isNaN(dateVal.getTime())) return null;
             y = dateVal.getFullYear();
             m = dateVal.getMonth();
             d = dateVal.getDate();
+            hrs = dateVal.getHours();
+            mins = dateVal.getMinutes();
         } else if (typeof dateVal === 'string') {
             const trimmed = dateVal.trim();
             const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
@@ -546,15 +548,24 @@
                     y = parsed.getFullYear();
                     m = parsed.getMonth();
                     d = parsed.getDate();
+                    hrs = parsed.getHours();
+                    mins = parsed.getMinutes();
                 } else {
                     return null;
                 }
+            }
+            const inlineTime = trimmed.match(/(?:T|\s+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?/i);
+            if (inlineTime) {
+                hrs = parseInt(inlineTime[1], 10) || 0;
+                mins = parseInt(inlineTime[2], 10) || 0;
+                const meridiem = (inlineTime[4] || '').toUpperCase();
+                if (meridiem === 'PM' && hrs < 12) hrs += 12;
+                if (meridiem === 'AM' && hrs === 12) hrs = 0;
             }
         } else {
             return null;
         }
 
-        let hrs = 0, mins = 0;
         if (timeVal) {
             const timeStr = String(timeVal).trim();
             const isPM = /pm/i.test(timeStr);
@@ -604,7 +615,7 @@
             return null;
         };
 
-        let reg = parseSafeDate(rep?.date, rep?.time);
+        let reg = parseTs(rep?.registeredOn) || parseSafeDate(rep?.date, rep?.time);
         let coll = parseTs(rep?.collectedOn);
         let rec = parseTs(rep?.receivedOn);
         let reported = parseTs(rep?.reportedOn);
@@ -797,12 +808,78 @@
             .trim();
     }
 
+    function sanitizeCategoryAndTestData(categories) {
+        if (!Array.isArray(categories)) return [];
+        const result = [];
+        categories.forEach((cat) => {
+            if (!cat) return;
+            const catName = String(cat.category || '').trim();
+            const titleName = String(cat.title || cat.panelName || '').trim();
+            const panelId = cat.panelId ? String(cat.panelId).trim() : null;
+
+            const hasTests = Array.isArray(cat.tests) && cat.tests.length > 0;
+            const interpText = stripHtmlToText(cat.interpretation).trim();
+            const hasInterp = interpText.length > 0;
+            const hasNotes = Boolean(cat.notes || cat.remarks || cat.advice);
+
+            const existing = result.find(c => {
+                const cCat = String(c.category || '').trim();
+                const cTitle = String(c.title || c.panelName || '').trim();
+                const cPanelId = c.panelId ? String(c.panelId).trim() : null;
+
+                if (cCat !== catName) return false;
+                if (panelId && cPanelId && panelId === cPanelId) return true;
+                return cTitle === titleName;
+            });
+
+            if (existing) {
+                if (hasTests) {
+                    existing.tests = (existing.tests || []).concat(cat.tests);
+                }
+                if (!existing.interpretation && hasInterp) {
+                    existing.interpretation = cat.interpretation;
+                }
+                if (!existing.notes && cat.notes) existing.notes = cat.notes;
+                if (!existing.remarks && cat.remarks) existing.remarks = cat.remarks;
+                if (!existing.advice && cat.advice) existing.advice = cat.advice;
+                if (!existing.panelId && panelId) existing.panelId = panelId;
+                if (!existing.panelName && cat.panelName) existing.panelName = cat.panelName;
+            } else {
+                if (hasTests || hasInterp || hasNotes) {
+                    result.push({ ...cat });
+                }
+            }
+        });
+
+        // Filter out duplicate details rows matching interpretation
+        result.forEach(cat => {
+            if (cat.interpretation && Array.isArray(cat.tests)) {
+                const interpClean = stripHtmlToText(cat.interpretation).trim();
+                if (interpClean.length > 0) {
+                    cat.tests = cat.tests.filter(t => {
+                        if (t && t.details && !t.testName && !t.value) {
+                            const dClean = stripHtmlToText(t.details).trim();
+                            if (dClean === interpClean || (dClean.length > 20 && (interpClean.includes(dClean) || dClean.includes(interpClean)))) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+            }
+        });
+
+        return result;
+    }
+
     function renderData(data) {
         const container = document.getElementById("tables-container"); // Main container
         container.innerHTML = ""; // Clear existing content
 
+        const categoriesToRender = sanitizeCategoryAndTestData(data.CategoryAndTest);
+
         // Iterate through each category
-        data.CategoryAndTest.forEach((categoryData, index) => {
+        categoriesToRender.forEach((categoryData, index) => {
             // Create section for the category
             const section = document.createElement("div");
             section.className = "section";
@@ -1066,31 +1143,42 @@
                 }
 
                 // ✅ FIXED: Details row (can contain CKEditor content)
-                if (test.details) {
-                    const detailsRow = document.createElement("tr");
+                if (test.details && !test.isInterpretation) {
+                    // Skip if details content duplicates categoryData.interpretation
+                    // (prevents double-rendering when test interpretation is stored both
+                    //  as a test-level details row AND as the category-level interpretation)
+                    const _detailsText = stripHtmlToText(test.details).trim();
+                    const _catInterpText = categoryData.interpretation ? stripHtmlToText(categoryData.interpretation).trim() : '';
+                    const _isDupeOfInterp = _catInterpText && _detailsText && (
+                        _detailsText === _catInterpText ||
+                        (_detailsText.length > 20 && (_catInterpText.includes(_detailsText) || _detailsText.includes(_catInterpText)))
+                    );
 
-                    const detailsCellEmpty = document.createElement("td");
-                    detailsCellEmpty.classList.add("wrong");
+                    if (!_isDupeOfInterp) {
+                        const detailsRow = document.createElement("tr");
 
-                    const detailsCell = document.createElement("td");
-                    detailsCell.colSpan = 4;
-                    detailsCell.className = "details-row";
+                        const detailsCellEmpty = document.createElement("td");
+                        detailsCellEmpty.classList.add("wrong");
 
-                    // ✅ Wrap details in documented-content div for proper isolation
-                    detailsCell.innerHTML = `
+                        const detailsCell = document.createElement("td");
+                        detailsCell.colSpan = 4;
+                        detailsCell.className = "details-row";
+
+                        // Wrap details in documented-content div for proper isolation
+                        detailsCell.innerHTML = `
         <div class="documented-content">
             ${cleanDocumentedHtml(test.details)}
         </div>
     `;
 
-                    detailsRow.appendChild(detailsCellEmpty);
-                    detailsRow.appendChild(detailsCell);
+                        detailsRow.appendChild(detailsCellEmpty);
+                        detailsRow.appendChild(detailsCell);
 
-                    // ✅ Remove any unwanted spacing/margins
-                    detailsRow.style.margin = "0";
-                    detailsRow.style.padding = "0";
+                        detailsRow.style.margin = "0";
+                        detailsRow.style.padding = "0";
 
-                    tbody.appendChild(detailsRow);
+                        tbody.appendChild(detailsRow);
+                    }
                 }
 
                 // Delete functionality

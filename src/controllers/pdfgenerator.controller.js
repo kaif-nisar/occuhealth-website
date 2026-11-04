@@ -866,10 +866,80 @@ const buildHeaderFromReport = (reportData) => {
     </div>`;
 };
 
+
+const sanitizeCategoryAndTestDataForPdf = (categories) => {
+    if (!Array.isArray(categories)) return [];
+    const result = [];
+    const stripHtml = (val) => {
+        if (!val) return '';
+        return String(val).replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    };
+
+    categories.forEach((cat) => {
+        if (!cat) return;
+        const catName = String(cat.category || '').trim();
+        const titleName = String(cat.title || cat.panelName || '').trim();
+        const panelId = cat.panelId ? String(cat.panelId).trim() : null;
+
+        const hasTests = Array.isArray(cat.tests) && cat.tests.length > 0;
+        const interpText = stripHtml(cat.interpretation);
+        const hasInterp = interpText.length > 0;
+        const hasNotes = Boolean(cat.notes || cat.remarks || cat.advice);
+
+        const existing = result.find(c => {
+            const cCat = String(c.category || '').trim();
+            const cTitle = String(c.title || c.panelName || '').trim();
+            const cPanelId = c.panelId ? String(c.panelId).trim() : null;
+
+            if (cCat !== catName) return false;
+            if (panelId && cPanelId && panelId === cPanelId) return true;
+            return cTitle === titleName;
+        });
+
+        if (existing) {
+            if (hasTests) {
+                existing.tests = (existing.tests || []).concat(cat.tests);
+            }
+            if (!existing.interpretation && hasInterp) {
+                existing.interpretation = cat.interpretation;
+            }
+            if (!existing.notes && cat.notes) existing.notes = cat.notes;
+            if (!existing.remarks && cat.remarks) existing.remarks = cat.remarks;
+            if (!existing.advice && cat.advice) existing.advice = cat.advice;
+            if (!existing.panelId && panelId) existing.panelId = panelId;
+            if (!existing.panelName && cat.panelName) existing.panelName = cat.panelName;
+        } else {
+            if (hasTests || hasInterp || hasNotes) {
+                result.push({ ...cat });
+            }
+        }
+    });
+
+    result.forEach(cat => {
+        if (cat.interpretation && Array.isArray(cat.tests)) {
+            const interpClean = stripHtml(cat.interpretation);
+            if (interpClean.length > 0) {
+                cat.tests = cat.tests.filter(t => {
+                    if (t && t.details && !t.testName && !t.value) {
+                        const dClean = stripHtml(t.details);
+                        if (dClean === interpClean || (dClean.length > 20 && (interpClean.includes(dClean) || dClean.includes(interpClean)))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+        }
+    });
+
+    return result;
+};
+
 const buildHtmlFromReport = (reportData) => {
     if (!reportData || !Array.isArray(reportData.CategoryAndTest)) return '';
+    const categoriesToRender = sanitizeCategoryAndTestDataForPdf(reportData.CategoryAndTest);
     let sectionsHtml = '';
-    reportData.CategoryAndTest.forEach((categoryData, index) => {
+    categoriesToRender.forEach((categoryData, index) => {
         const isPanel = categoryData.type === 'panel' || (categoryData.title && categoryData.title !== categoryData.category && !String(categoryData.title).includes('Unknown Title'));
         const panelTitle = isPanel ? (categoryData.panelName || categoryData.title || '') : '';
         const categoryTitle = categoryData.category || '';

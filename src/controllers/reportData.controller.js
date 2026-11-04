@@ -88,6 +88,75 @@ const getReportByBookingId = async (req, res) => {
     }
 };
 
+
+const sanitizeCategoryAndTestData = (categories) => {
+    if (!Array.isArray(categories)) return [];
+    const result = [];
+    const stripHtml = (val) => {
+        if (!val) return '';
+        return String(val).replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    };
+
+    categories.forEach((cat) => {
+        if (!cat) return;
+        const catName = String(cat.category || '').trim();
+        const titleName = String(cat.title || cat.panelName || '').trim();
+        const panelId = cat.panelId ? String(cat.panelId).trim() : null;
+
+        const hasTests = Array.isArray(cat.tests) && cat.tests.length > 0;
+        const interpText = stripHtml(cat.interpretation);
+        const hasInterp = interpText.length > 0;
+        const hasNotes = Boolean(cat.notes || cat.remarks || cat.advice);
+
+        const existing = result.find(c => {
+            const cCat = String(c.category || '').trim();
+            const cTitle = String(c.title || c.panelName || '').trim();
+            const cPanelId = c.panelId ? String(c.panelId).trim() : null;
+
+            if (cCat !== catName) return false;
+            if (panelId && cPanelId && panelId === cPanelId) return true;
+            return cTitle === titleName;
+        });
+
+        if (existing) {
+            if (hasTests) {
+                existing.tests = (existing.tests || []).concat(cat.tests);
+            }
+            if (!existing.interpretation && hasInterp) {
+                existing.interpretation = cat.interpretation;
+            }
+            if (!existing.notes && cat.notes) existing.notes = cat.notes;
+            if (!existing.remarks && cat.remarks) existing.remarks = cat.remarks;
+            if (!existing.advice && cat.advice) existing.advice = cat.advice;
+            if (!existing.panelId && panelId) existing.panelId = panelId;
+            if (!existing.panelName && cat.panelName) existing.panelName = cat.panelName;
+        } else {
+            if (hasTests || hasInterp || hasNotes) {
+                result.push({ ...cat });
+            }
+        }
+    });
+
+    result.forEach(cat => {
+        if (cat.interpretation && Array.isArray(cat.tests)) {
+            const interpClean = stripHtml(cat.interpretation);
+            if (interpClean.length > 0) {
+                cat.tests = cat.tests.filter(t => {
+                    if (t && t.details && !t.testName && !t.value) {
+                        const dClean = stripHtml(t.details);
+                        if (dClean === interpClean || (dClean.length > 20 && (interpClean.includes(dClean) || dClean.includes(interpClean)))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+        }
+    });
+
+    return result;
+};
+
 const SaveReportController = asyncHandler(async (req, res) => {
     const { reportData, reportMeta, reg_id, booking, registeredOn, collectedOn, receivedOn, reportedOn, categorized,
         moredetails, uniquetestArray, isdocumented, saveMode, bookedItems } = req.body;
@@ -113,7 +182,8 @@ const SaveReportController = asyncHandler(async (req, res) => {
     let bookingStatus = currentBookingStatus;
     const sampleDetails = buildUniqueSampleDetails(reportData);
 
-    const isPartialReport = shouldMarkReportPartial(reportData, reportMeta);
+    const sanitizedReportData = sanitizeCategoryAndTestData(reportData);
+    const isPartialReport = shouldMarkReportPartial(sanitizedReportData, reportMeta);
     const normalizedCurrentStatus = String(currentBookingStatus || "").toLowerCase();
 
     /* Booking completion must be sign-off only. Report save flows may persist the
@@ -124,15 +194,21 @@ const SaveReportController = asyncHandler(async (req, res) => {
         bookingStatus = currentBookingStatus;
     }
 
+    const effectiveRegisteredOn = registeredOn || booking?.registeredOn;
+    const effectiveCollectedOn = collectedOn || booking?.collectedOn;
+    const effectiveReceivedOn = receivedOn || booking?.receivedOn;
+    const effectiveReportedOn = reportedOn || booking?.reportedOn;
+
     const updateFields = {
-        CategoryAndTest: reportData,
+        CategoryAndTest: sanitizedReportData,
         reg_id: actualBookingId,
         ...booking,
         bookingId: actualBookingId,
         status: bookingStatus,
-        collectedOn,
-        receivedOn,
-        reportedOn,
+        registeredOn: effectiveRegisteredOn,
+        collectedOn: effectiveCollectedOn,
+        receivedOn: effectiveReceivedOn,
+        reportedOn: effectiveReportedOn,
         categorizedPDF: categorized,
         MoreDetails: moredetails,
         uniquetestArray,
@@ -217,6 +293,18 @@ const SaveReportController = asyncHandler(async (req, res) => {
         }
         if (typeof categorized === "boolean") {
             bookingUpdateFields.categorizedPDF = categorized;
+        }
+        if (effectiveRegisteredOn) {
+            bookingUpdateFields.registeredOn = effectiveRegisteredOn;
+        }
+        if (effectiveCollectedOn) {
+            bookingUpdateFields.collectedOn = effectiveCollectedOn;
+        }
+        if (effectiveReceivedOn) {
+            bookingUpdateFields.receivedOn = effectiveReceivedOn;
+        }
+        if (effectiveReportedOn) {
+            bookingUpdateFields.reportedOn = effectiveReportedOn;
         }
 
         if (Object.keys(bookingUpdateFields).length > 0) {
@@ -456,7 +544,7 @@ const getReportController = asyncHandler(async (req, res) => {
                 ...(mongoose.Types.ObjectId.isValid(searchKey) ? [{ _id: searchKey }] : [])
             ],
             ...(tenantId ? { tenantId } : {})
-        }).select("bookingId categorizedPDF tableData testIds").lean();
+        }).select("bookingId categorizedPDF tableData testIds registeredOn collectedOn receivedOn reportedOn").lean();
 
         if (existingBooking) {
             return res.status(200).json({
@@ -464,7 +552,11 @@ const getReportController = asyncHandler(async (req, res) => {
                 categorizedPDF: typeof existingBooking.categorizedPDF === 'boolean' ? existingBooking.categorizedPDF : true,
                 isDraft: true,
                 bookingTableData: existingBooking.tableData || [],
-                printSettings: {}
+                printSettings: {},
+                registeredOn: existingBooking.registeredOn,
+                collectedOn: existingBooking.collectedOn,
+                receivedOn: existingBooking.receivedOn,
+                reportedOn: existingBooking.reportedOn
             });
         }
 

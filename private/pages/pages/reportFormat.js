@@ -1,4 +1,4 @@
-/* ============================================================================
+﻿/* ============================================================================
     OccuHealth LIS · Pathology Report Layout (Format 1) — redesigned UI layer
     ----------------------------------------------------------------------------
     · Same backend contract as legacy:
@@ -162,12 +162,14 @@
        Invalid Date (which throws RangeError and kills boot). */
     function parseSafeDate(dateVal, timeVal) {
         if (!dateVal) return null;
-        let y, m, d;
+        let y, m, d, hrs = 0, mins = 0;
         if (dateVal instanceof Date) {
             if (isNaN(dateVal.getTime())) return null;
             y = dateVal.getFullYear();
             m = dateVal.getMonth();
             d = dateVal.getDate();
+            hrs = dateVal.getHours();
+            mins = dateVal.getMinutes();
         } else if (typeof dateVal === 'string') {
             const trimmed = dateVal.trim();
             const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
@@ -186,15 +188,24 @@
                     y = parsed.getFullYear();
                     m = parsed.getMonth();
                     d = parsed.getDate();
+                    hrs = parsed.getHours();
+                    mins = parsed.getMinutes();
                 } else {
                     return null;
                 }
+            }
+            const inlineTime = trimmed.match(/(?:T|\s+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?/i);
+            if (inlineTime) {
+                hrs = parseInt(inlineTime[1], 10) || 0;
+                mins = parseInt(inlineTime[2], 10) || 0;
+                const meridiem = (inlineTime[4] || '').toUpperCase();
+                if (meridiem === 'PM' && hrs < 12) hrs += 12;
+                if (meridiem === 'AM' && hrs === 12) hrs = 0;
             }
         } else {
             return null;
         }
 
-        let hrs = 0, mins = 0;
         if (timeVal) {
             const timeStr = String(timeVal).trim();
             const isPM = /pm/i.test(timeStr);
@@ -250,7 +261,7 @@
             return null;
         };
 
-        let reg = parseSafeDate(report?.date, report?.time);
+        let reg = parseTs(report?.registeredOn) || parseSafeDate(report?.date, report?.time);
         let coll = parseTs(report?.collectedOn);
         let rec = parseTs(report?.receivedOn);
         let rep = parseTs(report?.reportedOn);
@@ -657,6 +668,15 @@
         return row;
     }
 
+    // Helper: check if a test's details duplicates the category-level interpretation
+    function isDetailsDupeOfInterp(detailsHtml, interpHtml) {
+        if (!detailsHtml || !interpHtml) return false;
+        const dText = stripHtmlToText(detailsHtml).trim();
+        const iText = stripHtmlToText(interpHtml).trim();
+        if (!dText || !iText) return false;
+        return dText === iText || (dText.length > 20 && (iText.includes(dText) || dText.includes(iText)));
+    }
+
     /* Wire the delete icon of a test row to also remove its remark/details rows. */
     function wireRowDelete(testRow) {
         const icon = $('.delete-row-icon', testRow);
@@ -873,10 +893,76 @@
     }
 
     /* ========================= MAIN RENDER (canonical children) ========================= */
+    function sanitizeCategoryAndTestData(categories) {
+        if (!Array.isArray(categories)) return [];
+        const result = [];
+        categories.forEach((cat) => {
+            if (!cat) return;
+            const catName = String(cat.category || '').trim();
+            const titleName = String(cat.title || cat.panelName || '').trim();
+            const panelId = cat.panelId ? String(cat.panelId).trim() : null;
+
+            const hasTests = Array.isArray(cat.tests) && cat.tests.length > 0;
+            const interpText = stripHtmlToText(cat.interpretation).trim();
+            const hasInterp = interpText.length > 0;
+            const hasNotes = Boolean(cat.notes || cat.remarks || cat.advice);
+
+            const existing = result.find(c => {
+                const cCat = String(c.category || '').trim();
+                const cTitle = String(c.title || c.panelName || '').trim();
+                const cPanelId = c.panelId ? String(c.panelId).trim() : null;
+
+                if (cCat !== catName) return false;
+                if (panelId && cPanelId && panelId === cPanelId) return true;
+                return cTitle === titleName;
+            });
+
+            if (existing) {
+                if (hasTests) {
+                    existing.tests = (existing.tests || []).concat(cat.tests);
+                }
+                if (!existing.interpretation && hasInterp) {
+                    existing.interpretation = cat.interpretation;
+                }
+                if (!existing.notes && cat.notes) existing.notes = cat.notes;
+                if (!existing.remarks && cat.remarks) existing.remarks = cat.remarks;
+                if (!existing.advice && cat.advice) existing.advice = cat.advice;
+                if (!existing.panelId && panelId) existing.panelId = panelId;
+                if (!existing.panelName && cat.panelName) existing.panelName = cat.panelName;
+            } else {
+                if (hasTests || hasInterp || hasNotes) {
+                    result.push({ ...cat });
+                }
+            }
+        });
+
+        // Filter out duplicate details rows matching interpretation
+        result.forEach(cat => {
+            if (cat.interpretation && Array.isArray(cat.tests)) {
+                const interpClean = stripHtmlToText(cat.interpretation).trim();
+                if (interpClean.length > 0) {
+                    cat.tests = cat.tests.filter(t => {
+                        if (t && t.details && !t.testName && !t.value) {
+                            const dClean = stripHtmlToText(t.details).trim();
+                            if (dClean === interpClean || (dClean.length > 20 && (interpClean.includes(dClean) || dClean.includes(interpClean)))) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+            }
+        });
+
+        return result;
+    }
+
     function renderData(data) {
         const children = state.bodyChildren;
 
-        (data.CategoryAndTest || []).forEach((categoryData, index) => {
+        const categoriesToRender = sanitizeCategoryAndTestData(data.CategoryAndTest);
+
+        categoriesToRender.forEach((categoryData, index) => {
             const section = document.createElement('div');
             section.className = 'section';
             if (data.categorizedPDF && index > 0) section.classList.add('page-break');
@@ -1004,14 +1090,14 @@
                     });
 
                     if (test.remark) tbody.appendChild(buildRemarkRow(test));
-                    if (test.details) tbody.appendChild(buildDetailsRow(test));
+                    if (test.details && !isDetailsDupeOfInterp(test.details, categoryData.interpretation)) tbody.appendChild(buildDetailsRow(test));
                     return;
                 }
 
                 const rawName = String(test.testName || '').trim();
                 if (!rawName || rawName === 'null') {
                     if (test.remark) tbody.appendChild(buildRemarkRow(test));
-                    if (test.details && stripHtmlToText(test.details).trim()) tbody.appendChild(buildDetailsRow(test));
+                    if (test.details && stripHtmlToText(test.details).trim() && !isDetailsDupeOfInterp(test.details, categoryData.interpretation)) tbody.appendChild(buildDetailsRow(test));
                     return;
                 }
 
@@ -1037,7 +1123,7 @@
                 tbody.appendChild(testRow);
 
                 if (test.remark) tbody.appendChild(buildRemarkRow(test));
-                if (test.details && stripHtmlToText(test.details).trim()) tbody.appendChild(buildDetailsRow(test));
+                if (test.details && stripHtmlToText(test.details).trim() && !isDetailsDupeOfInterp(test.details, categoryData.interpretation)) tbody.appendChild(buildDetailsRow(test));
             });
 
             /* --- table-level annotation rows (legacy structure kept) --- */

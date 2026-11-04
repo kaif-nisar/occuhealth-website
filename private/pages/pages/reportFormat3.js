@@ -453,12 +453,14 @@
     }
     function parseSafeDate(dateVal, timeVal) {
         if (!dateVal) return null;
-        let y, m, d;
+        let y, m, d, hrs = 0, mins = 0;
         if (dateVal instanceof Date) {
             if (isNaN(dateVal.getTime())) return null;
             y = dateVal.getFullYear();
             m = dateVal.getMonth();
             d = dateVal.getDate();
+            hrs = dateVal.getHours();
+            mins = dateVal.getMinutes();
         } else if (typeof dateVal === 'string') {
             const trimmed = dateVal.trim();
             const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
@@ -477,15 +479,24 @@
                     y = parsed.getFullYear();
                     m = parsed.getMonth();
                     d = parsed.getDate();
+                    hrs = parsed.getHours();
+                    mins = parsed.getMinutes();
                 } else {
                     return null;
                 }
+            }
+            const inlineTime = trimmed.match(/(?:T|\s+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?/i);
+            if (inlineTime) {
+                hrs = parseInt(inlineTime[1], 10) || 0;
+                mins = parseInt(inlineTime[2], 10) || 0;
+                const meridiem = (inlineTime[4] || '').toUpperCase();
+                if (meridiem === 'PM' && hrs < 12) hrs += 12;
+                if (meridiem === 'AM' && hrs === 12) hrs = 0;
             }
         } else {
             return null;
         }
 
-        let hrs = 0, mins = 0;
         if (timeVal) {
             const timeStr = String(timeVal).trim();
             const isPM = /pm/i.test(timeStr);
@@ -535,7 +546,7 @@
             return null;
         };
 
-        let reg = parseSafeDate(rep?.date, rep?.time);
+        let reg = parseTs(rep?.registeredOn) || parseSafeDate(rep?.date, rep?.time);
         let coll = parseTs(rep?.collectedOn);
         let rec = parseTs(rep?.receivedOn);
         let reported = parseTs(rep?.reportedOn);

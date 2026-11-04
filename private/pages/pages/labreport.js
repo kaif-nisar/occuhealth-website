@@ -96,6 +96,16 @@ async function loadfunction() {
                 if (repData && Array.isArray(repData.CategoryAndTest)) {
                     existingReportCategories = repData.CategoryAndTest;
                 }
+                // Hydrate timestamps from saved report if present
+                if (repData && booking) {
+                    if (repData.registeredOn) booking.registeredOn = repData.registeredOn;
+                    if (repData.collectedOn) booking.collectedOn = repData.collectedOn;
+                    if (repData.receivedOn) booking.receivedOn = repData.receivedOn;
+                    if (repData.reportedOn) booking.reportedOn = repData.reportedOn;
+                    try {
+                        localStorage.setItem("booking", JSON.stringify(booking));
+                    } catch (e) {}
+                }
                 // If a real (non-draft) saved report exists on server, respect its saved categorizedPDF value
                 if (repData && !repData.isDraft && typeof repData.categorizedPDF === 'boolean') {
                     if (initialCategorized === null) {
@@ -1575,7 +1585,12 @@ async function loadfunction() {
                     }
 
                     if (!hideInterpretation && test.interpretation && stripHtmlToText(test.interpretation).trim()) {
-                        detailsDiv.innerHTML += `<p class="test-interp">${test.interpretation}</p>`;
+                        const panelInterpText = stripHtmlToText(panelDetails?.interpretation || initialInterpretation || "");
+                        const testInterpText = stripHtmlToText(test.interpretation);
+                        const isSameAsPanelInterp = panelInterpText && testInterpText && (panelInterpText === testInterpText || panelInterpText.includes(testInterpText));
+                        if (!isSameAsPanelInterp) {
+                            detailsDiv.innerHTML += `<p class="test-interp">${test.interpretation}</p>`;
+                        }
                     }
 
                     if (detailsDiv.innerHTML.trim()) {
@@ -1783,7 +1798,7 @@ async function loadfunction() {
     }
 
     function generateRandomResults() {
-        const tablecontainer = document.querySelectorAll("#tables-container .section table tbody tr:not(.exclude)");
+        const tablecontainer = document.querySelectorAll("#tables-container .section table.table > tbody > tr:not(.exclude)");
 
         // Formula wale tests ki list (jo calculate hote hain)
         const formulaBasedTests = [
@@ -2437,7 +2452,7 @@ async function loadfunction() {
 
     // for fetching previous results
     async function fetchEnteredResult() {
-        const tablecontainer = document.querySelectorAll("#tables-container .section table tbody tr:not(.exclude)");
+        const tablecontainer = document.querySelectorAll("#tables-container .section table.table > tbody > tr:not(.exclude)");
 
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/getBookedTestById`, {
@@ -2500,7 +2515,7 @@ async function loadfunction() {
     async function lisresult() {
         const getresultbutton = document.getElementById('getresult');
         const modifycase = document.getElementById('modifycase');
-        const tablecontainer = document.querySelectorAll("#tables-container .section table tbody tr:not(.exclude)");
+        const tablecontainer = document.querySelectorAll("#tables-container .section table.table > tbody > tr:not(.exclude)");
         const bootalert = document.querySelector(".alert");
 
         getresultbutton.style.display = "flex";
@@ -2596,12 +2611,14 @@ async function loadfunction() {
 
     function parseSafeDate(dateVal, timeVal) {
         if (!dateVal) return new Date();
-        let y, m, d;
+        let y, m, d, hrs = 0, mins = 0;
         if (dateVal instanceof Date) {
             if (isNaN(dateVal.getTime())) return new Date();
             y = dateVal.getFullYear();
             m = dateVal.getMonth();
             d = dateVal.getDate();
+            hrs = dateVal.getHours();
+            mins = dateVal.getMinutes();
         } else if (typeof dateVal === 'string') {
             const trimmed = dateVal.trim();
             const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
@@ -2620,21 +2637,24 @@ async function loadfunction() {
                     y = parsed.getFullYear();
                     m = parsed.getMonth();
                     d = parsed.getDate();
+                    hrs = parsed.getHours();
+                    mins = parsed.getMinutes();
                 } else {
-                    const now = new Date();
-                    y = now.getFullYear();
-                    m = now.getMonth();
-                    d = now.getDate();
+                    const now = new Date(); y = now.getFullYear(); m = now.getMonth(); d = now.getDate();
                 }
             }
+            const inlineTime = trimmed.match(/(?:T|\s+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?/i);
+            if (inlineTime) {
+                hrs = parseInt(inlineTime[1], 10) || 0;
+                mins = parseInt(inlineTime[2], 10) || 0;
+                const meridiem = (inlineTime[4] || '').toUpperCase();
+                if (meridiem === 'PM' && hrs < 12) hrs += 12;
+                if (meridiem === 'AM' && hrs === 12) hrs = 0;
+            }
         } else {
-            const now = new Date();
-            y = now.getFullYear();
-            m = now.getMonth();
-            d = now.getDate();
+            const now = new Date(); y = now.getFullYear(); m = now.getMonth(); d = now.getDate();
         }
 
-        let hrs = 0, mins = 0;
         if (timeVal) {
             const timeStr = String(timeVal).trim();
             const isPM = /pm/i.test(timeStr);
@@ -2942,6 +2962,13 @@ async function loadfunction() {
             repDefaultDate = new Date(Math.max(Date.now(), recDefaultDate.getTime() + 30 * 60 * 1000));
         }
 
+        if (booking) {
+            booking.registeredOn = toLocalISOString(regDate);
+            booking.collectedOn = toLocalISOString(collDefaultDate);
+            booking.receivedOn = toLocalISOString(recDefaultDate);
+            booking.reportedOn = toLocalISOString(repDefaultDate);
+        }
+
         const patientdetails = document.createElement("div");
         patientdetails.classList.add("report-details-innerDiv2");
         patientdetails.innerHTML = `<div class="left2">
@@ -3004,6 +3031,7 @@ async function loadfunction() {
                     const curColl = new Date(collInput.value);
                     if (isNaN(curColl.getTime()) || curColl.getTime() < newReg.getTime()) {
                         collInput.value = toLocalISOString(new Date(newReg.getTime() + 5 * 60 * 1000));
+                        booking.collectedOn = collInput.value;
                     }
                 }
                 if (recInput && collInput) {
@@ -3011,6 +3039,7 @@ async function loadfunction() {
                     const curRec = new Date(recInput.value);
                     if (isNaN(curRec.getTime()) || curRec.getTime() < curColl.getTime()) {
                         recInput.value = toLocalISOString(new Date(curColl.getTime() + 10 * 60 * 1000));
+                        booking.receivedOn = recInput.value;
                     }
                 }
                 if (repInput && recInput) {
@@ -3018,8 +3047,12 @@ async function loadfunction() {
                     const curRep = new Date(repInput.value);
                     if (isNaN(curRep.getTime()) || curRep.getTime() < curRec.getTime()) {
                         repInput.value = toLocalISOString(new Date(curRec.getTime() + 30 * 60 * 1000));
+                        booking.reportedOn = repInput.value;
                     }
                 }
+                try {
+                    localStorage.setItem("booking", JSON.stringify(booking));
+                } catch (e) {}
             });
         }
 
@@ -3027,11 +3060,13 @@ async function loadfunction() {
             collInput.addEventListener("change", function () {
                 const curColl = new Date(this.value);
                 if (isNaN(curColl.getTime())) return;
+                booking.collectedOn = this.value;
 
                 if (recInput) {
                     const curRec = new Date(recInput.value);
                     if (isNaN(curRec.getTime()) || curRec.getTime() < curColl.getTime()) {
                         recInput.value = toLocalISOString(new Date(curColl.getTime() + 10 * 60 * 1000));
+                        booking.receivedOn = recInput.value;
                     }
                 }
                 if (repInput && recInput) {
@@ -3039,8 +3074,12 @@ async function loadfunction() {
                     const curRep = new Date(repInput.value);
                     if (isNaN(curRep.getTime()) || curRep.getTime() < curRec.getTime()) {
                         repInput.value = toLocalISOString(new Date(curRec.getTime() + 30 * 60 * 1000));
+                        booking.reportedOn = repInput.value;
                     }
                 }
+                try {
+                    localStorage.setItem("booking", JSON.stringify(booking));
+                } catch (e) {}
             });
         }
 
@@ -3048,13 +3087,29 @@ async function loadfunction() {
             recInput.addEventListener("change", function () {
                 const curRec = new Date(this.value);
                 if (isNaN(curRec.getTime())) return;
+                booking.receivedOn = this.value;
 
                 if (repInput) {
                     const curRep = new Date(repInput.value);
                     if (isNaN(curRep.getTime()) || curRep.getTime() < curRec.getTime()) {
                         repInput.value = toLocalISOString(new Date(curRec.getTime() + 30 * 60 * 1000));
+                        booking.reportedOn = repInput.value;
                     }
                 }
+                try {
+                    localStorage.setItem("booking", JSON.stringify(booking));
+                } catch (e) {}
+            });
+        }
+
+        if (repInput) {
+            repInput.addEventListener("change", function () {
+                const curRep = new Date(this.value);
+                if (isNaN(curRep.getTime())) return;
+                booking.reportedOn = this.value;
+                try {
+                    localStorage.setItem("booking", JSON.stringify(booking));
+                } catch (e) {}
             });
         }
 
@@ -3285,7 +3340,9 @@ async function loadfunction() {
 
     // Fixed extractTableData function - All rows ka pagebreak track
     function extractTableData() {
-        const tables = document.querySelectorAll("#tables-container .section table");
+        // Select ONLY top-level clinical tables, excluding any nested tables inside CKEditor / interpretations / figures
+        const tables = Array.from(document.querySelectorAll("#tables-container .section table.table"))
+            .filter(tbl => !tbl.closest(".interpretations, .pannelInterpretation, .editorContainer, td, figure"));
         const allTableData = [];
         const reportMeta = {
             hasMeaningfulRows: false,
@@ -3306,7 +3363,7 @@ async function loadfunction() {
                     : null)
                 : null;
 
-            const rows = table.querySelectorAll("tbody tr:not(.exclude)");
+            const rows = table.querySelectorAll(":scope > tbody > tr:not(.exclude)");
             const tableData = [];
             let tableNotes = null;
             let tableRemarks = null;
@@ -3441,9 +3498,9 @@ async function loadfunction() {
             });
 
             // Check for Interpretation row
-            const interpretationRow = Array.from(table.querySelectorAll("tr")).find(row =>
+            const interpretationRow = Array.from(table.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > tfoot > tr")).find(row =>
                 row.querySelector(".interpretation-row") || row.classList.contains("interpretation-row") || row.querySelector(".interpretations")
-            );
+            ) || section?.querySelector(".interpretation-row, .interpretations")?.closest("tr");
 
             if (interpretationRow) {
                 const interpCell = interpretationRow.querySelector(".interpretations") || interpretationRow.querySelector(".interpretation-row") || interpretationRow;
@@ -3520,19 +3577,36 @@ async function loadfunction() {
 
             if (tableHasMeaningfulRows || tableNotes || tableRemarks || tableAdvice || tableInterpretation) {
                 const sampleDetails = buildSampleDetailsForTable(tableData);
-                allTableData.push({
-                    category,
-                    title,
-                    type: isPanel ? "panel" : "test",
-                    panelId: panelId || null,
-                    panelName: panelName || null,
-                    tests: tableData,
-                    notes: tableNotes,
-                    remarks: tableRemarks,
-                    advice: tableAdvice,
-                    interpretation: tableInterpretation,
-                    sampleDetails,
-                });
+                const existingEntry = allTableData.find(entry => 
+                    entry.category === category && 
+                    (entry.title === title || (panelId && entry.panelId === panelId))
+                );
+
+                if (existingEntry) {
+                    if (Array.isArray(tableData) && tableData.length > 0) {
+                        existingEntry.tests = (existingEntry.tests || []).concat(tableData);
+                    }
+                    if (!existingEntry.interpretation && tableInterpretation) {
+                        existingEntry.interpretation = tableInterpretation;
+                    }
+                    if (!existingEntry.notes && tableNotes) existingEntry.notes = tableNotes;
+                    if (!existingEntry.remarks && tableRemarks) existingEntry.remarks = tableRemarks;
+                    if (!existingEntry.advice && tableAdvice) existingEntry.advice = tableAdvice;
+                } else {
+                    allTableData.push({
+                        category,
+                        title,
+                        type: isPanel ? "panel" : "test",
+                        panelId: panelId || null,
+                        panelName: panelName || null,
+                        tests: tableData,
+                        notes: tableNotes,
+                        remarks: tableRemarks,
+                        advice: tableAdvice,
+                        interpretation: tableInterpretation,
+                        sampleDetails,
+                    });
+                }
             }
         });
 
@@ -3657,9 +3731,19 @@ async function loadfunction() {
         const formattedHrs = String(hrs % 12 || 12).padStart(2, '0');
         bookingPayload.time = `${formattedHrs}:${mns} ${ampm}`;
         bookingPayload.registeredOn = registeredOn;
+        bookingPayload.collectedOn = collectedOn;
+        bookingPayload.receivedOn = receivedOn;
+        bookingPayload.reportedOn = reportedOn;
+
         booking.date = bookingPayload.date;
         booking.time = bookingPayload.time;
         booking.registeredOn = registeredOn;
+        booking.collectedOn = collectedOn;
+        booking.receivedOn = receivedOn;
+        booking.reportedOn = reportedOn;
+        try {
+            localStorage.setItem("booking", JSON.stringify(booking));
+        } catch (e) {}
 
         const categorized = Boolean(document.getElementById('check1')?.checked);
         const moredetails = document.getElementById('moredetails')?.value || "";
@@ -3731,7 +3815,7 @@ async function loadfunction() {
 
     // for checking empty fields
     async function checkFields(savebtn) {
-        const AllFields = document.querySelectorAll("#tables-container .section table tbody tr:not(.exclude)");
+        const AllFields = document.querySelectorAll("#tables-container .section table.table > tbody > tr:not(.exclude)");
         const AllFieldsArray = [];
 
         for (let field of AllFields) {

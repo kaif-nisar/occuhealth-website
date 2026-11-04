@@ -4415,20 +4415,24 @@ const getBookingcontroller = async (req, res) => {
     booking.canEditTests = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
     booking.canEditBarcodes = isModifiable && (isAdminActor(req.user) || canEditBookingCompletely(req.user, booking));
 
-    if (typeof booking.categorizedPDF !== "boolean") {
-        try {
-            const linkedReport = await reports.findOne(
-                { bookingId: booking.bookingId, ...(tid ? { tenantId: tid } : {}) },
-                { categorizedPDF: 1 }
-            ).lean();
-            if (linkedReport && typeof linkedReport.categorizedPDF === "boolean") {
-                booking.categorizedPDF = linkedReport.categorizedPDF;
-            } else {
-                booking.categorizedPDF = true;
+    try {
+        const linkedReport = await reports.findOne(
+            { bookingId: booking.bookingId, ...(tid ? { tenantId: tid } : {}) },
+            { categorizedPDF: 1, registeredOn: 1, collectedOn: 1, receivedOn: 1, reportedOn: 1 }
+        ).lean();
+        if (linkedReport) {
+            if (typeof booking.categorizedPDF !== "boolean") {
+                booking.categorizedPDF = typeof linkedReport.categorizedPDF === "boolean" ? linkedReport.categorizedPDF : true;
             }
-        } catch (e) {
+            if (!booking.registeredOn && linkedReport.registeredOn) booking.registeredOn = linkedReport.registeredOn;
+            if (!booking.collectedOn && linkedReport.collectedOn) booking.collectedOn = linkedReport.collectedOn;
+            if (!booking.receivedOn && linkedReport.receivedOn) booking.receivedOn = linkedReport.receivedOn;
+            if (!booking.reportedOn && linkedReport.reportedOn) booking.reportedOn = linkedReport.reportedOn;
+        } else if (typeof booking.categorizedPDF !== "boolean") {
             booking.categorizedPDF = true;
         }
+    } catch (e) {
+        if (typeof booking.categorizedPDF !== "boolean") booking.categorizedPDF = true;
     }
 
     return res.status(200).json(booking);
