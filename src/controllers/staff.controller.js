@@ -20,7 +20,12 @@ const createStaff = asyncHandler(async (req, res) => {
         city,
         state,
         pinCode,
-        permissions
+        permissions,
+        staffType,
+        salesDesignation,
+        assignedFranchisees,
+        assignedStaff,
+        monthlySalesTarget
     } = req.body;
     console.log(req.body);
     // Validation
@@ -54,8 +59,23 @@ const createStaff = asyncHandler(async (req, res) => {
         parentUser: req.user._id,
         tenantId: req.user.tenantId?._id, // safe optional chaining
         pdfFormat: req.user.pdfFormat || "reportFormat",
-        permissions: permissions || {}
+        permissions: (staffType === 'sales' || salesDesignation)
+            ? Object.assign({ canManageBookings: true, canViewBookings: true, canViewReports: true, canManagePayments: false, canManageUsers: false }, permissions || {})
+            : (permissions || {}),
+        staffType: (staffType === 'sales' || salesDesignation) ? 'sales' : (staffType || 'staff'),
+        salesDesignation: salesDesignation || null,
+        assignedFranchisees: Array.isArray(assignedFranchisees) ? assignedFranchisees : [],
+        assignedStaff: Array.isArray(assignedStaff) ? assignedStaff : [],
+        monthlySalesTarget: Number(monthlySalesTarget || 0)
     });
+
+    // If downline staff were assigned (e.g. ASM assigned THs), link them to this manager
+    if (Array.isArray(assignedStaff) && assignedStaff.length > 0) {
+        await User.updateMany(
+            { _id: { $in: assignedStaff } },
+            { parentSalesUser: staff._id }
+        );
+    }
 
     // Don't send password in response
     const createdStaff = await User.findById(staff._id).select(
@@ -779,6 +799,19 @@ const updateStaffTenant = asyncHandler(async (req, res) => {
     if (email) updateFields.email = email;
     if (username) updateFields.username = username;
     if (isActive !== undefined) updateFields.isActive = isActive;
+
+    if (req.body.staffType) updateFields.staffType = req.body.staffType;
+    if (req.body.salesDesignation !== undefined) updateFields.salesDesignation = req.body.salesDesignation;
+    if (req.body.assignedFranchisees !== undefined) updateFields.assignedFranchisees = Array.isArray(req.body.assignedFranchisees) ? req.body.assignedFranchisees : [];
+    if (req.body.monthlySalesTarget !== undefined) updateFields.monthlySalesTarget = Number(req.body.monthlySalesTarget || 0);
+
+    if (req.body.assignedStaff !== undefined) {
+        updateFields.assignedStaff = Array.isArray(req.body.assignedStaff) ? req.body.assignedStaff : [];
+        await User.updateMany({ parentSalesUser: staffId }, { $unset: { parentSalesUser: 1 } });
+        if (Array.isArray(req.body.assignedStaff) && req.body.assignedStaff.length > 0) {
+            await User.updateMany({ _id: { $in: req.body.assignedStaff } }, { parentSalesUser: staffId });
+        }
+    }
 
     if (permissions) {
         if (typeof permissions === "string") permissions = JSON.parse(permissions);

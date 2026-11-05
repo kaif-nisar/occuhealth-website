@@ -59,6 +59,36 @@ const staffSchema = new Schema({
         canManageUsers: { type: Boolean, default: false },
         // Add more permissions as needed
     },
+    staffType: {
+        type: String,
+        enum: ["staff", "admin", "sales", "reception", "lab", "phlebo", "other"],
+        default: "staff"
+    },
+    salesDesignation: {
+        type: String,
+        enum: ["ZSM", "RSM", "ASM", "TH", null],
+        default: null
+    },
+    assignedFranchisees: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ],
+    assignedStaff: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ],
+    parentSalesUser: {
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    },
+    monthlySalesTarget: {
+        type: Number,
+        default: 0
+    },
     phoneNo: {
         type: String,
         required: true

@@ -2299,7 +2299,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
  * If the portal wallet balance is negative (< 0), report downloads are restricted
  * until the wallet is recharged. Admin & superAdmin portals are exempt.
  */
-async function checkReportDownloadEligibility(reqUser) {
+async function checkReportDownloadEligibility(reqUser, bookingId = null) {
     if (!reqUser) {
         return { allowed: false, statusCode: 401, message: 'Authentication required.' };
     }
@@ -2307,6 +2307,33 @@ async function checkReportDownloadEligibility(reqUser) {
     // Admins / SuperAdmins are exempt (lab owners do not operate on prepaid limits)
     if (isAdminActor(reqUser)) {
         return { allowed: true };
+    }
+
+    // If a specific bookingId is provided, check the booking's franchisee wallet
+    if (bookingId) {
+        try {
+            const booking = await newBooking.findById(bookingId).select('subFranchiseeId createdBy').lean();
+            if (booking) {
+                const franchiseeRef = booking.subFranchiseeId || booking.createdBy;
+                if (franchiseeRef) {
+                    const franchiseeUser = await User.findById(franchiseeRef).select('bookingWallet fullName role').lean();
+                    if (franchiseeUser && !isAdminActor(franchiseeUser)) {
+                        const franchiseeBal = Number(franchiseeUser.bookingWallet || 0);
+                        if (franchiseeBal < 0) {
+                            const negativeAmount = Math.abs(franchiseeBal).toFixed(2);
+                            return {
+                                allowed: false,
+                                statusCode: 403,
+                                walletBalance: franchiseeBal,
+                                message: `Report download restricted. Franchisee (${franchiseeUser.fullName || 'Franchise'}) account balance is negative (-₹${negativeAmount}). Reports can only be downloaded when account balance is positive. Please recharge the franchisee account first.`
+                            };
+                        }
+                    }
+                }
+            }
+        } catch (bLookupErr) {
+            console.warn('Booking franchisee wallet check error in pdfgenerator:', bLookupErr.message);
+        }
     }
 
     const effectiveUserId = (reqUser.role === 'staff' && reqUser.parentUser)
@@ -2347,9 +2374,10 @@ async function checkReportDownloadEligibility(reqUser) {
 const getpdfcontroller = async (req, res) => {
     // ------------------------------------------------------------------
     // Strict restriction: Prevent report generation/download if the
-    // portal's wallet balance is negative (< 0).
+    // portal's or franchisee's wallet balance is negative (< 0).
     // ------------------------------------------------------------------
-    const eligibility = await checkReportDownloadEligibility(req.user);
+    const targetBookingId = req.body?.bookingId || req.query?.bookingId || req.params?.bookingId;
+    const eligibility = await checkReportDownloadEligibility(req.user, targetBookingId);
     if (!eligibility.allowed) {
         return res.status(eligibility.statusCode || 403).json({
             success: false,

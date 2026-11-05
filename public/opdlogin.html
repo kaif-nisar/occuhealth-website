@@ -1073,6 +1073,12 @@
                         return;
                     }
 
+                    // Check if user is a Sales team member (ZSM, RSM, ASM, TH)
+                    if (data.userData.staffType === 'sales' || data.userData.salesDesignation || data.userData.myrole === 'sales') {
+                        window.location.href = `${BASE_URL}/sales/sales.html`;
+                        return;
+                    }
+
                     if (data.userData.myrole === 'staff') {
                         data.userData.myrole = data.userData.role;
                     }

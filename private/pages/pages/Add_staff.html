@@ -3,409 +3,1035 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Staff</title>
+    <title>Provision Staff &amp; Sales Team</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .container998 {
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        /* ==========================================================================
+           ENTERPRISE STAFF & SALES PROVISIONING STUDIO
+           Viewport-Optimized, High-Density SaaS Interface (Stripe / Linear / Retool style)
+           ========================================================================== */
+
+        :root {
+            --st-bg: #f8fafc;
+            --st-card-bg: #ffffff;
+            --st-border: #e2e8f0;
+            --st-border-focus: #2563eb;
+            --st-text-main: #0f172a;
+            --st-text-muted: #64748b;
+            --st-text-sub: #475569;
+            --st-primary: #2563eb;
+            --st-primary-hover: #1d4ed8;
+            --st-primary-soft: #eff6ff;
+            --st-emerald: #059669;
+            --st-emerald-soft: #ecfdf5;
+            --st-amber: #d97706;
+            --st-amber-soft: #fffbeb;
+            --st-purple: #7c3aed;
+            --st-purple-soft: #f5f3ff;
+            --st-rose: #e11d48;
+            --st-rose-soft: #fff1f2;
+            --st-radius: 12px;
+            --st-radius-sm: 8px;
+            --st-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            --st-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.06);
         }
 
-        .breadcrumb {
-            font-size: 14px;
-            color: #6c757d;
-            margin-bottom: 10px;
+        .st-app-container {
+            width: 100%;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box;
+            color: var(--st-text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Top Header Strip (Clean, Professional, Non-intrusive) */
+        .st-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            background: var(--st-card-bg);
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius);
+            box-shadow: var(--st-shadow);
+            margin-bottom: 12px;
             flex-wrap: wrap;
+            gap: 12px;
         }
 
-        .breadcrumb a {
-            color: #333333;
-            text-decoration: none;
-            transition: color 0.3s ease;
+        .st-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .breadcrumb a:hover {
-            color: #555555;
+        .st-header-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--st-radius-sm);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
         }
 
-        h1 {
-            font-size: 32px;
-            margin-bottom: 30px;
-            color: #333333;
+        .st-header-title {
+            font-size: 17px;
             font-weight: 700;
-            border-bottom: 3px solid #333333;
-            padding-bottom: 15px;
+            color: var(--st-text-main);
+            margin: 0;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .form-container998 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px;
+        .st-header-subtitle {
+            font-size: 12px;
+            color: var(--st-text-muted);
+            margin: 2px 0 0 0;
         }
 
-        .card {
-            background: linear-gradient(145deg, #ffffff, #f8f9fa);
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .card h2 {
-            font-size: 20px;
-            margin-bottom: 25px;
-            color: #333333;
-            font-weight: 600;
+        .st-header-actions {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .card h2::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: #333333;
-            border-radius: 2px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333333;
-            font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            background-color: #fff;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #333333;
-            box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
-        }
-
-        .input-icon {
-            position: relative;
-        }
-
-        .input-icon i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            font-size: 14px;
-        }
-
-        .input-icon input {
-            padding-left: 45px;
-        }
-
-        h6.mt-4 {
-            margin-top: 25px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            color: #333333;
+        .st-btn {
+            padding: 8px 16px;
+            border-radius: var(--st-radius-sm);
+            font-size: 13px;
             font-weight: 600;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .col-md-6 {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .form-group input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            margin-right: 10px;
             cursor: pointer;
-            width: 18px;
-            height: 18px;
-            accent-color: #333333;
-        }
-
-        .form-group label.form-group-label {
-            display: inline;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: 0;
-        }
-
-        .form-group.checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 6px;
-            transition: background-color 0.2s ease;
-        }
-
-        .form-group.checkbox-group:hover {
-            background-color: #f8f9fa;
-        }
-
-        .submit-btn {
-            background: #333333;
-            color: #ffffff;
-            padding: 14px 30px;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            width: 100%;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(51, 51, 51, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            outline: none;
         }
 
-        .submit-btn:hover {
-            background: #555555;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(51, 51, 51, 0.4);
+        .st-btn-ghost {
+            background: transparent;
+            color: var(--st-text-sub);
+            border: 1px solid var(--st-border);
         }
 
-        .submit-btn:active {
+        .st-btn-ghost:hover {
+            background: #f1f5f9;
+            color: var(--st-text-main);
+        }
+
+        .st-btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+        }
+
+        .st-btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .st-btn-primary:active {
             transform: translateY(0);
         }
 
-        /* Responsive Design */
+        /* 2-Column Split Viewport Layout (Single-Screen Fit) */
+        .st-workspace {
+            display: grid;
+            grid-template-columns: 460px 1fr;
+            gap: 14px;
+            height: calc(100vh - 165px);
+            min-height: 580px;
+            max-height: 860px;
+            box-sizing: border-box;
+        }
+
         @media (max-width: 1200px) {
-            .container998 {
-                padding: 30px;
-            }
-
-            h1 {
-                font-size: 28px;
-            }
-
-            .form-container998 {
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            .st-workspace {
+                grid-template-columns: 420px 1fr;
             }
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .container998 {
-                padding: 20px;
-                border-radius: 12px;
-            }
-
-            h1 {
-                font-size: 24px;
-                margin-bottom: 20px;
-            }
-
-            .form-container998 {
+        @media (max-width: 992px) {
+            .st-workspace {
                 grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .card {
-                padding: 20px;
-            }
-
-            .card h2 {
-                font-size: 18px;
-            }
-
-            .row {
-                grid-template-columns: 1fr;
+                height: auto;
+                max-height: none;
             }
         }
 
-        @media (max-width: 480px) {
-            .container998 {
-                padding: 15px;
-            }
-
-            h1 {
-                font-size: 20px;
-            }
-
-            .card {
-                padding: 15px;
-            }
-
-            .form-group input,
-            .form-group select {
-                padding: 10px 12px;
-                font-size: 13px;
-            }
-
-            .submit-btn {
-                padding: 12px 20px;
-                font-size: 14px;
-            }
+        /* Left Panel: Primary Staff & Account Credentials */
+        .st-panel-left {
+            background: var(--st-card-bg);
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius);
+            box-shadow: var(--st-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
         }
 
-        /* Animation */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .st-panel-header {
+            padding: 12px 18px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--st-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .card {
-            animation: fadeIn 0.5s ease forwards;
+        .st-panel-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--st-text-main);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
-        .card:nth-child(1) {
-            animation-delay: 0.1s;
+        .st-panel-body {
+            padding: 16px 18px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .card:nth-child(2) {
-            animation-delay: 0.2s;
+        .st-panel-body::-webkit-scrollbar {
+            width: 5px;
+        }
+        .st-panel-body::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
 
-        .card:nth-child(3) {
-            animation-delay: 0.3s;
+        /* Form Fields */
+        .st-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--st-text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .st-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .st-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .st-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--st-text-sub);
+        }
+
+        .st-field label .req {
+            color: var(--st-rose);
+        }
+
+        .st-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .st-input-wrap i.prefix-icon {
+            position: absolute;
+            left: 10px;
+            font-size: 12px;
+            color: var(--st-text-muted);
+            pointer-events: none;
+        }
+
+        .st-input {
+            width: 100%;
+            height: 36px;
+            padding: 6px 10px;
+            border: 1.5px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            font-size: 13px;
+            color: var(--st-text-main);
+            background: #ffffff;
+            outline: none;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .st-input.with-icon {
+            padding-left: 30px;
+        }
+
+        .st-input:focus {
+            border-color: var(--st-border-focus);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .st-pw-toggle {
+            position: absolute;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: var(--st-text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px;
+        }
+
+        .st-pw-toggle:hover {
+            color: var(--st-text-main);
+        }
+
+        /* Segmented Role Selector Pills */
+        .st-role-pills {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.3fr;
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: var(--st-radius-sm);
+            border: 1px solid var(--st-border);
+            gap: 3px;
+        }
+
+        .st-role-pill {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--st-text-sub);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .st-role-pill:hover {
+            color: var(--st-text-main);
+        }
+
+        .st-role-pill.active {
+            background: #ffffff;
+            color: var(--st-primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .st-role-pill.active.sales-pill {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+        }
+
+        /* Sales Designation Cards (Segmented Grid) */
+        .st-desig-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            background: #f8fafc;
+            padding: 4px;
+            border-radius: var(--st-radius-sm);
+            border: 1px solid var(--st-border);
+        }
+
+        .st-desig-card {
+            border: 1.5px solid var(--st-border);
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .st-desig-card:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+
+        .st-desig-card.active {
+            border-color: var(--st-primary);
+            background: var(--st-primary-soft);
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+        }
+
+        .st-desig-tag {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--st-text-main);
+            display: block;
+        }
+
+        .st-desig-card.active .st-desig-tag {
+            color: var(--st-primary);
+        }
+
+        .st-desig-desc {
+            font-size: 10px;
+            color: var(--st-text-muted);
+            line-height: 1.1;
+            margin-top: 2px;
+            display: block;
+        }
+
+        /* Permissions Matrix (Compact Chips) */
+        .st-perm-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .st-perm-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--st-text-sub);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .st-perm-chip:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .st-perm-chip input[type="checkbox"] {
+            accent-color: var(--st-primary);
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        /* Right Panel: Contextual Workspace / Territory Lab Assignment */
+        .st-panel-right {
+            background: var(--st-card-bg);
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius);
+            box-shadow: var(--st-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .st-panel-right-header {
+            padding: 12px 18px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--st-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .st-badge-pill {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .st-badge-blue {
+            background: var(--st-primary-soft);
+            color: var(--st-primary);
+            border: 1px solid #bfdbfe;
+        }
+
+        .st-badge-green {
+            background: var(--st-emerald-soft);
+            color: var(--st-emerald);
+            border: 1px solid #a7f3d0;
+        }
+
+        /* Search & Filter Toolbar inside Right Panel */
+        .st-filter-toolbar {
+            padding: 10px 18px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--st-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .st-search-box {
+            position: relative;
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .st-search-box i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--st-text-muted);
+            font-size: 12px;
+        }
+
+        .st-search-input {
+            width: 100%;
+            height: 32px;
+            padding: 4px 10px 4px 30px;
+            border: 1.5px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            font-size: 12px;
+            color: var(--st-text-main);
+            background: #ffffff;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .st-search-input:focus {
+            border-color: var(--st-border-focus);
+        }
+
+        .st-action-pills {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .st-mini-btn {
+            padding: 5px 10px;
+            background: #ffffff;
+            border: 1px solid var(--st-border);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--st-text-sub);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .st-mini-btn:hover {
+            background: #f1f5f9;
+            color: var(--st-text-main);
+        }
+
+        /* Downline Cards Grid Container (High Density, Scrollable inside viewport) */
+        .st-cards-scroll-wrap {
+            padding: 14px 18px;
+            overflow-y: auto;
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            align-content: start;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+
+        .st-cards-scroll-wrap::-webkit-scrollbar {
+            width: 6px;
+        }
+        .st-cards-scroll-wrap::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Downline Card */
+        .st-downline-card {
+            background: #ffffff;
+            border: 1.5px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            padding: 10px 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        .st-downline-card:hover {
+            border-color: #93c5fd;
+            background: #fafcff;
+            transform: translateY(-1px);
+        }
+
+        .st-downline-card.selected {
+            background: var(--st-primary-soft);
+            border-color: var(--st-primary);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+        }
+
+        .st-downline-card input[type="checkbox"] {
+            accent-color: var(--st-primary);
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .st-dc-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .st-dc-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .st-dc-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--st-text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .st-dc-bal {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .st-bal-pos {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .st-bal-neg {
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #fecdd3;
+        }
+
+        .st-dc-sub {
+            font-size: 11px;
+            color: var(--st-text-muted);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .st-dc-city {
+            background: #f1f5f9;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: #475569;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .st-dc-assigned {
+            font-size: 10px;
+            color: #d97706;
+            margin-top: 3px;
+            display: block;
+            font-weight: 600;
+        }
+
+        /* Non-Sales Mode: Role Governance / Compliance Guide */
+        .st-gov-placeholder {
+            padding: 30px;
+            text-align: center;
+            color: var(--st-text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .st-gov-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #eff6ff;
+            color: var(--st-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+
+        .st-gov-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--st-text-main);
+            margin-bottom: 6px;
+        }
+
+        .st-gov-desc {
+            font-size: 13px;
+            max-width: 440px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .st-gov-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            max-width: 480px;
+            text-align: left;
+        }
+
+        .st-gov-card {
+            background: #f8fafc;
+            border: 1px solid var(--st-border);
+            border-radius: var(--st-radius-sm);
+            padding: 12px;
+            font-size: 12px;
+        }
+
+        .st-gov-card strong {
+            display: block;
+            color: var(--st-text-main);
+            margin-bottom: 2px;
+        }
+
+        /* Hidden standard select element for 100% script compatibility */
+        .st-hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <div class="container998">
-        <div class="breadcrumb">
-            <a href="#">Dashboard</a> &gt; <a href="#">Manage Staff</a>
-        </div>
-        <h1>Manage Staff</h1>
-        
-        <div class="form-container998">
-            <!-- Personal Details Card -->
-            <div class="card">
-                <h2>Personal Details</h2>
-                <form>
-                    <div class="form-group">
-                        <label for="firstname">Firstname</label>
-                        <input type="text" id="firstname" name="firstname" placeholder="Enter Firstname">
-                    </div>
-                    <div class="form-group">
-                        <label for="lastname">Lastname</label>
-                        <input type="text" id="lastname" name="lastname" placeholder="Enter Lastname">
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email ID</label>
-                        <input type="email" id="email" name="email" placeholder="Enter Email ID">
-                    </div>
-                    <div class="form-group">
-                        <label for="phone">Phone No</label>
-                        <input type="text" id="phone" name="phone" placeholder="Enter Phone No">
-                    </div>
-                </form>
+    <div class="st-app-container">
+        <!-- Top Workspace Bar (Single line, sleek) -->
+        <header class="st-header">
+            <div class="st-header-left">
+                <div class="st-header-icon">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <div>
+                    <h1 class="st-header-title">
+                        Provision Staff &amp; Sales Force
+                        <span id="roleTypeHeaderBadge" class="st-badge-pill st-badge-blue">General Staff</span>
+                    </h1>
+                    <p class="st-header-subtitle">
+                        Create credentials, configure system permissions, or deploy field sales hierarchy (ZSM, RSM, ASM, TH).
+                    </p>
+                </div>
             </div>
+            <div class="st-header-actions">
+                <button type="button" class="st-btn st-btn-ghost" onclick="if(typeof loadPage==='function'){loadPage('List_staff');}">
+                    <i class="fa-solid fa-users"></i> Staff Directory
+                </button>
+                <button type="reset" form="mainStaffForm" class="st-btn st-btn-ghost" id="btnResetForm">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button type="submit" id="submit" class="st-btn st-btn-primary">
+                    <i class="fa-solid fa-circle-check"></i> Provision Staff Member
+                </button>
+            </div>
+        </header>
 
-            <!-- Login Details Card -->
-            <div class="card">
-                <h2>Login Details</h2>
-                <form>
-                    <div class="form-group">
-                        <label for="username">Enter Username *</label>
-                        <input type="text" id="username" name="username" placeholder="Enter Username">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Enter Password *</label>
-                        <div class="input-icon">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="password" name="password" placeholder="Enter Password">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="stafftype">Staff Type</label>
-                        <select id="stafftype" name="stafftype">
-                            <option>Staff</option>
-                            <option>Admin</option>
-                        </select>
-                    </div>
-                    <h6 class="mt-4">Permissions</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="canManageBookings" class="form-group-input" ng-model="newStaff.permissions.canManageBookings">
-                                <label for="canManageBookings" class="form-group-label">Manage Bookings</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="canManageCustomers" class="form-group-input" ng-model="newStaff.permissions.canManageCustomers">
-                                <label for="canManageCustomers" class="form-group-label">Manage Users</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="canManageReports" class="form-group-input" ng-model="newStaff.permissions.canManageReports">
-                                <label for="canManageReports" class="form-group-label">Manage Reports</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="canManagePayments" class="form-group-input" ng-model="newStaff.permissions.canManagePayments">
-                                <label for="canManagePayments" class="form-group-label">Manage Payments</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="canManageTest" class="form-group-input" ng-model="newStaff.permissions.canManageTest">
-                                <label for="canManageTest" class="form-group-label">Manage Test</label>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <!-- Main Form Wrapper -->
+        <form id="mainStaffForm" onsubmit="return false;">
+            <!-- Hidden Select elements to preserve 100% API & script compatibility -->
+            <select id="stafftype" class="st-hidden" name="stafftype">
+                <option value="Staff" selected>Staff</option>
+                <option value="Admin">Admin</option>
+                <option value="Sales">Sales</option>
+            </select>
+            <select id="salesDesignation" class="st-hidden" name="salesDesignation">
+                <option value="TH" selected>TH</option>
+                <option value="ASM">ASM</option>
+                <option value="RSM">RSM</option>
+                <option value="ZSM">ZSM</option>
+            </select>
+            <input type="date" id="submission-date" class="st-hidden" value="">
 
-            <!-- Submission Card -->
-            <div class="card">
-                <h2>Submission</h2>
-                <form>
-                    <div class="form-group">
-                        <label for="submission-date">Date</label>
-                        <div class="input-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                            <input type="date" id="submission-date" name="submission-date" value="">
+            <!-- 2-Column Split Viewport Workspace -->
+            <div class="st-workspace">
+                <!-- ========================================================= -->
+                <!-- LEFT PANEL: Identity, Security & Role Config -->
+                <!-- ========================================================= -->
+                <div class="st-panel-left">
+                    <div class="st-panel-header">
+                        <span class="st-panel-title">
+                            <i class="fa-solid fa-id-badge" style="color: #2563eb;"></i> Account Setup &amp; Access
+                        </span>
+                        <span style="font-size: 11px; font-weight: 600; color: #64748b;">Step 1 of 2</span>
+                    </div>
+
+                    <div class="st-panel-body">
+                        <!-- 1. Role Type Segmented Selector -->
+                        <div class="st-field">
+                            <label>Role Assignment <span class="req">*</span></label>
+                            <div class="st-role-pills" role="radiogroup">
+                                <button type="button" class="st-role-pill active" data-type="Staff">
+                                    <i class="fa-solid fa-user"></i> Staff
+                                </button>
+                                <button type="button" class="st-role-pill" data-type="Admin">
+                                    <i class="fa-solid fa-user-shield"></i> Admin
+                                </button>
+                                <button type="button" class="st-role-pill sales-pill" data-type="Sales">
+                                    <i class="fa-solid fa-sitemap"></i> Sales Team
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 2. Personal & Contact Identity -->
+                        <div>
+                            <div class="st-section-title">
+                                <i class="fa-solid fa-user-pen"></i> Personal Identity
+                            </div>
+                            <div class="st-grid-2">
+                                <div class="st-field">
+                                    <label for="firstname">First Name <span class="req">*</span></label>
+                                    <div class="st-input-wrap">
+                                        <i class="fa-regular fa-user prefix-icon"></i>
+                                        <input type="text" id="firstname" name="firstname" class="st-input with-icon" placeholder="e.g. Rahul" required>
+                                    </div>
+                                </div>
+                                <div class="st-field">
+                                    <label for="lastname">Last Name <span class="req">*</span></label>
+                                    <input type="text" id="lastname" name="lastname" class="st-input" placeholder="e.g. Sharma" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Communication Channels -->
+                        <div class="st-grid-2">
+                            <div class="st-field">
+                                <label for="email">Work Email <span class="req">*</span></label>
+                                <div class="st-input-wrap">
+                                    <i class="fa-regular fa-envelope prefix-icon"></i>
+                                    <input type="email" id="email" name="email" class="st-input with-icon" placeholder="name@lab.com" required>
+                                </div>
+                            </div>
+                            <div class="st-field">
+                                <label for="phone">Phone Number <span class="req">*</span></label>
+                                <div class="st-input-wrap">
+                                    <i class="fa-solid fa-phone prefix-icon"></i>
+                                    <input type="tel" id="phone" name="phone" class="st-input with-icon" placeholder="9876543210" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Portal Credentials -->
+                        <div>
+                            <div class="st-section-title">
+                                <i class="fa-solid fa-key"></i> Portal Authentication
+                            </div>
+                            <div class="st-grid-2">
+                                <div class="st-field">
+                                    <label for="username">Username <span class="req">*</span></label>
+                                    <div class="st-input-wrap">
+                                        <i class="fa-solid fa-at prefix-icon"></i>
+                                        <input type="text" id="username" name="username" class="st-input with-icon" placeholder="unique_login" required autocomplete="off">
+                                    </div>
+                                </div>
+                                <div class="st-field">
+                                    <label for="password">Password <span class="req">*</span></label>
+                                    <div class="st-input-wrap">
+                                        <i class="fa-solid fa-lock prefix-icon"></i>
+                                        <input type="password" id="password" name="password" class="st-input with-icon" placeholder="••••••••" required autocomplete="new-password">
+                                        <button type="button" class="st-pw-toggle" id="btnTogglePassword" title="Show/Hide Password">
+                                            <i class="fa-regular fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5A. Sales-Specific Config (Visible when Role is Sales) -->
+                        <div id="salesSettingsSection" style="display: none;">
+                            <div class="st-section-title" style="color: #2563eb;">
+                                <i class="fa-solid fa-sitemap"></i> Sales Hierarchy Level
+                            </div>
+                            <div class="st-desig-grid">
+                                <div class="st-desig-card active" data-desig="TH">
+                                    <span class="st-desig-tag">TH</span>
+                                    <span class="st-desig-desc">Team Head</span>
+                                </div>
+                                <div class="st-desig-card" data-desig="ASM">
+                                    <span class="st-desig-tag">ASM</span>
+                                    <span class="st-desig-desc">Area Head</span>
+                                </div>
+                                <div class="st-desig-card" data-desig="RSM">
+                                    <span class="st-desig-tag">RSM</span>
+                                    <span class="st-desig-desc">Regional</span>
+                                </div>
+                                <div class="st-desig-card" data-desig="ZSM">
+                                    <span class="st-desig-tag">ZSM</span>
+                                    <span class="st-desig-desc">Zonal Head</span>
+                                </div>
+                            </div>
+
+                            <div class="st-field" style="margin-top: 10px;">
+                                <label for="monthlySalesTarget">Monthly Sales Quota / Target (₹)</label>
+                                <div class="st-input-wrap">
+                                    <i class="fa-solid fa-indian-rupee-sign prefix-icon"></i>
+                                    <input type="number" id="monthlySalesTarget" name="monthlySalesTarget" class="st-input with-icon" value="200000" min="0" placeholder="200000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5B. Operational Permissions (Visible when Role is Staff or Admin) -->
+                        <div id="permissionsSection">
+                            <div class="st-section-title">
+                                <i class="fa-solid fa-shield-halved"></i> Operational Permissions
+                            </div>
+                            <div class="st-perm-list">
+                                <label class="st-perm-chip">
+                                    <input type="checkbox" id="canManageBookings" checked>
+                                    <span>Manage Bookings</span>
+                                </label>
+                                <label class="st-perm-chip">
+                                    <input type="checkbox" id="canManageReports" checked>
+                                    <span>Access Reports</span>
+                                </label>
+                                <label class="st-perm-chip">
+                                    <input type="checkbox" id="canManagePayments">
+                                    <span>Manage Ledger</span>
+                                </label>
+                                <label class="st-perm-chip">
+                                    <input type="checkbox" id="canManageTest">
+                                    <span>Catalog &amp; Tests</span>
+                                </label>
+                                <label class="st-perm-chip" style="grid-column: span 2;">
+                                    <input type="checkbox" id="canManageCustomers">
+                                    <span>Manage Users &amp; Franchisees</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
-                    <button type="submit" id="submit" class="submit-btn">Submit</button>
-                </form>
+                </div>
+
+                <!-- ========================================================= -->
+                <!-- RIGHT PANEL: Territory Assignment / Lab Chooser Studio -->
+                <!-- ========================================================= -->
+                <div class="st-panel-right">
+                    <!-- A. Active when Role is SALES: Downline Lab & Manager Tagging -->
+                    <div id="salesDownlinePanel" style="display: none; height: 100%; flex-direction: column;">
+                        <div class="st-panel-right-header">
+                            <div>
+                                <h3 id="downlineChooserTitle" style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-store" style="color: #2563eb;"></i> Tag Franchisees &amp; Sub-Franchisees (Labs)
+                                </h3>
+                                <p id="downlineChooserSubtitle" style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">
+                                    Choose the lab accounts this Team Head (TH) will manage, book samples for, and oversee.
+                                </p>
+                            </div>
+                            <span id="selectedCountBadge" class="st-badge-pill st-badge-blue">0 Labs Selected</span>
+                        </div>
+
+                        <!-- Search & Quick Action Toolbar -->
+                        <div class="st-filter-toolbar">
+                            <div class="st-search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="downlineSearchInput" class="st-search-input" placeholder="Search lab name, clinic, city, code...">
+                            </div>
+                            <div class="st-action-pills">
+                                <button type="button" id="btnSelectAllDownlines" class="st-mini-btn">
+                                    <i class="fa-solid fa-check-double"></i> Select All
+                                </button>
+                                <button type="button" id="btnClearDownlines" class="st-mini-btn">
+                                    <i class="fa-solid fa-xmark"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable Cards Grid Container -->
+                        <div id="downlineListContainer" class="st-cards-scroll-wrap">
+                            <div style="padding: 30px; text-align: center; color: #64748b; grid-column: 1 / -1;">
+                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 20px; color: #2563eb;"></i>
+                                <p style="margin-top: 8px; font-size: 13px;">Loading territory units...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- B. Active when Role is STAFF / ADMIN: Governance & Access Policy -->
+                    <div id="generalGovernancePanel" style="display: flex; height: 100%; flex-direction: column;">
+                        <div class="st-panel-right-header">
+                            <span class="st-panel-title">
+                                <i class="fa-solid fa-shield-check" style="color: #059669;"></i> Access Control &amp; Role Overview
+                            </span>
+                            <span class="st-badge-pill st-badge-green">Standard Provisioning</span>
+                        </div>
+                        <div class="st-gov-placeholder">
+                            <div class="st-gov-icon">
+                                <i class="fa-solid fa-user-lock"></i>
+                            </div>
+                            <div class="st-gov-title">Internal Lab Operator Profile</div>
+                            <div class="st-gov-desc">
+                                Staff accounts operate within your primary laboratory facility. Permissions granted on the left will immediately reflect upon their next login.
+                            </div>
+                            <div class="st-gov-grid">
+                                <div class="st-gov-card">
+                                    <strong><i class="fa-solid fa-bolt" style="color: #2563eb;"></i> Instant Activation</strong>
+                                    Staff logins are activated instantly with role-specific navigation guards.
+                                </div>
+                                <div class="st-gov-card">
+                                    <strong><i class="fa-solid fa-clock-rotate-left" style="color: #7c3aed;"></i> Audit Logging</strong>
+                                    Every sample registered and report printed is stamped with the staff operator ID.
+                                </div>
+                                <div class="st-gov-card">
+                                    <strong><i class="fa-solid fa-wallet" style="color: #059669;"></i> Ledger Safety</strong>
+                                    Payment rights are restricted by default to maintain ledger accuracy.
+                                </div>
+                                <div class="st-gov-card">
+                                    <strong><i class="fa-solid fa-sitemap" style="color: #d97706;"></i> Need Sales Network?</strong>
+                                    Switch the <em>Role Assignment</em> to <strong>Sales Team</strong> to configure field territories.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
+
+    <!-- Interactive Controller Script -->
+    <script src="./pages/pages/Add_staff.js"></script>
 </body>
 </html>

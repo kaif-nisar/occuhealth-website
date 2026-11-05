@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Executive Portal | Diagnostics CRM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./sales.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="sp-shell">
+        <!-- Top Executive Navbar -->
+        <header class="sp-navbar">
+            <div class="sp-brand">
+                <img src="/logoPng.png" alt="Lab Logo" class="sp-brand-logo" onerror="this.style.display='none'">
+                <div>
+                    <div class="sp-brand-title">OccuHealth Diagnostics</div>
+                    <div class="sp-brand-subtitle">
+                        <i class="fa-solid fa-shield-halved" style="color: #2563eb;"></i> Enterprise Sales &amp; Distribution Portal
+                    </div>
+                </div>
+            </div>
+            <div class="sp-user-menu">
+                <span id="spUserDesigBadge" class="sp-desig-pill sp-pill-th">TH</span>
+                <div class="sp-user-info">
+                    <div class="sp-user-name" id="spUserName">Loading User...</div>
+                    <div class="sp-user-role" id="spUserRoleText">Sales Executive</div>
+                </div>
+                <button type="button" class="sp-btn-logout" id="spLogoutBtn">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <!-- Tab Navigation Strip -->
+        <nav class="sp-tabs-nav">
+            <button type="button" class="sp-tab-btn active" data-tab="tab-dashboard">
+                <i class="fa-solid fa-chart-pie"></i> Sales Dashboard
+            </button>
+            <button type="button" class="sp-tab-btn" data-tab="tab-booking">
+                <i class="fa-solid fa-calendar-plus"></i> New Booking
+            </button>
+            <button type="button" class="sp-tab-btn" data-tab="tab-reports">
+                <i class="fa-solid fa-file-medical"></i> Patient Reports
+            </button>
+            <button type="button" class="sp-tab-btn" data-tab="tab-network">
+                <i class="fa-solid fa-sitemap"></i> My Team &amp; Network
+            </button>
+        </nav>
+
+        <!-- Main Body Area -->
+        <main class="sp-main">
+            <!-- ========================================================= -->
+            <!-- TAB 1: SALES DASHBOARD & BUSINESS ANALYTICS -->
+            <!-- ========================================================= -->
+            <section id="tab-dashboard" class="sp-tab-pane active">
+                <!-- Executive Banner -->
+                <div class="sp-banner">
+                    <div class="sp-banner-left">
+                        <div class="sp-banner-icon">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div>
+                            <h2 class="sp-banner-title" id="spBannerTitle">
+                                <i class="fa-solid fa-chart-line"></i> Sales Performance &amp; Revenue Portal
+                            </h2>
+                            <p class="sp-banner-sub" id="spBannerSub">
+                                Real-time revenue tracking, tube volume, monthly quotas vs actual booking sales, and daily performance metrics.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="sp-banner-stats">
+                        <div class="sp-stat-badge">
+                            <span class="sp-stat-val" id="statZsm">0</span>
+                            <span class="sp-stat-lbl">ZSM</span>
+                        </div>
+                        <div class="sp-stat-badge">
+                            <span class="sp-stat-val" id="statRsm">0</span>
+                            <span class="sp-stat-lbl">RSM</span>
+                        </div>
+                        <div class="sp-stat-badge">
+                            <span class="sp-stat-val" id="statAsm">0</span>
+                            <span class="sp-stat-lbl">ASM</span>
+                        </div>
+                        <div class="sp-stat-badge">
+                            <span class="sp-stat-val" id="statTh">0</span>
+                            <span class="sp-stat-lbl">TH</span>
+                        </div>
+                        <div class="sp-stat-badge" style="background: rgba(37,99,235,0.25); border-color: rgba(37,99,235,0.4);">
+                            <span class="sp-stat-val" id="statFranchisees" style="color: #60a5fa;">0</span>
+                            <span class="sp-stat-lbl" style="color: #93c5fd;">Labs Tagged</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Toolbar & Filters -->
+                <div class="sp-toolbar">
+                    <div class="sp-toolbar-row">
+                        <!-- Downline Scope Selector -->
+                        <div class="sp-filter-group">
+                            <label for="spScopeSelect" class="sp-filter-label">
+                                <i class="fa-solid fa-sitemap" style="color: #2563eb;"></i> Active Scope:
+                            </label>
+                            <select id="spScopeSelect" class="sp-select">
+                                <option value="all">⚡ All Managed Units (Aggregated)</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick Period Pills -->
+                        <div class="sp-filter-group">
+                            <label class="sp-filter-label">
+                                <i class="fa-regular fa-calendar"></i> Quick Period:
+                            </label>
+                            <div class="sp-pill-buttons" role="group">
+                                <button type="button" class="sp-pill-btn sp-period-btn" data-period="today">1 Day</button>
+                                <button type="button" class="sp-pill-btn sp-period-btn" data-period="week">1 Week</button>
+                                <button type="button" class="sp-pill-btn sp-period-btn active" data-period="month">1 Month</button>
+                            </div>
+                        </div>
+
+                        <!-- Target Month Picker -->
+                        <div class="sp-filter-group">
+                            <label for="spMonthPicker" class="sp-filter-label">
+                                <i class="fa-solid fa-calendar"></i> Target Month:
+                            </label>
+                            <input type="month" id="spMonthPicker" class="sp-input-date" />
+                        </div>
+
+                        <!-- Refresh Action -->
+                        <button type="button" class="sp-btn sp-btn-outline" id="spRefreshBtn">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5 Executive KPI Cards -->
+                <div class="sp-kpi-grid">
+                    <!-- 1. Target vs Achieved -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Monthly Quota / Target</span>
+                                <div class="sp-kpi-value" id="kpiTargetAmount">₹0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-target">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                        </div>
+                        <div class="sp-progress-wrap">
+                            <div class="sp-progress-meta">
+                                <span id="kpiTargetAchieved">Achieved: ₹0</span>
+                                <span id="kpiTargetPct">0%</span>
+                            </div>
+                            <div class="sp-progress-bar">
+                                <div class="sp-progress-fill" id="kpiTargetFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; display: flex; justify-content: space-between;">
+                            <span id="kpiTargetDeficit">Remaining: ₹0</span>
+                            <span style="color: #2563eb; font-weight: 600;">Monthly Target</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Total Sales / Revenue -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Total Sales / Revenue</span>
+                                <div class="sp-kpi-value" id="kpiTotalRevenue" style="color: #059669;">₹0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-revenue">
+                                <i class="fa-solid fa-indian-rupee-sign"></i>
+                            </div>
+                        </div>
+                        <div class="sp-avg-strip">
+                            <span><i class="fa-solid fa-chart-line"></i> Daily Avg Revenue:</span>
+                            <strong id="kpiAvgRevenuePerDay">₹0 / day</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 6px;" id="kpiAvgTicket">
+                            Avg / Sample: ₹0
+                        </div>
+                    </div>
+
+                    <!-- 3. Patient Samples -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Patient Samples</span>
+                                <div class="sp-kpi-value" id="kpiTotalSamples" style="color: #7c3aed;">0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-samples">
+                                <i class="fa-solid fa-id-card-clip"></i>
+                            </div>
+                        </div>
+                        <div class="sp-avg-strip">
+                            <span><i class="fa-solid fa-calculator"></i> Daily Avg Samples:</span>
+                            <strong id="kpiAvgSamplesPerDay">0 / day</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            Total Registered Bookings
+                        </div>
+                    </div>
+
+                    <!-- 4. Number of Tests -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Number of Tests</span>
+                                <div class="sp-kpi-value" id="kpiTotalTests" style="color: #c026d3;">0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-tests">
+                                <i class="fa-solid fa-microscope"></i>
+                            </div>
+                        </div>
+                        <div class="sp-avg-strip">
+                            <span><i class="fa-solid fa-flask-vial"></i> Daily Avg Tests:</span>
+                            <strong id="kpiAvgTestsPerDay">0 / day</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            Lab Investigations Performed
+                        </div>
+                    </div>
+
+                    <!-- 5. Total Tubes Booked -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Number of Tubes Booked</span>
+                                <div class="sp-kpi-value" id="kpiTotalTubes" style="color: #d97706;">0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-tubes">
+                                <i class="fa-solid fa-vials"></i>
+                            </div>
+                        </div>
+                        <div class="sp-avg-strip">
+                            <span><i class="fa-solid fa-barcode"></i> Daily Avg Tubes:</span>
+                            <strong id="kpiAvgTubesPerDay">0 / day</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            Barcoded Vials &amp; Vacutainers
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graphical Visualizations (Timeline & Tube Types) -->
+                <div class="sp-charts-grid">
+                    <div class="sp-chart-card">
+                        <div class="sp-chart-header">
+                            <h3 class="sp-chart-title">
+                                <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> Revenue &amp; Sample Timeline Trend
+                            </h3>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="spTimelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="sp-chart-card">
+                        <div class="sp-chart-header">
+                            <h3 class="sp-chart-title">
+                                <i class="fa-solid fa-vials" style="color: #d97706;"></i> Tube Types Breakdown (Vacutainers)
+                            </h3>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="spTubeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Downline Performance Breakdown Table -->
+                <div class="sp-table-card">
+                    <div class="sp-table-header">
+                        <h3 class="sp-table-title" id="spTableTitle">
+                            <i class="fa-solid fa-network-wired text-purple"></i> Downline Hierarchy Performance
+                        </h3>
+                    </div>
+                    <div class="sp-table-wrap">
+                        <table class="sp-table">
+                            <thead id="spTableThead">
+                                <!-- Dynamic Thead -->
+                            </thead>
+                            <tbody id="spTableTbody">
+                                <tr>
+                                    <td colspan="11" style="text-align: center; padding: 24px; color: #64748b;">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading hierarchy data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- TAB 2: NEW BOOKING (ON BEHALF OF TAGGED FRANCHISEES) -->
+            <!-- ========================================================= -->
+            <section id="tab-booking" class="sp-tab-pane">
+                <div class="sp-table-card" style="max-width: 900px; margin: 0 auto;">
+                    <div class="sp-table-header">
+                        <div>
+                            <h3 class="sp-table-title">
+                                <i class="fa-solid fa-calendar-plus" style="color: #2563eb;"></i> Book Patient Sample
+                            </h3>
+                            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                                Place a new test booking directly on behalf of any franchisee or sub-franchisee tagged to your account.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="spQuickBookingForm">
+                        <div class="sp-field" style="background: #eff6ff; padding: 16px; border-radius: 8px; border: 1.5px solid #bfdbfe;">
+                            <label for="spBookingFranchiseeSelect" style="color: #1e3a8a; font-weight: 700; font-size: 14px;">
+                                <i class="fa-solid fa-store"></i> Select Target Franchisee / Lab *
+                            </label>
+                            <select id="spBookingFranchiseeSelect" required style="border-color: #2563eb; font-weight: 600;">
+                                <option value="">-- Choose Tagged Franchisee --</option>
+                            </select>
+                            <small style="color: #3b82f6; display: block; margin-top: 4px;">
+                                <i class="fa-solid fa-circle-info"></i> The booking and commission will be attached to the chosen lab.
+                            </small>
+                        </div>
+
+                        <div class="sp-form-grid" style="margin-top: 20px;">
+                            <div class="sp-field">
+                                <label for="spPatientName">Patient Full Name *</label>
+                                <input type="text" id="spPatientName" placeholder="Enter patient name" required>
+                            </div>
+                            <div class="sp-field">
+                                <label for="spPatientPhone">Phone Number</label>
+                                <input type="tel" id="spPatientPhone" placeholder="Enter mobile number">
+                            </div>
+                            <div class="sp-field">
+                                <label for="spPatientAge">Age</label>
+                                <input type="number" id="spPatientAge" placeholder="Years" min="1" max="120">
+                            </div>
+                            <div class="sp-field">
+                                <label for="spPatientGender">Gender</label>
+                                <select id="spPatientGender">
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="sp-field">
+                                <label for="spDoctorName">Referring Doctor</label>
+                                <input type="text" id="spDoctorName" placeholder="Dr. Name / Self">
+                            </div>
+                            <div class="sp-field">
+                                <label for="spTestName">Investigation / Test Name</label>
+                                <input type="text" id="spTestName" placeholder="e.g. Complete Blood Count (CBC)">
+                            </div>
+                            <div class="sp-field">
+                                <label for="spBookingAmount">Total Amount (₹)</label>
+                                <input type="number" id="spBookingAmount" placeholder="e.g. 500" value="500" min="0">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                            <button type="reset" class="sp-btn sp-btn-outline">Reset</button>
+                            <button type="submit" class="sp-btn sp-btn-primary" id="spSubmitBookingBtn" style="padding: 12px 28px; font-size: 15px;">
+                                <i class="fa-solid fa-check"></i> Place Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- TAB 3: PATIENT REPORTS (WITH STRICT WALLET GATING) -->
+            <!-- ========================================================= -->
+            <section id="tab-reports" class="sp-tab-pane">
+                <div class="sp-table-card">
+                    <div class="sp-table-header">
+                        <div>
+                            <h3 class="sp-table-title">
+                                <i class="fa-solid fa-file-medical" style="color: #2563eb;"></i> Patient Lab Reports
+                            </h3>
+                            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                                Access and download lab reports for your tagged franchisees. 
+                                <strong style="color: #e11d48;">Note:</strong> Reports can only be downloaded if the franchisee account balance is positive.
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="spReportsSearchInput" placeholder="🔍 Search patient, barcode, ID..." style="padding: 8px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 13px; min-width: 220px;">
+                            <select id="spReportsFranchiseeFilter" class="sp-select">
+                                <option value="">All Tagged Franchisees</option>
+                            </select>
+                            <button type="button" class="sp-btn sp-btn-outline" id="spReportsRefreshBtn">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sp-table-wrap">
+                        <table class="sp-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Date</th>
+                                    <th>Patient</th>
+                                    <th>Franchisee / Lab</th>
+                                    <th>Doctor</th>
+                                    <th>Wallet Balance</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spReportsTbody">
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading reports...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- TAB 4: MY TEAM & NETWORK -->
+            <!-- ========================================================= -->
+            <section id="tab-network" class="sp-tab-pane">
+                <div id="spNetworkTreeContainer">
+                    <div style="padding: 24px; text-align: center; color: #64748b;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading sales network tree...
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Client Script -->
+    <script src="./sales.js"></script>
+</body>
+</html>
+

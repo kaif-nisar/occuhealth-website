@@ -406,6 +406,46 @@ const userSchema = new Schema(
       canManageUsers: { type: Boolean, default: false },
     },
 
+    // Staff & Sales Hierarchy Configuration
+    staffType: {
+      type: String,
+      enum: ["staff", "admin", "sales", "reception", "lab", "phlebo", "other"],
+      default: "staff",
+      index: true,
+    },
+    salesDesignation: {
+      type: String,
+      enum: ["ZSM", "RSM", "ASM", "TH", null],
+      default: null,
+      index: true,
+    },
+    // Direct franchisees assigned (primarily for TH)
+    assignedFranchisees: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    // Downline staff assigned (ASM -> THs, RSM -> ASMs, ZSM -> RSMs)
+    assignedStaff: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    // Direct reporting manager in sales hierarchy
+    parentSalesUser: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+    // Monthly sales quota/target (e.g. 200000)
+    monthlySalesTarget: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Bank Details for Payouts (Admin, Franchisee, Sub-Franchisee)
     bankDetails: {
       accountNumber: { type: String },

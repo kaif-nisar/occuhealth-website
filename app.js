@@ -400,7 +400,8 @@ app.use((req, res, next) => {
         '/superadmin',
         '/superfranchisee',
         '/franchisee',
-        '/subfranchisee'
+        '/subfranchisee',
+        '/sales'
     ];
 
     // ✅ Check if it's a safe path - IMMEDIATE RETURN
@@ -500,11 +501,13 @@ app.use((error, req, res, next) => {
 // ========================
 
 import targetRouter from "./src/routes/target.routes.js";
+import salesRouter from "./src/routes/sales.routes.js";
 import systemSettingRouter from "./src/routes/systemSetting.routes.js";
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/bulk-bookings", bulkBookingRouter);
 app.use("/api/v1/target", targetRouter);
+app.use("/api/v1/sales", salesRouter);
 app.use("/api/v1/settings", systemSettingRouter);
 
 // Health Check Route
@@ -639,6 +642,23 @@ app.use('/subFranchisee', verifyProtectedStaticJWT, (req, res, next) => {
     const user = req.user;
 
     if (user.role === 'subFranchisee' || (user.role === 'staff' && user.parentRole === 'subFranchisee')) {
+        return next();
+    }
+
+    return res.redirect('/index.html');
+}, protectedStatic('private'));
+
+app.use('/sales', verifyProtectedStaticJWT, (req, res, next) => {
+    const user = req.user;
+
+    if (
+        user.role === 'admin' ||
+        user.role === 'superFranchisee' ||
+        user.role === 'sales' ||
+        user.staffType === 'sales' ||
+        Boolean(user.salesDesignation) ||
+        (user.role === 'staff' && (user.staffType === 'sales' || Boolean(user.salesDesignation)))
+    ) {
         return next();
     }
 

@@ -446,8 +446,9 @@
                     <div class="form-group">
                         <label for="stafftype">Staff Type</label>
                         <select id="stafftype" name="stafftype">
-                            <option>Staff</option>
-                            <option>Admin</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Sales">Sales (Sales Team / Business Development)</option>
                         </select>
                     </div>
                     <h6 class="mt-4">Permissions</h6>
@@ -483,6 +484,61 @@
                         </div>
                     </div>
                 </form>
+            </div>
+
+            <!-- Sales Configuration Card (Shown when Staff Type is Sales) -->
+            <div class="card" id="salesConfigCard" style="display: none; grid-column: 1 / -1; border-top: 4px solid #2563eb; background: linear-gradient(145deg, #ffffff, #f0f7ff);">
+                <h2><i class="fa-solid fa-sitemap" style="color: #2563eb;"></i> Sales Team Designation &amp; Assignments</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="salesDesignation" style="font-weight: 600; color: #1e293b;">Sales Designation *</label>
+                        <select id="salesDesignation" name="salesDesignation" style="border: 2px solid #2563eb; font-weight: 500;">
+                            <option value="TH" selected>TH (Team Head / Territory Head) - Frontline Labs / Sub-Franchisees</option>
+                            <option value="ASM">ASM (Area Sales Manager) - Manages Team Heads (TH)</option>
+                            <option value="RSM">RSM (Regional Sales Manager) - Manages Area Managers (ASM)</option>
+                            <option value="ZSM">ZSM (Zonal Sales Manager) - Manages Regional Managers (RSM)</option>
+                        </select>
+                        <small style="color: #64748b; display: block; margin-top: 5px;" id="desigHelpText">
+                            <i class="fa-solid fa-circle-info"></i> TH directly tags and manages labs/sub-franchisees in the field.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="monthlySalesTarget" style="font-weight: 600; color: #1e293b;">Monthly Sales Quota / Target (₹)</label>
+                        <div class="input-icon">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                            <input type="number" id="monthlySalesTarget" name="monthlySalesTarget" placeholder="e.g. 200000" value="200000" min="0">
+                        </div>
+                        <small style="color: #64748b; display: block; margin-top: 5px;">Monthly sales target quota for performance tracking</small>
+                    </div>
+                </div>
+
+                <!-- Downline Selection Panel -->
+                <div class="downline-panel" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h4 id="downlineChooserTitle" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-store" style="color: #2563eb;"></i> Tag Sub-Franchisees / Franchisees (Labs)
+                            </h4>
+                            <p id="downlineChooserSubtitle" style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Choose the labs that this Team Head (TH) will manage and place bookings for</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span id="selectedCountBadge" style="background: #2563eb; color: #ffffff; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">0 Selected</span>
+                            <button type="button" id="btnSelectAllDownlines" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Select All</button>
+                            <button type="button" id="btnClearDownlines" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Clear</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <input type="text" id="downlineSearchInput" placeholder="🔍 Search by name, code, phone, city..." style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: #f8fafc;">
+                    </div>
+
+                    <div id="downlineListContainer" style="max-height: 320px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 6px;">
+                        <div style="padding: 24px; text-align: center; color: #64748b; grid-column: 1 / -1;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 20px;"></i>
+                            <p style="margin-top: 8px; font-size: 13px;">Loading available units...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Submission Card -->

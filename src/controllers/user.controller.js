@@ -1,3 +1,4 @@
+import { resolveSalesHierarchy } from "../services/salesHierarchy.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -174,6 +175,11 @@ const loginUser = asyncHandler(async (req, res) => {
     fullName: user.fullName,
     role: user.createdBy?.role || user.role,
     myrole: user.role,
+    staffType: user.staffType || 'staff',
+    salesDesignation: user.salesDesignation || null,
+    assignedFranchisees: user.assignedFranchisees || [],
+    assignedStaff: user.assignedStaff || [],
+    monthlySalesTarget: user.monthlySalesTarget || 0,
     modelType: user.parentUser?.tenantId?.modelType || user.tenantId?.modelType,
     verification: {
       emailVerified: user.emailVerified === true,
@@ -516,6 +522,22 @@ function checkCreationPermission(creatorRole, newRole, modelType) {
 }
 
 const getMyFranchisees = asyncHandler(async (req, res) => {
+  // If user is sales staff, return the downline franchisees tagged to them
+  if (req.user.staffType === 'sales' || req.user.salesDesignation) {
+    const hierarchy = await resolveSalesHierarchy(req.user);
+    const franchiseeIds = hierarchy.flatIds.franchiseeIds;
+    const franchisees = await User.find({
+      _id: { $in: franchiseeIds },
+      role: { $ne: 'staff' }
+    })
+      .select("-password -refreshToken")
+      .populate("createdUsers", "fullName username");
+
+    return res.status(200).json(
+      new ApiResponse(200, { success: true }, franchisees, "Get franchisee successfully")
+    );
+  }
+
   // Assuming you have user info in req.user
   let userId;
   if (req.user.role === 'staff') {

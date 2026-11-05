@@ -9,6 +9,11 @@ function y () {
                 console.log(data.data.staff)
                 tbody.innerHTML = ""; // Clear existing rows
                 data.data.staff.forEach((staff, index) => {
+                    const isSales = staff.staffType === 'sales' || !!staff.salesDesignation;
+                    const roleBadge = isSales 
+                        ? `<span style="display:inline-block; padding: 2px 8px; border-radius: 12px; font-weight:600; font-size: 11px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">Sales (${staff.salesDesignation || 'TH'})</span>`
+                        : (staff.role || 'staff');
+
                     // Create a new row for each staff member
                     const row = `
                         <tr>
@@ -17,9 +22,9 @@ function y () {
                             <td>${staff.phoneNo}</td>
                             <td>${staff.username}</td>
                             <td>${staff.email}</td>
-                            <td>${staff.permissions.canManageBookings ? "Yes" : "No"}</td>
-                            <td>${staff.permissions.canManagePayments ? "Yes" : "No"}</td>
-                            <td>${staff.role}</td>
+                            <td>${staff.permissions?.canManageBookings ? "Yes" : "No"}</td>
+                            <td>${staff.permissions?.canManagePayments ? "Yes" : "No"}</td>
+                            <td>${roleBadge}</td>
                             <td>
                                 <a href="#" class="edit-link" onclick="loadPage('editStaff', '${staff._id}')">Edit</a>
                                 <a href="#" class="active-link">${staff.isActive ? "Active" : "Inactive"}</a>
