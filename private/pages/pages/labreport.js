@@ -1419,7 +1419,6 @@ async function loadfunction() {
                 <span class="HighLow"></span>
                 <input type="text" 
                     name="parameterName" 
-                    inputmode="decimal"
                     enterkeyhint="next"
                     autocomplete="off"
                     autocorrect="off"
@@ -1499,7 +1498,6 @@ async function loadfunction() {
             <span class="HighLow"></span>
             <input type="text" 
                 name="valueInput" 
-                inputmode="decimal"
                 enterkeyhint="next"
                 autocomplete="off"
                 autocorrect="off"
