@@ -1,382 +1,651 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Form Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Documented Test - Occuhealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
-        .conta {
-            padding: 50px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 8px;
+        .atd-wrapper {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
             box-sizing: border-box;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
         }
 
-        .form-row {
+        .atd-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 16px;
+        }
+
+        .atd-breadcrumb a {
+            color: #2563eb;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .atd-breadcrumb a:hover { text-decoration: underline; }
+
+        .atd-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        .form-row .form-group {
-            flex: 1;
-            margin-right: 10px;
+        .atd-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
 
-        .form-row .form-group:last-child {
-            margin-right: 0;
+        .atd-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
         }
 
-        .parameters-section {
-            margin-top: 30px;
+        .atd-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.02em;
         }
 
-        .parameters-section h3 {
-            font-size: 1.25rem;
-            margin-bottom: 10px;
-        }
-
-        .parameters-table2 {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-            margin-top: 10px;
-        }
-
-        .parameters-table2 th,
-        .parameters-table2 td {
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            text-align: left;
-        }
-
-        .parameters-table2 td {
-            margin-top: 20px;
-        }
-
-        .parameters-table2 th {
-            background-color: #f1f3f5;
-        }
-
-        .parameters-table2 input,
-        .parameters-table2 select {
-            width: 100%;
-            padding: 6px;
-            box-sizing: border-box;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-
-        .parameters-table2 .remove-link {
-            color: #007bff;
-            text-decoration: none;
+        .atd-title p {
             font-size: 0.875rem;
-            cursor: pointer;
+            color: #64748b;
+            margin: 2px 0 0 0;
         }
 
-        .add-parameter-link {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-
-        .containerg {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ccc;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            color: #007bff;
-        }
-
-        .tab.active {
-            border-bottom: 2px solid #007bff;
-            font-weight: bold;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .notification {
-            background-color: #f8f9fa;
-            border: 1px solid #f5c6cb;
-            padding: 10px;
-            border-radius: 4px;
-            color: #d9534f;
-            display: flex;
+        .atd-btn {
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .notification i {
-            margin-right: 10px;
-        }
-
-        .editor {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 10px;
-        }
-
-        .editor-toolbar {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .editor-toolbar select,
-        .editor-toolbar button {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
-            cursor: pointer;
-        }
-
-        .editor-content {
-            min-height: 100px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-        }
-
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .footer button {
+            gap: 8px;
             padding: 10px 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #007bff;
-            color: #fff;
-            cursor: pointer;
-        }
-
-        .footer .view-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .footer .view-buttons button {
-            background-color: #f8f9fa;
-            color: #000;
-        }
-
-        .form-section {
-            max-width: 100%;
-            margin-bottom: 2rem;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            text-decoration: none;
         }
 
-        .row-container {
+        .atd-btn-primary {
+            background: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+        }
+
+        .atd-btn-primary:hover:not(:disabled) {
+            background: #0369a1;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .atd-btn-outline {
+            background: #ffffff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .atd-btn-outline:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .atd-btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+
+        .atd-btn-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Form Cards */
+        .atd-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .atd-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
-            border: 1px solid #e0e0e0;
-            padding: 10px;
-            border-radius: 6px;
-            background: #f9f9f9;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .row-item {
+        .atd-card-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .atd-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .atd-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .atd-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .atd-form-group {
             display: flex;
             flex-direction: column;
-            flex: 1;
-            /* Allow items to grow equally */
-            min-width: 80px;
-            /* Minimum width for items */
+            gap: 6px;
         }
 
-        .row-item label {
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .row-item input,
-        .row-item select {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .delete-btn {
-            color: #d9534f;
-            cursor: pointer;
-            font-size: 18px;
-            align-self: center;
-            margin-right: 10px;
-            /* Add space between delete button and fields */
-        }
-
-        .display-report {
-            font-weight: 500;
-            color: #555;
-            margin-left: 10px;
-            /* Add space on the left */
-            font-size: 14px;
-        }
-
-        .add-more-btn {
+        .atd-form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
             display: flex;
             align-items: center;
-            color: #5bc0de;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 15px;
+            justify-content: space-between;
         }
 
-        .add-more-btn:hover {
-            color: #31b0d5;
+        .atd-form-group label .req { color: #ef4444; margin-left: 3px; }
+
+        .atd-input, .atd-select, .atd-textarea {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            width: 100%;
         }
 
-        .normal-value {
-            margin-top: 2rem;
-            padding: 0.4rem;
-            font-size: 1.25rem;
+        .atd-input:focus, .atd-select:focus, .atd-textarea:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
-        .text-area {
+        .atd-input-error {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+        }
+
+        .atd-error-text {
+            color: #ef4444;
+            font-size: 0.75rem;
+            font-weight: 500;
             display: none;
-            height: 5rem;
-            width: 50%;
-            border-radius: 0.5rem;
-            /* Hide text area by default */
-            margin-top: 15px;
-            padding: 1rem;
         }
 
-        .selectTypeDiv {
-            margin: 2rem 0rem;
+        /* Preset Template Buttons */
+        .atd-presets-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            margin-bottom: 16px;
         }
 
-        .selectTypeDiv select {
-            padding: 4px 8px;
-            border-radius: 5px;
-            margin-left: 0.5rem;
+        .atd-preset-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-right: 4px;
         }
 
-        .alert {
+        .atd-preset-pill {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .atd-preset-pill:hover {
+            background: #f0f9ff;
+            border-color: #0284c7;
+            color: #0369a1;
+            transform: translateY(-1px);
+        }
+
+        .atd-preset-pill.clear-pill {
+            margin-left: auto;
+            color: #dc2626;
+            border-color: #fca5a5;
+            background: #fef2f2;
+        }
+
+        .atd-preset-pill.clear-pill:hover {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+
+        /* Editor Container */
+        .atd-editor-wrapper {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+
+        #editor-toolbar {
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            padding: 6px;
+        }
+
+        #editor {
+            min-height: 280px;
+            max-height: 550px;
+            overflow-y: auto;
+            padding: 18px 22px;
+            outline: none;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #0f172a;
+            background: #ffffff;
+        }
+
+        #editor:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+            display: block;
+        }
+
+        #editor-word-count {
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            color: #64748b;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            text-align: right;
+        }
+
+        /* Fallback Textarea */
+        .atd-fallback-editor {
+            display: none;
+            width: 100%;
+            min-height: 250px;
+            padding: 14px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        /* Modals */
+        .atd-modal-overlay {
             position: fixed;
-            width: 75%;
-            top: 80px;
-            right: 2%;
-            z-index: 1050;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
         }
 
-        .editor-container {
-            background-color: white;
+        .atd-modal-overlay.active { display: flex; }
+
+        .atd-modal-box {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            animation: atdModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes atdModalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .atd-modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+        }
+
+        .atd-modal-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .atd-modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .atd-modal-close:hover { color: #ef4444; background: #f1f5f9; }
+
+        .atd-modal-body { padding: 20px; }
+
+        .atd-modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            background: #f8fafc;
+        }
+
+        /* Toast */
+        .atd-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 99999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .atd-toast.show { transform: translateY(0); opacity: 1; }
+        .atd-toast.success { background: #065f46; border-left: 4px solid #10b981; }
+        .atd-toast.error { background: #991b1b; border-left: 4px solid #ef4444; }
+        .atd-toast.info { background: #0c4a6e; border-left: 4px solid #0284c7; }
+
+        @media (max-width: 768px) {
+            .atd-wrapper { padding: 14px; }
+            .atd-header { flex-direction: column; align-items: flex-start; }
+            .atd-card { padding: 16px; }
+            .atd-grid-2, .atd-grid-3, .atd-grid-4 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
-
 <body>
-    <div class="conta" id="conta">
-        <div class="alert" role="alert"></div>
+    <div class="atd-wrapper">
+        <!-- Breadcrumb -->
+        <div class="atd-breadcrumb">
+            <span>Investigations</span>
+            <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+            <a onclick="loadPage('test')">Test Database</a>
+            <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+            <span>Add Documented Test</span>
+        </div>
 
-        <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name">
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label for="short-name">Short name</label>
-                <input type="text" id="short-name" name="short-name">
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" name="category">
-                <option>urine</option>
-                <option>hemoglobin</option>
-                <option>kidney</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="price">Billin Price</label>
-            <input type="text" id="price" name="price">
-        </div>
-        <div class="form-group">
-            <label for="price">Mrp Price</label>
-            <input type="text" id="final_price" name="price">
-        </div>
-        <div class="containerg">
-            <div class="tabs">
-                <div class="tab active">More details</div>
-            </div>
-            <div class="form-group">
-                <label for="method">Sample Type</label>
-                <select id="sampleType">
-                    <option>SERUM</option>
-                    <option>EDTA</option>
-                    <option>URINE</option>
-                    <option>FLOURISHED</option>
-                    <option>Sodium Citrate</option>
-                    <option>Sodium Heparin</option>
-                    <option>Lithium Heparin</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="interpretation">Default Result</label>
-                <div class="editor-container">
-                    <div id="editor-toolbar"></div>
-                    <div id="editor"></div>
-                    <div id="editor-word-count"></div>
+        <!-- Header -->
+        <div class="atd-header">
+            <div class="atd-header-left">
+                <div class="atd-icon-badge">
+                    <i class="fa-solid fa-file-waveform"></i>
+                </div>
+                <div class="atd-title">
+                    <h1>Add Documented Test</h1>
+                    <p>Configure narrative templates for Radiology, USG, MRI, Histopathology, X-Ray & clinical studies</p>
                 </div>
             </div>
-            <div class="footer">
-                <button class="submitbBtn" id="submitbBtn" data-alternate-id="another-identifier">Save</button>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="atd-btn atd-btn-outline" onclick="loadPage('test')">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </button>
+                <button type="button" class="atd-btn atd-btn-primary" id="btnSaveDocumentTest">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Save Document Test
+                </button>
+            </div>
+        </div>
+
+        <!-- Card 1: Investigation Details -->
+        <div class="atd-card">
+            <div class="atd-card-title">
+                <i class="fa-solid fa-circle-info" style="color: #0284c7;"></i> Investigation Details
+            </div>
+            <div class="atd-card-desc">Specify basic clinical classification, names and laboratory modalities</div>
+
+            <div class="atd-grid-2">
+                <div class="atd-form-group">
+                    <label for="atdName">Test / Study Name <span class="req">*</span></label>
+                    <input type="text" id="atdName" class="atd-input" placeholder="e.g. Ultrasound Whole Abdomen, Chest X-Ray PA View, MRI Brain">
+                    <div class="atd-error-text" id="errName">Please enter the test name</div>
+                </div>
+
+                <div class="atd-form-group">
+                    <label for="atdShortName">Short Code / Alias</label>
+                    <input type="text" id="atdShortName" class="atd-input" placeholder="e.g. USG-ABD, CXR-PA, MRI-BR">
+                </div>
+            </div>
+
+            <div class="atd-grid-2">
+                <div class="atd-form-group">
+                    <label for="atdCategory">Category <span class="req">*</span>
+                        <a href="javascript:void(0)" id="btnOpenAddCategory" style="font-size:0.75rem; color:#0284c7; text-decoration:none;">+ New Category</a>
+                    </label>
+                    <select id="atdCategory" class="atd-select">
+                        <option value="" disabled selected>Loading categories...</option>
+                    </select>
+                    <div class="atd-error-text" id="errCategory">Please select a category</div>
+                </div>
+
+                <div class="atd-form-group">
+                    <label for="atdSampleType">Modality / Specimen Type <span class="req">*</span>
+                        <a href="javascript:void(0)" id="btnOpenAddSample" style="font-size:0.75rem; color:#0284c7; text-decoration:none;">+ New Specimen</a>
+                    </label>
+                    <select id="atdSampleType" class="atd-select">
+                        <option value="" disabled selected>Loading specimen types...</option>
+                    </select>
+                    <div class="atd-error-text" id="errSampleType">Please select a specimen or modality type</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Pricing & Turnaround Time -->
+        <div class="atd-card">
+            <div class="atd-card-title">
+                <i class="fa-solid fa-indian-rupee-sign" style="color: #059669;"></i> Commercial & Operational Pricing
+            </div>
+            <div class="atd-card-desc">Define patient billing rates, MRP and estimated turnaround time</div>
+
+            <div class="atd-grid-4">
+                <div class="atd-form-group">
+                    <label for="atdPrice">Billing Price (₹) <span class="req">*</span></label>
+                    <input type="number" id="atdPrice" class="atd-input" min="0" step="1" placeholder="e.g. 1200">
+                    <div class="atd-error-text" id="errPrice">Enter valid billing price</div>
+                </div>
+
+                <div class="atd-form-group">
+                    <label for="atdFinalPrice">MRP / Standard Price (₹) <span class="req">*</span></label>
+                    <input type="number" id="atdFinalPrice" class="atd-input" min="0" step="1" placeholder="e.g. 1500">
+                    <div class="atd-error-text" id="errFinalPrice">Enter valid MRP price</div>
+                </div>
+
+                <div class="atd-form-group">
+                    <label for="atdTat">Turnaround Time (TAT)</label>
+                    <input type="text" id="atdTat" class="atd-input" placeholder="e.g. 24 Hours, Same Day">
+                </div>
+
+                <div class="atd-form-group">
+                    <label for="atdMethod">Method / Technique</label>
+                    <input type="text" id="atdMethod" class="atd-input" placeholder="e.g. Digital Radiography, B-Mode USG">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Document Report Template / Default Findings -->
+        <div class="atd-card">
+            <div class="atd-card-title">
+                <i class="fa-solid fa-file-lines" style="color: #0284c7;"></i> Report Document Template (Default Findings)
+            </div>
+            <div class="atd-card-desc">
+                This clinical format will automatically populate when drafting patient reports. Pathologists/Radiologists can customize findings for each patient.
+            </div>
+
+            <!-- Quick Medical Presets -->
+            <div class="atd-presets-bar">
+                <span class="atd-preset-title"><i class="fa-solid fa-wand-magic-sparkles" style="color: #0284c7;"></i> Quick Templates:</span>
+                <button type="button" class="atd-preset-pill" data-preset="cxr">
+                    <i class="fa-solid fa-x-ray"></i> Chest X-Ray Normal
+                </button>
+                <button type="button" class="atd-preset-pill" data-preset="usg">
+                    <i class="fa-solid fa-heart-pulse"></i> USG Abdomen Normal
+                </button>
+                <button type="button" class="atd-preset-pill" data-preset="mri">
+                    <i class="fa-solid fa-brain"></i> MRI Brain Normal
+                </button>
+                <button type="button" class="atd-preset-pill" data-preset="culture">
+                    <i class="fa-solid fa-bacterium"></i> Sterile Culture
+                </button>
+                <button type="button" class="atd-preset-pill" data-preset="clinical">
+                    <i class="fa-solid fa-notes-medical"></i> Blank Clinical Template
+                </button>
+                <button type="button" class="atd-preset-pill clear-pill" id="btnClearEditor" title="Clear template editor">
+                    <i class="fa-solid fa-trash-can"></i> Clear
+                </button>
+            </div>
+
+            <!-- Editor -->
+            <div class="atd-editor-wrapper">
+                <div id="editor-toolbar"></div>
+                <div id="editor" placeholder="Write clinical report template, findings, technique, impression..."></div>
+                <div id="editor-word-count"></div>
+            </div>
+
+            <!-- Fallback Textarea in case CKEditor takes time to load -->
+            <textarea id="fallbackInterpretation" class="atd-fallback-editor" placeholder="Enter report template findings..."></textarea>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 16px 0;">
+            <button type="button" class="atd-btn atd-btn-outline" onclick="loadPage('test')">
+                <i class="fa-solid fa-arrow-left"></i> Back to Test Database
+            </button>
+            <button type="button" class="atd-btn atd-btn-primary" id="btnSaveDocumentTestBottom">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Save Document Test
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Add Category Modal -->
+    <div class="atd-modal-overlay" id="modalAddCategory">
+        <div class="atd-modal-box">
+            <div class="atd-modal-header">
+                <h3>Add New Category</h3>
+                <button type="button" class="atd-modal-close" id="btnCloseCatModal">&times;</button>
+            </div>
+            <div class="atd-modal-body">
+                <div class="atd-form-group">
+                    <label for="newCatInput">Category Name <span class="req">*</span></label>
+                    <input type="text" id="newCatInput" class="atd-input" placeholder="e.g. RADIOLOGY, ULTRASOUND, HISTOPATHOLOGY">
+                </div>
+            </div>
+            <div class="atd-modal-footer">
+                <button type="button" class="atd-btn atd-btn-secondary" id="btnCancelCatModal">Cancel</button>
+                <button type="button" class="atd-btn atd-btn-primary" id="btnSaveNewCat">Add Category</button>
             </div>
         </div>
     </div>
-    <script
-        src="https://cdn.tiny.cloud/1/oqlgwrs74fzlc4aoa2tfk2jrqu5f2icodo1p4ios39pu44g4/tinymce/5/tinymce.min.js"></script>
-    <script src="addTestDocument.js"></script>
-</body>
 
+    <!-- Quick Add Sample Type Modal -->
+    <div class="atd-modal-overlay" id="modalAddSample">
+        <div class="atd-modal-box">
+            <div class="atd-modal-header">
+                <h3>Add New Specimen / Modality</h3>
+                <button type="button" class="atd-modal-close" id="btnCloseSampleModal">&times;</button>
+            </div>
+            <div class="atd-modal-body">
+                <div class="atd-form-group">
+                    <label for="newSampleInput">Specimen / Modality Name <span class="req">*</span></label>
+                    <input type="text" id="newSampleInput" class="atd-input" placeholder="e.g. X-RAY, ULTRASOUND, CT-SCAN, BIOPSY, PLEURAL FLUID">
+                </div>
+            </div>
+            <div class="atd-modal-footer">
+                <button type="button" class="atd-btn atd-btn-secondary" id="btnCancelSampleModal">Cancel</button>
+                <button type="button" class="atd-btn atd-btn-primary" id="btnSaveNewSample">Add Specimen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="atdToast" class="atd-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="atdToastMsg">Action completed successfully</span>
+    </div>
+
+    <script src="pages/pages/addTestDocument.js"></script>
+</body>
 </html>
