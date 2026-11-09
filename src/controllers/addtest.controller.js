@@ -338,7 +338,7 @@ const addsampleadmin = async (req, res) => {
         return res.status(400).json({ message: "! please enter Name" })
     }
 
-    const tid = req.user.tenantId._id;
+    const tid = req.user.tenantId?._id || req.user.tenantId;
 
     const duplicate = await sampleSchema.findOne({
         tenantId: tid,
@@ -1437,12 +1437,15 @@ const getUnits = asyncHandler(async (req, res) => {
 
 const tenantTest = asyncHandler(async (req, res) => {
 
-    const tenantId = req.user.tenantId._id; // Assuming tenant is logged in
+    const tenantId = req.user.tenantId?._id || req.user.tenantId; // Assuming tenant is logged in
 
     try {
         const tests = await testSchema.find({
             tenantId: tenantId,
-        });
+        })
+        .select("Name Short_name category Price final_price tat sampleType order isDocumentedTest parameters._id parameters.Para_name parameters.unit method instrument")
+        .sort({ order: 1 })
+        .lean();
 
         return res.status(200).json({
             status: 200,

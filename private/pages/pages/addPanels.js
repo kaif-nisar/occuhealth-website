@@ -1,278 +1,341 @@
-(function addpannelfun() {
-    let categoryArray = [];
-    let selectedTests = new Map(); // testName -> { sampleType, testId }
-    let uniqueSampleTypes = new Set();
-    let currentSampleType = null;
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    const testInput = document.getElementById("tests");
-    const tagsContainer = document.getElementById("middle-tag-div");
-    const testList = document.getElementById('search-hint');
-    const alertBox = document.querySelector(".alert");
+    let availableTests = [];
+    let selectedTestsMap = new Map(); // testId -> { id, name, sampleType, price }
+    let categoryList = [];
 
-    // ===========================
-    // 2. Helper Functions
-    // ===========================
-    function showAlert(message, type = "danger") {
-        alertBox.innerHTML = `${message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-        alertBox.className = `alert alert-${type} show`;
-        setTimeout(() => {
-            alertBox.classList.remove("show");
-            alertBox.classList.add("fade");
-        }, 3000);
+    // DOM Elements
+    const panelNameInput = document.getElementById("panelName");
+    const shortNameInput = document.getElementById("shortName");
+    const categorySelect = document.getElementById("categorySelect");
+    const billingPriceInput = document.getElementById("billingPrice");
+    const mrpPriceInput = document.getElementById("mrpPrice");
+    const selectedTestsContainer = document.getElementById("selectedTestsContainer");
+    const emptyTagsHint = document.getElementById("emptyTagsHint");
+    const testSearchInput = document.getElementById("testSearchInput");
+    const testSearchDropdown = document.getElementById("testSearchDropdown");
+    const priceHelperCard = document.getElementById("priceHelperCard");
+    const standaloneTotalVal = document.getElementById("standaloneTotalVal");
+    const selectedCountVal = document.getElementById("selectedCountVal");
+    const sampleTypesSummary = document.getElementById("sampleTypesSummary");
+    const hideInterpretationCb = document.getElementById("hideInterpretation");
+    const hideMethodInstrumentCb = document.getElementById("hideMethodInstrument");
+    const savePanelBtn = document.getElementById("savePanelBtn");
+    const nameError = document.getElementById("nameError");
+
+    init();
+
+    async function init() {
+        bindEvents();
+        await Promise.all([loadCategories(), loadTests()]);
     }
 
-    function showWarning(message) {
-        if (!document.getElementById('warning-message')) {
-            const warning = document.createElement('div');
-            warning.id = 'warning-message';
-            Object.assign(warning.style, {
-                position: 'fixed',
-                top: '100px',
-                left: '60%',
-                transform: 'translateX(-50%)',
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                padding: '10px 20px',
-                borderRadius: '5px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                zIndex: 1000
-            });
-            warning.innerText = message;
-            document.body.appendChild(warning);
-            setTimeout(() => warning.remove(), 3000);
-        }
-    }
-
-    function updateSampleTypes() {
-        uniqueSampleTypes.clear();
-        selectedTests.forEach(test => uniqueSampleTypes.add(test.sampleType));
-    }
-
-    function resetSelections() {
-        selectedTests.clear();
-        uniqueSampleTypes.clear();
-        currentSampleType = null;
-        tagsContainer.innerHTML = '';
-    }
-
-    // ===========================
-    // 3. Fetch & Populate Categories
-    // ===========================
-    async function fetchCategories() {
-        try {
-            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`, { method: "GET" });
-            if (!res.ok) throw new Error("Failed to fetch categories");
-
-            const data = await res.json();
-            categoryArray = data.categories || data.data || data || [];
-
-            const selectEl = document.getElementById("category");
-            selectEl.innerHTML = "";
-            categoryArray.forEach(cat => {
-                const opt = document.createElement("option");
-                opt.value = cat.category;
-                opt.textContent = cat.category;
-                selectEl.appendChild(opt);
-            });
-        } catch (err) {
-            console.error(err);
-            alert("Error fetching categories. Please try again.");
-        }
-    }
-
-    // ===========================
-    // 4. Load Tests
-    // ===========================
-    async function loadTests() {
-        try {
-            const res = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, { method: "POST" });
-            const data = await res.json();
-            testList.innerHTML = '';
-
-            data.tests.forEach(test => {
-                const testEl = document.createElement('div');
-                testEl.className = "test-item";
-                testEl.id = "tests-name-div";
-                testEl.setAttribute('sampletype', test.sampleType);
-                testEl.setAttribute('data-id', test._id);
-                if (test.Short_name) testEl.setAttribute('shortname', test.Short_name);
-                testEl.textContent = test.Name;
-
-                testEl.addEventListener("click", () => toggleTestSelection(testEl));
-                testList.appendChild(testEl);
-            });
-
-            testInput.addEventListener("click", () => testList.style.display = "block");
-            document.addEventListener("click", e => {
-                if (!testInput.contains(e.target) && !testList.contains(e.target)) {
-                    testList.style.display = "none";
+    function bindEvents() {
+        if (panelNameInput) {
+            panelNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("ap-input-error");
+                } else {
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("ap-input-error");
                 }
             });
-        } catch (err) {
-            console.error("Error loading tests:", err);
+        }
+
+        // Test search autocomplete
+        if (testSearchInput) {
+            testSearchInput.addEventListener("input", filterTestDropdown);
+            testSearchInput.addEventListener("focus", filterTestDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!testSearchInput.contains(e.target) && !testSearchDropdown.contains(e.target)) {
+                    testSearchDropdown.style.display = "none";
+                }
+            });
+        }
+
+        if (savePanelBtn) {
+            savePanelBtn.addEventListener("click", submitPanel);
         }
     }
 
-    function toggleTestSelection(testEl) {
-        const testName = testEl.textContent;
-        const sampleType = testEl.getAttribute('sampletype');
-        const testId = testEl.getAttribute('data-id');
+    async function loadCategories() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`);
+            const data = await res.json();
+            categoryList = data.categories || data.data || [];
 
-        if (!currentSampleType) currentSampleType = sampleType;
+            categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+            categoryList.forEach((cat) => {
+                const val = cat.category || cat;
+                const opt = document.createElement("option");
+                opt.value = val;
+                opt.textContent = val;
+                categorySelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error("Failed to load categories:", e);
+        }
+    }
 
-        if (sampleType !== currentSampleType) {
-            showWarning("You can only select tests with the same sample type!");
+    async function loadTests() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            availableTests = Array.isArray(data.tests) ? data.tests : [];
+        } catch (e) {
+            console.error("Failed to load tests:", e);
+        }
+    }
+
+    function filterTestDropdown() {
+        const query = (testSearchInput.value || "").trim().toLowerCase();
+        testSearchDropdown.innerHTML = "";
+
+        const matches = availableTests.filter((t) => {
+            if (selectedTestsMap.has(t._id)) return false; // already selected
+            const name = (t.Name || "").toLowerCase();
+            const code = (t.Short_name || "").toLowerCase();
+            const sample = (t.sampleType || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query) || sample.includes(query);
+        });
+
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching tests found" : "All available tests selected";
+            testSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 30).forEach((t) => {
+                const item = document.createElement("div");
+                item.className = "ap-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(t.Name)}</span>
+                        ${t.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(t.Short_name)})</span>` : ""}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.72rem; padding:2px 6px; background:#fef2f2; color:#b91c1c; border-radius:4px; border:1px solid #fee2e2;">
+                            ${escapeHtml(t.sampleType || "N/A")}
+                        </span>
+                        <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                            ₹${t.Price || 0}
+                        </span>
+                    </div>
+                `;
+
+                item.addEventListener("click", () => {
+                    selectTest(t);
+                    testSearchInput.value = "";
+                    testSearchDropdown.style.display = "none";
+                    testSearchInput.focus();
+                });
+
+                testSearchDropdown.appendChild(item);
+            });
+        }
+
+        testSearchDropdown.style.display = "block";
+    }
+
+    function selectTest(test) {
+        if (!test || !test._id) return;
+
+        // Check sample type harmony
+        const currentSamples = new Set(Array.from(selectedTestsMap.values()).map(t => t.sampleType).filter(Boolean));
+        if (currentSamples.size > 0 && test.sampleType && !currentSamples.has(test.sampleType)) {
+            showToast(`Note: Added test requires "${test.sampleType}", which differs from current selections.`, "info");
+        }
+
+        selectedTestsMap.set(test._id, {
+            id: test._id,
+            name: test.Name,
+            sampleType: test.sampleType || "N/A",
+            price: parseFloat(test.Price) || 0
+        });
+
+        renderSelectedTags();
+    }
+
+    function deselectTest(testId) {
+        selectedTestsMap.delete(testId);
+        renderSelectedTags();
+    }
+
+    function renderSelectedTags() {
+        selectedTestsContainer.innerHTML = "";
+
+        if (selectedTestsMap.size === 0) {
+            selectedTestsContainer.appendChild(emptyTagsHint);
+            if (priceHelperCard) priceHelperCard.style.display = "none";
             return;
         }
 
-        if (!selectedTests.has(testName)) {
-            selectedTests.set(testName, { sampleType, testId });
-            uniqueSampleTypes.add(sampleType);
+        let totalStandalonePrice = 0;
+        const sampleSet = new Set();
 
-            const tag = document.createElement('div');
-            tag.className = 'selected-div';
-            tag.setAttribute('sample-type', sampleType);
-            tag.innerHTML = `<span>${testName}</span> <i class="fa-regular fa-circle-xmark delete-btn"></i>`;
-            tagsContainer.appendChild(tag);
+        selectedTestsMap.forEach((test, id) => {
+            totalStandalonePrice += test.price;
+            if (test.sampleType) sampleSet.add(test.sampleType);
 
-            testEl.style.display = "none";
-        } else {
-            deselectTest(testName);
-        }
-        console.log("selectedTests:", selectedTests);
-    }
+            const tag = document.createElement("div");
+            tag.className = "ap-selected-tag";
+            tag.innerHTML = `
+                <span>${escapeHtml(test.name)}</span>
+                <span class="sample-tag">${escapeHtml(test.sampleType)}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
 
-    function deselectTest(testName) {
-        selectedTests.delete(testName);
-        updateSampleTypes();
-
-        const testEl = [...testList.children].find(t => t.textContent === testName);
-        if (testEl) testEl.style.display = "";
-
-        [...tagsContainer.children].forEach(tag => {
-            if (tag.innerText.trim() === testName) tag.remove();
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectTest(id));
+            selectedTestsContainer.appendChild(tag);
         });
 
-        if (selectedTests.size === 0) currentSampleType = null;
+        if (priceHelperCard) {
+            priceHelperCard.style.display = "flex";
+            standaloneTotalVal.textContent = `₹${totalStandalonePrice}`;
+            selectedCountVal.textContent = selectedTestsMap.size;
+            sampleTypesSummary.textContent = Array.from(sampleSet).join(", ") || "N/A";
+        }
     }
 
-    // Delete from tag
-    tagsContainer.addEventListener("click", e => {
-        if (e.target.classList.contains("delete-btn")) {
-            const tag = e.target.closest(".selected-div");
-            if (tag) {
-                const testName = tag.innerText.trim();
-                deselectTest(testName);
-            }
+    async function submitPanel() {
+        const nameVal = panelNameInput.value.trim();
+        const shortVal = shortNameInput.value.trim();
+        const categoryVal = categorySelect.value;
+        const billingVal = parseFloat(billingPriceInput.value);
+        const mrpVal = parseFloat(mrpPriceInput.value);
+
+        if (!nameVal) {
+            showToast("Panel name is required", "error");
+            panelNameInput.focus();
+            return;
         }
-    });
 
-    // ===========================
-    // 5. Search Tests
-    // ===========================
-    function enableSearch() {
-        testInput.addEventListener("input", function () {
-            const value = this.value.toLowerCase();
-            const tests = document.querySelectorAll('.test-item');
-            let found = false;
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in panel name", "error");
+            panelNameInput.focus();
+            return;
+        }
 
-            tests.forEach(test => {
-                const shortname = (test.getAttribute('shortname') || '').toLowerCase();
-                if (test.textContent.toLowerCase().includes(value) || (shortname && shortname.includes(value))) {
-                    test.style.display = 'block';
-                    found = true;
-                } else {
-                    test.style.display = 'none';
-                }
+        if (!categoryVal) {
+            showToast("Please select a Category", "error");
+            categorySelect.focus();
+            return;
+        }
+
+        if (isNaN(billingVal) || isNaN(mrpVal)) {
+            showToast("Please enter Billing Price and MRP Rate", "error");
+            billingPriceInput.focus();
+            return;
+        }
+
+        if (selectedTestsMap.size === 0) {
+            showToast("Please select at least one test for this panel", "error");
+            testSearchInput.focus();
+            return;
+        }
+
+        const testsId = Array.from(selectedTestsMap.keys());
+        const selectedTestNames = Array.from(selectedTestsMap.values()).map(t => t.name);
+        const sampleTypes = [...new Set(Array.from(selectedTestsMap.values()).map(t => t.sampleType).filter(Boolean))];
+
+        // Safe interpretation getter (no editor undefined crash!)
+        let interpretationText = "";
+        if (window.editor && typeof window.editor.getData === "function") {
+            try { interpretationText = window.editor.getData(); } catch (e) {}
+        }
+        if (!interpretationText) {
+            const fallback = document.getElementById("fallbackInterpretation");
+            interpretationText = fallback ? fallback.value : "";
+        }
+
+        const categoryObj = categoryList.find(c => (c.category || c) === categoryVal) || { category: categoryVal };
+
+        const payload = {
+            pannelname: nameVal,
+            Short_name: shortVal,
+            price: billingVal,
+            final_price: mrpVal,
+            category: categoryObj,
+            inputarray: selectedTestNames,
+            testsId: testsId,
+            interpretion: interpretationText,
+            interpretation: interpretationText,
+            sample_types: sampleTypes,
+            hideInterpretation: hideInterpretationCb?.checked || false,
+            hideMethodInstrument: hideMethodInstrumentCb?.checked || false
+        };
+
+        savePanelBtn.disabled = true;
+        savePanelBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/add-panels-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
 
-            document.getElementById("noTestMessage").style.display = found ? "none" : "";
-        });
-    }
+            const data = await res.json();
 
-    // ===========================
-    // 6. Save Panel
-    // ===========================
-    function savePanel() {
-        document.querySelector('.save').addEventListener('click', async () => {
-            const nameField = document.getElementById('name');
-            const shortNameField = document.getElementById('short-name');
-            const shortName = shortNameField ? shortNameField.value.trim() : "";
-            const price = document.getElementById("price").value;
-            const finalPrice = document.getElementById("final-price").value;
-            const interpretation = editor.getData();
-            const category = categoryArray.find(cat => cat.category === document.getElementById('category').value);
-            const hideInterpretation = document.getElementById('hide-interpretation').checked;
-            const hideMethodInstrument = document.getElementById('hide-method-instrument').checked;
-
-            if (nameField.value.trim().includes(",")) {
-                document.querySelector('.errormessage').style.display = "block";
-                nameField.scrollIntoView({ behavior: "smooth" });
-                nameField.focus();
-                return;
+            if (res.ok) {
+                showToast("Panel created successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("testPanels");
+                    } else {
+                        window.location.href = "?page=testPanels";
+                    }
+                }, 1200);
             } else {
-                document.querySelector('.errormessage').style.display = "none";
+                showToast(data.message || "Failed to create panel", "error");
+                savePanelBtn.disabled = false;
+                savePanelBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Panel';
             }
-
-            const testsId = Array.from(selectedTests.values()).map(test => test.testId);
-            const selectedTestNames = Array.from(selectedTests.keys());
-
-            const sampleTypes = Array.from(uniqueSampleTypes);
-
-            if (!testsId.length || !sampleTypes.length) {
-                return showAlert("Please select at least one test", "danger");
-            }
-
-            try {
-                const res = await fetch(`${BASE_URL}/api/v1/user/add-panels-tenant`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        pannelname: nameField.value.trim(),
-                        Short_name: shortName,
-                        price,
-                        final_price: finalPrice,
-                        category,
-                        inputarray: selectedTestNames,
-                        testsId,
-                        interpretion: interpretation,
-                        sample_types: sampleTypes,
-                        hideInterpretation,
-                        hideMethodInstrument
-                    })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    resetSelections();
-                    showAlert(data.message, "success");
-                    setTimeout(() => window.location.href = "/admin/admin.html?page=testPanels", 3500);
-                } else {
-                    showAlert(data.message, "danger");
-                }
-            } catch (err) {
-                showAlert(err.message, "danger");
-            }
-        });
+        } catch (err) {
+            console.error("Submission error:", err);
+            showToast("Network error: " + err.message, "error");
+            savePanelBtn.disabled = false;
+            savePanelBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Panel';
+        }
     }
 
-    // ===========================
-    // 7. Cancel Button
-    // ===========================
-    document.querySelector('.cancel').addEventListener('click', () => {
-        window.location.href = `${BASE_URL}/admin.html?page=testPanels`;
-    });
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("apToast");
+        const toastMsg = document.getElementById("apToastMsg");
+        if (!toast || !toastMsg) return;
 
-    // ===========================
-    // 8. Initialization
-    // ===========================
-    async function init() {
-        await fetchCategories();
-        await loadTests();
-        enableSearch();
-        savePanel();
+        toastMsg.textContent = message;
+        toast.className = `ap-toast ${type} show`;
+
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
+        }
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 3200);
     }
 
-    init();
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 })();

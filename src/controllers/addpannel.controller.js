@@ -436,7 +436,7 @@ const updatePannelOrder = asyncHandler(async (req, res) => {
           const idofNumber = parseInt(id);
           const panel = await addPannel.findOne({
             order: idofNumber,
-            tenantId: req.user.tenantId._id
+            tenantId: req.user.tenantId?._id || req.user.tenantId
           }); // Use panel schema here
           if (!panel) {
             throw new ApiError(400, `Panel with order ${id} not found`);
@@ -449,7 +449,7 @@ const updatePannelOrder = asyncHandler(async (req, res) => {
         return {
           updateOne: {
             filter: { _id: id },
-            update: { order },
+            update: { order: Number(order) || 1 },
           },
         };
       })
@@ -523,25 +523,32 @@ const updatePannelOrdersuper = asyncHandler(async (req, res) => {
 });
 
 const tenantAllPanel = asyncHandler(async (req, res) => {
-  const tenantId = req.user.tenantId._id; // Assuming tenant is logged in
-  const createdBy = req.user._id;
+  const tenantId = req.user.tenantId?._id || req.user.tenantId; // Assuming tenant is logged in
+  let createdBy;
+  if (req.user.role === 'staff') {
+    createdBy = req.user.parentUser;
+  } else {
+    createdBy = req.user._id;
+  }
 
   try {
     const panels = await addPannel.find({
       tenantId: tenantId,
       createdBy: createdBy,
-    });
+    })
+    .sort({ order: 1 })
+    .lean();
 
     res.status(200).json({
       status: 200,
-      message: "Tests fetched successfully",
+      message: "Panels fetched successfully",
       count: panels.length,
       panels,
     });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Failed to fetch tests", error: error.message });
+      .json({ message: "Failed to fetch panels", error: error.message });
   }
 });
 

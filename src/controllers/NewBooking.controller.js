@@ -1452,7 +1452,7 @@ const editbookingbookedtests = async (req, res) => {
             userId = req.user._id;
         }
         const tenantId = req.user.tenantId;
-        issinglelayeradmin = tenantId.modelType === "1layer" && isAdminActor(req.user);
+        const issinglelayeradmin = tenantId?.modelType === "1layer" && isAdminActor(req.user);
 
         const parsedSubFranchiseeId = subFranchiseeId === "null" ? null : subFranchiseeId;
         const parsedSavedDoctorId = savedDoctorId === "null" ? null : savedDoctorId;
@@ -1843,14 +1843,15 @@ const editbookingbookedtests = async (req, res) => {
             total: existingBooking.total + parsedTotal, // Add to existing total
             status: "pending",
             isreportready: false,
-            subFranchisee: subFranchisee || "",
-            subFranchiseeId: parsedSubFranchiseeId,
-            savedDoctor: savedDoctor || "",
-            savedDoctorId: parsedSavedDoctorId,
-            savedLab: savedLab || "",
-            discountamount: issinglelayeradmin ? Number(discountamount) : existingBooking.discountamount,
-            discountunit: issinglelayeradmin ? Number(discountunit) : existingBooking.discountunit,
-            createdbyuser: createdbyuser,
+            subFranchisee: subFranchisee || existingBooking.subFranchisee || "",
+            subFranchiseeId: (parsedSubFranchiseeId !== undefined && parsedSubFranchiseeId !== null) ? parsedSubFranchiseeId : existingBooking.subFranchiseeId,
+            savedDoctor: savedDoctor || existingBooking.savedDoctor || "",
+            savedDoctorId: (parsedSavedDoctorId !== undefined && parsedSavedDoctorId !== null) ? parsedSavedDoctorId : existingBooking.savedDoctorId,
+            savedLab: savedLab || existingBooking.savedLab || "",
+            savedLabId: (parsedSavedLabId !== undefined && parsedSavedLabId !== null) ? parsedSavedLabId : existingBooking.savedLabId,
+            discountamount: (issinglelayeradmin && discountamount !== undefined && discountamount !== null && discountamount !== "" && !isNaN(Number(discountamount))) ? Number(discountamount) : (existingBooking.discountamount || 0),
+            discountunit: (issinglelayeradmin && discountunit !== undefined && discountunit !== null && discountunit !== "" && !isNaN(Number(discountunit))) ? Number(discountunit) : (existingBooking.discountunit || 0),
+            createdbyuser: createdbyuser || existingBooking.createdbyuser,
         };
 
         const updatedDoc = await newBooking.findOneAndUpdate(
@@ -2006,7 +2007,10 @@ const editbookingbookedtests = async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         console.error("Transaction failed:", err);
-        throw err;
+        return res.status(err.statusCode || 500).json({
+            message: err.message || "Failed to edit booked tests",
+            error: err.message
+        });
     }
 }
 

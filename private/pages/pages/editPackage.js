@@ -1,342 +1,619 @@
-function loading() {
-    const TestSearchInput = document.getElementById("tests");
-    const pannelsInput = document.getElementById("tests2");
-    const tagsdiv = document.getElementById("middle-tag-div");
-    const tagsdiv2 = document.getElementById("middle-tag-div2");
-    const searchHint = document.getElementById('search-hint');
-    const searchHint2 = document.getElementById('search-hint2');
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    let sample_types2 = [];
-    let sample_types = [];
-    let inputarray2 = [];
-    let inputarray = [];
-    let testIds = [];       // ✅ new array for test IDs
-    let panelIds = [];      // ✅ new array for panel IDs
+    let availablePanels = [];
+    let availableTests = [];
+    let selectedPanelsMap = new Map(); // panelId -> { id, name, price, sampleTypes }
+    let selectedTestsMap = new Map();  // testId -> { id, name, price, sampleType }
+    let targetPackageId = null;
 
-    const params = new URLSearchParams(window.location.search)
-    const name1 = params.get('Name');
+    // DOM Elements
+    const loadingOverlay = document.getElementById("pkgLoadingOverlay");
+    const headerPackageName = document.getElementById("headerPackageName");
+    const headerPackageMeta = document.getElementById("headerPackageMeta");
+    const packageNameInput = document.getElementById("packageName");
+    const packageGenderSelect = document.getElementById("packageGender");
+    const packageFeeInput = document.getElementById("packageFee");
+    const finalPriceInput = document.getElementById("finalPrice");
+    const nameError = document.getElementById("nameError");
 
-    function removeDuplicates(array) {
-        return [...new Set(array)];
+    const selectedPanelsContainer = document.getElementById("selectedPanelsContainer");
+    const emptyPanelsHint = document.getElementById("emptyPanelsHint");
+    const panelSearchInput = document.getElementById("panelSearchInput");
+    const panelSearchDropdown = document.getElementById("panelSearchDropdown");
+    const panelsCountBadge = document.getElementById("panelsCountBadge");
+
+    const selectedTestsContainer = document.getElementById("selectedTestsContainer");
+    const emptyTestsHint = document.getElementById("emptyTestsHint");
+    const testSearchInput = document.getElementById("testSearchInput");
+    const testSearchDropdown = document.getElementById("testSearchDropdown");
+    const testsCountBadge = document.getElementById("testsCountBadge");
+
+    // Calculator Elements
+    const calcStandaloneTotal = document.getElementById("calcStandaloneTotal");
+    const calcPackageFee = document.getElementById("calcPackageFee");
+    const calcSavings = document.getElementById("calcSavings");
+    const calcSamples = document.getElementById("calcSamples");
+
+    const savePackageBtn = document.getElementById("savePackageBtn");
+
+    init();
+
+    async function init() {
+        bindEvents();
+        extractTargetId();
+
+        if (!targetPackageId) {
+            showToast("No package ID provided in URL", "error");
+            if (loadingOverlay) loadingOverlay.innerHTML = '<div style="color:#ef4444; font-weight:600;">Invalid Package ID. <a onclick="loadPage(\'testPackage\')" style="text-decoration:underline; cursor:pointer;">Return to Packages</a></div>';
+            return;
+        }
+
+        await Promise.all([loadPanels(), loadTests()]);
+        await fetchPackageDetails();
     }
 
-    async function loadPackageData(name1) {
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/one-Package/${name1}`, { method: "POST" });
-            const packageData = await response.json();
+    function extractTargetId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let id = urlParams.get("Name") || urlParams.get("name") || urlParams.get("id") || urlParams.get("_id") || urlParams.get("value1");
 
-            // Pre-fill form fields
-            document.getElementById('name').value = packageData.packageName.trim();
-            document.getElementById('fee').value = packageData.packageFee;
-            document.getElementById('gender').value = packageData.packageGender;
-            document.getElementById('final-price').value = packageData.final_price;
+        if (id) {
+            try {
+                id = decodeURIComponent(id);
+            } catch (e) {}
+        }
 
-            // Pre-fill tests with IDs
-            packageData.testname.forEach((test, index) => {
-                addTestTag(test, packageData.testSample[index], packageData.testIds[index]);
+        if (!id) {
+            for (const [key] of urlParams.entries()) {
+                if (key !== "page" && key !== "v" && key.length >= 12) {
+                    id = key;
+                    break;
+                }
+            }
+        }
+
+        targetPackageId = id;
+    }
+
+    function bindEvents() {
+        if (packageNameInput) {
+            packageNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("pkg-input-error");
+                } else {
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("pkg-input-error");
+                }
             });
+        }
 
-            // Pre-fill panels with IDs
-            packageData.pannelname.forEach((panel, index) => {
-                addPanelTag(panel, packageData.pannelSample[index], packageData.pannelIds[index]);
+        if (packageFeeInput) {
+            packageFeeInput.addEventListener("input", updateCalculations);
+        }
+
+        if (panelSearchInput) {
+            panelSearchInput.addEventListener("input", filterPanelDropdown);
+            panelSearchInput.addEventListener("focus", filterPanelDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!panelSearchInput.contains(e.target) && !panelSearchDropdown.contains(e.target)) {
+                    panelSearchDropdown.style.display = "none";
+                }
             });
+        }
 
-        } catch (error) {
-            console.error('Failed to load package data:', error);
+        if (testSearchInput) {
+            testSearchInput.addEventListener("input", filterTestDropdown);
+            testSearchInput.addEventListener("focus", filterTestDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!testSearchInput.contains(e.target) && !testSearchDropdown.contains(e.target)) {
+                    testSearchDropdown.style.display = "none";
+                }
+            });
+        }
+
+        if (savePackageBtn) {
+            savePackageBtn.addEventListener("click", submitPackageUpdate);
         }
     }
 
-    function addTestTag(testName, sampleType, testId) {
-        const selectedTestTag = document.createElement('div');
-        selectedTestTag.classList.add('selected-div');
-        selectedTestTag.setAttribute('sample-type', sampleType);
-        selectedTestTag.setAttribute('data-id', testId); // ✅ store test id
-        selectedTestTag.innerHTML = `${testName} <i class="fa-regular fa-circle-xmark delete-btn"></i>`;
-
-        selectedTestTag.querySelector('.delete-btn').addEventListener('click', function () {
-            selectedTestTag.remove();
-            inputarray = inputarray.filter(name => name !== testName);
-            testIds = testIds.filter(id => id !== testId); // ✅ remove test id
-            removeSampleType(sample_types, sampleType, sample_types_count);
-
-            Array.from(searchHint.children).forEach(option => {
-                if (option.innerText === testName) option.style.display = "block";
+    async function loadPanels() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/all-pannels-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
             });
-        });
-
-        tagsdiv.appendChild(selectedTestTag);
-        inputarray.push(testName);
-        testIds.push(testId); // ✅ push id
-        addSampleType(sample_types, sampleType, sample_types_count);
-    }
-
-    function addPanelTag(panelName, panelSampleType, panelId) {
-        const selectedPanelTag = document.createElement('div');
-        selectedPanelTag.classList.add('selected-div2');
-        selectedPanelTag.setAttribute('sample-type', panelSampleType);
-        selectedPanelTag.setAttribute('data-id', panelId); // ✅ store panel id
-        selectedPanelTag.innerHTML = `${panelName} <i class="fa-regular fa-circle-xmark delete-btn2"></i>`;
-
-        selectedPanelTag.querySelector('.delete-btn2').addEventListener('click', function () {
-            selectedPanelTag.remove();
-            inputarray2 = inputarray2.filter(name => name !== panelName);
-            panelIds = panelIds.filter(id => id !== panelId); // ✅ remove panel id
-            removeSampleType(sample_types2, panelSampleType, sample_types2_count);
-
-            Array.from(searchHint2.children).forEach(option => {
-                if (option.innerText === panelName) option.style.display = "block";
-            });
-        });
-
-        tagsdiv2.appendChild(selectedPanelTag);
-        inputarray2.push(panelName);
-        panelIds.push(panelId); // ✅ push id
-        addSampleType(sample_types2, panelSampleType, sample_types2_count);
+            const data = await res.json();
+            availablePanels = Array.isArray(data.panels) ? data.panels : [];
+        } catch (e) {
+            console.error("Failed to load panels:", e);
+        }
     }
 
     async function loadTests() {
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, { method: "POST" });
-            const tests = await response.json();
-            searchHint.innerHTML = '';
-
-            tests.tests.forEach(test => {
-                const optionElement = document.createElement('div');
-                optionElement.className = "hint-option";
-                optionElement.setAttribute('sampletype', test.sampleType);
-                optionElement.setAttribute('data-id', test._id); // ✅ test id
-                optionElement.innerText = test.Name;
-
-                optionElement.addEventListener("click", function (e) {
-                    const testName = e.target.innerText;
-                    const sampleType = e.target.getAttribute('sampletype');
-                    const testId = e.target.getAttribute('data-id');
-
-                    if (inputarray.includes(testName)) {
-                        inputarray = inputarray.filter(name => name !== testName);
-                        testIds = testIds.filter(id => id !== testId); // ✅ remove id
-                        sample_types = sample_types.filter(type => type !== sampleType);
-                        Array.from(tagsdiv.children).forEach(tag => {
-                            if (tag.innerText.includes(testName)) tag.remove();
-                        });
-                        optionElement.style.display = "block";
-                    } else {
-                        addTestTag(testName, sampleType, testId);
-                        optionElement.style.display = "none";
-                    }
-                    searchHint.style.display = "none";
-                    console.log("testId:", testIds);
-                    console.log("panelid:", panelIds);
-                });
-
-                searchHint.appendChild(optionElement);
-
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
             });
-
-            TestSearchInput.addEventListener("click", () => searchHint.style.display = "block");
-            document.addEventListener("click", (e) => {
-                if (!TestSearchInput.contains(e.target) && !searchHint.contains(e.target)) searchHint.style.display = "none";
-            });
-
-        } catch (error) {
-            console.log("something went wrong", error);
+            const data = await res.json();
+            availableTests = Array.isArray(data.tests) ? data.tests : [];
+        } catch (e) {
+            console.error("Failed to load tests:", e);
         }
     }
 
-    async function loadpannels() {
+    async function fetchPackageDetails() {
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/all-pannels-tenant`, { method: "POST" });
-            const panels = await response.json();
-            searchHint2.innerHTML = '';
+            const res = await fetch(`${BASE_URL}/api/v1/user/one-Package/${encodeURIComponent(targetPackageId)}`, {
+                method: "POST"
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}: Package not found`);
 
-            panels.panels.forEach(panel => {
-                const optionElement = document.createElement('div');
-                optionElement.className = "hint-option2";
-                optionElement.setAttribute('sample-type', JSON.stringify(panel.sample_types));
-                optionElement.setAttribute('data-id', panel._id); // ✅ panel id
-                optionElement.innerText = panel.name;
+            const data = await res.json();
+            populateFormData(data);
 
-                optionElement.addEventListener("click", function (e) {
-                    const panelName = e.target.innerText;
-                    const sampleTypes = JSON.parse(e.target.getAttribute('sample-type'));
-                    const panelId = e.target.getAttribute('data-id');
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+        } catch (err) {
+            console.error("Error fetching package details:", err);
+            if (loadingOverlay) {
+                loadingOverlay.innerHTML = `
+                    <div style="color:#ef4444; font-weight:600; font-size:1.1rem; margin-bottom:8px;">Failed to load package</div>
+                    <div style="color:#64748b; font-size:0.85rem; margin-bottom:14px;">${escapeHtml(err.message)}</div>
+                    <button type="button" class="pkg-btn pkg-btn-outline" onclick="loadPage(\'testPackage\')"><i class="fa-solid fa-arrow-left"></i> Back to Packages</button>
+                `;
+            }
+        }
+    }
 
-                    if (inputarray2.includes(panelName)) {
-                        inputarray2 = inputarray2.filter(name => name !== panelName);
-                        panelIds = panelIds.filter(id => id !== panelId); // ✅ remove panel id
-                        sample_types2 = sample_types2.filter(type => !sampleTypes.includes(type));
-                        Array.from(tagsdiv2.children).forEach(tag => {
-                            if (tag.innerText.includes(panelName)) tag.remove();
-                        });
-                        optionElement.style.display = "block";
-                    } else {
-                        addPanelTag(panelName, sampleTypes, panelId);
-                        optionElement.style.display = "none";
-                    }
-                    searchHint2.style.display = "none";
-                    console.log("testId:", testIds);
-                    console.log("panelid:", panelIds);
+    function populateFormData(pkg) {
+        if (!pkg) return;
+
+        if (headerPackageName) headerPackageName.textContent = `Edit: ${pkg.packageName || 'Package'}`;
+        if (headerPackageMeta) headerPackageMeta.textContent = `ID: ${pkg._id}`;
+
+        packageNameInput.value = pkg.packageName || "";
+        packageFeeInput.value = pkg.packageFee != null ? pkg.packageFee : "";
+        finalPriceInput.value = pkg.final_price != null ? pkg.final_price : "";
+
+        if (pkg.packageGender || pkg.packagegender) {
+            const genderVal = pkg.packageGender || pkg.packagegender;
+            Array.from(packageGenderSelect.options).forEach((opt) => {
+                if (opt.value.toLowerCase() === genderVal.toLowerCase()) {
+                    opt.selected = true;
+                }
+            });
+        }
+
+        // Selected Panels
+        selectedPanelsMap.clear();
+        if (Array.isArray(pkg.pannelIds) && pkg.pannelIds.length > 0) {
+            pkg.pannelIds.forEach((pRef) => {
+                const id = typeof pRef === "object" ? pRef._id : pRef;
+                const matched = availablePanels.find(p => p._id === id);
+                if (matched) {
+                    selectedPanelsMap.set(matched._id, {
+                        id: matched._id,
+                        name: matched.name,
+                        price: parseFloat(matched.price) || 0,
+                        sampleTypes: Array.isArray(matched.sample_types) ? matched.sample_types : (matched.sample_types ? [matched.sample_types] : [])
+                    });
+                } else if (typeof pRef === "object" && pRef.name) {
+                    selectedPanelsMap.set(id, {
+                        id,
+                        name: pRef.name,
+                        price: 0,
+                        sampleTypes: []
+                    });
+                }
+            });
+        } else if (Array.isArray(pkg.pannelname) && pkg.pannelname.length > 0) {
+            pkg.pannelname.forEach((pName, idx) => {
+                const matched = availablePanels.find(p => p.name === pName);
+                if (matched) {
+                    selectedPanelsMap.set(matched._id, {
+                        id: matched._id,
+                        name: matched.name,
+                        price: parseFloat(matched.price) || 0,
+                        sampleTypes: Array.isArray(matched.sample_types) ? matched.sample_types : []
+                    });
+                } else {
+                    const fallbackSample = pkg.pannelSample && pkg.pannelSample[idx] ? [pkg.pannelSample[idx]] : [];
+                    selectedPanelsMap.set(pName, {
+                        id: pName,
+                        name: pName,
+                        price: 0,
+                        sampleTypes: fallbackSample
+                    });
+                }
+            });
+        }
+        renderSelectedPanels();
+
+        // Selected Tests
+        selectedTestsMap.clear();
+        if (Array.isArray(pkg.testIds) && pkg.testIds.length > 0) {
+            pkg.testIds.forEach((tRef) => {
+                const id = typeof tRef === "object" ? tRef._id : tRef;
+                const matched = availableTests.find(t => t._id === id);
+                if (matched) {
+                    selectedTestsMap.set(matched._id, {
+                        id: matched._id,
+                        name: matched.Name,
+                        price: parseFloat(matched.Price) || 0,
+                        sampleType: matched.sampleType || "N/A"
+                    });
+                } else if (typeof tRef === "object" && tRef.Name) {
+                    selectedTestsMap.set(id, {
+                        id,
+                        name: tRef.Name,
+                        price: 0,
+                        sampleType: "N/A"
+                    });
+                }
+            });
+        } else if (Array.isArray(pkg.testname) && pkg.testname.length > 0) {
+            pkg.testname.forEach((tName, idx) => {
+                const matched = availableTests.find(t => t.Name === tName);
+                if (matched) {
+                    selectedTestsMap.set(matched._id, {
+                        id: matched._id,
+                        name: matched.Name,
+                        price: parseFloat(matched.Price) || 0,
+                        sampleType: matched.sampleType || "N/A"
+                    });
+                } else {
+                    const fallbackSample = pkg.testSample && pkg.testSample[idx] ? pkg.testSample[idx] : "N/A";
+                    selectedTestsMap.set(tName, {
+                        id: tName,
+                        name: tName,
+                        price: 0,
+                        sampleType: fallbackSample
+                    });
+                }
+            });
+        }
+        renderSelectedTests();
+
+        updateCalculations();
+    }
+
+    // Panel Picker
+    function filterPanelDropdown() {
+        const query = (panelSearchInput.value || "").trim().toLowerCase();
+        panelSearchDropdown.innerHTML = "";
+
+        const matches = availablePanels.filter((p) => {
+            if (selectedPanelsMap.has(p._id)) return false;
+            const name = (p.name || "").toLowerCase();
+            const code = (p.Short_name || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query);
+        });
+
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching panels found" : "All panels selected";
+            panelSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 25).forEach((p) => {
+                const item = document.createElement("div");
+                item.className = "pkg-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(p.name)}</span>
+                        ${p.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(p.Short_name)})</span>` : ""}
+                    </div>
+                    <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                        ₹${p.price || 0}
+                    </span>
+                `;
+
+                item.addEventListener("click", () => {
+                    selectPanel(p);
+                    panelSearchInput.value = "";
+                    panelSearchDropdown.style.display = "none";
+                    panelSearchInput.focus();
                 });
 
-                searchHint2.appendChild(optionElement);
+                panelSearchDropdown.appendChild(item);
             });
-
-            pannelsInput.addEventListener("click", () => searchHint2.style.display = "block");
-            document.addEventListener("click", (e) => {
-                if (!pannelsInput.contains(e.target) && !searchHint2.contains(e.target)) searchHint2.style.display = "none";
-            });
-
-        } catch (error) {
-            console.log("something went wrong", error);
         }
+
+        panelSearchDropdown.style.display = "block";
     }
 
-    function deepFlatten(array) {
-        return array.reduce((acc, val) =>
-            Array.isArray(val) ? acc.concat(deepFlatten(val)) : acc.concat(val), []
-        );
+    function selectPanel(panel) {
+        if (!panel || !panel._id) return;
+        selectedPanelsMap.set(panel._id, {
+            id: panel._id,
+            name: panel.name,
+            price: parseFloat(panel.price) || 0,
+            sampleTypes: Array.isArray(panel.sample_types) ? panel.sample_types : (panel.sample_types ? [panel.sample_types] : [])
+        });
+        renderSelectedPanels();
+        updateCalculations();
     }
 
-    document.getElementById("submitButton").addEventListener("click", async () => {
-        const namefield = document.getElementById('name');
-        const errormessage = document.querySelector('.errormessage');
-        const alert = document.querySelector(".alert");
+    function deselectPanel(panelId) {
+        selectedPanelsMap.delete(panelId);
+        renderSelectedPanels();
+        updateCalculations();
+    }
 
-        if (namefield.value.trim().includes(",")) {
-            errormessage.style.display = "block";
-            namefield.scrollIntoView({ behavior: "smooth" })
-            namefield.focus();
+    function renderSelectedPanels() {
+        selectedPanelsContainer.innerHTML = "";
+
+        if (selectedPanelsMap.size === 0) {
+            selectedPanelsContainer.appendChild(emptyPanelsHint);
+            if (panelsCountBadge) panelsCountBadge.textContent = "0 panels selected";
             return;
-        } else {
-            errormessage.style.display = "none";
         }
 
-        const packageData = {
-            packageName: namefield.value.trim(),
-            final_price: document.getElementById('final-price').value,
-            packageFee: document.getElementById('fee').value,
-            packageGender: document.getElementById('gender').value,
-            testname: removeDuplicates(inputarray),
-            testSample: removeDuplicates(deepFlatten(sample_types)),
-            testIds: removeDuplicates(testIds), // ✅ test IDs
-            pannelname: removeDuplicates(inputarray2),
-            pannelSample: removeDuplicates(deepFlatten(sample_types2)),
-            pannelIds: removeDuplicates(panelIds) // ✅ panel IDs
+        if (panelsCountBadge) panelsCountBadge.textContent = `${selectedPanelsMap.size} panels selected`;
+
+        selectedPanelsMap.forEach((p, id) => {
+            const tag = document.createElement("div");
+            tag.className = "pkg-tag panel-tag";
+            tag.innerHTML = `
+                <i class="fa-solid fa-rectangle-list"></i>
+                <span>${escapeHtml(p.name)}</span>
+                <span style="color:#0369a1; font-weight:700; font-size:0.75rem;">₹${p.price}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
+
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectPanel(id));
+            selectedPanelsContainer.appendChild(tag);
+        });
+    }
+
+    // Test Picker
+    function filterTestDropdown() {
+        const query = (testSearchInput.value || "").trim().toLowerCase();
+        testSearchDropdown.innerHTML = "";
+
+        const matches = availableTests.filter((t) => {
+            if (selectedTestsMap.has(t._id)) return false;
+            const name = (t.Name || "").toLowerCase();
+            const code = (t.Short_name || "").toLowerCase();
+            const sample = (t.sampleType || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query) || sample.includes(query);
+        });
+
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching tests found" : "All tests selected";
+            testSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 25).forEach((t) => {
+                const item = document.createElement("div");
+                item.className = "pkg-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(t.Name)}</span>
+                        ${t.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(t.Short_name)})</span>` : ""}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.72rem; padding:2px 6px; background:#fef2f2; color:#b91c1c; border-radius:4px; border:1px solid #fee2e2;">
+                            ${escapeHtml(t.sampleType || "N/A")}
+                        </span>
+                        <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                            ₹${t.Price || 0}
+                        </span>
+                    </div>
+                `;
+
+                item.addEventListener("click", () => {
+                    selectTest(t);
+                    testSearchInput.value = "";
+                    testSearchDropdown.style.display = "none";
+                    testSearchInput.focus();
+                });
+
+                testSearchDropdown.appendChild(item);
+            });
+        }
+
+        testSearchDropdown.style.display = "block";
+    }
+
+    function selectTest(test) {
+        if (!test || !test._id) return;
+        selectedTestsMap.set(test._id, {
+            id: test._id,
+            name: test.Name,
+            price: parseFloat(test.Price) || 0,
+            sampleType: test.sampleType || "N/A"
+        });
+        renderSelectedTests();
+        updateCalculations();
+    }
+
+    function deselectTest(testId) {
+        selectedTestsMap.delete(testId);
+        renderSelectedTests();
+        updateCalculations();
+    }
+
+    function renderSelectedTests() {
+        selectedTestsContainer.innerHTML = "";
+
+        if (selectedTestsMap.size === 0) {
+            selectedTestsContainer.appendChild(emptyTestsHint);
+            if (testsCountBadge) testsCountBadge.textContent = "0 tests selected";
+            return;
+        }
+
+        if (testsCountBadge) testsCountBadge.textContent = `${selectedTestsMap.size} tests selected`;
+
+        selectedTestsMap.forEach((t, id) => {
+            const tag = document.createElement("div");
+            tag.className = "pkg-tag test-tag";
+            tag.innerHTML = `
+                <i class="fa-solid fa-vial-virus"></i>
+                <span>${escapeHtml(t.name)}</span>
+                <span class="sample-pill">${escapeHtml(t.sampleType)}</span>
+                <span style="color:#6d28d9; font-weight:700; font-size:0.75rem;">₹${t.price}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
+
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectTest(id));
+            selectedTestsContainer.appendChild(tag);
+        });
+    }
+
+    // Calculations
+    function updateCalculations() {
+        let standaloneSum = 0;
+        const allSamples = new Set();
+
+        selectedPanelsMap.forEach((p) => {
+            standaloneSum += p.price;
+            p.sampleTypes.forEach(s => s && allSamples.add(String(s).trim()));
+        });
+
+        selectedTestsMap.forEach((t) => {
+            standaloneSum += t.price;
+            if (t.sampleType) allSamples.add(String(t.sampleType).trim());
+        });
+
+        const packageFee = parseFloat(packageFeeInput.value) || 0;
+
+        calcStandaloneTotal.textContent = `₹${standaloneSum}`;
+        calcPackageFee.textContent = `₹${packageFee}`;
+
+        if (standaloneSum > 0 && packageFee > 0) {
+            const savingAmount = Math.max(0, standaloneSum - packageFee);
+            const savingPercent = Math.round((savingAmount / standaloneSum) * 100);
+            calcSavings.textContent = `${savingPercent}% (₹${savingAmount})`;
+        } else {
+            calcSavings.textContent = "0% (₹0)";
+        }
+
+        calcSamples.textContent = Array.from(allSamples).join(", ") || "-";
+    }
+
+    async function submitPackageUpdate() {
+        const nameVal = packageNameInput.value.trim();
+        const genderVal = packageGenderSelect.value;
+        const feeVal = parseFloat(packageFeeInput.value);
+        const mrpVal = parseFloat(finalPriceInput.value);
+
+        if (!nameVal) {
+            showToast("Package name is required", "error");
+            packageNameInput.focus();
+            return;
+        }
+
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in package name", "error");
+            packageNameInput.focus();
+            return;
+        }
+
+        if (isNaN(feeVal) || isNaN(mrpVal)) {
+            showToast("Please enter Billing Price and MRP Value", "error");
+            packageFeeInput.focus();
+            return;
+        }
+
+        if (selectedPanelsMap.size === 0 && selectedTestsMap.size === 0) {
+            showToast("Please select at least one Test or Panel to include in the package", "error");
+            return;
+        }
+
+        const pannelIds = Array.from(selectedPanelsMap.keys());
+        const pannelname = Array.from(selectedPanelsMap.values()).map(p => p.name);
+        const pannelSample = Array.from(selectedPanelsMap.values()).flatMap(p => p.sampleTypes);
+
+        const testIds = Array.from(selectedTestsMap.keys());
+        const testname = Array.from(selectedTestsMap.values()).map(t => t.name);
+        const testSample = Array.from(selectedTestsMap.values()).map(t => t.sampleType);
+
+        const payload = {
+            packageName: nameVal,
+            packageFee: feeVal,
+            final_price: mrpVal,
+            packagegender: genderVal,
+            packageGender: genderVal,
+            pannelIds,
+            pannelname,
+            pannelSample,
+            testIds,
+            testname,
+            testSample
         };
 
-        if (!packageData.packageName || !packageData.packageFee || !packageData.final_price) {
-            alert.innerHTML = `Missing required fields<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success");
-            alert.classList.add("alert-danger", "show");
-            setTimeout(() => alert.classList.remove("show"), 3000);
-            return;
-        }
-        if (inputarray.length === 0 && inputarray2.length === 0) {
-            alert.innerHTML = `Please select at least one Test or Panel<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success");
-            alert.classList.add("alert-danger", "show");
-            setTimeout(() => alert.classList.remove("show"), 3000);
-            return;
-        }
+        savePackageBtn.disabled = true;
+        savePackageBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
 
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/edit-Package-tenant/${name1}`, {
+            const res = await fetch(`${BASE_URL}/api/v1/user/edit-Package-tenant/${encodeURIComponent(targetPackageId)}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(packageData)
+                body: JSON.stringify(payload)
             });
 
-            const data = await response.json();
-            if (response.ok) {
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-danger");
-                alert.classList.add("alert-success", "show");
-                setTimeout(() => location.reload(), 3500);
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast("Package updated successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("testPackage");
+                    } else {
+                        window.location.href = "?page=testPackage";
+                    }
+                }, 1200);
             } else {
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success");
-                alert.classList.add("alert-danger", "show");
+                showToast(data.message || "Failed to update package", "error");
+                savePackageBtn.disabled = false;
+                savePackageBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Package';
             }
-        } catch (error) {
-            alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success");
-            alert.classList.add("alert-danger", "show");
-        }
-
-        setTimeout(() => alert.classList.remove("show"), 3000);
-    });
-
-    let sample_types_count = {};
-    let sample_types2_count = {};
-
-    function addSampleType(sampleTypesArray, sampleType, countObj) {
-        if (countObj[sampleType]) {
-            countObj[sampleType]++;
-        } else {
-            countObj[sampleType] = 1;
-            sampleTypesArray.push(sampleType);
+        } catch (err) {
+            console.error("Update error:", err);
+            showToast("Network error: " + err.message, "error");
+            savePackageBtn.disabled = false;
+            savePackageBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Package';
         }
     }
 
-    function removeSampleType(sampleTypesArray, sampleType, countObj) {
-        if (countObj[sampleType]) {
-            countObj[sampleType]--;
-            if (countObj[sampleType] === 0) {
-                delete countObj[sampleType];
-                const index = sampleTypesArray.indexOf(sampleType);
-                if (index > -1) sampleTypesArray.splice(index, 1);
-            }
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("pkgToast");
+        const toastMsg = document.getElementById("pkgToastMsg");
+        if (!toast || !toastMsg) return;
+
+        toastMsg.textContent = message;
+        toast.className = `pkg-toast ${type} show`;
+
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
         }
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 3200);
     }
 
-    function searchingTest() {
-        TestSearchInput.addEventListener("input", function () {
-            const inputValue = this.value.toLowerCase();
-            const selectedDivs = document.querySelectorAll('.hint-option');
-            let found = false;
-
-            selectedDivs.forEach(antest => {
-                const testName = antest.innerText.toLowerCase();
-                if (testName.includes(inputValue)) {
-                    antest.style.display = 'block';
-                    found = true;
-                } else {
-                    antest.style.display = 'none';
-                }
-            });
-
-            document.getElementById("noTestMessage").style.display = found ? "none" : "";
-        });
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
-
-    function searchingPannel() {
-        pannelsInput.addEventListener("input", function () {
-            const inputValue = this.value.toLowerCase();
-            const selectedDivs = document.querySelectorAll('.hint-option2');
-            let found = false;
-
-            selectedDivs.forEach(antest => {
-                const testName = antest.innerText.toLowerCase();
-                if (testName.includes(inputValue)) {
-                    antest.style.display = 'block';
-                    found = true;
-                } else {
-                    antest.style.display = 'none';
-                }
-            });
-
-            document.getElementById("noTestMessage2").style.display = found ? "none" : "";
-        });
-    }
-
-    async function initialization() {
-        await loadPackageData(name1);
-        await loadTests();
-        await loadpannels();
-        searchingTest();
-        searchingPannel();
-    }
-
-    initialization();
-}
-loading();
+})();

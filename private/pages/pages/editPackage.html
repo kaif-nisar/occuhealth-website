@@ -1,553 +1,553 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Add New Test Package</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Health Package - Occuhealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
-        .form-group {
-            margin: 20px 0;
-            font-family: Arial, sans-serif;
+        .pkg-form-wrapper {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
+            box-sizing: border-box;
+            position: relative;
         }
 
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 10px;
+        .pkg-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 16px;
         }
 
-        #testInput {
-            width: 95%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
+        .pkg-breadcrumb a {
+            color: #7c3aed;
+            text-decoration: none;
             cursor: pointer;
+            font-weight: 500;
         }
 
-        #dropdown {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: white;
-            max-height: 150px;
-            /* Optional */
-            overflow-y: auto;
-            /* Optional */
-            /* position: absolute; */
-            /* Positioning for dropdown */
-            width: 100%;
-            z-index: 1000;
-            /* Ensures dropdown is on top */
-        }
+        .pkg-breadcrumb a:hover { text-decoration: underline; }
 
-        #testOptions {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #testOptions li {
-            padding: 10px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #testOptions li:hover {
-            background-color: #f0f0f0;
-            /* Highlight on hover */
-        }
-
-        #testList {
-            list-style-type: none;
-            padding: 0;
-            margin: 10px 0;
-        }
-
-        #testList li {
+        .pkg-header {
             display: flex;
             justify-content: space-between;
-            /* Align text and button */
             align-items: center;
-            padding: 8px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 5px;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        #testList li button {
-            background-color: #ff4c4c;
-            /* Red for remove button */
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 5px 10px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #testList li button:hover {
-            background-color: #e63939;
-            /* Darker red on hover */
-        }
-
-        h4 {
-            margin: 10px 0;
-        }
-
-        #testInput:focus {
-            border-color: #66afe9;
-            /* Light blue border on focus */
-            outline: none;
-            /* Remove default outline */
-            box-shadow: 0 0 5px rgba(102, 175, 233, .5);
-            /* Add a subtle shadow */
-        }
-
-        #dropdown {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: white;
-            max-height: 150px;
-            overflow-y: auto;
-            /* position: absolute; */
-            width: calc(100% - 2px);
-            /* Account for border */
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            /* Subtle shadow */
-        }
-
-        #testOptions li.active {
-            background-color: #e0e0e0;
-            /* Light grey for active item */
-        }
-
-        #dropdown::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        #dropdown::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 10px;
-        }
-
-        #dropdown::-webkit-scrollbar-thumb:hover {
-            background: #aaa;
-        }
-
-
-        .breadcrumb {
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        .breadcrumb a {
-            color: #1a73e8;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        .breadcrumb span {
-            margin: 0 5px;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        p {
-            font-size: 14px;
-            color: #666666;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            font-size: 14px;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-        }
-
-        .form-group a {
-            color: #1a73e8;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .form-group a:hover {
-            text-decoration: underline;
-        }
-
-        .form-group button {
-            padding: 10px 20px;
-            font-size: 14px;
-            color: #ffffff;
-            background-color: #1a73e8;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .form-group button:hover {
-            background-color: #155ab6;
-        }
-
-        /* Hide the default select tag */
-        /* Style for options container to appear above the input without overlapping */
-        #search-hint {
-            border: 1px solid #ccc;
-            max-height: 150px;
-            overflow-y: scroll;
-            background: #f9f9f9;
-            position: relative;
-            z-index: 1000;
-            width: calc(100% - 2px);
-            left: 0;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            transform-origin: bottom;
-            display: none;
-            color: black;
-        }
-
-        .hint-option,
-        .hint-option2 {
-            padding: 0.5rem 1rem;
-        }
-
-        #search-hint2 {
-            border: 1px solid #ccc;
-            max-height: 150px;
-            overflow-y: scroll;
-            background: #f9f9f9;
-            position: relative;
-            z-index: 1000;
-            width: calc(100% - 2px);
-            left: 0;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            transform-origin: bottom;
-            display: none;
-            color: black;
-        }
-
-        /* addpannel ki css  */
-        .tests-container {
-            margin-bottom: 20px;
-        }
-
-        .tests-container input {
-            width: 100%;
-            margin: 1rem 0rem;
-            border-radius: 4px;
-            border: none;
-            background-color: transparent;
-        }
-
-        .tests-container input:focus {
-            outline: none;
-        }
-
-        .search-hint {
-            max-height: 40vh;
-            font-size: 12px;
-            color: #888;
-            overflow-y: scroll;
-            border: 1px solid #333;
-        }
-
-
-        .copy-interpretations {
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 20px;
+        .pkg-header-left {
             display: flex;
             align-items: center;
+            gap: 14px;
         }
 
-        .copy-interpretations .icon {
-            background-color: #ffebee;
-            border-radius: 50%;
-            padding: 5px;
-            margin-right: 10px;
-        }
-
-        .copy-interpretations .text {
-            color: #333;
-        }
-
-        .copy-interpretations .new {
-            background-color: #ffebee;
-            color: #d32f2f;
-            border-radius: 4px;
-            padding: 2px 5px;
-            margin-left: 5px;
-        }
-
-        .interpretation-container {
-            margin-bottom: 20px;
-        }
-
-        .interpretation-container .toolbar {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-
-        .interpretation-container .toolbar select,
-        .interpretation-container .toolbar button {
-            margin-right: 5px;
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
-        }
-
-        .interpretation-container .toolbar button {
+        .pkg-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #ffffff;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
         }
 
-        .interpretation-container .toolbar button i {
-            margin-right: 5px;
+        .pkg-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.02em;
         }
 
-        .interpretation-container textarea {
-            width: 100%;
-            height: 100px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        .pkg-title p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 2px 0 0 0;
         }
 
-        .buttons {
-            display: flex;
-            justify-content: flex-start;
-        }
-
-        .buttons button {
+        .pkg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 10px 20px;
-            margin-right: 10px;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
-        }
-
-        .buttons .save {
-            background-color: #007bff;
-        }
-
-        .buttons .cancel {
-            background-color: #6c757d;
-        }
-
-        .container {
-            width: 90%;
-            margin: 50px auto;
-        }
-
-        .breadcrumb {
-            font-size: 14px;
-            color: #1a73e8;
-            margin-bottom: 20px;
-        }
-
-        .breadcrumb a {
-            color: #1a73e8;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
             text-decoration: none;
         }
 
-        .breadcrumb a:hover {
-            text-decoration: underline;
+        .pkg-btn-primary {
+            background: #7c3aed;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
         }
 
-        .title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
+        .pkg-btn-primary:hover:not(:disabled) {
+            background: #6d28d9;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
         }
 
-        .info-box {
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
+        .pkg-btn-outline {
+            background: #ffffff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .pkg-btn-outline:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* Card */
+        .pkg-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .pkg-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
+            gap: 8px;
         }
 
-        .info-box i {
-            margin-right: 10px;
-        }
-
-        .form-group {
+        .pkg-card-desc {
+            font-size: 0.85rem;
+            color: #64748b;
             margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-
-        .form-group input[type="checkbox"] {
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .form-group label.checkbox-label {
-            display: inline-block;
-            font-weight: normal;
-        }
-
-        .hint-option-div {
-            padding: 0.5rem 1rem;
-            font-size: 1.25rem;
-            color: rgb(0, 0, 0);
-            border-bottom: 1px solid rgb(35, 35, 35);
-        }
-
-        .hint-option:hover {
-            background-color: #00d0ff;
-        }
-
-        .selected-div,
-        .selected-div2 {
-            width: fit-content;
-            height: 1rem;
-            padding: 0.75rem 0.5rem;
-            border-radius: 5px;
-            border: 1px solid rgb(53, 53, 53);
-            display: flex;
-            margin: 0.25rem;
-            align-items: center;
-        }
-
-        .selected-div i {
-            padding-left: 0.75rem;
-        }
-
-        .middle-tag-div,
-        .middle-tag-div2 {
+        .pkg-grid-2 {
             display: grid;
-            grid-template-columns: auto auto auto auto auto auto auto;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 16px;
         }
 
-        #noTestMessage,
-        #noTestMessage2 {
-            text-align: center;
-            font-size: 1.25rem;
-            border: 1px solid black;
-            padding: 0.5rem 0rem;
+        .pkg-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
         }
 
-        .hint-option,
-        .hint-option2 {
-            font-size: 1.25rem;
+        .pkg-form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .errormessage {
+        .pkg-form-group label .req { color: #ef4444; margin-left: 3px; }
+
+        .pkg-input, .pkg-select {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .pkg-input:focus, .pkg-select:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        .pkg-input-error {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+        }
+
+        .pkg-error-text {
+            color: #ef4444;
+            font-size: 0.75rem;
+            font-weight: 500;
             display: none;
-            color: #B00020;
-            padding: 5px;
         }
 
-        .alert {
-            position: fixed;
-            width: 75%;
-            top: 80px;
-            right: 2%;
-            z-index: 1050;
+        /* Dual Item Picker */
+        .pkg-picker-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 18px;
+            background: #f8fafc;
+            margin-bottom: 20px;
         }
+
+        .pkg-picker-header {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pkg-selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 44px;
+            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .pkg-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .pkg-tag.panel-tag {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .pkg-tag.test-tag {
+            background: #faf5ff;
+            color: #6d28d9;
+            border: 1px solid #ddd6fe;
+        }
+
+        .pkg-tag .sample-pill {
+            font-size: 0.7rem;
+            padding: 1px 5px;
+            background: #ffffff;
+            border-radius: 4px;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .pkg-tag .del-btn {
+            cursor: pointer;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .pkg-tag .del-btn:hover { color: #ef4444; }
+
+        .pkg-empty-tags-hint {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            padding-left: 6px;
+        }
+
+        .pkg-search-wrapper {
+            position: relative;
+        }
+
+        .pkg-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
+            margin-top: 4px;
+            display: none;
+        }
+
+        .pkg-dropdown-item {
+            padding: 10px 14px;
+            font-size: 0.875rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pkg-dropdown-item:hover { background: #f5f3ff; color: #7c3aed; }
+
+        /* Summary Helper Card */
+        .pkg-calculator-card {
+            background: #fdf4ff;
+            border: 1px solid #f0abfc;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .pkg-calc-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .pkg-calc-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #701a75;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .pkg-calc-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #86198f;
+        }
+
+        /* Sticky Footer */
+        .pkg-footer-bar {
+            position: sticky;
+            bottom: 0;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.05);
+            margin: 24px -24px -24px -24px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        /* Loading Overlay */
+        .pkg-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(248, 250, 252, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            gap: 12px;
+        }
+
+        /* Toast */
+        .pkg-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 99999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pkg-toast.show { transform: translateY(0); opacity: 1; }
+        .pkg-toast.success { background: #065f46; border-left: 4px solid #10b981; }
+        .pkg-toast.error { background: #991b1b; border-left: 4px solid #ef4444; }
+        .pkg-toast.info { background: #4c1d95; border-left: 4px solid #7c3aed; }
     </style>
 </head>
-
 <body>
-    <div class="alert" role="alert"></div>
-
-    <h1>Edit package</h1>
-    <div class="breadcrumb">
-        <a href="#">Packages</a>
-        <span>&gt;</span>
-        <span>Edit</span>
-    </div>
-
-    <div class="form-group">
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name">
-        <span class="errormessage">!comma (,) not-allowed in this field</span>
-    </div>
-    <div class="form-group">
-        <label for="fee">Billing Price</label>
-        <input type="text" id="fee" name="fee">
-    </div>
-    <div class="form-group">
-        <label for="final-price">MRP Price</label>
-        <input type="text" id="final-price" name="final-price">
-    </div>
-    <div class="form-group">
-        <label for="gender">Bill only for gender</label>
-        <select id="gender" name="gender">
-            <option>Both</option>
-            <option>male</option>
-            <option>female</option>
-        </select>
-    </div>
-
-    <!-- change  -->
-    <div class="form-group">
-        <label for="panels">Tests</label>
-        <div class="select-and-input" id="select-and-input">
-            <div class="middle-tag-div" id="middle-tag-div"></div>
-            <input type="text" id="tests" placeholder="Search by typing full test name">
-            <div class="search-hint" id="search-hint"></div>
-            <div id="noTestMessage" style="display: none;">No test found</div>
+    <div class="pkg-form-wrapper">
+        <!-- Loading Overlay -->
+        <div id="pkgLoadingOverlay" class="pkg-loading-overlay">
+            <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#7c3aed;"></i>
+            <div style="font-weight:600; color:#334155;">Fetching health package details...</div>
         </div>
-    </div>
 
-    <!-- finish -->
-
-    <div class="form-group">
-        <label for="panels">Panels</label>
-        <div class="select-and-input" id="select-and-input">
-            <div class="middle-tag-div2" id="middle-tag-div2"></div>
-            <input type="text" id="tests2" placeholder="Search by typing full test name">
-            <div class="search-hint2" id="search-hint2"></div>
-            <div id="noTestMessage2" style="display: none;">No pannel found</div>
+        <!-- Breadcrumb -->
+        <div class="pkg-breadcrumb">
+            <a onclick="loadPage('testPackage')"><i class="fa-solid fa-arrow-left"></i> Package Database</a>
+            <span>/</span>
+            <span>Edit Package</span>
         </div>
+
+        <!-- Header -->
+        <div class="pkg-header">
+            <div class="pkg-header-left">
+                <div class="pkg-icon-badge">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div class="pkg-title">
+                    <h1 id="headerPackageName">Edit Health Package</h1>
+                    <p id="headerPackageMeta">Modify bundled panels, tests, target audience & package tariff</p>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="pkg-btn pkg-btn-outline" onclick="loadPage('testPackage')">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <form id="editPackageForm" onsubmit="return false;">
+            <!-- Basic Details -->
+            <div class="pkg-card">
+                <div class="pkg-card-title">
+                    <i class="fa-solid fa-circle-info" style="color:#7c3aed;"></i> Package Details & Pricing
+                </div>
+                <div class="pkg-card-desc">Specify package naming, target audience gender, and billing tariffs</div>
+
+                <div class="pkg-grid-2">
+                    <div class="pkg-form-group">
+                        <label for="packageName">Package Name <span class="req">*</span></label>
+                        <input type="text" id="packageName" class="pkg-input" placeholder="e.g. Master Health Checkup, Executive Cardiac Profile" required autocomplete="off">
+                        <span class="pkg-error-text" id="nameError">Comma (,) is not allowed in package name</span>
+                    </div>
+
+                    <div class="pkg-form-group">
+                        <label for="packageGender">Target Patient Gender <span class="req">*</span></label>
+                        <select id="packageGender" class="pkg-select" required>
+                            <option value="Both">Both (Male & Female)</option>
+                            <option value="male">Male Only</option>
+                            <option value="female">Female Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pkg-grid-2">
+                    <div class="pkg-form-group">
+                        <label for="packageFee">Billing Price (₹) <span class="req">*</span></label>
+                        <input type="number" id="packageFee" class="pkg-input" placeholder="e.g. 1499" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="pkg-form-group">
+                        <label for="finalPrice">MRP / Standard Value (₹) <span class="req">*</span></label>
+                        <input type="number" id="finalPrice" class="pkg-input" placeholder="e.g. 3500" min="0" step="0.01" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bundled Items Card -->
+            <div class="pkg-card">
+                <div class="pkg-card-title">
+                    <i class="fa-solid fa-layer-group" style="color:#2563eb;"></i> Included Investigations & Profiles <span class="req">*</span>
+                </div>
+                <div class="pkg-card-desc">Attach full diagnostic panels and single tests to this checkup package</div>
+
+                <!-- Panels Picker -->
+                <div class="pkg-picker-box">
+                    <div class="pkg-picker-header">
+                        <span><i class="fa-solid fa-rectangle-list" style="color:#0284c7;"></i> Included Panels</span>
+                        <span id="panelsCountBadge" style="font-size:0.75rem; color:#64748b;">0 panels selected</span>
+                    </div>
+
+                    <div class="pkg-selected-tags" id="selectedPanelsContainer">
+                        <span class="pkg-empty-tags-hint" id="emptyPanelsHint">No panels attached yet. Search panels below to bundle them.</span>
+                    </div>
+
+                    <div class="pkg-search-wrapper">
+                        <input type="text" id="panelSearchInput" class="pkg-input" placeholder="Search panels to add (e.g. LFT, Lipid, KFT)..." autocomplete="off">
+                        <div class="pkg-dropdown" id="panelSearchDropdown"></div>
+                    </div>
+                </div>
+
+                <!-- Tests Picker -->
+                <div class="pkg-picker-box">
+                    <div class="pkg-picker-header">
+                        <span><i class="fa-solid fa-vial-virus" style="color:#7c3aed;"></i> Included Individual Tests</span>
+                        <span id="testsCountBadge" style="font-size:0.75rem; color:#64748b;">0 tests selected</span>
+                    </div>
+
+                    <div class="pkg-selected-tags" id="selectedTestsContainer">
+                        <span class="pkg-empty-tags-hint" id="emptyTestsHint">No single tests attached yet. Search tests below to include them.</span>
+                    </div>
+
+                    <div class="pkg-search-wrapper">
+                        <input type="text" id="testSearchInput" class="pkg-input" placeholder="Search tests to add (e.g. Vitamin D, TSH, HbA1c)..." autocomplete="off">
+                        <div class="pkg-dropdown" id="testSearchDropdown"></div>
+                    </div>
+                </div>
+
+                <!-- Calculator summary -->
+                <div class="pkg-calculator-card" id="pkgCalcCard">
+                    <div class="pkg-calc-item">
+                        <span class="pkg-calc-label">Total Standalone Worth</span>
+                        <span class="pkg-calc-value" id="calcStandaloneTotal">₹0</span>
+                    </div>
+                    <div class="pkg-calc-item">
+                        <span class="pkg-calc-label">Package Fee</span>
+                        <span class="pkg-calc-value" style="color:#059669;" id="calcPackageFee">₹0</span>
+                    </div>
+                    <div class="pkg-calc-item">
+                        <span class="pkg-calc-label">Estimated Patient Savings</span>
+                        <span class="pkg-calc-value" style="color:#2563eb;" id="calcSavings">0% (₹0)</span>
+                    </div>
+                    <div class="pkg-calc-item">
+                        <span class="pkg-calc-label">Required Samples</span>
+                        <span id="calcSamples" style="font-size:0.85rem; font-weight:700; color:#b91c1c;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Bar -->
+            <div class="pkg-footer-bar">
+                <button type="button" class="pkg-btn pkg-btn-outline" onclick="loadPage('testPackage')">
+                    Cancel
+                </button>
+                <button type="button" class="pkg-btn pkg-btn-primary" id="savePackageBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Update Package
+                </button>
+            </div>
+        </form>
     </div>
-    <div class="form-group">
-        <button type="button" id="submitButton">Save</button>
+
+    <!-- Toast Notification -->
+    <div id="pkgToast" class="pkg-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="pkgToastMsg">Saved successfully</span>
     </div>
-    <script src="editPackage.js"></script>
+
+    <script src="pages/pages/editPackage.js"></script>
 </body>
-
 </html>

@@ -1,673 +1,644 @@
-(async function jl() {
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    let categoryArray = [];
-    //Function to load categories and populate the dropdown
-    function loadCategories() {
+    let categoryList = [];
+    let unitList = [];
+    let parameterCounter = 0;
 
+    // Elements
+    const testNameInput = document.getElementById("testName");
+    const shortNameInput = document.getElementById("shortName");
+    const categorySelect = document.getElementById("categorySelect");
+    const tatInput = document.getElementById("tatInput");
+    const billingPriceInput = document.getElementById("billingPrice");
+    const mrpPriceInput = document.getElementById("mrpPrice");
+    const sampleTypeSelect = document.getElementById("sampleTypeSelect");
+    const methodInput = document.getElementById("methodInput");
+    const instrumentInput = document.getElementById("instrumentInput");
+    const paramsTbody = document.getElementById("paramsTbody");
+    const addParamBtn = document.getElementById("addParamBtn");
+    const saveTestBtn = document.getElementById("saveTestBtn");
+    const nameError = document.getElementById("nameError");
 
-        fetch(`${BASE_URL}/api/v1/user/category-list-tenant`) // Fetch categories from your backend
-            .then(response => response.json())
-            .then(data => {
-                categoryArray.push(...(data.data));
-                const categorySelect = document.getElementById('category');
-                categorySelect.innerHTML = ''; // Clear any existing options
+    // Unit Modal Elements
+    const unitModal = document.getElementById("unitModal");
+    const openAddUnitModalBtn = document.getElementById("openAddUnitModal");
+    const closeUnitModalBtn = document.getElementById("closeUnitModal");
+    const cancelUnitBtn = document.getElementById("cancelUnitBtn");
+    const saveUnitBtn = document.getElementById("saveUnitBtn");
+    const newUnitNameInput = document.getElementById("newUnitName");
 
-                // Add default "select" option
-                const defaultOption = document.createElement('option');
-                defaultOption.textContent = 'Select Category';
-                defaultOption.disabled = true;
-                defaultOption.selected = true;
-                categorySelect.appendChild(defaultOption);
+    // Sample Modal Elements
+    const sampleModal = document.getElementById("sampleModal");
+    const openAddSampleModalBtn = document.getElementById("openAddSampleModal");
+    const closeSampleModalBtn = document.getElementById("closeSampleModal");
+    const cancelSampleBtn = document.getElementById("cancelSampleBtn");
+    const saveSampleBtn = document.getElementById("saveSampleBtn");
+    const newSampleNameInput = document.getElementById("newSampleName");
 
-                // Check if the API call was successful and we have data
-                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-                    // Loop through the categories and add them to the dropdown
-                    data.data.forEach(category => {
-                        const option = document.createElement('option');
-                        option.value = category.category;  // Using _id as the value
-                        option.textContent = category.category;  // Display the category name
-                        categorySelect.appendChild(option);
+    init();
+
+    async function init() {
+        setupTabs();
+        setupModals();
+        bindEvents();
+        await Promise.all([loadCategories(), loadUnits()]);
+
+        // Add initial parameter row
+        addParameterRow(true);
+    }
+
+    function setupTabs() {
+        const tabBtns = document.querySelectorAll(".at-tab-btn");
+        const tabContents = document.querySelectorAll(".at-tab-content");
+
+        tabBtns.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const targetTabId = btn.getAttribute("data-tab");
+                tabBtns.forEach((b) => b.classList.remove("active"));
+                tabContents.forEach((c) => c.classList.remove("active"));
+
+                btn.classList.add("active");
+                const targetContent = document.getElementById(targetTabId);
+                if (targetContent) targetContent.classList.add("active");
+            });
+        });
+    }
+
+    function setupModals() {
+        // Unit Modal
+        if (openAddUnitModalBtn) {
+            openAddUnitModalBtn.addEventListener("click", () => {
+                newUnitNameInput.value = "";
+                unitModal.style.display = "flex";
+                newUnitNameInput.focus();
+            });
+        }
+        if (closeUnitModalBtn) closeUnitModalBtn.addEventListener("click", () => unitModal.style.display = "none");
+        if (cancelUnitBtn) cancelUnitBtn.addEventListener("click", () => unitModal.style.display = "none");
+
+        if (saveUnitBtn) {
+            saveUnitBtn.addEventListener("click", async () => {
+                const unitVal = newUnitNameInput.value.trim();
+                if (!unitVal) return;
+                try {
+                    const res = await fetch(`${BASE_URL}/api/v1/user/add-unit-tenant`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ unit: unitVal })
                     });
+                    const data = await res.json();
+                    if (res.ok) {
+                        unitModal.style.display = "none";
+                        showToast("Unit added successfully", "success");
+                        await loadUnits(unitVal);
+                    } else {
+                        showToast(data.message || "Failed to add unit", "error");
+                    }
+                } catch (e) {
+                    showToast("Error adding unit: " + e.message, "error");
+                }
+            });
+        }
+
+        // Sample Modal
+        if (openAddSampleModalBtn) {
+            openAddSampleModalBtn.addEventListener("click", () => {
+                newSampleNameInput.value = "";
+                sampleModal.style.display = "flex";
+                newSampleNameInput.focus();
+            });
+        }
+        if (closeSampleModalBtn) closeSampleModalBtn.addEventListener("click", () => sampleModal.style.display = "none");
+        if (cancelSampleBtn) cancelSampleBtn.addEventListener("click", () => sampleModal.style.display = "none");
+
+        if (saveSampleBtn) {
+            saveSampleBtn.addEventListener("click", async () => {
+                const sampleVal = newSampleNameInput.value.trim();
+                if (!sampleVal) return;
+                // Add to dropdown immediately
+                const opt = document.createElement("option");
+                opt.value = sampleVal;
+                opt.textContent = sampleVal;
+                opt.selected = true;
+                sampleTypeSelect.appendChild(opt);
+
+                sampleModal.style.display = "none";
+                showToast("Sample type added", "success");
+
+                // Background sync
+                fetch(`${BASE_URL}/api/v1/user/add-sample-tenant`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sample: sampleVal })
+                }).catch(() => {});
+            });
+        }
+    }
+
+    function bindEvents() {
+        if (testNameInput) {
+            testNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("at-input-error");
                 } else {
-                    // If no categories are found, show a default message
-                    const option = document.createElement('option');
-                    option.textContent = 'No categories available';
-                    option.disabled = true;
-                    categorySelect.appendChild(option);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching categories:', error);
-                alert('Failed to load categories. Please try again.');
-            });
-    }
-    loadCategories();
-
-    document.getElementById('name').addEventListener('input', function () {
-        const parainput = document.getElementById('paraName');
-        parainput.value = this.value;
-    })
-
-    // Get elements
-    const addUnitIcon = document.getElementById('add-unit-icon');
-    const unitModal = document.getElementById('unit-modal');
-    const closeModal = document.getElementById('close-modal');
-    const saveUnitBtn = document.getElementById('save-unit');
-    const unitSelect = document.getElementById('unit-select');
-    const newUnitNameInput = document.getElementById('new-unit-name');
-
-    // Open modal when "+" icon is clicked
-    addUnitIcon.addEventListener('click', function () {
-        unitModal.style.display = 'block';
-    });
-
-    // Close the modal when "x" is clicked
-    closeModal.addEventListener('click', function () {
-        unitModal.style.display = 'none';
-    });
-
-    // Save the new unit and send it to the backend
-    saveUnitBtn.addEventListener('click', function () {
-        const newUnit = newUnitNameInput.value.trim();
-
-        if (newUnit) {
-            // Send the new unit to the server (use Fetch API)
-            fetch(`${BASE_URL}/api/v1/user/add-unit-tenant`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ unit: newUnit })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Close the modal and reset the input field
-                    unitModal.style.display = 'none';
-                    newUnitNameInput.value = '';
-
-                    // Optionally refresh the dropdown with the new unit
-                    loadUnits();
-
-                    // Display success message (optional)
-                    alert('Unit added successfully!');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    // Optionally show an error message to the admin
-                    alert('Failed to add unit. Please try again.');
-                });
-        }
-    });
-
-    // Close the modal if the admin clicks outside of the modal content
-    window.addEventListener('click', function (event) {
-        if (event.target === unitModal) {
-            unitModal.style.display = 'none';
-        }
-    });
-
-    // Function to load units from the database and update the dropdown
-    let units = []; // To store units once loaded
-
-    function loadUnits() {
-        fetch(`${BASE_URL}/api/v1/user/get-units-tenant`)
-            .then(response => response.json())
-            .then(data => {
-                units = data.units; // Save the units in a variable to be reused
-                const unitSelect = document.getElementById("unit-select");
-                unitSelect.innerHTML = '';
-
-                unitSelect.innerHTML = `<option value="">Select Unit</option>`;
-                if (data.units.length === 0) {
-                    console.log("units not found");
-                    return;
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("at-input-error");
                 }
 
-                // Add new options from the database
-                data.units.forEach(unit => {
-                    const option = document.createElement('option');
-                    option.value = unit.unit;
-                    option.textContent = unit.unit;
-                    unitSelect.appendChild(option);
+                // Sync first parameter name if it was empty or matched previous value
+                const firstParamInput = paramsTbody.querySelector("tr:first-child .at-param-name");
+                if (firstParamInput && (!firstParamInput.value || firstParamInput.dataset.synced === "true")) {
+                    firstParamInput.value = this.value;
+                    firstParamInput.dataset.synced = "true";
+                }
+            });
+        }
+
+        if (addParamBtn) {
+            addParamBtn.addEventListener("click", () => {
+                addParameterRow(false);
+            });
+        }
+
+        if (saveTestBtn) {
+            saveTestBtn.addEventListener("click", submitTest);
+        }
+    }
+
+    async function loadCategories() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`);
+            const data = await res.json();
+            categoryList = data.categories || data.data || [];
+
+            categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+            categoryList.forEach((cat) => {
+                const val = cat.category || cat;
+                const opt = document.createElement("option");
+                opt.value = val;
+                opt.textContent = val;
+                categorySelect.appendChild(opt);
+            });
+        } catch (e) {
+            console.error("Failed to load categories:", e);
+            categorySelect.innerHTML = '<option value="" disabled selected>General</option>';
+        }
+    }
+
+    async function loadUnits(selectedUnit = "") {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/get-units-tenant`);
+            const data = await res.json();
+            unitList = data.units || [];
+
+            // Update all unit selects in the table
+            const unitSelects = paramsTbody.querySelectorAll(".at-unit-select");
+            unitSelects.forEach((sel) => {
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">-- Unit --</option>';
+                unitList.forEach((u) => {
+                    const uName = u.unit || u;
+                    const opt = document.createElement("option");
+                    opt.value = uName;
+                    opt.textContent = uName;
+                    sel.appendChild(opt);
                 });
-            })
-            .catch(error => {
-                console.error('Error loading units:', error.message);
+                if (selectedUnit) sel.value = selectedUnit;
+                else if (currentVal) sel.value = currentVal;
             });
-    }
-
-    // Load units when the page loads
-    loadUnits();
-
-    function normalizeShortName(value) {
-        return typeof value === "string" ? value.trim() : "";
-    }
-
-    function getUniqueShortNames(values = []) {
-        return [...new Set(values.map(normalizeShortName).filter(Boolean))];
-    }
-
-    function buildShortNameRows(shortNames = [], defaultShortName = "") {
-        const aliases = getUniqueShortNames(shortNames);
-        const normalizedDefault = normalizeShortName(defaultShortName);
-
-        if (normalizedDefault && !aliases.includes(normalizedDefault)) {
-            aliases.unshift(normalizedDefault);
+        } catch (e) {
+            console.error("Failed to load units:", e);
         }
-
-        return {
-            aliases: aliases.length ? aliases : [""],
-            defaultShortName: normalizedDefault || aliases[0] || ""
-        };
     }
 
-    function getShortNameAliasRow(value = "", checked = false) {
-        return `
-            <div class="shortname-alias-row">
-                <input type="text" class="shortname-alias-input" value="${value}">
-                <label class="shortname-default-toggle">
-                    <input type="radio" class="shortname-default-radio" ${checked ? "checked" : ""}>
-                    <span>Default</span>
-                </label>
-                <button type="button" class="shortname-remove-btn" title="Remove short name">x</button>
-            </div>
-        `;
-    }
+    function addParameterRow(isFirstRow = false) {
+        parameterCounter++;
+        const row = document.createElement("tr");
+        row.className = "at-param-row";
 
-    function refreshShortNameRadioGroups() {
-        document.querySelectorAll('#parameters-table2 tbody tr').forEach((row, index) => {
-            row.querySelectorAll('.shortname-default-radio').forEach((radio) => {
-                radio.name = `parameter-shortname-default-${index}`;
-            });
-        });
-    }
+        const orderVal = paramsTbody.querySelectorAll("tr").length + 1;
 
-    function renderShortNameManager(row, shortNames = [], defaultShortName = "") {
-        const aliasList = row.querySelector('.shortname-alias-list');
-        const state = buildShortNameRows(shortNames, defaultShortName);
-        aliasList.innerHTML = "";
-
-        if (state.aliases.length === 0) {
-            aliasList.innerHTML = `<div class="shortname-empty-state">No machine short names added yet.</div>`;
-        } else {
-            state.aliases.forEach((alias) => {
-                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow(alias, alias === state.defaultShortName));
-            });
-        }
-
-        refreshShortNameRadioGroups();
-    }
-
-    function collectShortNameManagerState(row) {
-        const aliases = [];
-        let defaultShortName = "";
-
-        row.querySelectorAll('.shortname-alias-row').forEach((aliasRow) => {
-            const input = aliasRow.querySelector('.shortname-alias-input');
-            const radio = aliasRow.querySelector('.shortname-default-radio');
-            const value = normalizeShortName(input?.value);
-
-            if (!value) return;
-
-            if (!aliases.includes(value)) {
-                aliases.push(value);
-            }
-
-            if (radio?.checked) {
-                defaultShortName = value;
-            }
-        });
-
-        if (!defaultShortName) {
-            defaultShortName = aliases[0] || "";
-        }
-
-        return {
-            shortNames: aliases,
-            defaultShortName
-        };
-    }
-
-    let orderId = 1;
- // Update the addParameter function to include random number fields
-function addParameter() {
-    if (units.length === 0) {
-        alert('Units are not loaded yet. Please wait.');
-        return;
-    }
-
-    const table = document.getElementById('parameters-table2').getElementsByTagName('tbody')[0];
-    const newRow = table.insertRow();
-    orderId++;
-    
-    newRow.innerHTML = `
-        <td><span class="remove-link" id="remove-link">🗑️</span></td>
-        <td><input type="text" value="${orderId}"></td>
-        <td class="parameter-name-cell">
-            <input type="text">
-            <div class="shortname-alias-manager">
-                <div class="shortname-alias-header">
-                    <span>Machine Short names</span>
-                    <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
+        row.innerHTML = `
+            <td style="text-align:center;">
+                <button type="button" class="at-param-del-btn" title="Delete parameter" ${isFirstRow ? 'disabled style="visibility:hidden;"' : ''}>
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+            <td>
+                <input type="number" class="at-input at-param-order" value="${orderVal}" style="padding:6px; font-weight:600; text-align:center;">
+            </td>
+            <td>
+                <input type="text" class="at-input at-param-name" placeholder="Parameter Name" value="${isFirstRow ? (testNameInput.value || '') : ''}">
+                <div class="at-alias-box">
+                    <div class="at-alias-header">
+                        <span>Machine Short Names</span>
+                        <button type="button" class="at-alias-add-btn" title="Add machine code alias">+</button>
+                    </div>
+                    <div class="at-alias-list"></div>
                 </div>
-                <div class="shortname-alias-list"></div>
-            </div>
-        </td>
-        <td>
-            <select>
-                <option value="">Select unit</option>
-            </select>
-        </td>
-        <td>
-            <input type="text">
-        </td>
-        <td class="normalValue">
-            <div class="selectTypeDiv">
-                <label for="select-type">Select Type</label>
-                <select id="select-type" onchange="toggleForm(this)">
-                    <option value="numeric" selected>Numeric</option>
-                    <option value="text">Text</option>
+            </td>
+            <td>
+                <select class="at-select at-unit-select" style="padding:6px;">
+                    <option value="">-- Unit --</option>
+                    ${unitList.map(u => `<option value="${escapeHtml(u.unit || u)}">${escapeHtml(u.unit || u)}</option>`).join('')}
                 </select>
-            </div>
-            
-            <!-- Random Number Section -->
-            <div class="random-section">
-                <div class="random-checkbox-container">
-                    <input type="checkbox" class="random-checkbox" onchange="toggleRandomInputs(this)">
-                    <label>Show Random Number</label>
+            </td>
+            <td>
+                <input type="text" class="at-input at-param-default" placeholder="Default value" style="padding:6px;">
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; font-weight:600; color:#64748b;">Type:</span>
+                    <select class="at-select at-type-select" style="padding:4px 8px; width:auto; font-size:0.8rem;">
+                        <option value="numeric" selected>Numeric</option>
+                        <option value="text">Textual</option>
+                    </select>
                 </div>
-                <div class="random-inputs">
-                    <div class="random-input-group">
-                        <label>Lower Range</label>
-                        <input type="number" class="lower-range" placeholder="e.g., 5.0" step="0.01">
+
+                <!-- Numeric Range Builder -->
+                <div class="at-numeric-section">
+                    <div class="at-ranges-container">
+                        <!-- Default normal range row -->
+                        <div class="at-range-row">
+                            <button type="button" class="at-range-del" title="Remove range"><i class="fa-solid fa-circle-xmark"></i></button>
+                            <div class="at-range-field">
+                                <span>Sex</span>
+                                <select class="sex" style="padding:4px;">
+                                    <option value="Any" selected>Any</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div class="at-range-field">
+                                <span>Min Age</span>
+                                <div style="display:flex; gap:2px;">
+                                    <input type="number" class="min-age" value="0" style="width:45px;">
+                                    <select name="min_age_unit">
+                                        <option value="Years" selected>Y</option>
+                                        <option value="Months">M</option>
+                                        <option value="Days">D</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="at-range-field">
+                                <span>Max Age</span>
+                                <div style="display:flex; gap:2px;">
+                                    <input type="number" class="max-age" value="100" style="width:45px;">
+                                    <select name="max_age_unit">
+                                        <option value="Years" selected>Y</option>
+                                        <option value="Months">M</option>
+                                        <option value="Days">D</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="at-range-field">
+                                <span>Lower</span>
+                                <input type="number" step="0.01" class="lower-value" placeholder="Low" style="width:60px;">
+                            </div>
+                            <div class="at-range-field">
+                                <span>Upper</span>
+                                <input type="number" step="0.01" class="upper-value" placeholder="High" style="width:60px;">
+                            </div>
+                        </div>
                     </div>
-                    <div class="random-input-group">
-                        <label>Upper Range</label>
-                        <input type="number" class="upper-range" placeholder="e.g., 15.0" step="0.01">
+                    <button type="button" class="at-add-range-btn">
+                        <i class="fa-solid fa-plus"></i> Add Range
+                    </button>
+
+                    <!-- Random Simulation Option -->
+                    <div class="at-random-box">
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+                            <input type="checkbox" class="random-checkbox">
+                            <span>Enable simulated normal range</span>
+                        </label>
+                        <div class="random-inputs" style="display:none; margin-top:6px; gap:8px;">
+                            <input type="number" step="0.01" class="at-input lower-range" placeholder="Sim Lower" style="padding:3px 6px; font-size:0.75rem;">
+                            <input type="number" step="0.01" class="at-input upper-range" placeholder="Sim Upper" style="padding:3px 6px; font-size:0.75rem;">
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div id="form-container">
-                <div class="row-container">
-                    <span class="delete-btn" onclick="deleteRow(this)"><i class="fa-solid fa-eraser"></i></span>
-                    <div class="row-item">
-                        <label for="sex">Sex</label>
-                        <select name="sex" class="sex">
-                            <option value="Any">Any</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
+
+                <!-- Textual Section -->
+                <div class="at-textual-section" style="display: none;">
+                    <textarea class="at-textarea at-text-normal" placeholder="Enter standard expected text or normal narrative description..." style="min-height:60px; font-size:0.8rem;"></textarea>
+                </div>
+            </td>
+        `;
+
+        // Del Parameter Row
+        const delBtn = row.querySelector(".at-param-del-btn");
+        if (delBtn) {
+            delBtn.addEventListener("click", () => {
+                row.remove();
+                reindexParameterOrders();
+            });
+        }
+
+        // Type select toggle
+        const typeSelect = row.querySelector(".at-type-select");
+        const numericSec = row.querySelector(".at-numeric-section");
+        const textSec = row.querySelector(".at-textual-section");
+        typeSelect.addEventListener("change", (e) => {
+            if (e.target.value === "text") {
+                numericSec.style.display = "none";
+                textSec.style.display = "block";
+            } else {
+                numericSec.style.display = "block";
+                textSec.style.display = "none";
+            }
+        });
+
+        // Add Range button
+        const addRangeBtn = row.querySelector(".at-add-range-btn");
+        const rangesContainer = row.querySelector(".at-ranges-container");
+        addRangeBtn.addEventListener("click", () => {
+            const rangeRow = document.createElement("div");
+            rangeRow.className = "at-range-row";
+            rangeRow.innerHTML = `
+                <button type="button" class="at-range-del" title="Remove range"><i class="fa-solid fa-circle-xmark"></i></button>
+                <div class="at-range-field">
+                    <span>Sex</span>
+                    <select class="sex" style="padding:4px;">
+                        <option value="Any" selected>Any</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div class="at-range-field">
+                    <span>Min Age</span>
+                    <div style="display:flex; gap:2px;">
+                        <input type="number" class="min-age" value="0" style="width:45px;">
+                        <select name="min_age_unit">
+                            <option value="Years" selected>Y</option>
+                            <option value="Months">M</option>
+                            <option value="Days">D</option>
                         </select>
                     </div>
-                    <div class="row-item">
-                        <label for="min_age">Min. Age</label>
-                        <div class="minAge">
-                            <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
-                            <select name="min_age_unit">
-                                <option value="Years">Years</option>
-                                <option value="Months">Months</option>
-                                <option value="Days">Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row-item">
-                        <label for="max_age">Max. Age</label>
-                        <div class="maxAge">
-                            <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="100">
-                            <select name="max_age_unit">
-                                <option value="Years">Years</option>
-                                <option value="Months">Months</option>
-                                <option value="Days">Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row-item">
-                        <label for="lower_value">Lower</label>
-                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value" value="2.1">
-                    </div>
-                    <div class="row-item">
-                        <label for="upper_value">Upper</label>
-                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value" value="17.7">
+                </div>
+                <div class="at-range-field">
+                    <span>Max Age</span>
+                    <div style="display:flex; gap:2px;">
+                        <input type="number" class="max-age" value="100" style="width:45px;">
+                        <select name="max_age_unit">
+                            <option value="Years" selected>Y</option>
+                            <option value="Months">M</option>
+                            <option value="Days">D</option>
+                        </select>
                     </div>
                 </div>
-            </div>
+                <div class="at-range-field">
+                    <span>Lower</span>
+                    <input type="number" step="0.01" class="lower-value" placeholder="Low" style="width:60px;">
+                </div>
+                <div class="at-range-field">
+                    <span>Upper</span>
+                    <input type="number" step="0.01" class="upper-value" placeholder="High" style="width:60px;">
+                </div>
+            `;
+            rangeRow.querySelector(".at-range-del").addEventListener("click", () => rangeRow.remove());
+            rangesContainer.appendChild(rangeRow);
+        });
 
-            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
+        // First range delete button listener
+        row.querySelector(".at-range-del").addEventListener("click", function () {
+            if (rangesContainer.children.length > 1) {
+                this.closest(".at-range-row").remove();
+            }
+        });
 
-            <div class="add-more-btn" id="add-more-btn" onclick="addRow(this)">+ Add more</div>
-        </td>
-    `;
+        // Random checkbox toggle
+        const randomCb = row.querySelector(".random-checkbox");
+        const randomInputs = row.querySelector(".random-inputs");
+        randomCb.addEventListener("change", () => {
+            randomInputs.style.display = randomCb.checked ? "flex" : "none";
+        });
 
-    // Populate the units dropdown
-    const unitSelect = newRow.cells[3].getElementsByTagName('select')[0];
-    units.forEach(unit => {
-        const option = document.createElement('option');
-        option.value = unit.unit;
-        option.textContent = unit.unit;
-        unitSelect.appendChild(option);
-    });
+        // Alias manager
+        const aliasList = row.querySelector(".at-alias-list");
+        const addAliasBtn = row.querySelector(".at-alias-add-btn");
+        addAliasBtn.addEventListener("click", () => {
+            const aliasRow = document.createElement("div");
+            aliasRow.className = "at-alias-row";
+            aliasRow.innerHTML = `
+                <input type="text" class="at-alias-input" placeholder="Alias code">
+                <label style="font-size:0.7rem; display:flex; align-items:center; gap:2px; cursor:pointer;">
+                    <input type="radio" name="param-default-alias-${parameterCounter}" class="at-alias-default">
+                    Def
+                </label>
+                <button type="button" class="at-alias-remove">&times;</button>
+            `;
+            aliasRow.querySelector(".at-alias-remove").addEventListener("click", () => aliasRow.remove());
+            aliasList.appendChild(aliasRow);
+            aliasRow.querySelector(".at-alias-input").focus();
+        });
 
-    // Add event listener for removal
-    newRow.querySelector('.remove-link').addEventListener('click', () => {
-        table.deleteRow(newRow.rowIndex - 1);
-    });
-
-    renderShortNameManager(newRow);
-}
-
-    document.getElementById("add-parameter-link").addEventListener("click", addParameter);
-    renderShortNameManager(document.querySelector('#parameters-table2 tbody tr'));
-
-    function removeParameter(element) {
-        const row = element.parentElement.parentElement;
-        orderId--;
-        row.remove();
+        paramsTbody.appendChild(row);
     }
-    // Attach an event listener to the table body
-    document.querySelector("#parameters-table2 tbody").addEventListener("click", function (event) {
-        // Check if the clicked element has the class 'remove-link'
-        if (event.target.classList.contains("remove-link")) {
-            removeParameter(event.target); // Call removeParameter with the clicked element
-            refreshShortNameRadioGroups();
+
+    function reindexParameterOrders() {
+        const rows = paramsTbody.querySelectorAll(".at-param-row");
+        rows.forEach((r, idx) => {
+            const orderInput = r.querySelector(".at-param-order");
+            if (orderInput) orderInput.value = idx + 1;
+        });
+    }
+
+    async function submitTest() {
+        const nameVal = testNameInput.value.trim();
+        const shortVal = shortNameInput.value.trim();
+        const categoryVal = categorySelect.value;
+        const billingVal = parseFloat(billingPriceInput.value);
+        const mrpVal = parseFloat(mrpPriceInput.value);
+        const sampleVal = sampleTypeSelect.value;
+        const tatVal = tatInput.value.trim();
+        const methodVal = methodInput.value.trim();
+        const instrumentVal = instrumentInput.value.trim();
+
+        // Validation
+        if (!nameVal) {
+            showToast("Test name is required", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            testNameInput.focus();
+            return;
         }
 
-        if (event.target.matches('[data-action="add-shortname"]')) {
-            const row = event.target.closest('tr');
-            const aliasList = row.querySelector('.shortname-alias-list');
-            aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
-            refreshShortNameRadioGroups();
-            const lastInput = row.querySelector('.shortname-alias-row:last-child .shortname-alias-input');
-            if (lastInput) {
-                lastInput.focus();
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in test name", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            testNameInput.focus();
+            return;
+        }
+
+        if (!categoryVal) {
+            showToast("Please select a Category", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            categorySelect.focus();
+            return;
+        }
+
+        if (isNaN(billingVal) || isNaN(mrpVal)) {
+            showToast("Please specify Billing and MRP Price", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            billingPriceInput.focus();
+            return;
+        }
+
+        // Collect Parameters
+        const paramRows = paramsTbody.querySelectorAll(".at-param-row");
+        const parameters = [];
+
+        paramRows.forEach((r, idx) => {
+            const order = parseInt(r.querySelector(".at-param-order").value, 10) || (idx + 1);
+            const paraName = r.querySelector(".at-param-name").value.trim() || nameVal;
+            const unit = r.querySelector(".at-unit-select").value.trim();
+            const defaultresult = r.querySelector(".at-param-default").value.trim();
+            const type = r.querySelector(".at-type-select").value;
+
+            // Collect Aliases
+            const aliases = [];
+            let defaultAlias = "";
+            r.querySelectorAll(".at-alias-row").forEach((aRow) => {
+                const aInput = aRow.querySelector(".at-alias-input");
+                const aRadio = aRow.querySelector(".at-alias-default");
+                const val = (aInput?.value || "").trim();
+                if (val && !aliases.includes(val)) {
+                    aliases.push(val);
+                    if (aRadio?.checked) defaultAlias = val;
+                }
+            });
+            if (!defaultAlias && aliases.length > 0) defaultAlias = aliases[0];
+
+            const paramObj = {
+                order,
+                Para_name: paraName,
+                unit,
+                defaultresult,
+                ValueType: type,
+                shortNames: aliases,
+                defaultShortName: defaultAlias
+            };
+
+            // Range / Text
+            if (type === "text") {
+                paramObj.text = r.querySelector(".at-text-normal").value.trim();
+                paramObj.NormalValue = [];
+            } else {
+                const normalRanges = [];
+                r.querySelectorAll(".at-range-row").forEach((rng) => {
+                    normalRanges.push({
+                        gender: rng.querySelector(".sex").value,
+                        minAge: rng.querySelector(".min-age").value,
+                        minAgeUnit: rng.querySelector('[name="min_age_unit"]').value,
+                        maxAge: rng.querySelector(".max-age").value,
+                        maxAgeUnit: rng.querySelector('[name="max_age_unit"]').value,
+                        lowerValue: rng.querySelector(".lower-value").value,
+                        upperValue: rng.querySelector(".upper-value").value
+                    });
+                });
+                paramObj.NormalValue = normalRanges;
+
+                // Random
+                const randomCb = r.querySelector(".random-checkbox");
+                if (randomCb && randomCb.checked) {
+                    paramObj.forRandom = true;
+                    paramObj.lowerRange = parseFloat(r.querySelector(".lower-range").value) || 0;
+                    paramObj.upperRange = parseFloat(r.querySelector(".upper-range").value) || 0;
+                }
             }
+
+            parameters.push(paramObj);
+        });
+
+        // Interpretation
+        let interpretationText = "";
+        if (window.editor && typeof window.editor.getData === "function") {
+            interpretationText = window.editor.getData();
+        } else {
+            const fallback = document.getElementById("fallbackInterpretation");
+            interpretationText = fallback ? fallback.value : "";
         }
 
-        if (event.target.classList.contains("shortname-remove-btn")) {
-            const row = event.target.closest('tr');
-            event.target.closest('.shortname-alias-row')?.remove();
-            const remainingAliasRows = row.querySelectorAll('.shortname-alias-row');
+        const categoryObj = categoryList.find(c => (c.category || c) === categoryVal) || { category: categoryVal };
 
-            if (remainingAliasRows.length === 0) {
-                const aliasList = row.querySelector('.shortname-alias-list');
-                aliasList.innerHTML = '';
-                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
-            }
+        const payload = {
+            Name: nameVal,
+            Short_name: shortVal,
+            category: categoryObj,
+            Price: billingVal,
+            final_price: mrpVal,
+            sampleType: sampleVal,
+            tat: tatVal,
+            method: methodVal,
+            instrument: instrumentVal,
+            interpretation: interpretationText,
+            parameters
+        };
 
-            refreshShortNameRadioGroups();
-        }
-    });
-
-    document.querySelector("#parameters-table2 tbody").addEventListener("change", function (event) {
-        if (event.target.classList.contains("shortname-default-radio")) return;
-    });
-
-    document.querySelector("#parameters-table2 tbody").addEventListener("input", function (event) {
-        if (event.target.classList.contains("shortname-alias-input")) return;
-    });
-
-    async function fetchandpopulatesamples() {
-        const selecttag = document.getElementById("sampleType");
-        selecttag.innerHTML = "";
+        saveTestBtn.disabled = true;
+        saveTestBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/fetchsample-tenant`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                return console.log(data.message);
-            }
-
-            data.data.forEach(obj => {
-                selecttag.innerHTML += `<option value="${obj.Name}">${obj.Name}</option>`;
+            const res = await fetch(`${BASE_URL}/api/v1/user/make-test-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
 
-        } catch (error) {
-            alert(error)
-        }
-    }
+            const data = await res.json();
 
-    fetchandpopulatesamples();
-
-    document.getElementById("sampleaddbtn").addEventListener("click", async () => {
-        const sampeName = document.getElementById("sample-name").value;
-        const samplebyuser = JSON.parse(localStorage.getItem("superAdminData"));
-        const alert = document.getElementById("alert");
-
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/addsample-tenant`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ Name: sampeName, user: samplebyuser })
-            })
-
-            const data = await response.json();
-
-            if (response.ok) {
-                fetchandpopulatesamples();
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-danger", "fade");
-                alert.classList.add("alert-success");
-                alert.classList.add("show");
+            if (res.ok) {
+                showToast("Test created successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("test");
+                    } else {
+                        window.location.href = "?page=test";
+                    }
+                }, 1200);
             } else {
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success", "fade");
-                alert.classList.add("alert-danger");
-                alert.classList.add("show");
+                showToast(data.message || "Failed to create test", "error");
+                saveTestBtn.disabled = false;
+                saveTestBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Test';
             }
-        } catch (error) {
-            alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success", "fade");
-            alert.classList.add("alert-danger");
-            alert.classList.add("show");
+        } catch (err) {
+            console.error("Submission error:", err);
+            showToast("Network error: " + err.message, "error");
+            saveTestBtn.disabled = false;
+            saveTestBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Test';
         }
-        setTimeout(() => {
-            alert.classList.remove("show")
-            alert.classList.add("fade")
-        }, 3000);
-    })
-
-   // Update the submit button event listener to include random number data
-document.getElementById('submitbBtn').addEventListener('click', async function () {
-    const namefield = document.getElementById('name');
-    const errormessage = document.querySelector('.errormessage');
-
-    if (namefield.value.trim().includes(",")) {
-        errormessage.style.display = "block";
-        namefield.scrollIntoView({ behavior: "smooth" });
-        namefield.focus();
-        return;
-    } else {
-        errormessage.style.display = "none";
     }
 
-    const userdata = JSON.parse(localStorage.getItem("superAdminData"));
-    const formData = {
-        Name: namefield.value.trim(),
-        Short_name: document.getElementById('short-name').value.trim(),
-        category: categoryArray.find(doc => doc.category === document.getElementById('category').value),
-        Price: document.getElementById('price').value,
-        final_price: document.getElementById('final-price').value,
-        tat: document.getElementById('tat').value,
-        sampleType: document.getElementById('sampleType').value,
-        method: document.getElementById('method').value.trim(),
-        instrument: document.getElementById('instrument').value.trim(),
-        interpretation: editor.getData(),
-        user: userdata,
-        parameters: [],
-    };
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("atToast");
+        const toastMsg = document.getElementById("atToastMsg");
+        if (!toast || !toastMsg) return;
 
-    // Get all rows from the parameters table
-    const parameterRows = document.querySelectorAll('#parameters-table2 tbody tr');
-    parameterRows.forEach(row => {
-        const parameterData = {
-            order: row.cells[1].querySelector('input').value,
-            Para_name: row.cells[2].querySelector('input').value,
-            unit: row.cells[3].querySelector('select').value,
-            defaultresult: row.cells[4].querySelector('input').value,
-        };
-        const shortNameState = collectShortNameManagerState(row);
-        parameterData.shortNames = shortNameState.shortNames;
-        parameterData.defaultShortName = shortNameState.defaultShortName;
+        toastMsg.textContent = message;
+        toast.className = `at-toast ${type} show`;
 
-        // Get random number data
-        const randomCheckbox = row.cells[5].querySelector('.random-checkbox');
-        const lowerRange = row.cells[5].querySelector('.lower-range');
-        const upperRange = row.cells[5].querySelector('.upper-range');
-        
-        parameterData.forRandom = randomCheckbox.checked;
-        
-        if (randomCheckbox.checked) {
-            parameterData.lowerRange = parseFloat(lowerRange.value) || 0;
-            parameterData.upperRange = parseFloat(upperRange.value) || 0;
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
         }
 
-        // Get normal value data
-        const selectType = row.cells[5].querySelector('#select-type').value;
-        let dataObject;
-        
-        if (selectType === 'text') {
-            const textAreaData = row.cells[5].querySelector('#text-area').value;
-            parameterData.text = textAreaData;
-        } else {
-            const rows = row.cells[5].querySelectorAll('.row-container');
-            dataObject = Array.from(rows).map(row => ({
-                gender: row.querySelector('.sex').value,
-                minAge: row.querySelector('.min-age').value,
-                minAgeUnit: row.querySelector('[name="min_age_unit"]').value,
-                maxAge: row.querySelector('.max-age').value,
-                maxAgeUnit: row.querySelector('[name="max_age_unit"]').value,
-                lowerValue: row.querySelector('.lower-value').value,
-                upperValue: row.querySelector('.upper-value').value,
-            }));
-        }
-        
-        parameterData.NormalValue = dataObject;
-        parameterData.ValueType = selectType;
-        formData.parameters.push(parameterData);
-    });
-
-    const alert = document.querySelector(".alert");
-    
-    await fetch(`${BASE_URL}/api/v1/user/make-test-tenant`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...formData })
-    })
-    .then(async (response) => {
-        const data = await response.json();
-
-        if (response.ok) {
-            alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-danger");
-            alert.classList.add("alert-success");
-            alert.classList.add("show");
-            setTimeout(() => {
-                alert.classList.remove("show");
-                alert.classList.add("fade");
-            }, 3000);
-            setTimeout(() => {
-                window.location.href = "/admin/admin.html?page=test";
-            }, 3500);
-        } else {
-            alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success");
-            alert.classList.add("alert-danger");
-            alert.classList.add("show");
-            setTimeout(() => {
-                alert.classList.remove("show");
-                alert.classList.add("fade");
-            }, 3000);
-        }
-    })
-    .catch((error) => {
-        alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-        alert.classList.remove("alert-success");
-        alert.classList.add("alert-danger");
-        alert.classList.add("show");
         setTimeout(() => {
-            alert.classList.remove("show");
-            alert.classList.add("fade");
-        }, 3000);
-    });
-});
+            toast.classList.remove("show");
+        }, 3200);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 })();
-
-function copyFromLibrary() {
-    // This is a placeholder function. In a real application, you would fetch data from your backend.
-    const sampleInterpretation = "<p>This is a sample interpretation copied from the library.</p>";
-    document.getElementById('editorContent').innerHTML = sampleInterpretation;
-}
-
-// function updateReportDisplay(element) {
-//     const rowContainer = element.parentElement.parentElement;
-//     const lowerValue = rowContainer.querySelector('.lower-value').value;
-//     const upperValue = rowContainer.querySelector('.upper-value').value;
-//     const displayReport = rowContainer.querySelector('.display-report');
-
-//     if (lowerValue && upperValue) {
-//         displayReport.textContent = `${lowerValue} - ${upperValue}`;
-//     } else {
-//         displayReport.textContent = "-";
-//     }
-// }
-
-function addRow(admore) {
-    const formContainer = admore.parentElement.querySelector('#form-container');
-    // Clone the first row as a new row
-    const newRow = formContainer.firstElementChild.cloneNode(true);
-
-    // Reset the values in the new row
-    newRow.querySelector('.min-age').value = "";
-    newRow.querySelector('.max-age').value = "";
-    newRow.querySelector('.lower-value').value = "";
-    newRow.querySelector('.upper-value').value = "";
-    // newRow.querySelector('.display-report').textContent = "-";
-
-    // Append the new row
-    formContainer.appendChild(newRow);
-}
-
-function deleteRow(element) {
-    // Access the form-container using the closest method
-    const formContainer = element.closest('#form-container');
-
-    // Check if formContainer exists and has more than one child
-    if (formContainer && formContainer.childElementCount > 1) {
-        // Remove the parent element of the clicked element
-        element.parentElement.remove();
-    }
-}
-
-
-function toggleForm(selectElement) {
-    const closestContainer = selectElement.closest('.normalValue'); // Closest container element
-    const formContainer = closestContainer.querySelector('#form-container');
-    const textArea = closestContainer.querySelector('.text-area');
-
-    if (selectElement.value === 'text') {
-        formContainer.style.display = 'none';
-        textArea.style.display = 'block';
-    } else {
-        formContainer.style.display = 'block';
-        textArea.style.display = 'none';
-    }
-}
-
-    // Add this function to toggle random inputs visibility
-function toggleRandomInputs(checkbox) {
-    const randomSection = checkbox.closest('.random-section');
-    const randomInputs = randomSection.querySelector('.random-inputs');
-    
-    if (checkbox.checked) {
-        randomInputs.classList.add('active');
-    } else {
-        randomInputs.classList.remove('active');
-        // Clear values when unchecked
-        randomInputs.querySelector('.lower-range').value = '';
-        randomInputs.querySelector('.upper-range').value = '';
-    }
-}

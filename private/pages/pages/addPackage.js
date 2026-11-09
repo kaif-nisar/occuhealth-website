@@ -1,305 +1,453 @@
-function addpackage() {
-    const TestSearchInput = document.getElementById("tests");
-    const pannelsInput = document.getElementById("tests2");
-    const tagsdiv = document.getElementById("middle-tag-div");
-    const tagsdiv2 = document.getElementById("middle-tag-div2");
-    const searchHint = document.getElementById('search-hint');
-    const searchHint2 = document.getElementById('search-hint2');
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    let sample_types2 = [];
-    let sample_types = [];
-    let inputarray2 = [];
-    let inputarray = [];
+    let availablePanels = [];
+    let availableTests = [];
 
-    // ✅ New arrays for IDs
-    let testIds = [];
-    let panelIds = [];
+    let selectedPanelsMap = new Map(); // panelId -> { id, name, price, sampleTypes }
+    let selectedTestsMap = new Map();  // testId -> { id, name, price, sampleType }
 
-    // for test selection
+    // DOM Elements
+    const packageNameInput = document.getElementById("packageName");
+    const packageGenderSelect = document.getElementById("packageGender");
+    const packageFeeInput = document.getElementById("packageFee");
+    const finalPriceInput = document.getElementById("finalPrice");
+    const nameError = document.getElementById("nameError");
+
+    const selectedPanelsContainer = document.getElementById("selectedPanelsContainer");
+    const emptyPanelsHint = document.getElementById("emptyPanelsHint");
+    const panelSearchInput = document.getElementById("panelSearchInput");
+    const panelSearchDropdown = document.getElementById("panelSearchDropdown");
+    const panelsCountBadge = document.getElementById("panelsCountBadge");
+
+    const selectedTestsContainer = document.getElementById("selectedTestsContainer");
+    const emptyTestsHint = document.getElementById("emptyTestsHint");
+    const testSearchInput = document.getElementById("testSearchInput");
+    const testSearchDropdown = document.getElementById("testSearchDropdown");
+    const testsCountBadge = document.getElementById("testsCountBadge");
+
+    // Calculator Elements
+    const calcStandaloneTotal = document.getElementById("calcStandaloneTotal");
+    const calcPackageFee = document.getElementById("calcPackageFee");
+    const calcSavings = document.getElementById("calcSavings");
+    const calcSamples = document.getElementById("calcSamples");
+
+    const savePackageBtn = document.getElementById("savePackageBtn");
+
+    init();
+
+    async function init() {
+        bindEvents();
+        await Promise.all([loadPanels(), loadTests()]);
+    }
+
+    function bindEvents() {
+        if (packageNameInput) {
+            packageNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("pkg-input-error");
+                } else {
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("pkg-input-error");
+                }
+            });
+        }
+
+        // Price input sync with calculator
+        if (packageFeeInput) {
+            packageFeeInput.addEventListener("input", updateCalculations);
+        }
+
+        // Panel search dropdown
+        if (panelSearchInput) {
+            panelSearchInput.addEventListener("input", filterPanelDropdown);
+            panelSearchInput.addEventListener("focus", filterPanelDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!panelSearchInput.contains(e.target) && !panelSearchDropdown.contains(e.target)) {
+                    panelSearchDropdown.style.display = "none";
+                }
+            });
+        }
+
+        // Test search dropdown
+        if (testSearchInput) {
+            testSearchInput.addEventListener("input", filterTestDropdown);
+            testSearchInput.addEventListener("focus", filterTestDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!testSearchInput.contains(e.target) && !testSearchDropdown.contains(e.target)) {
+                    testSearchDropdown.style.display = "none";
+                }
+            });
+        }
+
+        if (savePackageBtn) {
+            savePackageBtn.addEventListener("click", submitPackage);
+        }
+    }
+
+    async function loadPanels() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/all-pannels-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            availablePanels = Array.isArray(data.panels) ? data.panels : [];
+        } catch (e) {
+            console.error("Failed to load panels:", e);
+        }
+    }
+
     async function loadTests() {
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, { method: "POST" });
-            const tests = await response.json();
-
-            searchHint.innerHTML = '';
-
-            tests.tests.forEach(test => {
-                const optionElement = document.createElement('div');
-                optionElement.className = "hint-option";
-                optionElement.setAttribute('sampletype', test.sampleType);
-                optionElement.setAttribute('data-id', test._id); // ✅ store test id
-                optionElement.innerText = test.Name;
-
-                optionElement.addEventListener("click", function (e) {
-                    const selectedTestName = document.createElement('div');
-                    selectedTestName.classList.add('selected-div');
-                    selectedTestName.innerHTML = `${e.target.innerText} <i class="fa-regular fa-circle-xmark delete-btn"></i>`;
-                    const single_sample = e.target.getAttribute('sampletype');
-                    const testId = e.target.getAttribute('data-id'); // ✅ get test id
-                    selectedTestName.setAttribute('sample-type', single_sample);
-                    selectedTestName.setAttribute('data-id', testId); // ✅ store in selected div
-
-                    sample_types.push(single_sample);
-                    inputarray.push(e.target.innerText);
-                    testIds.push(testId); // ✅ push test ID
-
-                    optionElement.style.display = "none";
-                    tagsdiv.appendChild(selectedTestName);
-                    searchHint.style.display = "none";
-                    console.log("testsId:", testIds);
-                    console.log("panelids:", panelIds);
-                });
-
-                searchHint.appendChild(optionElement);
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
             });
-
-            TestSearchInput.addEventListener("click", () => searchHint.style.display = "block");
-            document.addEventListener("click", (e) => {
-                if (!TestSearchInput.contains(e.target) && !searchHint.contains(e.target)) {
-                    searchHint.style.display = "none";
-                }
-            });
-
-        } catch (error) {
-            console.log("something went wrong", error);
+            const data = await res.json();
+            availableTests = Array.isArray(data.tests) ? data.tests : [];
+        } catch (e) {
+            console.error("Failed to load tests:", e);
         }
     }
 
-    tagsdiv.addEventListener("click", function (e) {
-        if (e.target.classList.contains("delete-btn")) {
-            const tag = e.target.closest(".selected-div");
+    // Panel Picker
+    function filterPanelDropdown() {
+        const query = (panelSearchInput.value || "").trim().toLowerCase();
+        panelSearchDropdown.innerHTML = "";
 
-            if (tag) {
-                const testName = tag.innerText.trim();
-                const testId = tag.getAttribute('data-id');
-                const deletablesampleType = tag.getAttribute('sample-type');
+        const matches = availablePanels.filter((p) => {
+            if (selectedPanelsMap.has(p._id)) return false;
+            const name = (p.name || "").toLowerCase();
+            const code = (p.Short_name || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query);
+        });
 
-                inputarray = inputarray.filter(items => items !== testName);
-                testIds = testIds.filter(id => id !== testId); // ✅ remove test ID
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching panels found" : "All panels selected";
+            panelSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 25).forEach((p) => {
+                const item = document.createElement("div");
+                item.className = "pkg-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(p.name)}</span>
+                        ${p.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(p.Short_name)})</span>` : ""}
+                    </div>
+                    <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                        ₹${p.price || 0}
+                    </span>
+                `;
 
-                const index = sample_types.findIndex(items => items === deletablesampleType);
-                if (index !== -1) sample_types.splice(index, 1);
+                item.addEventListener("click", () => {
+                    selectPanel(p);
+                    panelSearchInput.value = "";
+                    panelSearchDropdown.style.display = "none";
+                    panelSearchInput.focus();
+                });
 
-                const testElement = Array.from(searchHint.children).find(test => test.innerText === testName);
-                if (testElement) testElement.style.display = "";
-
-                tag.remove();
-            }
+                panelSearchDropdown.appendChild(item);
+            });
         }
-        console.log("testsId:", testIds);
-        console.log("panelids:", panelIds);
-    });
 
-    async function loadpannels() {
+        panelSearchDropdown.style.display = "block";
+    }
+
+    function selectPanel(panel) {
+        if (!panel || !panel._id) return;
+        selectedPanelsMap.set(panel._id, {
+            id: panel._id,
+            name: panel.name,
+            price: parseFloat(panel.price) || 0,
+            sampleTypes: Array.isArray(panel.sample_types) ? panel.sample_types : (panel.sample_types ? [panel.sample_types] : [])
+        });
+        renderSelectedPanels();
+        updateCalculations();
+    }
+
+    function deselectPanel(panelId) {
+        selectedPanelsMap.delete(panelId);
+        renderSelectedPanels();
+        updateCalculations();
+    }
+
+    function renderSelectedPanels() {
+        selectedPanelsContainer.innerHTML = "";
+
+        if (selectedPanelsMap.size === 0) {
+            selectedPanelsContainer.appendChild(emptyPanelsHint);
+            if (panelsCountBadge) panelsCountBadge.textContent = "0 panels selected";
+            return;
+        }
+
+        if (panelsCountBadge) panelsCountBadge.textContent = `${selectedPanelsMap.size} panels selected`;
+
+        selectedPanelsMap.forEach((p, id) => {
+            const tag = document.createElement("div");
+            tag.className = "pkg-tag panel-tag";
+            tag.innerHTML = `
+                <i class="fa-solid fa-rectangle-list"></i>
+                <span>${escapeHtml(p.name)}</span>
+                <span style="color:#0369a1; font-weight:700; font-size:0.75rem;">₹${p.price}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
+
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectPanel(id));
+            selectedPanelsContainer.appendChild(tag);
+        });
+    }
+
+    // Test Picker
+    function filterTestDropdown() {
+        const query = (testSearchInput.value || "").trim().toLowerCase();
+        testSearchDropdown.innerHTML = "";
+
+        const matches = availableTests.filter((t) => {
+            if (selectedTestsMap.has(t._id)) return false;
+            const name = (t.Name || "").toLowerCase();
+            const code = (t.Short_name || "").toLowerCase();
+            const sample = (t.sampleType || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query) || sample.includes(query);
+        });
+
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching tests found" : "All tests selected";
+            testSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 25).forEach((t) => {
+                const item = document.createElement("div");
+                item.className = "pkg-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(t.Name)}</span>
+                        ${t.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(t.Short_name)})</span>` : ""}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.72rem; padding:2px 6px; background:#fef2f2; color:#b91c1c; border-radius:4px; border:1px solid #fee2e2;">
+                            ${escapeHtml(t.sampleType || "N/A")}
+                        </span>
+                        <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                            ₹${t.Price || 0}
+                        </span>
+                    </div>
+                `;
+
+                item.addEventListener("click", () => {
+                    selectTest(t);
+                    testSearchInput.value = "";
+                    testSearchDropdown.style.display = "none";
+                    testSearchInput.focus();
+                });
+
+                testSearchDropdown.appendChild(item);
+            });
+        }
+
+        testSearchDropdown.style.display = "block";
+    }
+
+    function selectTest(test) {
+        if (!test || !test._id) return;
+        selectedTestsMap.set(test._id, {
+            id: test._id,
+            name: test.Name,
+            price: parseFloat(test.Price) || 0,
+            sampleType: test.sampleType || "N/A"
+        });
+        renderSelectedTests();
+        updateCalculations();
+    }
+
+    function deselectTest(testId) {
+        selectedTestsMap.delete(testId);
+        renderSelectedTests();
+        updateCalculations();
+    }
+
+    function renderSelectedTests() {
+        selectedTestsContainer.innerHTML = "";
+
+        if (selectedTestsMap.size === 0) {
+            selectedTestsContainer.appendChild(emptyTestsHint);
+            if (testsCountBadge) testsCountBadge.textContent = "0 tests selected";
+            return;
+        }
+
+        if (testsCountBadge) testsCountBadge.textContent = `${selectedTestsMap.size} tests selected`;
+
+        selectedTestsMap.forEach((t, id) => {
+            const tag = document.createElement("div");
+            tag.className = "pkg-tag test-tag";
+            tag.innerHTML = `
+                <i class="fa-solid fa-vial-virus"></i>
+                <span>${escapeHtml(t.name)}</span>
+                <span class="sample-pill">${escapeHtml(t.sampleType)}</span>
+                <span style="color:#6d28d9; font-weight:700; font-size:0.75rem;">₹${t.price}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
+
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectTest(id));
+            selectedTestsContainer.appendChild(tag);
+        });
+    }
+
+    // Calculations
+    function updateCalculations() {
+        let standaloneSum = 0;
+        const allSamples = new Set();
+
+        selectedPanelsMap.forEach((p) => {
+            standaloneSum += p.price;
+            p.sampleTypes.forEach(s => s && allSamples.add(String(s).trim()));
+        });
+
+        selectedTestsMap.forEach((t) => {
+            standaloneSum += t.price;
+            if (t.sampleType) allSamples.add(String(t.sampleType).trim());
+        });
+
+        const packageFee = parseFloat(packageFeeInput.value) || 0;
+
+        calcStandaloneTotal.textContent = `₹${standaloneSum}`;
+        calcPackageFee.textContent = `₹${packageFee}`;
+
+        if (standaloneSum > 0 && packageFee > 0) {
+            const savingAmount = Math.max(0, standaloneSum - packageFee);
+            const savingPercent = Math.round((savingAmount / standaloneSum) * 100);
+            calcSavings.textContent = `${savingPercent}% (₹${savingAmount})`;
+        } else {
+            calcSavings.textContent = "0% (₹0)";
+        }
+
+        calcSamples.textContent = Array.from(allSamples).join(", ") || "-";
+    }
+
+    async function submitPackage() {
+        const nameVal = packageNameInput.value.trim();
+        const genderVal = packageGenderSelect.value;
+        const feeVal = parseFloat(packageFeeInput.value);
+        const mrpVal = parseFloat(finalPriceInput.value);
+
+        if (!nameVal) {
+            showToast("Package name is required", "error");
+            packageNameInput.focus();
+            return;
+        }
+
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in package name", "error");
+            packageNameInput.focus();
+            return;
+        }
+
+        if (isNaN(feeVal) || isNaN(mrpVal)) {
+            showToast("Please enter Billing Price and MRP Value", "error");
+            packageFeeInput.focus();
+            return;
+        }
+
+        if (selectedPanelsMap.size === 0 && selectedTestsMap.size === 0) {
+            showToast("Please select at least one Test or Panel to include in the package", "error");
+            return;
+        }
+
+        // Gather lists
+        const pannelIds = Array.from(selectedPanelsMap.keys());
+        const pannelname = Array.from(selectedPanelsMap.values()).map(p => p.name);
+        const pannelSample = Array.from(selectedPanelsMap.values()).flatMap(p => p.sampleTypes);
+
+        const testIds = Array.from(selectedTestsMap.keys());
+        const testname = Array.from(selectedTestsMap.values()).map(t => t.name);
+        const testSample = Array.from(selectedTestsMap.values()).map(t => t.sampleType);
+
+        const payload = {
+            packageName: nameVal,
+            packageFee: feeVal,
+            final_price: mrpVal,
+            packagegender: genderVal,
+            pannelIds,
+            pannelname,
+            pannelSample,
+            testIds,
+            testname,
+            testSample
+        };
+
+        savePackageBtn.disabled = true;
+        savePackageBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/all-pannels-tenant`, { method: "POST" });
-            const tests = await response.json();
-
-            searchHint2.innerHTML = '';
-
-            tests.panels.forEach(test => {
-                const optionElement = document.createElement('div');
-                optionElement.className = "hint-option2";
-                optionElement.setAttribute('sample-type', JSON.stringify(test.sample_types));
-                optionElement.setAttribute('data-id', test._id); // ✅ store panel id
-                optionElement.innerText = test.name;
-
-                optionElement.addEventListener("click", function (e) {
-                    const selectedTestName = document.createElement('div');
-                    selectedTestName.classList.add('selected-div2');
-                    selectedTestName.setAttribute('sample-type', JSON.stringify(test.sample_types));
-                    selectedTestName.setAttribute('data-id', test._id); // ✅ panel id
-                    selectedTestName.innerHTML = `${e.target.innerText} <i class="fa-regular fa-circle-xmark delete-btn2"></i>`;
-
-                    JSON.parse(e.target.getAttribute('sample-type')).forEach(sample => {
-                        if (!sample_types2.includes(sample)) sample_types2.push(sample);
-                    });
-
-                    inputarray2.push(e.target.innerText);
-                    panelIds.push(test._id); // ✅ push panel ID
-                    tagsdiv2.appendChild(selectedTestName);
-
-                    e.target.style.display = "none";
-                    searchHint2.style.display = "none";
-                            console.log("testsId:", testIds);
-        console.log("panelids:", panelIds);
-                });
-
-                searchHint2.appendChild(optionElement);
-
+            const res = await fetch(`${BASE_URL}/api/v1/user/add-package-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
 
-            pannelsInput.addEventListener("click", () => searchHint2.style.display = "block");
-            document.addEventListener("click", (e) => {
-                if (!pannelsInput.contains(e.target) && !searchHint2.contains(e.target)) {
-                    searchHint2.style.display = "none";
-                }
-            });
+            const data = await res.json();
 
-        } catch (error) {
-            console.log("something went wrong", error);
-        }
-    }
-
-    tagsdiv2.addEventListener("click", function (e) {
-        if (e.target.classList.contains("delete-btn2")) {
-            const tag = e.target.closest(".selected-div2");
-
-            if (tag) {
-                const panelName = tag.innerText.trim();
-                const deletableSampleTypes = JSON.parse(tag.getAttribute('sample-type'));
-                const panelId = tag.getAttribute('data-id');
-
-                inputarray2 = inputarray2.filter(item => item !== panelName);
-                panelIds = panelIds.filter(id => id !== panelId); // ✅ remove panel ID
-
-                deletableSampleTypes.forEach(sample => {
-                    const sampleInOtherPanel = Array.from(tagsdiv2.children).some(otherTag => {
-                        if (otherTag !== tag) {
-                            const otherSampleTypes = JSON.parse(otherTag.getAttribute('sample-type'));
-                            return otherSampleTypes.includes(sample);
-                        }
-                        return false;
-                    });
-                    if (!sampleInOtherPanel) {
-                        sample_types2 = sample_types2.filter(existingSample => existingSample !== sample);
+            if (res.ok) {
+                showToast("Package created successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("testPackage");
+                    } else {
+                        window.location.href = "?page=testPackage";
                     }
-                });
-
-                const panelElement = Array.from(searchHint2.children).find(option => option.innerText === panelName);
-                if (panelElement) panelElement.style.display = "";
-
-                tag.remove();
-            }
-        }
-    });
-
-    async function initialize() {
-        await loadTests();
-        await loadpannels();
-        searchingTest();
-        searchingPannel();
-    }
-
-    function searchingTest() {
-        TestSearchInput.addEventListener("input", function () {
-            const inputValue = this.value.toLowerCase();
-            const selectedDivs = document.querySelectorAll('.hint-option');
-            let found = false;
-
-            selectedDivs.forEach(antest => {
-                const testName = antest.innerText.toLowerCase();
-                if (testName.includes(inputValue)) {
-                    antest.style.display = 'block';
-                    found = true;
-                } else {
-                    antest.style.display = 'none';
-                }
-            });
-
-            document.getElementById("noTestMessage").style.display = found ? "none" : "";
-        });
-    }
-
-    function searchingPannel() {
-        pannelsInput.addEventListener("input", function () {
-            const inputValue = this.value.toLowerCase();
-            const selectedDivs = document.querySelectorAll('.hint-option2');
-            let found = false;
-
-            selectedDivs.forEach(antest => {
-                const testName = antest.innerText.toLowerCase();
-                if (testName.includes(inputValue)) {
-                    antest.style.display = 'block';
-                    found = true;
-                } else {
-                    antest.style.display = 'none';
-                }
-            });
-
-            document.getElementById("noTestMessage2").style.display = found ? "none" : "";
-        });
-    }
-
-    initialize();
-    addPanneltodatabase();
-
-    function addPanneltodatabase() {
-        document.getElementById('submitButton').addEventListener('click', async () => {
-            const namefield = document.getElementById('name');
-            const errormessage = document.querySelector('.errormessage');
-            const alert = document.querySelector(".alert");
-
-            if (namefield.value.trim().includes(",")) {
-                errormessage.style.display = "block";
-                namefield.scrollIntoView({ behavior: "smooth" })
-                namefield.focus();
-                return;
+                }, 1200);
             } else {
-                errormessage.style.display = "none";
+                showToast(data.message || "Failed to create package", "error");
+                savePackageBtn.disabled = false;
+                savePackageBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Package';
             }
-
-            const packageName = namefield.value.trim();
-            const packageFee = document.getElementById('fee').value;
-            const packagegender = document.getElementById('gender').value;
-            const final_price = document.getElementById('final-price').value;
-
-            if (!packageName || !packageFee || !final_price) {
-                alert.innerHTML = `Missing required fields<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success");
-                alert.classList.add("alert-danger", "show");
-                setTimeout(() => alert.classList.remove("show"), 3000);
-                return;
-            }
-
-            if (inputarray.length === 0 && inputarray2.length === 0) {
-                alert.innerHTML = `Please select at least one Test or Panel<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success");
-                alert.classList.add("alert-danger", "show");
-                setTimeout(() => alert.classList.remove("show"), 3000);
-                return;
-            }
-
-            const requestBody = {
-                testname: inputarray,
-                testSample: sample_types,
-                testIds, // ✅ added test ids
-                pannelname: inputarray2,
-                pannelSample: sample_types2,
-                pannelIds: panelIds, // ✅ added panel ids
-                packageName,
-                packageFee,
-                packagegender,
-                final_price
-            };
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/v1/user/add-package-tenant`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.remove("alert-danger");
-                    alert.classList.add("alert-success", "show");
-                    setTimeout(() => location.reload(), 3500);
-                } else {
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.remove("alert-success");
-                    alert.classList.add("alert-danger", "show");
-                }
-            } catch (error) {
-                alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success");
-                alert.classList.add("alert-danger", "show");
-            }
-
-            setTimeout(() => alert.classList.remove("show"), 3000);
-        });
+        } catch (err) {
+            console.error("Submission error:", err);
+            showToast("Network error: " + err.message, "error");
+            savePackageBtn.disabled = false;
+            savePackageBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Package';
+        }
     }
-}
 
-addpackage();
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("pkgToast");
+        const toastMsg = document.getElementById("pkgToastMsg");
+        if (!toast || !toastMsg) return;
+
+        toastMsg.textContent = message;
+        toast.className = `pkg-toast ${type} show`;
+
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
+        }
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 3200);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+})();

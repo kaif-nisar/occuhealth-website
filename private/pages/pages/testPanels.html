@@ -1,192 +1,1109 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Test Panels</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Database - Occuhealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
-        .container {
-            width: 95%;
-            margin: 33px auto;
+        .pdb-wrapper {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
+            box-sizing: border-box;
         }
 
-        h1 {
-            font-size: 32px;
-            color: #333;
+        /* Top Header */
+        .pdb-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
-        .info-box {
-            background-color: #e9f0f7;
-            padding: 10px;
-            border-radius: 5px;
+        .pdb-header-title {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            justify-content: space-between;
-            letter-spacing: 1px;
+            gap: 14px;
         }
 
-        .info-box i {
-            margin-right: 10px;
-            color: #5a9bd5;
+        .pdb-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
         }
 
-        .add-new {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
+        .pdb-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .pdb-title p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 2px 0 0 0;
+        }
+
+        .pdb-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pdb-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
             cursor: pointer;
-            float: right;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            border: 1px solid transparent;
         }
 
-        table {
+        .pdb-btn-primary {
+            background: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+        }
+
+        .pdb-btn-primary:hover {
+            background: #0369a1;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .pdb-btn-outline {
+            background: #ffffff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .pdb-btn-outline:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .pdb-btn-secondary {
+            background: #f8fafc;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+
+        .pdb-btn-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Stats Cards - Interactive Dashboard */
+        .pdb-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .pdb-stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .pdb-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            border-color: #cbd5e1;
+        }
+
+        .pdb-stat-card.active-filter {
+            border-color: #0284c7;
+            background: #f0f9ff;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+
+        .pdb-stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .pdb-stat-icon.cyan { background: #ecfeff; color: #0891b2; }
+        .pdb-stat-icon.emerald { background: #ecfdf5; color: #059669; }
+        .pdb-stat-icon.amber { background: #fffbeb; color: #d97706; }
+        .pdb-stat-icon.blue { background: #eff6ff; color: #2563eb; }
+
+        .pdb-stat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pdb-stat-info .pdb-stat-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .pdb-stat-info .pdb-stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 2px;
+        }
+
+        .pdb-stat-subtext {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pdb-stat-action-hint {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 0.65rem;
+            color: #94a3b8;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pdb-stat-card:hover .pdb-stat-action-hint {
+            opacity: 1;
+            color: #0284c7;
+        }
+
+        /* Active Filter Indicator Bar */
+        .pdb-active-filters-bar {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #0369a1;
+        }
+
+        .pdb-active-filters-bar.visible {
+            display: flex;
+        }
+
+        .pdb-clear-all-filters {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #0284c7;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.8rem;
+        }
+
+        /* Controls Card */
+        .pdb-controls-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .pdb-search-box {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .pdb-search-box i.fa-search {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .pdb-search-input {
+            width: 100%;
+            padding: 9px 36px 9px 36px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .pdb-search-input:focus {
+            background: #ffffff;
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .pdb-clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+            padding: 4px;
+        }
+
+        .pdb-clear-search:hover { color: #ef4444; }
+
+        .pdb-filters {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pdb-select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #334155;
+            background-color: #ffffff;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .pdb-select:focus { border-color: #0284c7; }
+
+        .pdb-reorder-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #0369a1;
+            background: #e0f2fe;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        /* Table Card */
+        .pdb-table-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .pdb-table-container {
+            width: 100%;
+            overflow-x: auto;
+            position: relative;
+            min-height: 240px;
+        }
+
+        .pdb-table {
             width: 100%;
             border-collapse: collapse;
-            background-color: white;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        th,
-        td {
-            padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            font-size: 0.875rem;
         }
 
-        th {
-            background-color: #f5f6fa;
-            color: #333;
+        .pdb-table thead {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
         }
 
-        td {
-            color: #333;
+        .pdb-table th {
+            padding: 12px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            user-select: none;
         }
 
-        .edit-link {
-            color: #007bff;
-            text-decoration: none;
+        .pdb-table th.center, .pdb-table td.center { text-align: center; }
+        .pdb-table th.right, .pdb-table td.right { text-align: right; }
+
+        .pdb-table tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.15s ease;
         }
 
-        .edit-link i {
-            margin-right: 5px;
+        .pdb-table tbody tr:hover { background-color: #f8fafc; }
+
+        .pdb-table td {
+            padding: 10px 14px;
+            color: #1e293b;
+            vertical-align: middle;
         }
 
-        .order-icon {
-            cursor: pointer;
-            color: #333;
-        }
-
-        .actions a {
-            color: #007bff;
-            cursor: pointer;
-        }
-
-        .pannelTests {
-            width: 30%;
-        }
-
-        /* Add smooth transition for all rows */
-        tbody tr {
-            transition: transform 0.2s ease, background-color 0.2s ease;
-        }
-
-        /* Highlight the row being dragged */
-        tbody tr.dragging {
-            background-color: #bde0ff;
-            /* Light blue background for dragging row */
-            opacity: 0.8;
-            cursor: grab;
-            /* Slightly transparent */
-            transform: scale(1.02);
-            /* Slightly enlarge the row */
-        }
-
-        /* Indicate the drop target */
-        tbody tr.drop-target {
-            border: 2px dashed #007bff;
-            /* Dashed border for drop target */
-        }
-
-        .order i {
-            padding-right: 20px;
-        }
-
-        .contar1 {
-            margin: 35px;
-        }
-
-        table {
-            width: 100%;
-        }
-
-        /* Keyframes for spinning animation */
-        @keyframes spin2 {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .search-container {
+        /* Drag & Drop & Order Input Styles */
+        .pdb-order-cell {
             display: flex;
             align-items: center;
-            margin: 20px 0;
+            justify-content: center;
+            gap: 6px;
         }
 
-        .search-container input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .pdb-table tbody tr.pdb-draggable-row { cursor: grab; }
+        .pdb-table tbody tr.pdb-dragging {
+            background-color: #f0f9ff !important;
+            opacity: 0.85;
+            box-shadow: 0 8px 16px rgba(2, 132, 199, 0.15);
+        }
+        .pdb-table tbody tr.pdb-drop-target {
+            border-top: 3px solid #0284c7 !important;
+            background-color: #f0fdf4;
         }
 
-        .search-container i {
-            margin-left: 10px;
-            color: #888;
+        .pdb-drag-handle {
+            color: #94a3b8;
+            cursor: grab;
+            font-size: 13px;
+            padding: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: color 0.2s, background 0.2s;
         }
 
-        .protip i {
-            color: rgb(185, 185, 0);
+        .pdb-drag-handle:hover {
+            color: #0284c7;
+            background: #e0f2fe;
+        }
 
+        /* Interactive Numeric Order Input */
+        .pdb-order-input {
+            width: 48px;
+            padding: 4px 6px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .pdb-order-input:focus {
+            background: #ffffff;
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+            color: #0369a1;
+        }
+
+        .pdb-order-input::-webkit-inner-spin-button, 
+        .pdb-order-input::-webkit-outer-spin-button { 
+            opacity: 0.5;
+        }
+
+        /* Highlight animation when panel jumps to new position */
+        @keyframes pdbHighlightAnim {
+            0% { background-color: #e0f2fe; }
+            50% { background-color: #bae6fd; }
+            100% { background-color: transparent; }
+        }
+
+        .pdb-row-highlight {
+            animation: pdbHighlightAnim 2.5s ease-out;
+        }
+
+        .pdb-panel-name {
+            font-weight: 600;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pdb-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pdb-badge-code {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            font-family: monospace;
+        }
+
+        .pdb-badge-category {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+
+        .pdb-badge-sample {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fee2e2;
+        }
+
+        .pdb-tests-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            max-width: 380px;
+        }
+
+        .pdb-test-chip {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            color: #334155;
+            white-space: nowrap;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pdb-test-more-chip {
+            background: #e2e8f0;
+            color: #475569;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .pdb-price-val {
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .pdb-mrp-val {
+            font-weight: 500;
+            color: #94a3b8;
+            text-decoration: line-through;
+            font-size: 0.78rem;
+            margin-left: 4px;
+        }
+
+        /* Action Buttons */
+        .pdb-actions-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .pdb-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: #f0f9ff;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .pdb-action-btn:hover {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+        }
+
+        .pdb-action-btn.move-btn {
+            color: #475569;
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+
+        .pdb-action-btn.move-btn:hover {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        }
+
+        /* Footer */
+        .pdb-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 14px 18px;
+            border-top: 1px solid #e2e8f0;
+            background: #ffffff;
+        }
+
+        .pdb-footer-info {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .pdb-pagination {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pdb-page-btn {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pdb-page-btn:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .pdb-page-btn.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+        }
+
+        .pdb-page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Skeleton Shimmer Loading */
+        .pdb-skeleton-row td {
+            padding: 16px 14px;
+        }
+
+        .pdb-shimmer {
+            height: 16px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: pdbShimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes pdbShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* State box */
+        .pdb-state-container {
+            padding: 48px 24px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .pdb-state-icon {
+            font-size: 38px;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+        }
+
+        .pdb-state-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .pdb-state-desc {
+            font-size: 0.875rem;
+            color: #64748b;
+            max-width: 440px;
+            margin: 0 auto 16px auto;
+        }
+
+        /* Modal Dialogs */
+        .pdb-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .pdb-modal-overlay.active {
+            display: flex;
+        }
+
+        .pdb-modal-box {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            animation: pdbModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pdb-modal-box.large {
+            max-width: 760px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes pdbModalIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .pdb-modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+        }
+
+        .pdb-modal-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pdb-modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .pdb-modal-close:hover {
+            color: #ef4444;
+            background: #f1f5f9;
+        }
+
+        .pdb-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .pdb-modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            background: #f8fafc;
+        }
+
+        .pdb-jump-presets {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0 18px 0;
+            flex-wrap: wrap;
+        }
+
+        .pdb-preset-btn {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .pdb-preset-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        /* Toast */
+        .pdb-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 99999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pdb-toast.show { transform: translateY(0); opacity: 1; }
+        .pdb-toast.success { background: #065f46; border-left: 4px solid #10b981; }
+        .pdb-toast.error { background: #991b1b; border-left: 4px solid #ef4444; }
+        .pdb-toast.info { background: #0c4a6e; border-left: 4px solid #0284c7; }
+
+        @media (max-width: 768px) {
+            .pdb-wrapper { padding: 14px; }
+            .pdb-header { flex-direction: column; align-items: flex-start; }
+            .pdb-header-actions { width: 100%; justify-content: flex-start; }
+            .pdb-controls-card { flex-direction: column; align-items: stretch; }
+            .pdb-filters { width: 100%; }
+            .pdb-select { flex: 1; }
         }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <h1>Test panels</h1>
-        <div class="info-box">
-            <span>Home>panel</span>
-            <a><button onclick="loadPage('addPanels')" class="add-new">+ Add new</button></a>
+    <div class="pdb-wrapper">
+        <!-- Header -->
+        <div class="pdb-header">
+            <div class="pdb-header-title">
+                <div class="pdb-icon-badge">
+                    <i class="fa-solid fa-rectangle-list"></i>
+                </div>
+                <div class="pdb-title">
+                    <h1>Panel Database</h1>
+                    <p>Manage multi-parameter profiles, grouped panels, included tests & pricing</p>
+                </div>
+            </div>
+            <div class="pdb-header-actions">
+                <button type="button" class="pdb-btn pdb-btn-outline" id="pdbOpenOrganizerBtn" title="Reorder whole panel catalog with live preview">
+                    <i class="fa-solid fa-list-ol"></i> Reorder Panels
+                </button>
+                <button type="button" class="pdb-btn pdb-btn-primary" onclick="loadPage('addPanels')">
+                    <i class="fa-solid fa-plus"></i> + Add Panel
+                </button>
+            </div>
         </div>
 
-        <div class="search-container">
-            <input type="text" placeholder="Search in page" id="searchInput" oninput="filterTable()">
-            <i class="fas fa-search"></i>
-            <span class="protip"><i class="fas fa-lightbulb"></i> ProTip! Drag and Drop row to reorder panels.</span>
+        <!-- Metrics Dashboard Bar (Clickable & Informative) -->
+        <div class="pdb-stats-bar">
+            <!-- Stat 1: Total Panels -->
+            <div class="pdb-stat-card" id="cardTotalPanels" title="Click to view all panels (resets filters)">
+                <div class="pdb-stat-icon cyan">
+                    <i class="fa-solid fa-folder-tree"></i>
+                </div>
+                <div class="pdb-stat-info">
+                    <div class="pdb-stat-value" id="statTotalPanels">-</div>
+                    <div class="pdb-stat-label">Total Panels</div>
+                    <div class="pdb-stat-subtext" id="statSubTotalPanels">Loading panels...</div>
+                </div>
+                <span class="pdb-stat-action-hint"><i class="fa-solid fa-rotate-left"></i> View All</span>
+            </div>
+
+            <!-- Stat 2: Categories -->
+            <div class="pdb-stat-card" id="cardPanelCategories" title="Click to filter by category">
+                <div class="pdb-stat-icon emerald">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+                <div class="pdb-stat-info">
+                    <div class="pdb-stat-value" id="statPanelCategories">-</div>
+                    <div class="pdb-stat-label">Active Categories</div>
+                    <div class="pdb-stat-subtext" id="statSubPanelCategory">Loading categories...</div>
+                </div>
+                <span class="pdb-stat-action-hint"><i class="fa-solid fa-filter"></i> Filter</span>
+            </div>
+
+            <!-- Stat 3: Pricing Analytics -->
+            <div class="pdb-stat-card" id="cardPanelPrice" title="Click to sort by price (Low to High / High to Low)">
+                <div class="pdb-stat-icon amber">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div class="pdb-stat-info">
+                    <div class="pdb-stat-value" id="statAvgPanelPrice">-</div>
+                    <div class="pdb-stat-label">Avg. Panel Price</div>
+                    <div class="pdb-stat-subtext" id="statSubPanelPrice">Loading range...</div>
+                </div>
+                <span class="pdb-stat-action-hint"><i class="fa-solid fa-arrow-down-short-wide"></i> Sort</span>
+            </div>
+
+            <!-- Stat 4: Included Tests -->
+            <div class="pdb-stat-card" id="cardTotalTestsLinked" title="Click to sort by most tests included">
+                <div class="pdb-stat-icon blue">
+                    <i class="fa-solid fa-vials"></i>
+                </div>
+                <div class="pdb-stat-info">
+                    <div class="pdb-stat-value" id="statTotalTestsLinked">-</div>
+                    <div class="pdb-stat-label">Included Tests</div>
+                    <div class="pdb-stat-subtext" id="statSubTestsLinked">Loading tests count...</div>
+                </div>
+                <span class="pdb-stat-action-hint"><i class="fa-solid fa-sort-numeric-down"></i> Sort</span>
+            </div>
         </div>
-        <table id="pannel-table">
-            <thead>
-                <tr>
-                    <th>ORDER</th>
-                    <th>NAME</th>
-                    <th>CATEGORY</th>
-                    <th>PRICE</th>
-                    <th class="pannelTests">TESTS</th>
-                    <th>SAMPLE TYPES</th>
-                    <th>ACTIONS</th>
-                </tr>
-            </thead>
-            <tbody id="panel-tbody">
-            </tbody>
-        </table>
+
+        <!-- Active Filter Badge Bar -->
+        <div class="pdb-active-filters-bar" id="pdbActiveFiltersBar">
+            <i class="fa-solid fa-filter"></i>
+            <span id="pdbActiveFilterDesc">Filtered view active</span>
+            <button type="button" class="pdb-clear-all-filters" id="pdbResetAllFiltersBtn">Reset all filters</button>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="pdb-controls-card">
+            <div class="pdb-search-box">
+                <i class="fa-solid fa-search fa-search"></i>
+                <input type="text" id="pdbSearchInput" class="pdb-search-input" placeholder="Search by panel name, short name, test name, category...">
+                <button type="button" id="pdbClearSearch" class="pdb-clear-search" title="Clear search">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="pdb-filters">
+                <select id="pdbCategoryFilter" class="pdb-select">
+                    <option value="">All Categories</option>
+                </select>
+
+                <select id="pdbSortFilter" class="pdb-select">
+                    <option value="order">Catalog Sequence (Order #)</option>
+                    <option value="name-asc">Name (A to Z)</option>
+                    <option value="name-desc">Name (Z to A)</option>
+                    <option value="price-asc">Price (Low to High)</option>
+                    <option value="price-desc">Price (High to Low)</option>
+                    <option value="tests-desc">Most Tests Included</option>
+                </select>
+
+                <div class="pdb-reorder-banner" title="Type any rank # directly in the Order column, or drag rows on the page">
+                    <i class="fa-solid fa-arrow-down-1-9"></i> Type rank # to move across pages
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="pdb-table-card">
+            <div class="pdb-table-container" id="pdbTableContainer">
+                <table class="pdb-table" id="pdbTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 105px;" class="center" title="Type a rank number and hit Enter, or drag to reorder">
+                                Order # <i class="fa-solid fa-sort" style="font-size:0.7rem; color:#94a3b8;"></i>
+                            </th>
+                            <th>Panel Name</th>
+                            <th>Short Code</th>
+                            <th>Category</th>
+                            <th>Included Tests</th>
+                            <th>Sample Types</th>
+                            <th class="right">Price</th>
+                            <th style="width: 150px;" class="center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pdbTbody">
+                        <!-- Populated by testPanels.js -->
+                    </tbody>
+                </table>
+
+                <div id="pdbStateBox" class="pdb-state-container" style="display: none;"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pdb-footer" id="pdbFooter">
+                <div class="pdb-footer-info" id="pdbPaginationInfo">
+                    Showing 0 of 0 panels
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b;">
+                        <span>Show:</span>
+                        <select id="pdbPageSize" class="pdb-select" style="padding: 4px 8px;">
+                            <option value="25" selected>25 per page</option>
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                            <option value="all">All (Full List)</option>
+                        </select>
+                    </div>
+                    <div class="pdb-pagination" id="pdbPaginationControls"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="testPanel.js"></script>
-</body>
 
+    <!-- Quick Move Single Panel Dialog -->
+    <div class="pdb-modal-overlay" id="pdbMoveModal">
+        <div class="pdb-modal-box">
+            <div class="pdb-modal-header">
+                <h3><i class="fa-solid fa-arrow-down-up-across-line" style="color: #0284c7;"></i> Move Panel Position</h3>
+                <button type="button" class="pdb-modal-close" id="pdbMoveModalClose">&times;</button>
+            </div>
+            <div class="pdb-modal-body">
+                <p style="margin: 0 0 10px 0; font-size: 0.88rem; color: #64748b;">
+                    Reposition this panel anywhere in your catalog (moves across all pages seamlessly):
+                </p>
+                
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;" id="pdbModalPanelName">-</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">
+                        Current Rank: <strong style="color: #0284c7;" id="pdbModalCurrentRank">-</strong> of <span id="pdbModalTotalPanels">-</span>
+                    </div>
+                </div>
+
+                <label style="display: block; font-size: 0.82rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                    New Target Rank / Position:
+                </label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" id="pdbModalTargetRank" min="1" class="pdb-order-input" style="width: 100px; padding: 8px 12px; font-size: 1rem; text-align: left;" placeholder="e.g. 7">
+                    <span style="font-size: 0.82rem; color: #64748b;">(Range: 1 to <span id="pdbModalMaxRank"></span>)</span>
+                </div>
+
+                <div class="pdb-jump-presets">
+                    <button type="button" class="pdb-preset-btn" id="pdbPresetTop">
+                        <i class="fa-solid fa-angles-up"></i> Top (#1)
+                    </button>
+                    <button type="button" class="pdb-preset-btn" id="pdbPresetPrev10">
+                        <i class="fa-solid fa-angle-up"></i> Up 10
+                    </button>
+                    <button type="button" class="pdb-preset-btn" id="pdbPresetNext10">
+                        <i class="fa-solid fa-angle-down"></i> Down 10
+                    </button>
+                    <button type="button" class="pdb-preset-btn" id="pdbPresetBottom">
+                        <i class="fa-solid fa-angles-down"></i> Bottom (Last)
+                    </button>
+                </div>
+
+                <div style="font-size: 0.78rem; color: #64748b; line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info" style="color: #0284c7;"></i>
+                    When you move this panel, all other panels will automatically shift down or up, and the table will immediately jump to the target page highlighting this panel.
+                </div>
+            </div>
+            <div class="pdb-modal-footer">
+                <button type="button" class="pdb-btn pdb-btn-secondary" id="pdbMoveModalCancel">Cancel</button>
+                <button type="button" class="pdb-btn pdb-btn-primary" id="pdbMoveModalApply">
+                    <i class="fa-solid fa-check"></i> Apply & Move
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Catalog Reorder Organizer Modal -->
+    <div class="pdb-modal-overlay" id="pdbOrganizerModal">
+        <div class="pdb-modal-box large">
+            <div class="pdb-modal-header">
+                <div>
+                    <h3 style="margin-bottom: 2px;"><i class="fa-solid fa-list-ol" style="color: #0284c7;"></i> Panel Sequence Organizer</h3>
+                    <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                        Reorder all panels in your lab database. Changes apply globally across all pages.
+                    </p>
+                </div>
+                <button type="button" class="pdb-modal-close" id="pdbOrganizerModalClose">&times;</button>
+            </div>
+            <div style="padding: 12px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: center;">
+                <div style="position: relative; flex: 1;">
+                    <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
+                    <input type="text" id="pdbOrganizerSearch" placeholder="Find panel by name or code to quickly reorder..." style="width: 100%; padding: 7px 10px 7px 30px; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; outline: none;">
+                </div>
+                <span style="font-size: 0.78rem; color: #64748b; white-space: nowrap;" id="pdbOrganizerCount">
+                    Total: 0 panels
+                </span>
+            </div>
+            <div class="pdb-modal-body" style="padding: 0; flex: 1; max-height: 480px; overflow-y: auto;">
+                <div id="pdbOrganizerList" style="divide-y: 1px solid #f1f5f9;">
+                    <!-- Organizer rows generated by JS -->
+                </div>
+            </div>
+            <div class="pdb-modal-footer" style="justify-content: space-between;">
+                <span style="font-size: 0.78rem; color: #64748b;">
+                    <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Real-time sequence updates
+                </span>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="pdb-btn pdb-btn-secondary" id="pdbOrganizerCloseBtn">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="pdbToast" class="pdb-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="pdbToastMsg">Saved successfully</span>
+    </div>
+
+    <script src="pages/pages/testPanels.js"></script>
+</body>
 </html>

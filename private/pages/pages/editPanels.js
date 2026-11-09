@@ -1,326 +1,484 @@
-async function addpannelfun() {
-    let categoryArray = [];
-    const panelNameInput = document.getElementById("name");
-    const tagsDiv = document.getElementById("middle-tag-div");
-    const testList = document.getElementById('search-hint');
-    const testsInput = document.getElementById("tests");
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    let selectedTests = new Map(); // testName -> { sampleType, testId }
-    let selectedSampleTypes = new Set();
+    let availableTests = [];
+    let selectedTestsMap = new Map(); // testId -> { id, name, sampleType, price }
+    let categoryList = [];
+    let targetPanelId = null;
 
-    const params = new URLSearchParams(window.location.search);
-    const name = params.get('Name');
+    // DOM Elements
+    const loadingOverlay = document.getElementById("epLoadingOverlay");
+    const headerPanelName = document.getElementById("headerPanelName");
+    const headerPanelMeta = document.getElementById("headerPanelMeta");
+    const panelNameInput = document.getElementById("panelName");
+    const shortNameInput = document.getElementById("shortName");
+    const categorySelect = document.getElementById("categorySelect");
+    const billingPriceInput = document.getElementById("billingPrice");
+    const mrpPriceInput = document.getElementById("mrpPrice");
+    const selectedTestsContainer = document.getElementById("selectedTestsContainer");
+    const emptyTagsHint = document.getElementById("emptyTagsHint");
+    const testSearchInput = document.getElementById("testSearchInput");
+    const testSearchDropdown = document.getElementById("testSearchDropdown");
+    const priceHelperCard = document.getElementById("priceHelperCard");
+    const standaloneTotalVal = document.getElementById("standaloneTotalVal");
+    const selectedCountVal = document.getElementById("selectedCountVal");
+    const sampleTypesSummary = document.getElementById("sampleTypesSummary");
+    const hideInterpretationCb = document.getElementById("hideInterpretation");
+    const hideMethodInstrumentCb = document.getElementById("hideMethodInstrument");
+    const savePanelBtn = document.getElementById("savePanelBtn");
+    const nameError = document.getElementById("nameError");
 
-            async function fetchCategories() {
-        try {
-            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`, { method: "GET" });
-            if (!res.ok) throw new Error("Failed to fetch categories");
+    init();
 
-            const data = await res.json();
-            
-            categoryArray = data.categories || data.data || data || [];
+    async function init() {
+        bindEvents();
+        extractTargetId();
 
-            const selectEl = document.getElementById("category");
-            selectEl.innerHTML = "";
-            categoryArray.forEach(cat => {
-                const opt = document.createElement("option");
-                opt.value = cat.category;
-                opt.textContent = cat.category;
-                selectEl.appendChild(opt);
-            });
-        } catch (err) {
-            console.error(err);
-            alert("Error fetching categories. Please try again.");
+        if (!targetPanelId) {
+            showToast("No panel ID provided in URL", "error");
+            if (loadingOverlay) loadingOverlay.innerHTML = '<div style="color:#ef4444; font-weight:600;">Invalid Panel ID. <a onclick="loadPage(\'testPanels\')" style="text-decoration:underline; cursor:pointer;">Return to Panels</a></div>';
+            return;
         }
+
+        await Promise.all([loadCategories(), loadTests()]);
+        await fetchPanelDetails();
     }
 
-    fetchCategories();
-    // ===========================
-    // Fetch Panel Data
-    // ===========================
-    async function fetchPanelData(name) {
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/one-Pannel/${name}`, { method: "POST" });
-            const panelData = await response.json();
+    function extractTargetId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let id = urlParams.get("Name") || urlParams.get("name") || urlParams.get("id") || urlParams.get("_id") || urlParams.get("value1");
 
-            if (panelData) {
-                await loadCategories();
-                populateFields(panelData);
+        if (id) {
+            try {
+                id = decodeURIComponent(id);
+            } catch (e) {}
+        }
+
+        if (!id) {
+            for (const [key] of urlParams.entries()) {
+                if (key !== "page" && key !== "v" && key.length >= 12) {
+                    id = key;
+                    break;
+                }
             }
-        } catch (error) {
-            console.error("Error fetching panel data:", error);
         }
+
+        targetPanelId = id;
     }
 
-    function populateFields(panelData) {
-        populateSelectedTests(panelData);
-        panelNameInput.value = panelData.name;
-        const shortNameInput = document.getElementById("short-name");
-        if (shortNameInput) {
-            shortNameInput.value = panelData.Short_name || panelData.short_name || "";
+    function bindEvents() {
+        if (panelNameInput) {
+            panelNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("ep-input-error");
+                } else {
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("ep-input-error");
+                }
+            });
         }
-        document.getElementById("price").value = panelData.price;
-        document.getElementById("final-price").value = panelData.final_price;
-        document.getElementById('hide-interpretation').checked = panelData.hideInterpretation;
-        document.getElementById('hide-method-instrument').checked = panelData.hideMethodInstrument;
-        document.getElementById('category').value = panelData.category.category;
 
-        if (editor) {
-            editor.setData(panelData.interpretation || "");
+        if (testSearchInput) {
+            testSearchInput.addEventListener("input", filterTestDropdown);
+            testSearchInput.addEventListener("focus", filterTestDropdown);
+
+            document.addEventListener("click", (e) => {
+                if (!testSearchInput.contains(e.target) && !testSearchDropdown.contains(e.target)) {
+                    testSearchDropdown.style.display = "none";
+                }
+            });
+        }
+
+        if (savePanelBtn) {
+            savePanelBtn.addEventListener("click", submitPanelUpdate);
         }
     }
 
     async function loadCategories() {
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`);
-            const categories = await response.json();
+            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`);
+            const data = await res.json();
+            categoryList = data.categories || data.data || [];
 
-            if (categories && Array.isArray(categories.data)) {
-                const categorySelect = document.getElementById('category');
-                categorySelect.innerHTML = "";
-
-                categories.data.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.category;
-                    option.textContent = category.category;
-                    categorySelect.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error("Error loading categories:", error);
-        }
-    }
-
-    // ===========================
-    // Populate Tests
-    // ===========================
-    function populateSelectedTests(panelData) {
-        if (panelData.tests && panelData.sample_types && panelData.testsId) {
-            const sampleType = panelData.sample_types[0];
-
-            console.log("tests:", panelData.tests)
-            panelData.tests.forEach((testName, index) => {
-                const testId = panelData.testsId[index];
-                if (testId && sampleType) addSelectedTest(testName, sampleType, testId, true);
+            categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+            categoryList.forEach((cat) => {
+                const val = cat.category || cat;
+                const opt = document.createElement("option");
+                opt.value = val;
+                opt.textContent = val;
+                categorySelect.appendChild(opt);
             });
+        } catch (e) {
+            console.error("Failed to load categories:", e);
         }
     }
 
     async function loadTests() {
         try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, { method: "POST" });
-            const tests = await response.json();
-            displayTests(tests);
-        } catch (error) {
-            console.error("Error loading tests:", error);
-        }
-    }
-
-    function displayTests(tests) {
-        testList.innerHTML = '';
-        tests.tests.forEach(test => {
-            const testElement = createTestElement(test);
-            testList.appendChild(testElement);
-        });
-    }
-
-    function createTestElement(test) {
-        const testElement = document.createElement('div');
-        testElement.className = "test-item";
-        testElement.id = "tests-name-div";
-        testElement.setAttribute('sampletype', test.sampleType);
-        testElement.setAttribute('data-id', test._id);
-        testElement.innerText = test.Name;
-
-        testElement.addEventListener("click", function () {
-            const testName = test.Name;
-            const sampleType = test.sampleType;
-            const testId = test._id;
-
-            if (selectedTests.has(testName)) {
-                unselectTest(testName);
-            } else if (canSelectTest(sampleType)) {
-                addSelectedTest(testName, sampleType, testId);
-            } else {
-                showAlert(`Cannot select test with sample type "${sampleType}"`);
-            }
-            console.log("selectedTests:", selectedTests);
-
-        });
-
-        return testElement;
-    }
-
-    function addSelectedTest(testName, sampleType, testId, isPreSelected = false) {
-        if (selectedTests.has(testName)) return;
-
-        if (selectedSampleTypes.has(sampleType) || selectedTests.size === 0 || isPreSelected) {
-            const selectedTestDiv = document.createElement('div');
-            selectedTestDiv.classList.add('selected-div');
-            selectedTestDiv.innerHTML = `<span>${testName}</span> <i class="fa-regular fa-circle-xmark delete-btn"></i>`;
-            selectedTestDiv.setAttribute('sample-type', sampleType);
-
-            selectedTests.set(testName, { sampleType, testId });
-            selectedSampleTypes.add(sampleType);
-            tagsDiv.appendChild(selectedTestDiv);
-
-            hideTestFromList(testName);
-            addDeleteButtonListener(selectedTestDiv, testName);
-        } else {
-            showAlert(`Cannot select test with sample type "${sampleType}" as another sample type is already selected`);
-        }
-        console.log("selectedTests:", selectedTests);
-    }
-
-    function hideTestFromList(testName) {
-        const testElement = Array.from(testList.children).find(test => test.innerText === testName);
-        if (testElement) testElement.style.display = 'none';
-    }
-
-    function addDeleteButtonListener(selectedTestDiv, testName) {
-        selectedTestDiv.querySelector('.delete-btn').addEventListener('click', function () {
-            unselectTest(testName);
-        });
-    }
-
-    function unselectTest(testName) {
-        const selectedTestDiv = Array.from(tagsDiv.children).find(div => div.innerText.includes(testName));
-        if (selectedTestDiv) {
-            const sampleType = selectedTestDiv.getAttribute('sample-type');
-            selectedTestDiv.remove();
-
-            selectedTests.delete(testName);
-            const remainingTests = Array.from(selectedTests.values()).some(test => test.sampleType === sampleType);
-            if (!remainingTests) selectedSampleTypes.delete(sampleType);
-            if (selectedTests.size === 0) selectedSampleTypes.clear();
-            showTestInList(testName);
-        }
-    }
-
-    function showTestInList(testName) {
-        const testElement = Array.from(testList.children).find(test => test.innerText === testName);
-        if (testElement) testElement.style.display = 'block';
-    }
-
-    function canSelectTest(sampleType) {
-        return selectedSampleTypes.size === 0 || selectedSampleTypes.has(sampleType);
-    }
-
-    function showAlert(message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert';
-        alertDiv.innerText = message;
-        document.body.appendChild(alertDiv);
-        setTimeout(() => alertDiv.remove(), 3000);
-    }
-
-    async function initialize() {
-        if (name) await fetchPanelData(name);
-        await loadTests();
-        setupSearch();
-    }
-
-    function setupSearch() {
-        testsInput.addEventListener("keyup", function () {
-            const inputValue = this.value.toLowerCase();
-            const testDivs = Array.from(testList.children);
-            let found = false;
-
-            testDivs.forEach(testDiv => {
-                const testName = testDiv.innerText.toLowerCase();
-                testDiv.style.display = testName.includes(inputValue) ? 'block' : 'none';
-                if (testName.includes(inputValue)) found = true;
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-database-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
             });
-
-            document.getElementById("noTestMessage").style.display = found ? "none" : "block";
-        });
+            const data = await res.json();
+            availableTests = Array.isArray(data.tests) ? data.tests : [];
+        } catch (e) {
+            console.error("Failed to load tests:", e);
+        }
     }
 
-    // ===========================
-    // Save Panel
-    // ===========================
-    function addPanelToDatabase() {
-        document.querySelector('.save').addEventListener('click', async function () {
-            const namefield = document.getElementById('name');
-            const errormessage = document.querySelector('.errormessage');
-            const alert = document.querySelector(".alert");
+    async function fetchPanelDetails() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/one-Pannel/${encodeURIComponent(targetPanelId)}`, {
+                method: "POST"
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}: Panel not found`);
 
-            if (namefield.value.trim().includes(",")) {
-                errormessage.style.display = "block";
-                namefield.scrollIntoView({ behavior: "smooth" });
-                namefield.focus();
-                return;
-            } else {
-                errormessage.style.display = "none";
+            const data = await res.json();
+            populateFormData(data);
+
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+        } catch (err) {
+            console.error("Error fetching panel details:", err);
+            if (loadingOverlay) {
+                loadingOverlay.innerHTML = `
+                    <div style="color:#ef4444; font-weight:600; font-size:1.1rem; margin-bottom:8px;">Failed to load panel</div>
+                    <div style="color:#64748b; font-size:0.85rem; margin-bottom:14px;">${escapeHtml(err.message)}</div>
+                    <button type="button" class="ep-btn ep-btn-outline" onclick="loadPage(\'testPanels\')"><i class="fa-solid fa-arrow-left"></i> Back to Panels</button>
+                `;
             }
+        }
+    }
 
-            try {
-                const pannelname = namefield.value.trim();
-                const shortNameInput = document.getElementById("short-name");
-                const shortName = shortNameInput ? shortNameInput.value.trim() : "";
-                const price = document.getElementById("price").value;
-                const final_price = document.getElementById("final-price").value;
-                const interpretation = editor.getData();
-                const category = categoryArray.find(cat => cat.category === document.getElementById('category').value);
-                const hideInterpretation = document.getElementById('hide-interpretation').checked;
-                const hideMethodInstrument = document.getElementById('hide-method-instrument').checked;
+    function populateFormData(panel) {
+        if (!panel) return;
 
-                const testsId = Array.from(selectedTests.values()).map(test => test.testId);
-                const uniqueSampleTypes = Array.from(selectedSampleTypes);
-                const uniqueInputArray = Array.from(selectedTests.keys());
+        if (headerPanelName) headerPanelName.textContent = `Edit: ${panel.name || 'Panel'}`;
+        if (headerPanelMeta) headerPanelMeta.textContent = `Short Code: ${panel.Short_name || 'N/A'} • ID: ${panel._id}`;
 
-                if (!testsId.length || !uniqueSampleTypes.length) {
-                    alert.innerHTML = `Please select at least one Test<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.add("alert-danger", "show");
-                    setTimeout(() => alert.classList.remove("show"), 3000);
-                    return;
+        panelNameInput.value = panel.name || "";
+        shortNameInput.value = panel.Short_name || "";
+        billingPriceInput.value = panel.price != null ? panel.price : "";
+        mrpPriceInput.value = panel.final_price != null ? panel.final_price : "";
+
+        if (hideInterpretationCb) hideInterpretationCb.checked = Boolean(panel.hideInterpretation);
+        if (hideMethodInstrumentCb) hideMethodInstrumentCb.checked = Boolean(panel.hideMethodInstrument);
+
+        // Category
+        const catName = panel.category?.category || (typeof panel.category === "string" ? panel.category : "");
+        if (catName) {
+            let exists = Array.from(categorySelect.options).some(o => o.value === catName);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = catName;
+                opt.textContent = catName;
+                categorySelect.appendChild(opt);
+            }
+            categorySelect.value = catName;
+        }
+
+        // Populate Selected Tests
+        selectedTestsMap.clear();
+
+        if (Array.isArray(panel.testsId) && panel.testsId.length > 0) {
+            panel.testsId.forEach((tRef) => {
+                const id = typeof tRef === "object" ? tRef._id : tRef;
+                const matchedTest = availableTests.find(t => t._id === id);
+
+                if (matchedTest) {
+                    selectedTestsMap.set(matchedTest._id, {
+                        id: matchedTest._id,
+                        name: matchedTest.Name,
+                        sampleType: matchedTest.sampleType || "N/A",
+                        price: parseFloat(matchedTest.Price) || 0
+                    });
+                } else if (typeof tRef === "object" && tRef.Name) {
+                    selectedTestsMap.set(id, {
+                        id: id,
+                        name: tRef.Name,
+                        sampleType: tRef.sampleType || "N/A",
+                        price: 0
+                    });
                 }
+            });
+        } else if (Array.isArray(panel.tests) && panel.tests.length > 0) {
+            panel.tests.forEach((tName) => {
+                const matchedTest = availableTests.find(t => t.Name === tName);
+                if (matchedTest) {
+                    selectedTestsMap.set(matchedTest._id, {
+                        id: matchedTest._id,
+                        name: matchedTest.Name,
+                        sampleType: matchedTest.sampleType || "N/A",
+                        price: parseFloat(matchedTest.Price) || 0
+                    });
+                }
+            });
+        }
 
-                const response = await fetch(`${BASE_URL}/api/v1/user/edit-Pannel-tenant/${name}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        pannelname,
-                        Short_name: shortName,
-                        category,
-                        price,
-                        inputarray: uniqueInputArray,
-                        testsId,
-                        interpretation,
-                        sample_types: uniqueSampleTypes,
-                        hideInterpretation,
-                        hideMethodInstrument,
-                        final_price
-                    })
+        renderSelectedTags();
+
+        // Interpretation
+        const interp = panel.interpretation || "";
+        const fallbackTextarea = document.getElementById("fallbackInterpretation");
+        if (fallbackTextarea) fallbackTextarea.value = interp;
+
+        if (window.editor && typeof window.editor.setData === "function") {
+            try { window.editor.setData(interp); } catch (e) {}
+        } else {
+            let attempts = 0;
+            const editorCheck = setInterval(() => {
+                attempts++;
+                if (window.editor && typeof window.editor.setData === "function") {
+                    try { window.editor.setData(interp); } catch (e) {}
+                    clearInterval(editorCheck);
+                } else if (attempts > 20) {
+                    clearInterval(editorCheck);
+                }
+            }, 250);
+        }
+    }
+
+    function filterTestDropdown() {
+        const query = (testSearchInput.value || "").trim().toLowerCase();
+        testSearchDropdown.innerHTML = "";
+
+        const matches = availableTests.filter((t) => {
+            if (selectedTestsMap.has(t._id)) return false;
+            const name = (t.Name || "").toLowerCase();
+            const code = (t.Short_name || "").toLowerCase();
+            const sample = (t.sampleType || "").toLowerCase();
+            return !query || name.includes(query) || code.includes(query) || sample.includes(query);
+        });
+
+        if (matches.length === 0) {
+            const emptyEl = document.createElement("div");
+            emptyEl.style.padding = "10px 14px";
+            emptyEl.style.color = "#94a3b8";
+            emptyEl.style.fontSize = "0.85rem";
+            emptyEl.textContent = query ? "No matching tests found" : "All available tests selected";
+            testSearchDropdown.appendChild(emptyEl);
+        } else {
+            matches.slice(0, 30).forEach((t) => {
+                const item = document.createElement("div");
+                item.className = "ep-dropdown-item";
+                item.innerHTML = `
+                    <div>
+                        <span style="font-weight:600;">${escapeHtml(t.Name)}</span>
+                        ${t.Short_name ? `<span style="color:#64748b; font-size:0.75rem; margin-left:6px;">(${escapeHtml(t.Short_name)})</span>` : ""}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.72rem; padding:2px 6px; background:#fef2f2; color:#b91c1c; border-radius:4px; border:1px solid #fee2e2;">
+                            ${escapeHtml(t.sampleType || "N/A")}
+                        </span>
+                        <span style="font-weight:700; color:#059669; font-size:0.8rem;">
+                            ₹${t.Price || 0}
+                        </span>
+                    </div>
+                `;
+
+                item.addEventListener("click", () => {
+                    selectTest(t);
+                    testSearchInput.value = "";
+                    testSearchDropdown.style.display = "none";
+                    testSearchInput.focus();
                 });
 
-                const data = await response.json();
-                if (data.status === "success") {
-                    selectedTests.clear();
-                    selectedSampleTypes.clear();
-                    tagsDiv.innerHTML = '';
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.add("alert-success", "show");
-                    setTimeout(() => window.location.href = "/admin/admin.html?page=testPanels", 3500);
-                } else {
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.add("alert-danger", "show");
-                    setTimeout(() => alert.classList.remove("show"), 3000);
-                }
-            } catch (error) {
-                alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.add("alert-danger", "show");
-                setTimeout(() => alert.classList.remove("show"), 3000);
-            }
-        });
+                testSearchDropdown.appendChild(item);
+            });
+        }
+
+        testSearchDropdown.style.display = "block";
     }
 
-    initialize();
-    addPanelToDatabase();
+    function selectTest(test) {
+        if (!test || !test._id) return;
 
-    document.querySelector('.cancel').addEventListener('click', function () {
-        window.location.href = `${BASE_URL}/admin.html?page=testPanels`;
-    });
-}
+        const currentSamples = new Set(Array.from(selectedTestsMap.values()).map(t => t.sampleType).filter(Boolean));
+        if (currentSamples.size > 0 && test.sampleType && !currentSamples.has(test.sampleType)) {
+            showToast(`Note: Added test requires "${test.sampleType}", which differs from current selections.`, "info");
+        }
 
-addpannelfun();
+        selectedTestsMap.set(test._id, {
+            id: test._id,
+            name: test.Name,
+            sampleType: test.sampleType || "N/A",
+            price: parseFloat(test.Price) || 0
+        });
+
+        renderSelectedTags();
+    }
+
+    function deselectTest(testId) {
+        selectedTestsMap.delete(testId);
+        renderSelectedTags();
+    }
+
+    function renderSelectedTags() {
+        selectedTestsContainer.innerHTML = "";
+
+        if (selectedTestsMap.size === 0) {
+            selectedTestsContainer.appendChild(emptyTagsHint);
+            if (priceHelperCard) priceHelperCard.style.display = "none";
+            return;
+        }
+
+        let totalStandalonePrice = 0;
+        const sampleSet = new Set();
+
+        selectedTestsMap.forEach((test, id) => {
+            totalStandalonePrice += test.price;
+            if (test.sampleType) sampleSet.add(test.sampleType);
+
+            const tag = document.createElement("div");
+            tag.className = "ep-selected-tag";
+            tag.innerHTML = `
+                <span>${escapeHtml(test.name)}</span>
+                <span class="sample-tag">${escapeHtml(test.sampleType)}</span>
+                <span class="del-btn" title="Remove">&times;</span>
+            `;
+
+            tag.querySelector(".del-btn").addEventListener("click", () => deselectTest(id));
+            selectedTestsContainer.appendChild(tag);
+        });
+
+        if (priceHelperCard) {
+            priceHelperCard.style.display = "flex";
+            standaloneTotalVal.textContent = `₹${totalStandalonePrice}`;
+            selectedCountVal.textContent = selectedTestsMap.size;
+            sampleTypesSummary.textContent = Array.from(sampleSet).join(", ") || "N/A";
+        }
+    }
+
+    async function submitPanelUpdate() {
+        const nameVal = panelNameInput.value.trim();
+        const shortVal = shortNameInput.value.trim();
+        const categoryVal = categorySelect.value;
+        const billingVal = parseFloat(billingPriceInput.value);
+        const mrpVal = parseFloat(mrpPriceInput.value);
+
+        if (!nameVal) {
+            showToast("Panel name is required", "error");
+            panelNameInput.focus();
+            return;
+        }
+
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in panel name", "error");
+            panelNameInput.focus();
+            return;
+        }
+
+        if (!categoryVal) {
+            showToast("Please select a Category", "error");
+            categorySelect.focus();
+            return;
+        }
+
+        if (isNaN(billingVal) || isNaN(mrpVal)) {
+            showToast("Please enter Billing Price and MRP Rate", "error");
+            billingPriceInput.focus();
+            return;
+        }
+
+        if (selectedTestsMap.size === 0) {
+            showToast("Please select at least one test for this panel", "error");
+            testSearchInput.focus();
+            return;
+        }
+
+        const testsId = Array.from(selectedTestsMap.keys());
+        const selectedTestNames = Array.from(selectedTestsMap.values()).map(t => t.name);
+        const sampleTypes = [...new Set(Array.from(selectedTestsMap.values()).map(t => t.sampleType).filter(Boolean))];
+
+        let interpretationText = "";
+        if (window.editor && typeof window.editor.getData === "function") {
+            try { interpretationText = window.editor.getData(); } catch (e) {}
+        }
+        if (!interpretationText) {
+            const fallback = document.getElementById("fallbackInterpretation");
+            interpretationText = fallback ? fallback.value : "";
+        }
+
+        const categoryObj = categoryList.find(c => (c.category || c) === categoryVal) || { category: categoryVal };
+
+        const payload = {
+            pannelname: nameVal,
+            Short_name: shortVal,
+            price: billingVal,
+            final_price: mrpVal,
+            category: categoryObj,
+            inputarray: selectedTestNames,
+            testsId: testsId,
+            interpretion: interpretationText,
+            interpretation: interpretationText,
+            sample_types: sampleTypes,
+            hideInterpretation: hideInterpretationCb?.checked || false,
+            hideMethodInstrument: hideMethodInstrumentCb?.checked || false
+        };
+
+        savePanelBtn.disabled = true;
+        savePanelBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/edit-Pannel-tenant/${encodeURIComponent(targetPanelId)}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast("Panel updated successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("testPanels");
+                    } else {
+                        window.location.href = "?page=testPanels";
+                    }
+                }, 1200);
+            } else {
+                showToast(data.message || "Failed to update panel", "error");
+                savePanelBtn.disabled = false;
+                savePanelBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Panel';
+            }
+        } catch (err) {
+            console.error("Update error:", err);
+            showToast("Network error: " + err.message, "error");
+            savePanelBtn.disabled = false;
+            savePanelBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Panel';
+        }
+    }
+
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("epToast");
+        const toastMsg = document.getElementById("epToastMsg");
+        if (!toast || !toastMsg) return;
+
+        toastMsg.textContent = message;
+        toast.className = `ep-toast ${type} show`;
+
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
+        }
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 3200);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+})();

@@ -1,822 +1,754 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-
-    <title>Form Page</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Test - Occuhealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
-        .conta {
-            padding: 50px 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 8px;
+        .at-wrapper {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
             box-sizing: border-box;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
         }
 
-        .form-row {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-            margin-right: 10px;
-        }
-
-        .form-row .form-group:last-child {
-            margin-right: 0;
-        }
-
-        .parameters-section {
-            margin: 30px 0px;
-        }
-
-        .parameters-section h3 {
-            font-size: 1.25rem;
-            margin-bottom: 10px;
-        }
-
-        .parameters-table2 {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-            margin-top: 10px;
-        }
-
-        .parameters-table2 th,
-        .parameters-table2 td {
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            text-align: center;
-        }
-
-        .parameters-table2 td {
-            margin-top: 20px;
-        }
-
-        .parameters-table2 th {
-            background-color: #f1f3f5;
-        }
-
-        .parameters-table2 input,
-        .parameters-table2 select {
-            width: 100%;
-            padding: 6px;
-            box-sizing: border-box;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-
-        .parameters-table2 .remove-link {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 0.875rem;
-            cursor: pointer;
-        }
-
-        .add-parameter-link {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-
-        .containerg {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ccc;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            color: #007bff;
-        }
-
-        .tab.active {
-            border-bottom: 2px solid #007bff;
-            font-weight: bold;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .notification {
-            background-color: #f8f9fa;
-            border: 1px solid #f5c6cb;
-            padding: 10px;
-            border-radius: 4px;
-            color: #d9534f;
+        .at-breadcrumb {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 16px;
         }
 
-        .notification i {
-            margin-right: 10px;
-        }
-
-        #editor {
-            height: 200px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 10px;
-        }
-
-        .editor-toolbar {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .editor-toolbar select,
-        .editor-toolbar button {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
+        .at-breadcrumb a {
+            color: #2563eb;
+            text-decoration: none;
             cursor: pointer;
-        }
-
-        .editor-content {
-            min-height: 100px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-        }
-
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .footer button {
-            padding: 10px 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #007bff;
-            color: #fff;
-            cursor: pointer;
-        }
-
-        .footer .view-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .footer .view-buttons button {
-            background-color: #f8f9fa;
-            color: #000;
-        }
-
-        .form-section {
-            max-width: 100%;
-            margin-bottom: 0rem;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 0px;
-        }
-
-        .row-container {
-            display: flex;
-            align-items: center;
-            /* margin-bottom: 15px; */
-            /* border: 1px solid #e0e0e0; */
-            padding: 5px;
-            /* border-radius: 6px; */
-            /* background: #f9f9f9; */
-            gap: 5px;
-            text-align: left;
-        }
-
-        /* .row-item {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-width: 80px;
-        } */
-
-        .row-item label {
-            font-size: 0.9rem;
-            /* font-weight: bold; */
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .row-item input,
-        .row-item select {
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .delete-btn {
-            color: #d9534f;
-            cursor: pointer;
-            font-size: 18px;
-            align-self: center;
-        }
-
-        .display-report {
             font-weight: 500;
-            color: #555;
-            margin-left: 10px;
-            /* Add space on the left */
-            font-size: 14px;
         }
 
-        .add-more-btn {
+        .at-breadcrumb a:hover { text-decoration: underline; }
+
+        .at-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .at-header-left {
             display: flex;
             align-items: center;
-            color: #5bc0de;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 5px;
+            gap: 14px;
         }
 
-        .add-more-btn:hover {
-            color: #31b0d5;
-        }
-
-        .normal-value {
-            margin-top: 2rem;
-            padding: 0.4rem;
-            font-size: 1.25rem;
-        }
-
-        .text-area {
-            display: none;
-            height: 4rem;
-            width: 100%;
-            border-radius: 0.5rem;
-            /* Hide text area by default */
-            margin-top: 15px;
-            padding: 1rem;
-        }
-
-        .selectTypeDiv {
-            width: 100%;
+        .at-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             display: flex;
             align-items: center;
-            margin-bottom: 0.5rem;
-            /* justify-content: center; */
-        }
-
-        .selectTypeDiv select {
-            width: 25%;
-        }
-
-        .selectTypeDiv select {
-            padding: 4px 8px;
-            border-radius: 5px;
-            margin-left: 0.5rem;
-        }
-
-        /* Style the modal */
-        .mymodal {
-            display: none;
-            /* Hidden by default */
-            position: fixed;
-            /* Stay in place */
-            z-index: 1;
-            /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%;
-            /* Full width */
-            height: 100%;
-            /* Full height */
-            overflow: auto;
-            /* Enable scroll if needed */
-            background-color: rgb(0, 0, 0);
-            /* Fallback color */
-            background-color: rgba(0, 0, 0, 0.4);
-            /* Black w/ opacity */
-        }
-
-        .mymodal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 30%;
-            /* Could be more or less, depending on screen size */
-        }
-
-        .close-modal {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close-modal:hover,
-        .close-modal:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .add-unit-icon {
+            justify-content: center;
+            color: #ffffff;
             font-size: 20px;
-            cursor: pointer;
-            color: #007bff;
-            margin-left: 10px;
-            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
         }
 
-        .add-unit-icon:hover {
-            color: #0056b3;
+        .at-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.02em;
         }
 
-        .normalValue {
-            width: 55%;
-            background-color: #f9f9f9;
+        .at-title p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 2px 0 0 0;
         }
 
-        .minAge,
-        .maxAge {
-            display: flex;
-        }
-
-        .unitHead {
-            width: 10%;
-        }
-
-        input.min-age,
-        input.max-age {
-            width: 3.5rem;
-            border-right: none;
-            border-top-right-radius: 0px;
-            border-bottom-right-radius: 0px;
-        }
-
-        select[name="min_age_unit"],
-        select[name="max_age_unit"] {
-            width: 5rem;
-            border-top-left-radius: 0px;
-            border-bottom-left-radius: 0px;
-        }
-
-        select.sex {
-            width: 4rem;
-        }
-
-        .errormessage {
-            display: none;
-            color: #B00020;
-            padding: 5px;
-        }
-
-        .sampletypebuttondiv {
-            display: flex;
+        .at-btn {
+            display: inline-flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .sampletypebuttondiv button {
-            padding: 2px 5px;
-            font-size: 0.75rem;
-        }
-
-        .modal-content {
-            padding: 20px;
-        }
-
-        .alert {
-            position: fixed;
-            width: 75%;
-            top: 80px;
-            right: 2%;
-            z-index: 1050;
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 105000;
-            display: none;
-            overflow: hidden;
-            outline: 0;
-        }
-
-        .editor-container {
-            background-color: white;
-            padding: 8px;
-        }
-        
-        .random-section {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-        }
-
-        .random-checkbox-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .random-checkbox-container input[type="checkbox"] {
-            width: auto;
-            margin-right: 8px;
-        }
-
-        .random-inputs {
-            display: none;
-            gap: 10px;
-        }
-
-        .random-inputs.active {
-            display: flex;
-        }
-
-        .random-input-group {
-            flex: 1;
-        }
-
-        .random-input-group label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .random-input-group input {
-            width: 100%;
-            padding: 6px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-
-        .shortname-note {
-            display: block;
-            margin-top: 6px;
-            color: #6c757d;
-            font-size: 12px;
-        }
-
-        .parameter-name-cell {
-            min-width: 240px;
-        }
-
-        .shortname-alias-manager {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #d8e2ef;
-            border-radius: 6px;
-            background: #f8fbff;
-        }
-
-        .shortname-alias-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .shortname-alias-header span {
-            font-size: 12px;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
             font-weight: 600;
-            color: #1f3b64;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .shortname-add-btn {
-            border: 0;
-            border-radius: 999px;
-            background: #1f6feb;
-            color: #fff;
-            width: 26px;
-            height: 26px;
             cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            text-decoration: none;
         }
 
-        .shortname-alias-list {
+        .at-btn-primary {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+
+        .at-btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .at-btn-outline {
+            background: #ffffff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .at-btn-outline:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        /* Tabs Navigation */
+        .at-tabs-nav {
             display: flex;
-            flex-direction: column;
             gap: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 24px;
+            overflow-x: auto;
         }
 
-        .shortname-alias-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto auto;
+        .at-tab-btn {
+            display: inline-flex;
+            align-items: center;
             gap: 8px;
-            align-items: center;
-        }
-
-        .shortname-default-toggle {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            color: #355070;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #64748b;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            transition: all 0.2s;
             white-space: nowrap;
         }
 
-        .shortname-default-toggle input {
-            width: auto;
+        .at-tab-btn:hover { color: #2563eb; }
+
+        .at-tab-btn.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .at-tab-content { display: none; }
+        .at-tab-content.active { display: block; }
+
+        /* Form Cards */
+        .at-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .at-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .at-card-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .at-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .at-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .at-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .at-form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .at-form-group label .req { color: #ef4444; margin-left: 3px; }
+
+        .at-input, .at-select, .at-textarea {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #ffffff;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .at-input:focus, .at-select:focus, .at-textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .at-input-error {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+        }
+
+        .at-error-text {
+            color: #ef4444;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: none;
+        }
+
+        /* Parameters Table */
+        .at-param-table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .at-param-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .at-param-table th {
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            text-align: left;
+        }
+
+        .at-param-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+            background: #ffffff;
+        }
+
+        .at-param-del-btn {
+            color: #ef4444;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .at-param-del-btn:hover {
+            background: #fef2f2;
+        }
+
+        .at-param-del-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Machine aliases chip manager */
+        .at-alias-box {
+            margin-top: 8px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 8px;
+            max-width: 280px;
+        }
+
+        .at-alias-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .at-alias-add-btn {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .at-alias-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .at-alias-input {
+            flex: 1;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #ffffff;
+        }
+
+        .at-alias-remove {
+            color: #ef4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px;
+        }
+
+        /* Normal ranges builder */
+        .at-range-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .at-range-del {
+            color: #ef4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px;
+        }
+
+        .at-range-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .at-range-field input, .at-range-field select {
+            padding: 4px 6px;
+            font-size: 0.78rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #ffffff;
+        }
+
+        .at-add-range-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #2563eb;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .at-add-range-btn:hover { text-decoration: underline; }
+
+        /* Random number simulation */
+        .at-random-box {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-top: 6px;
+            font-size: 0.75rem;
+        }
+
+        /* Unit add modal */
+        .at-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            backdrop-filter: blur(2px);
+        }
+
+        .at-modal {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+        }
+
+        .at-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .at-modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
             margin: 0;
         }
 
-        .shortname-remove-btn {
-            border: 0;
-            background: transparent;
-            color: #b42318;
+        .at-modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #94a3b8;
             cursor: pointer;
-            font-size: 16px;
         }
 
-        .shortname-empty-state {
-            font-size: 12px;
-            color: #6c757d;
+        .at-modal-close:hover { color: #ef4444; }
+
+        /* Footer Bar */
+        .at-footer-bar {
+            position: sticky;
+            bottom: 0;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.05);
+            margin: 24px -24px -24px -24px;
+            border-radius: 0 0 12px 12px;
         }
+
+        /* Toast */
+        .at-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 99999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .at-toast.show { transform: translateY(0); opacity: 1; }
+        .at-toast.success { background: #065f46; border-left: 4px solid #10b981; }
+        .at-toast.error { background: #991b1b; border-left: 4px solid #ef4444; }
+        .at-toast.info { background: #1e3a8a; border-left: 4px solid #3b82f6; }
     </style>
 </head>
-
 <body>
-    <div class="conta" id="conta">
-        <div class="alert" role="alert"></div>
-        <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name">
-            <span class="errormessage">!comma (,) not-allowed in this field</span>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label for="short-name">Default Short name</label>
-                <input type="text" id="short-name" name="short-name">
-                <span class="shortname-note">यह report header और single test print short name के लिए use होगा.</span>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" name="category">
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="price">Billing Price</label>
-            <input type="text" id="price" name="final-price">
-        </div>
-        <div class="form-group">
-            <label for="final-price">MRP Price</label>
-            <input type="text" id="final-price" name="final-price">
-        </div>
-        <div class="form-group">
-            <label for="tat">TAT (Sample process timing for this test)</label>
-            <input type="text" id="tat" name="tat" placeholder="example: 2 days">
-        </div>
-        <div class="parameters-section">
-            <h3>Parameters</h3>
-            <table class="parameters-table2" id="parameters-table2">
-                <thead>
-                    <tr>
-                        <th>Del.</th>
-                        <th>* Order</th>
-                        <th>* Name</th>
-                        <th class="unitHead">Unit <span class="add-unit-icon" id="add-unit-icon">+</span>
-                            <!-- Add this line --></th>
-                        <th>Default</th>
-                        <th class="normalValue">Normal Value
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="all-parameters" id="all-parameters">
-                    <!-- Update the parameter row HTML in the table body -->
-                    <tr>
-                        <td><span class="remove-link2" id="remove-link">🗑️</span></td>
-                        <td><input type="text" value="1"></td>
-                        <td class="parameter-name-cell">
-                            <input type="text" id="paraName">
-                            <div class="shortname-alias-manager">
-                                <div class="shortname-alias-header">
-                                    <span>Machine Short names</span>
-                                    <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
-                                </div>
-                                <div class="shortname-alias-list"></div>
-                            </div>
-                        </td>
-                        <td>
-                            <select id="unit-select">
-                                <option value="">select Unit</option>
-                            </select>
-                        </td>
-                        <td><input type="text"></td>
-                        <td class="normalValue">
-                            <div class="selectTypeDiv">
-                                <label for="select-type">Select Type</label>
-                                <select id="select-type" onchange="toggleForm(this)">
-                                    <option value="numeric" selected>Numeric</option>
-                                    <option value="text">Text</option>
-                                </select>
-                            </div>
-
-                            <!-- Random Number Section -->
-                            <div class="random-section">
-                                <div class="random-checkbox-container">
-                                    <input type="checkbox" id="random-checkbox" class="random-checkbox"
-                                        onchange="toggleRandomInputs(this)">
-                                    <label for="random-checkbox">Show Random Number</label>
-                                </div>
-                                <div class="random-inputs">
-                                    <div class="random-input-group">
-                                        <label for="lower-range">Lower Range</label>
-                                        <input type="number" class="lower-range" placeholder="e.g., 5.0" step="0.01">
-                                    </div>
-                                    <div class="random-input-group">
-                                        <label for="upper-range">Upper Range</label>
-                                        <input type="number" class="upper-range" placeholder="e.g., 15.0" step="0.01">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="form-container">
-                                <div class="row-container">
-                                    <span class="delete-btn" onclick="deleteRow(this)"><i
-                                            class="fa-solid fa-eraser"></i></span>
-                                    <div class="row-item">
-                                        <label for="sex">Sex</label>
-                                        <select name="sex" class="sex">
-                                            <option value="Any">Any</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                        </select>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="min_age">Min. Age</label>
-                                        <div class="minAge">
-                                            <input type="number" name="min_age" placeholder="Min. age" class="min-age"
-                                                value="0">
-                                            <select name="min_age_unit">
-                                                <option value="Years">Years</option>
-                                                <option value="Months">Months</option>
-                                                <option value="Days">Days</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="max_age">Max. Age</label>
-                                        <div class="maxAge">
-                                            <input type="number" name="max_age" placeholder="Max. age" class="max-age"
-                                                value="100">
-                                            <select name="max_age_unit">
-                                                <option value="Years">Years</option>
-                                                <option value="Months">Months</option>
-                                                <option value="Days">Days</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="lower_value">Lower</label>
-                                        <input type="number" name="lower_value" placeholder="Lower value"
-                                            class="lower-value" value="2.1">
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="upper_value">Upper</label>
-                                        <input type="number" name="upper_value" placeholder="Upper value"
-                                            class="upper-value" value="17.7">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
-
-                            <div class="add-more-btn" id="add-more-btn" onclick="addRow(this)">+ Add more</div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <!-- <span class="add-parameter-link" id="add-parameter-link" onclick="addParameter()">+ Add more parameters</span> -->
-            <span class="add-parameter-link" id="add-parameter-link">+ Add more parameters</span>
-
+    <div class="at-wrapper">
+        <!-- Breadcrumb -->
+        <div class="at-breadcrumb">
+            <a onclick="loadPage('test')"><i class="fa-solid fa-arrow-left"></i> Test Database</a>
+            <span>/</span>
+            <span>Add New Test</span>
         </div>
 
-        <!-- Modal for Adding Unit -->
-        <div id="unit-modal" class="mymodal">
-            <div class="mymodal-content">
-                <span class="close-modal" id="close-modal">&times;</span>
-                <h2>Add New Unit</h2>
-                <input type="text" id="new-unit-name" placeholder="Enter unit name">
-                <button id="save-unit">Save Unit</button>
-            </div>
-        </div>
-
-        <div class="containerg">
-            <div class="tabs">
-                <div class="tab active">More details</div>
-            </div>
-            <div class="form-group">
-                <div class="sampletypebuttondiv">
-                    <label for="method">Sample Type</label>
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal"
-                        data-whatever="@mdo">+ Add</button>
+        <!-- Header -->
+        <div class="at-header">
+            <div class="at-header-left">
+                <div class="at-icon-badge">
+                    <i class="fa-solid fa-vial-circle-check"></i>
                 </div>
-                <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog"
-                    aria-labelledby="exampleModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel">Add Sample Type</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="alert" id="alert" role="alert"></div>
-                            <div class="modal-body">
-                                <form>
-                                    <div class="form-group">
-                                        <label for="recipient-name" class="col-form-label">Name:</label>
-                                        <input type="text" class="form-control" id="sample-name">
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                <button type="button" id="sampleaddbtn" class="btn btn-primary">Save</button>
-                            </div>
+                <div class="at-title">
+                    <h1>Create Pathology Test</h1>
+                    <p>Configure investigation profile, parameters, reference ranges & pricing</p>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="at-btn at-btn-outline" onclick="loadPage('test')">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="at-tabs-nav">
+            <button type="button" class="at-tab-btn active" data-tab="tab-general">
+                <i class="fa-solid fa-sliders"></i> General & Pricing
+            </button>
+            <button type="button" class="at-tab-btn" data-tab="tab-parameters">
+                <i class="fa-solid fa-list-check"></i> Parameters & Reference Ranges
+            </button>
+            <button type="button" class="at-tab-btn" data-tab="tab-clinical">
+                <i class="fa-solid fa-microscope"></i> Sample & Interpretation
+            </button>
+        </div>
+
+        <form id="addTestForm" onsubmit="return false;">
+            <!-- TAB 1: General & Pricing -->
+            <div id="tab-general" class="at-tab-content active">
+                <div class="at-card">
+                    <div class="at-card-title">
+                        <i class="fa-solid fa-circle-info" style="color:#2563eb;"></i> Test Identification
+                    </div>
+                    <div class="at-card-desc">Basic identification attributes used on reports and billings</div>
+
+                    <div class="at-grid-2">
+                        <div class="at-form-group">
+                            <label for="testName">Test Name <span class="req">*</span></label>
+                            <input type="text" id="testName" class="at-input" placeholder="e.g. Complete Blood Count (CBC)" required autocomplete="off">
+                            <span class="at-error-text" id="nameError">Comma (,) is not allowed in test name</span>
+                        </div>
+
+                        <div class="at-form-group">
+                            <label for="shortName">Short Code / Machine Alias</label>
+                            <input type="text" id="shortName" class="at-input" placeholder="e.g. CBC, HB, LFT" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="at-grid-2">
+                        <div class="at-form-group">
+                            <label for="categorySelect">Department / Category <span class="req">*</span></label>
+                            <select id="categorySelect" class="at-select" required>
+                                <option value="" disabled selected>Loading categories...</option>
+                            </select>
+                        </div>
+
+                        <div class="at-form-group">
+                            <label for="tatInput">Turnaround Time (TAT)</label>
+                            <input type="text" id="tatInput" class="at-input" placeholder="e.g. 2 Hours, Same Day, 24 Hours">
                         </div>
                     </div>
                 </div>
-                <select id="sampleType">
-                    <option>SERUM</option>
-                    <option>EDTA</option>
-                    <option>URINE</option>
-                    <option>FLOURISHED</option>
-                    <option>Sodium Citrate</option>
-                    <option>Sodium Heparin</option>
-                    <option>Lithium Heparin</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="method">Method</label>
-                <input type="text" id="method" name="method">
-            </div>
-            <div class="form-group">
-                <label for="instrument">Instrument</label>
-                <input type="text" id="instrument" name="instrument">
-            </div>
-            <div class="form-group">
-                <label for="interpretation">Interpretation</label>
-                <div class="editor-container">
-                    <div id="editor-toolbar"></div>
-                    <div id="editor"></div>
-                    <div id="editor-word-count"></div>
+
+                <div class="at-card">
+                    <div class="at-card-title">
+                        <i class="fa-solid fa-indian-rupee-sign" style="color:#059669;"></i> Commercial Pricing
+                    </div>
+                    <div class="at-card-desc">Define standard laboratory charges and maximum retail price</div>
+
+                    <div class="at-grid-2">
+                        <div class="at-form-group">
+                            <label for="billingPrice">Billing Price (₹) <span class="req">*</span></label>
+                            <input type="number" id="billingPrice" class="at-input" placeholder="e.g. 350" min="0" step="0.01" required>
+                        </div>
+
+                        <div class="at-form-group">
+                            <label for="mrpPrice">MRP / Standard Rate (₹) <span class="req">*</span></label>
+                            <input type="number" id="mrpPrice" class="at-input" placeholder="e.g. 500" min="0" step="0.01" required>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="footer">
-                <button class="submitbBtn" id="submitbBtn" data-alternate-id="another-identifier">Save</button>
+
+            <!-- TAB 2: Parameters & Ranges -->
+            <div id="tab-parameters" class="at-tab-content">
+                <div class="at-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <div class="at-card-title">
+                                <i class="fa-solid fa-table-list" style="color:#2563eb;"></i> Test Parameters
+                            </div>
+                            <div class="at-card-desc" style="margin-bottom:0;">
+                                Define measured parameters, units, machine mappings and age/sex reference intervals
+                            </div>
+                        </div>
+                        <button type="button" class="at-btn at-btn-outline" id="addParamBtn">
+                            <i class="fa-solid fa-plus"></i> + Add Parameter
+                        </button>
+                    </div>
+
+                    <div class="at-param-table-wrapper">
+                        <table class="at-param-table" id="paramsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">Del</th>
+                                    <th style="width: 70px;">Order</th>
+                                    <th style="width: 240px;">Parameter Name</th>
+                                    <th style="width: 140px;">
+                                        Unit <button type="button" id="openAddUnitModal" style="background:#2563eb; color:#fff; border:none; border-radius:3px; padding:1px 5px; font-size:11px; cursor:pointer;" title="Add new unit">+</button>
+                                    </th>
+                                    <th style="width: 120px;">Default</th>
+                                    <th>Normal Value / Reference Interval</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paramsTbody">
+                                <!-- Populated dynamically by addTest.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Clinical & Sample -->
+            <div id="tab-clinical" class="at-tab-content">
+                <div class="at-card">
+                    <div class="at-card-title">
+                        <i class="fa-solid fa-droplet" style="color:#dc2626;"></i> Specimen & Technical Details
+                    </div>
+                    <div class="at-card-desc">Sample collection requirements and analytical methodology</div>
+
+                    <div class="at-grid-3">
+                        <div class="at-form-group">
+                            <label for="sampleTypeSelect">
+                                <span>Sample Type <span class="req">*</span></span>
+                                <button type="button" id="openAddSampleModal" style="background:none; border:none; color:#2563eb; font-size:0.75rem; cursor:pointer; font-weight:600;">+ Add New</button>
+                            </label>
+                            <select id="sampleTypeSelect" class="at-select" required>
+                                <option value="SERUM">SERUM</option>
+                                <option value="EDTA">EDTA</option>
+                                <option value="URINE">URINE</option>
+                                <option value="FLOURISHED">FLOURISHED</option>
+                                <option value="Sodium Citrate">Sodium Citrate</option>
+                                <option value="Sodium Heparin">Sodium Heparin</option>
+                                <option value="Lithium Heparin">Lithium Heparin</option>
+                                <option value="WHOLE BLOOD">WHOLE BLOOD</option>
+                                <option value="PLASMA">PLASMA</option>
+                            </select>
+                        </div>
+
+                        <div class="at-form-group">
+                            <label for="methodInput">Test Method / Principle</label>
+                            <input type="text" id="methodInput" class="at-input" placeholder="e.g. Automated Cell Counter / ECLIA">
+                        </div>
+
+                        <div class="at-form-group">
+                            <label for="instrumentInput">Analyzer / Instrument</label>
+                            <input type="text" id="instrumentInput" class="at-input" placeholder="e.g. Beckman Coulter, Cobas">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="at-card">
+                    <div class="at-card-title">
+                        <i class="fa-solid fa-book-medical" style="color:#0284c7;"></i> Clinical Interpretation & Notes
+                    </div>
+                    <div class="at-card-desc">Clinical significance, comments, or notes displayed at the bottom of the lab report</div>
+
+                    <div class="at-form-group">
+                        <div class="editor-container" style="background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:8px;">
+                            <div id="editor-toolbar"></div>
+                            <div id="editor" style="min-height:160px; padding:12px; outline:none;"></div>
+                            <div id="editor-word-count"></div>
+                        </div>
+                        <textarea id="fallbackInterpretation" class="at-textarea" style="display:none; min-height:140px;" placeholder="Enter clinical interpretation, clinical correlation, or reference notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky Bottom Actions -->
+            <div class="at-footer-bar">
+                <button type="button" class="at-btn at-btn-outline" onclick="loadPage('test')">
+                    Cancel
+                </button>
+                <button type="button" class="at-btn at-btn-primary" id="saveTestBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Test
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal: Add New Unit -->
+    <div id="unitModal" class="at-modal-backdrop" style="display: none;">
+        <div class="at-modal">
+            <div class="at-modal-header">
+                <h3>Add New Unit</h3>
+                <button type="button" class="at-modal-close" id="closeUnitModal">&times;</button>
+            </div>
+            <div class="at-form-group" style="margin-bottom: 16px;">
+                <label for="newUnitName">Unit Name / Symbol <span class="req">*</span></label>
+                <input type="text" id="newUnitName" class="at-input" placeholder="e.g. mg/dL, g/L, pg, %" autocomplete="off">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="at-btn at-btn-outline" id="cancelUnitBtn">Cancel</button>
+                <button type="button" class="at-btn at-btn-primary" id="saveUnitBtn">Save Unit</button>
             </div>
         </div>
     </div>
-    <script src="addTest.js"></script>
-</body>
 
+    <!-- Modal: Add New Sample Type -->
+    <div id="sampleModal" class="at-modal-backdrop" style="display: none;">
+        <div class="at-modal">
+            <div class="at-modal-header">
+                <h3>Add New Sample Type</h3>
+                <button type="button" class="at-modal-close" id="closeSampleModal">&times;</button>
+            </div>
+            <div class="at-form-group" style="margin-bottom: 16px;">
+                <label for="newSampleName">Sample Type Name <span class="req">*</span></label>
+                <input type="text" id="newSampleName" class="at-input" placeholder="e.g. SYNOVIAL FLUID, CSF" autocomplete="off">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="at-btn at-btn-outline" id="cancelSampleBtn">Cancel</button>
+                <button type="button" class="at-btn at-btn-primary" id="saveSampleBtn">Save Sample</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="atToast" class="at-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="atToastMsg">Saved successfully</span>
+    </div>
+
+    <script src="pages/pages/addTest.js"></script>
+</body>
 </html>

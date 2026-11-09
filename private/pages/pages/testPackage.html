@@ -1,163 +1,654 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Test Packages</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Database - Occuhealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
-        .container {
-            width: 100%;
-            padding: 20px;
+        .pkg-wrapper {
+            padding: 24px;
+            background: #f8fafc;
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
+            box-sizing: border-box;
         }
 
-        .packageheader {
-            padding: 5px 12px;
-            border-radius: 5px;
-            margin: 2rem 0rem;
+        .pkg-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #e2e2e2;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
-        .packageheader h1 {
-            font-size: 24px;
-            font-weight: bold;
+        .pkg-header-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
 
-        .feedback {
-            margin-top: 10px;
+        .pkg-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+        }
+
+        .pkg-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .pkg-title p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 2px 0 0 0;
+        }
+
+        .pkg-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pkg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .pkg-btn-primary {
+            background: #7c3aed;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.2);
+        }
+
+        .pkg-btn-primary:hover {
+            background: #6d28d9;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Stats Cards */
+        .pkg-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .pkg-stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .pkg-stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .pkg-stat-icon.purple { background: #faf5ff; color: #7c3aed; }
+        .pkg-stat-icon.emerald { background: #ecfdf5; color: #059669; }
+        .pkg-stat-icon.amber { background: #fffbeb; color: #d97706; }
+        .pkg-stat-icon.blue { background: #eff6ff; color: #2563eb; }
+
+        .pkg-stat-info .pkg-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .pkg-stat-info .pkg-stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* Controls */
+        .pkg-controls-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .pkg-search-box {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .pkg-search-box i.fa-search {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
             font-size: 14px;
         }
 
-        .how-it-works {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
+        .pkg-search-input {
+            width: 100%;
+            padding: 9px 36px 9px 36px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #f8fafc;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .pkg-search-input:focus {
+            background: #ffffff;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+
+        .pkg-clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+            padding: 4px;
+        }
+
+        .pkg-clear-search:hover { color: #ef4444; }
+
+        .pkg-filters {
             display: flex;
             align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
-        .how-it-works i {
-            margin-right: 10px;
-        }
-
-        .tabs {
-            display: flex;
-            margin-top: 20px;
-        }
-
-        .tab {
-            padding: 10px 20px;
+        .pkg-select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #334155;
+            background-color: #ffffff;
+            outline: none;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
         }
 
-        .tab.active {
-            border-bottom: 2px solid #3f51b5;
-            color: #3f51b5;
-        }
+        .pkg-select:focus { border-color: #7c3aed; }
 
-        .tab span {
-            background-color: #e0e0e0;
+        /* Table Card */
+        .pkg-table-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 2px 8px;
-            margin-left: 5px;
-            font-size: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
         }
 
-        .search {
-            margin-top: 20px;
-            position: relative;
-        }
-
-        .search input {
+        .pkg-table-container {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            overflow-x: auto;
+            position: relative;
+            min-height: 240px;
         }
 
-        .table {
+        .pkg-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .table th,
-        .table td {
-            padding: 10px;
-            border: 1px solid #e0e0e0;
             text-align: left;
+            font-size: 0.875rem;
         }
 
-        .table th {
-            background-color: #f5f5f5;
+        .pkg-table thead {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
         }
 
-        .action {
-            color: #3f51b5;
+        .pkg-table th {
+            padding: 12px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .pkg-table th.center, .pkg-table td.center { text-align: center; }
+        .pkg-table th.right, .pkg-table td.right { text-align: right; }
+
+        .pkg-table tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color 0.15s ease;
+        }
+
+        .pkg-table tbody tr:hover { background-color: #f8fafc; }
+
+        .pkg-table td {
+            padding: 12px 14px;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        .pkg-order-num {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .pkg-name-cell {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .pkg-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pkg-badge-gender {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            text-transform: capitalize;
+        }
+
+        .pkg-badge-gender.female { background: #fdf2f8; color: #db2777; border-color: #fbcfe8; }
+        .pkg-badge-gender.male { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+
+        .pkg-badge-sample {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fee2e2;
+        }
+
+        .pkg-items-chips {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-width: 400px;
+        }
+
+        .pkg-items-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pkg-group-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-right: 2px;
+        }
+
+        .pkg-chip {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            color: #334155;
+            white-space: nowrap;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pkg-chip.panel {
+            background: #e0f2fe;
+            border-color: #bae6fd;
+            color: #0369a1;
+        }
+
+        .pkg-price-val {
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .pkg-mrp-val {
+            font-weight: 500;
+            color: #94a3b8;
+            text-decoration: line-through;
+            font-size: 0.78rem;
+            margin-left: 4px;
+        }
+
+        .pkg-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            background: #faf5ff;
+            color: #7c3aed;
+            border: 1px solid #ddd6fe;
+            transition: all 0.15s ease;
             cursor: pointer;
         }
 
-        .add-new {
-            background-color: #3f51b5;
+        .pkg-action-btn:hover {
+            background: #7c3aed;
             color: #ffffff;
-            padding: 10px 20px;
-            border-radius: 4px;
-            text-decoration: none;
-            display: inline-block;
+            border-color: #7c3aed;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
         }
 
-        .hidden {
-            display: none;
+        /* Footer */
+        .pkg-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 14px 18px;
+            border-top: 1px solid #e2e8f0;
+            background: #ffffff;
         }
-         .search-container {
+
+        .pkg-footer-info {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .pkg-pagination {
             display: flex;
             align-items: center;
-            margin: 20px 0;
+            gap: 6px;
         }
 
-        .search-container input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .pkg-page-btn {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s;
         }
 
-        .search-container i {
-            margin-left: 10px;
-            color: #888;
+        .pkg-page-btn:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .pkg-page-btn.active {
+            background: #7c3aed;
+            color: #ffffff;
+            border-color: #7c3aed;
+        }
+
+        .pkg-page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* State box */
+        .pkg-state-container {
+            padding: 48px 24px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .pkg-state-icon {
+            font-size: 38px;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+        }
+
+        .pkg-state-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .pkg-state-desc {
+            font-size: 0.875rem;
+            color: #64748b;
+            max-width: 400px;
+            margin: 0 auto 16px auto;
+        }
+
+        /* Toast */
+        .pkg-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 99999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pkg-toast.show { transform: translateY(0); opacity: 1; }
+        .pkg-toast.success { background: #065f46; border-left: 4px solid #10b981; }
+        .pkg-toast.error { background: #991b1b; border-left: 4px solid #ef4444; }
+        .pkg-toast.info { background: #4c1d95; border-left: 4px solid #7c3aed; }
+
+        @media (max-width: 768px) {
+            .pkg-wrapper { padding: 14px; }
+            .pkg-header { flex-direction: column; align-items: flex-start; }
+            .pkg-header-actions { width: 100%; justify-content: flex-start; }
+            .pkg-controls-card { flex-direction: column; align-items: stretch; }
+            .pkg-filters { width: 100%; }
+            .pkg-select { flex: 1; }
         }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="packageheader">
-            <h1>Test packages</h1>
-            <a href="#" onclick="loadPage('addPackage')" class="add-new"></i> Add new</a>
+    <div class="pkg-wrapper">
+        <!-- Header -->
+        <div class="pkg-header">
+            <div class="pkg-header-title">
+                <div class="pkg-icon-badge">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="pkg-title">
+                    <h1>Package Database</h1>
+                    <p>Manage health checkup packages, bundled tests, panels & corporate plans</p>
+                </div>
+            </div>
+            <div class="pkg-header-actions">
+                <button type="button" class="pkg-btn pkg-btn-primary" onclick="loadPage('addPackage')">
+                    <i class="fa-solid fa-plus"></i> + Add Package
+                </button>
+            </div>
         </div>
-        <div class="search-container">
-            <input type="text" placeholder="Search in page" id="searchInput" oninput="filterTable()">
-            <i class="fas fa-search"></i>
-        </div>
-        <table class="table" id="in-ratelist">
-            <thead>
-                <tr>
-                    <th>S. NO.</th>
-                    <th>NAME</th>
-                    <th>FEE</th>
-                    <th>INCLUDED TESTS AND PANELS</th>
-                    <th>SAMPLE TYPE</th>
-                    <th>ACTION</th>
-                </tr>
-            </thead>
-            <tbody id="packagetbody">
-            </tbody>
-        </table>
-    </div>
-    <script src="testPackage.js"></script>
-</body>
 
+        <!-- Metrics Bar -->
+        <div class="pkg-stats-bar">
+            <div class="pkg-stat-card">
+                <div class="pkg-stat-icon purple">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div class="pkg-stat-info">
+                    <div class="pkg-stat-value" id="statTotalPackages">-</div>
+                    <div class="pkg-stat-label">Total Packages</div>
+                </div>
+            </div>
+            <div class="pkg-stat-card">
+                <div class="pkg-stat-icon emerald">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div class="pkg-stat-info">
+                    <div class="pkg-stat-value" id="statAvgPackageFee">-</div>
+                    <div class="pkg-stat-label">Avg. Package Fee</div>
+                </div>
+            </div>
+            <div class="pkg-stat-card">
+                <div class="pkg-stat-icon amber">
+                    <i class="fa-solid fa-folder-tree"></i>
+                </div>
+                <div class="pkg-stat-info">
+                    <div class="pkg-stat-value" id="statTotalPanelsInPkg">-</div>
+                    <div class="pkg-stat-label">Panels Bundled</div>
+                </div>
+            </div>
+            <div class="pkg-stat-card">
+                <div class="pkg-stat-icon blue">
+                    <i class="fa-solid fa-vials"></i>
+                </div>
+                <div class="pkg-stat-info">
+                    <div class="pkg-stat-value" id="statTotalTestsInPkg">-</div>
+                    <div class="pkg-stat-label">Tests Bundled</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="pkg-controls-card">
+            <div class="pkg-search-box">
+                <i class="fa-solid fa-search fa-search"></i>
+                <input type="text" id="pkgSearchInput" class="pkg-search-input" placeholder="Search by package name, test name, panel name...">
+                <button type="button" id="pkgClearSearch" class="pkg-clear-search" title="Clear search">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="pkg-filters">
+                <select id="pkgGenderFilter" class="pkg-select">
+                    <option value="">All Genders</option>
+                    <option value="both">Both</option>
+                    <option value="male">Male Only</option>
+                    <option value="female">Female Only</option>
+                </select>
+
+                <select id="pkgSortFilter" class="pkg-select">
+                    <option value="name-asc">Name (A to Z)</option>
+                    <option value="name-desc">Name (Z to A)</option>
+                    <option value="price-asc">Price (Low to High)</option>
+                    <option value="price-desc">Price (High to Low)</option>
+                    <option value="items-desc">Most Tests & Panels</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="pkg-table-card">
+            <div class="pkg-table-container" id="pkgTableContainer">
+                <table class="pkg-table" id="pkgTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;" class="center">S.N.</th>
+                            <th>Package Name</th>
+                            <th>Gender</th>
+                            <th>Included Tests & Panels</th>
+                            <th>Sample Types</th>
+                            <th class="right">Billing Price</th>
+                            <th style="width: 100px;" class="center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pkgTbody">
+                        <!-- Populated by testPackage.js -->
+                    </tbody>
+                </table>
+
+                <div id="pkgStateBox" class="pkg-state-container" style="display: none;"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pkg-footer" id="pkgFooter">
+                <div class="pkg-footer-info" id="pkgPaginationInfo">
+                    Showing 0 of 0 packages
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b;">
+                        <span>Show:</span>
+                        <select id="pkgPageSize" class="pkg-select" style="padding: 4px 8px;">
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="pkg-pagination" id="pkgPaginationControls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="pkgToast" class="pkg-toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="pkgToastMsg">Saved successfully</span>
+    </div>
+
+    <script src="pages/pages/testPackage.js"></script>
+</body>
 </html>

@@ -1,867 +1,735 @@
-// Global functions (outside async IIFE)
-function toggleForm(selectElement) {
-    const closestContainer = selectElement.closest('.normalValue');
-    const formContainer = closestContainer.querySelector('#form-container');
-    const textArea = closestContainer.querySelector('.text-area');
-    const admorebtn = closestContainer.querySelector('.add-more-btn');
+(function () {
+    const BASE_URL = window.BASE_URL || window.location.origin;
 
-    if (selectElement.value === 'text') {
-        formContainer.style.display = 'none';
-        if (admorebtn) admorebtn.style.display = 'none';
-        textArea.style.display = 'block';
-    } else {
-        formContainer.style.display = 'block';
-        if (admorebtn) admorebtn.style.display = 'flex';
-        textArea.style.display = 'none';
-    }
-}
+    let categoryList = [];
+    let unitList = [];
+    let parameterCounter = 0;
+    let targetTestId = null;
 
-function addRow(admore) {
-    const formContainer = admore.parentElement.querySelector('#form-container');
+    // Elements
+    const loadingOverlay = document.getElementById("etLoadingOverlay");
+    const headerTestName = document.getElementById("headerTestName");
+    const headerTestMeta = document.getElementById("headerTestMeta");
+    const testNameInput = document.getElementById("testName");
+    const shortNameInput = document.getElementById("shortName");
+    const categorySelect = document.getElementById("categorySelect");
+    const tatInput = document.getElementById("tatInput");
+    const billingPriceInput = document.getElementById("billingPrice");
+    const mrpPriceInput = document.getElementById("mrpPrice");
+    const sampleTypeSelect = document.getElementById("sampleTypeSelect");
+    const methodInput = document.getElementById("methodInput");
+    const instrumentInput = document.getElementById("instrumentInput");
+    const paramsTbody = document.getElementById("paramsTbody");
+    const addParamBtn = document.getElementById("addParamBtn");
+    const saveTestBtn = document.getElementById("saveTestBtn");
+    const nameError = document.getElementById("nameError");
 
-    let newRow;
-    if (formContainer.firstElementChild) {
-        newRow = formContainer.firstElementChild.cloneNode(true);
-    } else {
-        newRow = document.createElement('div');
-        newRow.className = 'row-container';
-        newRow.innerHTML = `
-            <span class="delete-btn" onclick="deleteRow(this)"><i class="fa-solid fa-eraser"></i></span>
-            <div class="row-item">
-                <label for="sex">Sex</label>
-                <select name="sex" class="sex">
-                    <option value="Any">Any</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                </select>
-            </div>
-            <div class="row-item">
-                <label for="min_age">Min. Age</label>
-                <div class="minAge">
-                    <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
-                    <select name="min_age_unit">
-                        <option value="Years">Years</option>
-                        <option value="Months">Months</option>
-                        <option value="Days">Days</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row-item">
-                <label for="max_age">Max. Age</label>
-                <div class="maxAge">
-                    <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="100">
-                    <select name="max_age_unit">
-                        <option value="Years">Years</option>
-                        <option value="Months">Months</option>
-                        <option value="Days">Days</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row-item">
-                <label for="lower_value">Lower</label>
-                <input type="number" name="lower_value" placeholder="Lower value" class="lower-value" value="2.1">
-            </div>
-            <div class="row-item">
-                <label for="upper_value">Upper</label>
-                <input type="number" name="upper_value" placeholder="Upper value" class="upper-value" value="17.7">
-            </div>
-        `;
-    }
+    // Unit Modal Elements
+    const unitModal = document.getElementById("unitModal");
+    const openAddUnitModalBtn = document.getElementById("openAddUnitModal");
+    const closeUnitModalBtn = document.getElementById("closeUnitModal");
+    const cancelUnitBtn = document.getElementById("cancelUnitBtn");
+    const saveUnitBtn = document.getElementById("saveUnitBtn");
+    const newUnitNameInput = document.getElementById("newUnitName");
 
-    newRow.querySelector('.min-age').value = "";
-    newRow.querySelector('.max-age').value = "";
-    newRow.querySelector('.lower-value').value = "";
-    newRow.querySelector('.upper-value').value = "";
+    // Sample Modal Elements
+    const sampleModal = document.getElementById("sampleModal");
+    const openAddSampleModalBtn = document.getElementById("openAddSampleModal");
+    const closeSampleModalBtn = document.getElementById("closeSampleModal");
+    const cancelSampleBtn = document.getElementById("cancelSampleBtn");
+    const saveSampleBtn = document.getElementById("saveSampleBtn");
+    const newSampleNameInput = document.getElementById("newSampleName");
 
-    formContainer.appendChild(newRow);
-}
+    init();
 
-function deleteRow(element) {
-    const formContainer = element.closest('#form-container');
+    async function init() {
+        setupTabs();
+        setupModals();
+        bindEvents();
+        extractTargetId();
 
-    if (formContainer && formContainer.childElementCount > 1) {
-        element.parentElement.remove();
-    }
-}
-
-function toggleRandomInputs(checkbox) {
-    const randomSection = checkbox.closest('.random-section');
-    const randomInputs = randomSection.querySelector('.random-inputs');
-    
-    if (checkbox.checked) {
-        randomInputs.classList.add('active');
-    } else {
-        randomInputs.classList.remove('active');
-        const lowerRange = randomInputs.querySelector('.lower-range');
-        const upperRange = randomInputs.querySelector('.upper-range');
-        if (lowerRange) lowerRange.value = '';
-        if (upperRange) upperRange.value = '';
-    }
-}
-
-// Main async IIFE
-(async function fetchData() {
-    const loader = document.querySelector(".loader");
-    loader.style.display = "block";
-    let categoryArray = [];
-    let units = [];
-
-    async function fetchandpopulatesamples() {
-        const selecttag = document.getElementById("sampleType");
-        selecttag.innerHTML = "";
-
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/fetchsample-tenant`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                return console.log(data.message);
-            }
-
-            data.data.forEach(obj => {
-                selecttag.innerHTML += `<option value="${obj.Name}">${obj.Name}</option>`;
-            });
-
-        } catch (error) {
-            alert(error);
-        }
-    }
-
-    await fetchandpopulatesamples();
-
-    document.getElementById("sampleaddbtn").addEventListener("click", async () => {
-        const sampeName = document.getElementById("sample-name").value;
-        const samplebyuser = JSON.parse(localStorage.getItem("superAdminData"));
-        const alert = document.getElementById("alert");
-
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/addsample-tenant`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ Name: sampeName, user: samplebyuser })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                fetchandpopulatesamples();
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-danger", "fade");
-                alert.classList.add("alert-success", "show");
-            } else {
-                alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success", "fade");
-                alert.classList.add("alert-danger", "show");
-            }
-        } catch (error) {
-            alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-            alert.classList.remove("alert-success", "fade");
-            alert.classList.add("alert-danger", "show");
-        }
-        setTimeout(() => {
-            alert.classList.remove("show");
-            alert.classList.add("fade");
-        }, 3000);
-    });
-
-    const params = new URLSearchParams(window.location.search);
-    const Name = params.get('Name');
-    let name = Name;
-    let orderId = 1;
-
-    function normalizeShortName(value) {
-        return typeof value === "string" ? value.trim() : "";
-    }
-
-    function getUniqueShortNames(values = []) {
-        return [...new Set(values.map(normalizeShortName).filter(Boolean))];
-    }
-
-    function buildShortNameRows(shortNames = [], defaultShortName = "") {
-        const aliases = getUniqueShortNames(shortNames);
-        const normalizedDefault = normalizeShortName(defaultShortName);
-
-        if (normalizedDefault && !aliases.includes(normalizedDefault)) {
-            aliases.unshift(normalizedDefault);
+        if (!targetTestId) {
+            showToast("No test ID provided in URL", "error");
+            if (loadingOverlay) loadingOverlay.innerHTML = '<div style="color:#ef4444; font-weight:600;">Invalid Test ID. <a onclick="loadPage(\'test\')" style="text-decoration:underline; cursor:pointer;">Return to Catalog</a></div>';
+            return;
         }
 
-        return {
-            aliases: aliases.length ? aliases : [""],
-            defaultShortName: normalizedDefault || aliases[0] || ""
-        };
+        await Promise.all([loadCategories(), loadUnits()]);
+        await fetchTestDetails();
     }
 
-    function getShortNameAliasRow(value = "", checked = false) {
-        return `
-            <div class="shortname-alias-row">
-                <input type="text" class="shortname-alias-input" value="${value}">
-                <label class="shortname-default-toggle">
-                    <input type="radio" class="shortname-default-radio" ${checked ? "checked" : ""}>
-                    <span>Default</span>
-                </label>
-                <button type="button" class="shortname-remove-btn" title="Remove short name">x</button>
-            </div>
-        `;
-    }
+    function extractTargetId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let id = urlParams.get("Name") || urlParams.get("name") || urlParams.get("id") || urlParams.get("_id") || urlParams.get("value1");
 
-    function refreshShortNameRadioGroups() {
-        document.querySelectorAll('#parameters-table2 tbody tr').forEach((row, index) => {
-            row.querySelectorAll('.shortname-default-radio').forEach((radio) => {
-                radio.name = `parameter-shortname-default-${index}`;
-            });
-        });
-    }
-
-    function renderShortNameManager(row, shortNames = [], defaultShortName = "") {
-        const aliasList = row.querySelector('.shortname-alias-list');
-        const state = buildShortNameRows(shortNames, defaultShortName);
-        aliasList.innerHTML = "";
-
-        if (state.aliases.length === 0) {
-            aliasList.innerHTML = `<div class="shortname-empty-state">No machine short names added yet.</div>`;
-        } else {
-            state.aliases.forEach((alias) => {
-                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow(alias, alias === state.defaultShortName));
-            });
+        if (id) {
+            try {
+                id = decodeURIComponent(id);
+            } catch (e) {}
         }
 
-        refreshShortNameRadioGroups();
-    }
-
-    function collectShortNameManagerState(row) {
-        const aliases = [];
-        let defaultShortName = "";
-
-        row.querySelectorAll('.shortname-alias-row').forEach((aliasRow) => {
-            const input = aliasRow.querySelector('.shortname-alias-input');
-            const radio = aliasRow.querySelector('.shortname-default-radio');
-            const value = normalizeShortName(input?.value);
-
-            if (!value) return;
-
-            if (!aliases.includes(value)) {
-                aliases.push(value);
-            }
-
-            if (radio?.checked) {
-                defaultShortName = value;
-            }
-        });
-
-        if (!defaultShortName) {
-            defaultShortName = aliases[0] || "";
-        }
-
-        return {
-            shortNames: aliases,
-            defaultShortName
-        };
-    }
-
-    const response = await fetch(`${BASE_URL}/api/v1/user/test-found?Name=${encodeURIComponent(name)}`);
-    if (!response) {
-        throw new Error('Failed to fetch data from api');
-    }
-    let data = await response.json();
-    data = data.data;
-
-    if (data.isDocumentedTest) {
-        document.querySelector('.parameters-section').style.display = "none";
-        document.querySelector('#defaultresult').style.display = "block";
-        document.querySelector('#interpretation').style.display = "none";
-    }
-
-    await populateForm(data);
-
-    async function populateForm(data) {
-        console.log("data:", data);
-        
-        document.getElementById('name').value = data.Name || '';
-        document.getElementById('short-name').value = data.Short_name || '';
-        document.getElementById('price').value = data.Price || '';
-        document.getElementById('final-price').value = data.final_price || '';
-        document.getElementById('sampleType').value = data.sampleType || '';
-        document.getElementById('method').value = data.method || '';
-        document.getElementById('instrument').value = data.instrument || '';
-        document.getElementById('tat').value = data.tat || '';
-
-        if (editor) {
-            editor.setData(data.interpretation);
-        } else {
-            console.error("Editor not initialized.");
-        }
-
-        const categorySelect = document.getElementById('category');
-        categorySelect.innerHTML = '';
-
-        const defaultOption = document.createElement('option');
-        defaultOption.textContent = 'Select Category';
-        defaultOption.disabled = true;
-        defaultOption.selected = true;
-        categorySelect.appendChild(defaultOption);
-
-        if (data.category) {
-            const preselectedOption = document.createElement('option');
-            preselectedOption.value = data.category.category;
-            preselectedOption.textContent = data.category.category;
-            preselectedOption.selected = true;
-            categorySelect.appendChild(preselectedOption);
-        }
-
-        if (data.parameters && data.parameters.length > 0) {
-            const tableBody = document.getElementById('parameters-table2').getElementsByTagName('tbody')[0];
-            tableBody.innerHTML = '';
-
-            data.parameters.forEach((param, index) => {
-                orderId = param.order;
-                const newRow = tableBody.insertRow();
-                console.log(param)
-                newRow.innerHTML = `
-                    <td><span class="remove-link" id="remove-link">🗑️</span></td>
-                    <td><input type="text" value="${param.order}"></td>
-                    <td class="parameter-name-cell">
-                        <input type="text" value="${param.Para_name}" ${index === 0 ? 'readonly style="cursor: not-allowed;"' : ''}>
-                        <div class="shortname-alias-manager">
-                            <div class="shortname-alias-header">
-                                <span>Machine Short names</span>
-                                <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
-                            </div>
-                            <div class="shortname-alias-list"></div>
-                        </div>
-                    </td>
-                    <td>
-                        <select id="unit-select">
-                            <option>${param.unit}</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input type="text" value="${param.defaultresult}">
-                    </td>
-                    <td class="normalValue">
-                        <div class="selectTypeDiv">
-                            <label for="select-type">Select Type</label>
-                            <select id="select-type" onchange="toggleForm(this)">
-                                <option value="numeric" ${param.ValueType === 'numeric' ? 'selected' : ''}>Numeric</option>
-                                <option value="text" ${param.ValueType === 'text' ? 'selected' : ''}>Text</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Random Number Section -->
-                        <div class="random-section">
-                            <div class="random-checkbox-container">
-                                <input type="checkbox" class="random-checkbox" onchange="toggleRandomInputs(this)" ${param.forRandom ? 'checked' : ''}>
-                                <label>Show Random Number</label>
-                            </div>
-                            <div class="random-inputs ${param.forRandom ? 'active' : ''}">
-                                <div class="random-input-group">
-                                    <label>Lower Range</label>
-                                    <input type="number" class="lower-range" placeholder="e.g., 5.0" step="0.01" value="${param.lowerRange || ''}">
-                                </div>
-                                <div class="random-input-group">
-                                    <label>Upper Range</label>
-                                    <input type="number" class="upper-range" placeholder="e.g., 15.0" step="0.01" value="${param.upperRange || ''}">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div id="form-container" style="display: ${param.ValueType === 'text' ? 'none' : 'block'}">
-                            ${param.NormalValue ? param.NormalValue.map((normalValue, normalIndex) => `
-                                <div class="row-container">
-                                    <span class="delete-btn" onclick="deleteRow(this)"><i class="fa-solid fa-eraser"></i></span>
-                                    <div class="row-item">
-                                        <label for="sex">Sex</label>
-                                        <select name="sex" class="sex">
-                                            <option value="Any" ${normalValue.gender === 'Any' ? 'selected' : ''}>Any</option>
-                                            <option value="Male" ${normalValue.gender === 'Male' ? 'selected' : ''}>Male</option>
-                                            <option value="Female" ${normalValue.gender === 'Female' ? 'selected' : ''}>Female</option>
-                                        </select>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="min_age">Min. Age</label>
-                                        <div class="minAge">
-                                            <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="${normalValue.minAge}">
-                                            <select name="min_age_unit">
-                                                <option value="Years" ${normalValue.minAgeUnit === 'Years' ? 'selected' : ''}>Years</option>
-                                                <option value="Months" ${normalValue.minAgeUnit === 'Months' ? 'selected' : ''}>Months</option>
-                                                <option value="Days" ${normalValue.minAgeUnit === 'Days' ? 'selected' : ''}>Days</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="max_age">Max. Age</label>
-                                        <div class="maxAge">
-                                            <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="${normalValue.maxAge}">
-                                            <select name="max_age_unit">
-                                                <option value="Years" ${normalValue.maxAgeUnit === 'Years' ? 'selected' : ''}>Years</option>
-                                                <option value="Months" ${normalValue.maxAgeUnit === 'Months' ? 'selected' : ''}>Months</option>
-                                                <option value="Days" ${normalValue.maxAgeUnit === 'Days' ? 'selected' : ''}>Days</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="lower_value">Lower</label>
-                                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value" value="${normalValue.lowerValue}">
-                                    </div>
-                                    <div class="row-item">
-                                        <label for="upper_value">Upper</label>
-                                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value" value="${normalValue.upperValue}">
-                                    </div>
-                                </div>
-                            `).join('') : ''}
-                        </div>
-
-                        <textarea id="text-area" class="text-area" placeholder="Enter text here..." style="display: ${param.ValueType === 'text' ? 'block' : 'none'}">${param.text || ''}</textarea>
-
-                        <div class="add-more-btn" id="add-more-btn" style="display: ${param.ValueType === 'text' ? 'none' : 'flex'}" onclick="addRow(this)">+ Add more</div>
-                    </td>`;
-
-                const unitSelect = newRow.cells[3].getElementsByTagName('select')[0];
-                for (let i = 0; i < unitSelect.options.length; i++) {
-                    if (unitSelect.options[i].value === param.unit) {
-                        unitSelect.options[i].selected = true;
-                    }
+        if (!id) {
+            for (const [key] of urlParams.entries()) {
+                if (key !== "page" && key !== "v" && key.length >= 12) {
+                    id = key;
+                    break;
                 }
-
-                renderShortNameManager(
-                    newRow,
-                    param.shortNames || (data.parameters.length === 1 ? [data.Short_name || ""] : []),
-                    param.defaultShortName || (data.parameters.length === 1 ? data.Short_name || "" : "")
-                );
-            });
+            }
         }
 
-        await loadCategories();
-        await copyfield();
-        await loadUnits();
+        targetTestId = id;
     }
 
-    async function loadUnits() {
-        try {
-            const response = await fetch(`${BASE_URL}/api/v1/user/get-units-tenant`);
-            const data = await response.json();
+    function setupTabs() {
+        const tabBtns = document.querySelectorAll(".et-tab-btn");
+        const tabContents = document.querySelectorAll(".et-tab-content");
 
-            const unitSelects = document.querySelectorAll("#unit-select");
+        tabBtns.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const targetTabId = btn.getAttribute("data-tab");
+                tabBtns.forEach((b) => b.classList.remove("active"));
+                tabContents.forEach((c) => c.classList.remove("active"));
 
-            if (!data || !Array.isArray(data.units) || data.units.length === 0) {
-                console.log("units not found");
-                return;
-            }
+                btn.classList.add("active");
+                const targetContent = document.getElementById(targetTabId);
+                if (targetContent) targetContent.classList.add("active");
+            });
+        });
+    }
 
-            for (const selectEl of unitSelects) {
-                // Capture current selection/text so we can re-select after repopulating
-                let currentVal = '';
+    function setupModals() {
+        if (openAddUnitModalBtn) {
+            openAddUnitModalBtn.addEventListener("click", () => {
+                newUnitNameInput.value = "";
+                unitModal.style.display = "flex";
+                newUnitNameInput.focus();
+            });
+        }
+        if (closeUnitModalBtn) closeUnitModalBtn.addEventListener("click", () => unitModal.style.display = "none");
+        if (cancelUnitBtn) cancelUnitBtn.addEventListener("click", () => unitModal.style.display = "none");
+
+        if (saveUnitBtn) {
+            saveUnitBtn.addEventListener("click", async () => {
+                const unitVal = newUnitNameInput.value.trim();
+                if (!unitVal) return;
                 try {
-                    currentVal = selectEl.value || (selectEl.options && selectEl.options[0] && selectEl.options[0].textContent) || '';
+                    const res = await fetch(`${BASE_URL}/api/v1/user/add-unit-tenant`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ unit: unitVal })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        unitModal.style.display = "none";
+                        showToast("Unit added successfully", "success");
+                        await loadUnits(unitVal);
+                    } else {
+                        showToast(data.message || "Failed to add unit", "error");
+                    }
                 } catch (e) {
-                    currentVal = '';
+                    showToast("Error adding unit: " + e.message, "error");
                 }
+            });
+        }
 
-                // Clear and populate options
-                selectEl.innerHTML = '';
-                const placeholder = document.createElement('option');
-                placeholder.value = '';
-                placeholder.textContent = 'Select Unit';
-                selectEl.appendChild(placeholder);
+        if (openAddSampleModalBtn) {
+            openAddSampleModalBtn.addEventListener("click", () => {
+                newSampleNameInput.value = "";
+                sampleModal.style.display = "flex";
+                newSampleNameInput.focus();
+            });
+        }
+        if (closeSampleModalBtn) closeSampleModalBtn.addEventListener("click", () => sampleModal.style.display = "none");
+        if (cancelSampleBtn) cancelSampleBtn.addEventListener("click", () => sampleModal.style.display = "none");
 
-                data.units.forEach(unit => {
-                    const option = document.createElement('option');
-                    option.value = unit.unit;
-                    option.textContent = unit.unit;
-                    if (unit.unit === currentVal) option.selected = true;
-                    selectEl.appendChild(option);
-                });
-            }
+        if (saveSampleBtn) {
+            saveSampleBtn.addEventListener("click", async () => {
+                const sampleVal = newSampleNameInput.value.trim();
+                if (!sampleVal) return;
+                const opt = document.createElement("option");
+                opt.value = sampleVal;
+                opt.textContent = sampleVal;
+                opt.selected = true;
+                sampleTypeSelect.appendChild(opt);
 
-            units = data.units;
-        } catch (error) {
-            console.error(error.message || error);
+                sampleModal.style.display = "none";
+                showToast("Sample type added", "success");
+
+                fetch(`${BASE_URL}/api/v1/user/add-sample-tenant`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sample: sampleVal })
+                }).catch(() => {});
+            });
         }
     }
 
-    async function copyfield() {
-        const nameInput = document.getElementById('name');
-        const parametersTable = document.getElementById('parameters-table2').getElementsByTagName('tbody')[0];
-
-        if (parametersTable.rows.length > 0) {
-            const firstRowNameInput = parametersTable.rows[0].cells[2].querySelector('input');
-
-            nameInput.addEventListener('input', function () {
-                firstRowNameInput.value = this.value;
+    function bindEvents() {
+        if (testNameInput) {
+            testNameInput.addEventListener("input", function () {
+                if (this.value.includes(",")) {
+                    if (nameError) nameError.style.display = "block";
+                    this.classList.add("et-input-error");
+                } else {
+                    if (nameError) nameError.style.display = "none";
+                    this.classList.remove("et-input-error");
+                }
             });
-        } else {
-            console.error('Parameters table has no rows.');
+        }
+
+        if (addParamBtn) {
+            addParamBtn.addEventListener("click", () => {
+                addParameterRow(null, false);
+            });
+        }
+
+        if (saveTestBtn) {
+            saveTestBtn.addEventListener("click", submitTestUpdate);
         }
     }
 
     async function loadCategories() {
-        fetch(`${BASE_URL}/api/v1/user/category-list-tenant`)
-            .then(response => response.json())
-            .then(data => {
-                categoryArray.push(...(data.data));
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/category-list-tenant`);
+            const data = await res.json();
+            categoryList = data.categories || data.data || [];
 
-                const categorySelect = document.getElementById('category');
-
-                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-                    data.data.forEach(category => {
-                        if (![...categorySelect.options].some(option => option.value === category.category)) {
-                            const option = document.createElement('option');
-                            option.value = category.category;
-                            option.textContent = category.category;
-                            categorySelect.appendChild(option);
-                        }
-                    });
-                } else {
-                    const option = document.createElement('option');
-                    option.textContent = 'No categories available';
-                    option.disabled = true;
-                    categorySelect.appendChild(option);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching categories:', error);
-                alert('Failed to load categories. Please try again.');
+            categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+            categoryList.forEach((cat) => {
+                const val = cat.category || cat;
+                const opt = document.createElement("option");
+                opt.value = val;
+                opt.textContent = val;
+                categorySelect.appendChild(opt);
             });
+        } catch (e) {
+            console.error("Failed to load categories:", e);
+        }
     }
 
-    const addUnitIcon = document.getElementById('add-unit-icon');
-    const unitModal = document.getElementById('unit-modal');
-    const closeModal = document.getElementById('close-modal');
-    const saveUnitBtn = document.getElementById('save-unit');
-    const newUnitNameInput = document.getElementById('new-unit-name');
+    async function loadUnits(selectedUnit = "") {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/get-units-tenant`);
+            const data = await res.json();
+            unitList = data.units || [];
 
-    addUnitIcon.addEventListener('click', function () {
-        unitModal.style.display = 'block';
-    });
-
-    closeModal.addEventListener('click', function () {
-        unitModal.style.display = 'none';
-    });
-
-    saveUnitBtn.addEventListener('click', function () {
-        const newUnit = newUnitNameInput.value.trim();
-
-        if (newUnit) {
-            fetch(`${BASE_URL}/api/v1/user/add-unit-tenant`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ unit: newUnit })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    unitModal.style.display = 'none';
-                    newUnitNameInput.value = '';
-                    loadUnits();
-                    alert('Unit added successfully!');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to add unit. Please try again.');
+            const unitSelects = paramsTbody.querySelectorAll(".at-unit-select");
+            unitSelects.forEach((sel) => {
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">-- Unit --</option>';
+                unitList.forEach((u) => {
+                    const uName = u.unit || u;
+                    const opt = document.createElement("option");
+                    opt.value = uName;
+                    opt.textContent = uName;
+                    sel.appendChild(opt);
                 });
+                if (selectedUnit) sel.value = selectedUnit;
+                else if (currentVal) sel.value = currentVal;
+            });
+        } catch (e) {
+            console.error("Failed to load units:", e);
         }
-    });
+    }
 
-    window.addEventListener('click', function (event) {
-        if (event.target === unitModal) {
-            unitModal.style.display = 'none';
+    async function fetchTestDetails() {
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-found?Name=${encodeURIComponent(targetTestId)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}: Test not found`);
+
+            const json = await res.json();
+            const data = json.data || json;
+
+            populateFormData(data);
+
+            if (loadingOverlay) loadingOverlay.style.display = "none";
+        } catch (err) {
+            console.error("Error fetching test details:", err);
+            if (loadingOverlay) {
+                loadingOverlay.innerHTML = `
+                    <div style="color:#ef4444; font-weight:600; font-size:1.1rem; margin-bottom:8px;">Failed to load test</div>
+                    <div style="color:#64748b; font-size:0.85rem; margin-bottom:14px;">${escapeHtml(err.message)}</div>
+                    <button type="button" class="et-btn et-btn-outline" onclick="loadPage('test')"><i class="fa-solid fa-arrow-left"></i> Back to Catalog</button>
+                `;
+            }
         }
-    });
+    }
 
-    function addParameter() {
-        if (units.length === 0) {
-            alert('Units are not loaded yet. Please wait.');
-            return;
+    function populateFormData(test) {
+        if (!test) return;
+
+        if (headerTestName) headerTestName.textContent = `Edit: ${test.Name || 'Test'}`;
+        if (headerTestMeta) headerTestMeta.textContent = `Short Code: ${test.Short_name || 'N/A'} • ID: ${test._id}`;
+
+        testNameInput.value = test.Name || "";
+        shortNameInput.value = test.Short_name || "";
+        tatInput.value = test.tat || "";
+        billingPriceInput.value = test.Price != null ? test.Price : "";
+        mrpPriceInput.value = test.final_price != null ? test.final_price : "";
+        methodInput.value = test.method || "";
+        instrumentInput.value = test.instrument || "";
+
+        // Category
+        const catName = test.category?.category || (typeof test.category === "string" ? test.category : "");
+        if (catName) {
+            let exists = Array.from(categorySelect.options).some(o => o.value === catName);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = catName;
+                opt.textContent = catName;
+                categorySelect.appendChild(opt);
+            }
+            categorySelect.value = catName;
         }
 
-        const table = document.getElementById('parameters-table2').getElementsByTagName('tbody')[0];
-        const newRow = table.insertRow();
-        orderId++;
+        // Sample Type
+        if (test.sampleType) {
+            let exists = Array.from(sampleTypeSelect.options).some(o => o.value === test.sampleType);
+            if (!exists) {
+                const opt = document.createElement("option");
+                opt.value = test.sampleType;
+                opt.textContent = test.sampleType;
+                sampleTypeSelect.appendChild(opt);
+            }
+            sampleTypeSelect.value = test.sampleType;
+        }
 
-        newRow.innerHTML = `
-        <td><span class="remove-link" id="remove-link">🗑️</span></td>
-        <td><input type="text" value="${orderId}"></td>
-        <td class="parameter-name-cell">
-            <input type="text">
-            <div class="shortname-alias-manager">
-                <div class="shortname-alias-header">
-                    <span>Machine Short names</span>
-                    <button type="button" class="shortname-add-btn" data-action="add-shortname">+</button>
+        // Parameters
+        paramsTbody.innerHTML = "";
+        if (Array.isArray(test.parameters) && test.parameters.length > 0) {
+            test.parameters.forEach((param, index) => {
+                addParameterRow(param, index === 0);
+            });
+        } else {
+            addParameterRow({ Para_name: test.Name, order: 1 }, true);
+        }
+
+        // Interpretation
+        const interp = test.interpretation || "";
+        const fallbackTextarea = document.getElementById("fallbackInterpretation");
+        if (fallbackTextarea) fallbackTextarea.value = interp;
+
+        // Try setting to CKEditor if ready, else poll briefly
+        if (window.editor && typeof window.editor.setData === "function") {
+            try { window.editor.setData(interp); } catch (e) {}
+        } else {
+            let attempts = 0;
+            const editorCheck = setInterval(() => {
+                attempts++;
+                if (window.editor && typeof window.editor.setData === "function") {
+                    try { window.editor.setData(interp); } catch (e) {}
+                    clearInterval(editorCheck);
+                } else if (attempts > 20) {
+                    clearInterval(editorCheck);
+                }
+            }, 250);
+        }
+    }
+
+    function addParameterRow(param = null, isFirstRow = false) {
+        parameterCounter++;
+        const row = document.createElement("tr");
+        row.className = "at-param-row";
+
+        const orderVal = param?.order || (paramsTbody.querySelectorAll("tr").length + 1);
+        const nameVal = param?.Para_name || (isFirstRow ? testNameInput.value : "");
+        const unitVal = param?.unit || "";
+        const defaultVal = param?.defaultresult || "";
+        const typeVal = param?.ValueType === "text" ? "text" : "numeric";
+
+        row.innerHTML = `
+            <td style="text-align:center;">
+                <button type="button" class="at-param-del-btn" title="Delete parameter" ${isFirstRow ? 'disabled style="visibility:hidden;"' : ''}>
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+            <td>
+                <input type="number" class="et-input at-param-order" value="${orderVal}" style="padding:6px; font-weight:600; text-align:center;">
+            </td>
+            <td>
+                <input type="text" class="et-input at-param-name" placeholder="Parameter Name" value="${escapeHtml(nameVal)}">
+                <div class="et-alias-box">
+                    <div class="et-alias-header">
+                        <span>Machine Short Names</span>
+                        <button type="button" class="et-alias-add-btn" title="Add machine code alias">+</button>
+                    </div>
+                    <div class="et-alias-list"></div>
                 </div>
-                <div class="shortname-alias-list"></div>
-            </div>
-        </td>
-        <td>
-            <select id="unit-select">
-                <option value="">Select unit</option>
-            </select>
-        </td>
-        <td>
-            <input type="text">
-        </td>
-        <td class="normalValue">
-            <div class="selectTypeDiv">
-                <label for="select-type">Select Type</label>
-                <select id="select-type" onchange="toggleForm(this)">
-                    <option value="numeric" selected>Numeric</option>
-                    <option value="text">Text</option>
+            </td>
+            <td>
+                <select class="et-select at-unit-select" style="padding:6px;">
+                    <option value="">-- Unit --</option>
+                    ${unitList.map(u => {
+                        const val = u.unit || u;
+                        return `<option value="${escapeHtml(val)}" ${val === unitVal ? 'selected' : ''}>${escapeHtml(val)}</option>`;
+                    }).join('')}
                 </select>
-            </div>
-            
-            <!-- Random Number Section -->
-            <div class="random-section">
-                <div class="random-checkbox-container">
-                    <input type="checkbox" class="random-checkbox" onchange="toggleRandomInputs(this)">
-                    <label>Show Random Number</label>
+            </td>
+            <td>
+                <input type="text" class="et-input at-param-default" placeholder="Default value" value="${escapeHtml(defaultVal)}" style="padding:6px;">
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; font-weight:600; color:#64748b;">Type:</span>
+                    <select class="et-select at-type-select" style="padding:4px 8px; width:auto; font-size:0.8rem;">
+                        <option value="numeric" ${typeVal === 'numeric' ? 'selected' : ''}>Numeric</option>
+                        <option value="text" ${typeVal === 'text' ? 'selected' : ''}>Textual</option>
+                    </select>
                 </div>
-                <div class="random-inputs">
-                    <div class="random-input-group">
-                        <label>Lower Range</label>
-                        <input type="number" class="lower-range" placeholder="e.g., 5.0" step="0.01">
-                    </div>
-                    <div class="random-input-group">
-                        <label>Upper Range</label>
-                        <input type="number" class="upper-range" placeholder="e.g., 15.0" step="0.01">
+
+                <!-- Numeric Range Builder -->
+                <div class="at-numeric-section" style="display:${typeVal === 'numeric' ? 'block' : 'none'};">
+                    <div class="at-ranges-container"></div>
+                    <button type="button" class="et-add-range-btn">
+                        <i class="fa-solid fa-plus"></i> Add Range
+                    </button>
+
+                    <!-- Random Simulation Option -->
+                    <div class="et-random-box">
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+                            <input type="checkbox" class="random-checkbox" ${param?.forRandom ? 'checked' : ''}>
+                            <span>Enable simulated normal range</span>
+                        </label>
+                        <div class="random-inputs" style="display:${param?.forRandom ? 'flex' : 'none'}; margin-top:6px; gap:8px;">
+                            <input type="number" step="0.01" class="et-input lower-range" placeholder="Sim Lower" value="${param?.lowerRange ?? ''}" style="padding:3px 6px; font-size:0.75rem;">
+                            <input type="number" step="0.01" class="et-input upper-range" placeholder="Sim Upper" value="${param?.upperRange ?? ''}" style="padding:3px 6px; font-size:0.75rem;">
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div id="form-container">
-                <div class="row-container">
-                    <span class="delete-btn" onclick="deleteRow(this)"><i class="fa-solid fa-eraser"></i></span>
-                    <div class="row-item">
-                        <label for="sex">Sex</label>
-                        <select name="sex" class="sex">
-                            <option value="Any">Any</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
+
+                <!-- Textual Section -->
+                <div class="at-textual-section" style="display:${typeVal === 'text' ? 'block' : 'none'};">
+                    <textarea class="et-textarea at-text-normal" placeholder="Enter standard expected text or normal narrative description..." style="min-height:60px; font-size:0.8rem;">${escapeHtml(param?.text || '')}</textarea>
+                </div>
+            </td>
+        `;
+
+        // Prepopulate aliases
+        const aliasList = row.querySelector(".et-alias-list");
+        const addAliasBtn = row.querySelector(".et-alias-add-btn");
+        const aliases = Array.isArray(param?.shortNames) ? param.shortNames : [];
+        const defaultAlias = param?.defaultShortName || aliases[0] || "";
+
+        function renderAliasItem(val = "", isDefault = false) {
+            const aliasRow = document.createElement("div");
+            aliasRow.className = "et-alias-row";
+            aliasRow.innerHTML = `
+                <input type="text" class="et-alias-input" placeholder="Alias code" value="${escapeHtml(val)}">
+                <label style="font-size:0.7rem; display:flex; align-items:center; gap:2px; cursor:pointer;">
+                    <input type="radio" name="param-default-alias-${parameterCounter}" class="at-alias-default" ${isDefault ? 'checked' : ''}>
+                    Def
+                </label>
+                <button type="button" class="et-alias-remove">&times;</button>
+            `;
+            aliasRow.querySelector(".et-alias-remove").addEventListener("click", () => aliasRow.remove());
+            aliasList.appendChild(aliasRow);
+        }
+
+        aliases.forEach((a) => renderAliasItem(a, a === defaultAlias));
+
+        addAliasBtn.addEventListener("click", () => {
+            renderAliasItem("", aliasList.children.length === 0);
+            const lastInput = aliasList.querySelector(".et-alias-row:last-child .et-alias-input");
+            if (lastInput) lastInput.focus();
+        });
+
+        // Prepopulate normal ranges
+        const rangesContainer = row.querySelector(".at-ranges-container");
+        const addRangeBtn = row.querySelector(".et-add-range-btn");
+
+        function renderRangeRow(rng = null) {
+            const rangeRow = document.createElement("div");
+            rangeRow.className = "et-range-row";
+            rangeRow.innerHTML = `
+                <button type="button" class="et-range-del" title="Remove range"><i class="fa-solid fa-circle-xmark"></i></button>
+                <div class="et-range-field">
+                    <span>Sex</span>
+                    <select class="sex" style="padding:4px;">
+                        <option value="Any" ${(!rng || rng.gender === 'Any') ? 'selected' : ''}>Any</option>
+                        <option value="Male" ${(rng && rng.gender === 'Male') ? 'selected' : ''}>Male</option>
+                        <option value="Female" ${(rng && rng.gender === 'Female') ? 'selected' : ''}>Female</option>
+                    </select>
+                </div>
+                <div class="et-range-field">
+                    <span>Min Age</span>
+                    <div style="display:flex; gap:2px;">
+                        <input type="number" class="min-age" value="${rng?.minAge ?? 0}" style="width:45px;">
+                        <select name="min_age_unit">
+                            <option value="Years" ${(!rng || rng.minAgeUnit === 'Years') ? 'selected' : ''}>Y</option>
+                            <option value="Months" ${(rng && rng.minAgeUnit === 'Months') ? 'selected' : ''}>M</option>
+                            <option value="Days" ${(rng && rng.minAgeUnit === 'Days') ? 'selected' : ''}>D</option>
                         </select>
                     </div>
-                    <div class="row-item">
-                        <label for="min_age">Min. Age</label>
-                        <div class="minAge">
-                            <input type="number" name="min_age" placeholder="Min. age" class="min-age" value="0">
-                            <select name="min_age_unit">
-                                <option value="Years">Years</option>
-                                <option value="Months">Months</option>
-                                <option value="Days">Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row-item">
-                        <label for="max_age">Max. Age</label>
-                        <div class="maxAge">
-                            <input type="number" name="max_age" placeholder="Max. age" class="max-age" value="100">
-                            <select name="max_age_unit">
-                                <option value="Years">Years</option>
-                                <option value="Months">Months</option>
-                                <option value="Days">Days</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row-item">
-                        <label for="lower_value">Lower</label>
-                        <input type="number" name="lower_value" placeholder="Lower value" class="lower-value" value="2.1">
-                    </div>
-                    <div class="row-item">
-                        <label for="upper_value">Upper</label>
-                        <input type="number" name="upper_value" placeholder="Upper value" class="upper-value" value="17.7">
+                </div>
+                <div class="et-range-field">
+                    <span>Max Age</span>
+                    <div style="display:flex; gap:2px;">
+                        <input type="number" class="max-age" value="${rng?.maxAge ?? 100}" style="width:45px;">
+                        <select name="max_age_unit">
+                            <option value="Years" ${(!rng || rng.maxAgeUnit === 'Years') ? 'selected' : ''}>Y</option>
+                            <option value="Months" ${(rng && rng.maxAgeUnit === 'Months') ? 'selected' : ''}>M</option>
+                            <option value="Days" ${(rng && rng.maxAgeUnit === 'Days') ? 'selected' : ''}>D</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-
-            <textarea id="text-area" class="text-area" placeholder="Enter text here..."></textarea>
-
-            <div class="add-more-btn" id="add-more-btn" onclick="addRow(this)">+ Add more</div>
-        </td>`;
-
-        const unitSelect = newRow.cells[3].getElementsByTagName('select')[0];
-        units.forEach(unit => {
-            const option = document.createElement('option');
-            option.value = unit.unit;
-            option.textContent = unit.unit;
-            unitSelect.appendChild(option);
-        });
-
-        newRow.querySelector('.remove-link').addEventListener('click', () => {
-            table.deleteRow(newRow.rowIndex - 1);
-            orderId--;
-        });
-
-        renderShortNameManager(newRow);
-    }
-
-    document.getElementById("add-parameter-link").addEventListener("click", addParameter);
-
-    function removeParameter(element) {
-        const row = element.parentElement.parentElement;
-        orderId--;
-        row.remove();
-    }
-
-    document.querySelector("#parameters-table2 tbody").addEventListener("click", function (event) {
-        if (event.target.classList.contains("remove-link")) {
-            removeParameter(event.target);
-            refreshShortNameRadioGroups();
+                <div class="et-range-field">
+                    <span>Lower</span>
+                    <input type="number" step="0.01" class="lower-value" placeholder="Low" value="${rng?.lowerValue ?? ''}" style="width:60px;">
+                </div>
+                <div class="et-range-field">
+                    <span>Upper</span>
+                    <input type="number" step="0.01" class="upper-value" placeholder="High" value="${rng?.upperValue ?? ''}" style="width:60px;">
+                </div>
+            `;
+            rangeRow.querySelector(".et-range-del").addEventListener("click", () => {
+                if (rangesContainer.children.length > 1) {
+                    rangeRow.remove();
+                }
+            });
+            rangesContainer.appendChild(rangeRow);
         }
 
-        if (event.target.matches('[data-action="add-shortname"]')) {
-            const row = event.target.closest('tr');
-            const aliasList = row.querySelector('.shortname-alias-list');
-            aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
-            refreshShortNameRadioGroups();
-            const lastInput = row.querySelector('.shortname-alias-row:last-child .shortname-alias-input');
-            if (lastInput) {
-                lastInput.focus();
-            }
-        }
-
-        if (event.target.classList.contains("shortname-remove-btn")) {
-            const row = event.target.closest('tr');
-            event.target.closest('.shortname-alias-row')?.remove();
-            const remainingAliasRows = row.querySelectorAll('.shortname-alias-row');
-
-            if (remainingAliasRows.length === 0) {
-                const aliasList = row.querySelector('.shortname-alias-list');
-                aliasList.innerHTML = '';
-                aliasList.insertAdjacentHTML('beforeend', getShortNameAliasRow("", false));
-            }
-
-            refreshShortNameRadioGroups();
-        }
-    });
-
-    document.querySelector("#parameters-table2 tbody").addEventListener("change", function (event) {
-        if (event.target.classList.contains("shortname-default-radio")) return;
-    });
-
-    document.querySelector("#parameters-table2 tbody").addEventListener("input", function (event) {
-        if (event.target.classList.contains("shortname-alias-input")) return;
-    });
-
-    document.getElementById('submitbBtn').addEventListener('click', async function () {
-        const namefield = document.getElementById('name');
-        const errormessage = document.querySelector('.errormessage');
-
-        if (namefield.value.trim().includes(",")) {
-            errormessage.style.display = "block";
-            namefield.scrollIntoView({ behavior: "smooth" });
-            namefield.focus();
-            return;
+        if (Array.isArray(param?.NormalValue) && param.NormalValue.length > 0) {
+            param.NormalValue.forEach(r => renderRangeRow(r));
         } else {
-            errormessage.style.display = "none";
+            renderRangeRow();
         }
 
-        const formData = {
-            Name: document.getElementById('name').value,
-            Short_name: document.getElementById('short-name').value,
-            category: categoryArray.find(doc => doc.category === document.getElementById('category').value),
-            Price: document.getElementById('price').value,
-            final_price: document.getElementById('final-price').value,
-            tat: document.getElementById('tat').value,
-            sampleType: document.getElementById('sampleType').value,
-            method: document.getElementById('method').value,
-            instrument: document.getElementById('instrument').value,
-            interpretation: editor.getData(),
-            parameters: [],
+        addRangeBtn.addEventListener("click", () => renderRangeRow());
+
+        // Type toggle
+        const typeSelect = row.querySelector(".at-type-select");
+        const numericSec = row.querySelector(".at-numeric-section");
+        const textSec = row.querySelector(".at-textual-section");
+        typeSelect.addEventListener("change", (e) => {
+            if (e.target.value === "text") {
+                numericSec.style.display = "none";
+                textSec.style.display = "block";
+            } else {
+                numericSec.style.display = "block";
+                textSec.style.display = "none";
+            }
+        });
+
+        // Random toggle
+        const randomCb = row.querySelector(".random-checkbox");
+        const randomInputs = row.querySelector(".random-inputs");
+        randomCb.addEventListener("change", () => {
+            randomInputs.style.display = randomCb.checked ? "flex" : "none";
+        });
+
+        // Del parameter
+        const delBtn = row.querySelector(".at-param-del-btn");
+        if (delBtn) {
+            delBtn.addEventListener("click", () => {
+                row.remove();
+                reindexParameterOrders();
+            });
+        }
+
+        paramsTbody.appendChild(row);
+    }
+
+    function reindexParameterOrders() {
+        const rows = paramsTbody.querySelectorAll(".at-param-row");
+        rows.forEach((r, idx) => {
+            const orderInput = r.querySelector(".at-param-order");
+            if (orderInput) orderInput.value = idx + 1;
+        });
+    }
+
+    async function submitTestUpdate() {
+        const nameVal = testNameInput.value.trim();
+        const shortVal = shortNameInput.value.trim();
+        const categoryVal = categorySelect.value;
+        const billingVal = parseFloat(billingPriceInput.value);
+        const mrpVal = parseFloat(mrpPriceInput.value);
+        const sampleVal = sampleTypeSelect.value;
+        const tatVal = tatInput.value.trim();
+        const methodVal = methodInput.value.trim();
+        const instrumentVal = instrumentInput.value.trim();
+
+        if (!nameVal) {
+            showToast("Test name is required", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            testNameInput.focus();
+            return;
+        }
+
+        if (nameVal.includes(",")) {
+            showToast("Comma (,) is not allowed in test name", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            testNameInput.focus();
+            return;
+        }
+
+        if (!categoryVal) {
+            showToast("Please select a Category", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            categorySelect.focus();
+            return;
+        }
+
+        if (isNaN(billingVal) || isNaN(mrpVal)) {
+            showToast("Please specify Billing and MRP Price", "error");
+            document.querySelector('[data-tab="tab-general"]').click();
+            billingPriceInput.focus();
+            return;
+        }
+
+        // Collect Parameters
+        const paramRows = paramsTbody.querySelectorAll(".at-param-row");
+        const parameters = [];
+
+        paramRows.forEach((r, idx) => {
+            const order = parseInt(r.querySelector(".at-param-order").value, 10) || (idx + 1);
+            const paraName = r.querySelector(".at-param-name").value.trim() || nameVal;
+            const unit = r.querySelector(".at-unit-select").value.trim();
+            const defaultresult = r.querySelector(".at-param-default").value.trim();
+            const type = r.querySelector(".at-type-select").value;
+
+            // Collect Aliases
+            const aliases = [];
+            let defaultAlias = "";
+            r.querySelectorAll(".et-alias-row").forEach((aRow) => {
+                const aInput = aRow.querySelector(".et-alias-input");
+                const aRadio = aRow.querySelector(".at-alias-default");
+                const val = (aInput?.value || "").trim();
+                if (val && !aliases.includes(val)) {
+                    aliases.push(val);
+                    if (aRadio?.checked) defaultAlias = val;
+                }
+            });
+            if (!defaultAlias && aliases.length > 0) defaultAlias = aliases[0];
+
+            const paramObj = {
+                order,
+                Para_name: paraName,
+                unit,
+                defaultresult,
+                ValueType: type,
+                shortNames: aliases,
+                defaultShortName: defaultAlias
+            };
+
+            if (type === "text") {
+                paramObj.text = r.querySelector(".at-text-normal").value.trim();
+                paramObj.NormalValue = [];
+            } else {
+                const normalRanges = [];
+                r.querySelectorAll(".et-range-row").forEach((rng) => {
+                    normalRanges.push({
+                        gender: rng.querySelector(".sex").value,
+                        minAge: rng.querySelector(".min-age").value,
+                        minAgeUnit: rng.querySelector('[name="min_age_unit"]').value,
+                        maxAge: rng.querySelector(".max-age").value,
+                        maxAgeUnit: rng.querySelector('[name="max_age_unit"]').value,
+                        lowerValue: rng.querySelector(".lower-value").value,
+                        upperValue: rng.querySelector(".upper-value").value
+                    });
+                });
+                paramObj.NormalValue = normalRanges;
+
+                const randomCb = r.querySelector(".random-checkbox");
+                if (randomCb && randomCb.checked) {
+                    paramObj.forRandom = true;
+                    paramObj.lowerRange = parseFloat(r.querySelector(".lower-range").value) || 0;
+                    paramObj.upperRange = parseFloat(r.querySelector(".upper-range").value) || 0;
+                }
+            }
+
+            parameters.push(paramObj);
+        });
+
+        // Interpretation
+        let interpretationText = "";
+        if (window.editor && typeof window.editor.getData === "function") {
+            interpretationText = window.editor.getData();
+        } else {
+            const fallback = document.getElementById("fallbackInterpretation");
+            interpretationText = fallback ? fallback.value : "";
+        }
+
+        const categoryObj = categoryList.find(c => (c.category || c) === categoryVal) || { category: categoryVal };
+
+        const payload = {
+            _id: targetTestId,
+            Name: nameVal,
+            Short_name: shortVal,
+            category: categoryObj,
+            Price: billingVal,
+            final_price: mrpVal,
+            sampleType: sampleVal,
+            tat: tatVal,
+            method: methodVal,
+            instrument: instrumentVal,
+            interpretation: interpretationText,
+            parameters
         };
 
-        const parameterRows = document.querySelectorAll('#parameters-table2 tbody tr');
-        parameterRows.forEach(row => {
-            const parameterData = {
-                order: row.cells[1].querySelector('input').value,
-                Para_name: row.cells[2].querySelector('input').value,
-                unit: row.cells[3].querySelector('select').value,
-                defaultresult: row.cells[4].querySelector('input').value,
-            };
-            const shortNameState = collectShortNameManagerState(row);
-            parameterData.shortNames = shortNameState.shortNames;
-            parameterData.defaultShortName = shortNameState.defaultShortName;
+        saveTestBtn.disabled = true;
+        saveTestBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
 
-            // Get random number data
-            const randomCheckbox = row.cells[5].querySelector('.random-checkbox');
-            const lowerRange = row.cells[5].querySelector('.lower-range');
-            const upperRange = row.cells[5].querySelector('.upper-range');
-
-            parameterData.forRandom = randomCheckbox ? randomCheckbox.checked : false;
-
-            if (parameterData.forRandom && lowerRange && upperRange) {
-                parameterData.lowerRange = parseFloat(lowerRange.value) || 0;
-                parameterData.upperRange = parseFloat(upperRange.value) || 0;
-            }
-
-            const selectType = row.cells[5].querySelector('#select-type').value;
-            let dataObject;
-
-            if (selectType === 'text') {
-                const textAreaData = row.cells[5].querySelector('#text-area').value;
-                parameterData.text = textAreaData;
-            } else {
-                const rows = row.cells[5].querySelectorAll('.row-container');
-                dataObject = Array.from(rows).map(row => ({
-                    gender: row.querySelector('.sex').value,
-                    minAge: row.querySelector('.min-age').value,
-                    minAgeUnit: row.querySelector('[name="min_age_unit"]').value,
-                    maxAge: row.querySelector('.max-age').value,
-                    maxAgeUnit: row.querySelector('[name="max_age_unit"]').value,
-                    lowerValue: row.querySelector('.lower-value').value,
-                    upperValue: row.querySelector('.upper-value').value,
-                }));
-            }
-            
-            parameterData.NormalValue = dataObject;
-            parameterData.ValueType = selectType;
-            formData.parameters.push(parameterData);
-        });
-
-        const alert = document.querySelector(".alert");
-        let _id = name;
-        formData._id = _id;
-
-        await fetch(`${BASE_URL}/api/v1/user/test-edit-tenant`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...formData })
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.status);
-
-                if (data.status === "success") {
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.remove("alert-danger");
-                    alert.classList.add("alert-success", "show");
-                    setTimeout(() => {
-                        alert.classList.remove("show");
-                        alert.classList.add("fade");
-                    }, 3000);
-                    setTimeout(() => {
-                        window.location.href = "/admin/admin.html?page=test";
-                    }, 3500);
-                } else {
-                    alert.innerHTML = `${data.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                    alert.classList.remove("alert-success");
-                    alert.classList.add("alert-danger", "show");
-                    setTimeout(() => {
-                        alert.classList.remove("show");
-                        alert.classList.add("fade");
-                    }, 3000);
-                }
-            })
-            .catch((error) => {
-                alert.innerHTML = `${error.message}<button data-dismiss="alert" class="alert-dismissible close">✖</button>`;
-                alert.classList.remove("alert-success");
-                alert.classList.add("alert-danger", "show");
-                setTimeout(() => {
-                    alert.classList.remove("show");
-                    alert.classList.add("fade");
-                }, 3000);
+        try {
+            const res = await fetch(`${BASE_URL}/api/v1/user/test-edit-tenant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
-    });
-    
-    loader.style.display = "none";
+
+            const data = await res.json();
+
+            if (res.ok && (data.status === "success" || data.success || !data.message?.includes("wrong"))) {
+                showToast("Test updated successfully!", "success");
+                setTimeout(() => {
+                    if (typeof window.loadPage === "function") {
+                        window.loadPage("test");
+                    } else {
+                        window.location.href = "?page=test";
+                    }
+                }, 1200);
+            } else {
+                showToast(data.message || "Failed to update test", "error");
+                saveTestBtn.disabled = false;
+                saveTestBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Test';
+            }
+        } catch (err) {
+            console.error("Update error:", err);
+            showToast("Network error: " + err.message, "error");
+            saveTestBtn.disabled = false;
+            saveTestBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Test';
+        }
+    }
+
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("etToast");
+        const toastMsg = document.getElementById("etToastMsg");
+        if (!toast || !toastMsg) return;
+
+        toastMsg.textContent = message;
+        toast.className = `et-toast ${type} show`;
+
+        const icon = toast.querySelector("i");
+        if (icon) {
+            icon.className = type === "success"
+                ? "fa-solid fa-circle-check"
+                : type === "error"
+                    ? "fa-solid fa-circle-exclamation"
+                    : "fa-solid fa-circle-info";
+        }
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 3200);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 })();

@@ -1412,7 +1412,7 @@ async function loadfunction() {
                     paramRow.setAttribute("data-param-name", param.Para_name || "");
                     paramRow.innerHTML = `
         <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
-        <td class="test-name" id="parameters" style="padding-left: 0 !important; margin-left: 0 !important; text-indent: 0 !important;">${param.Para_name}</td>
+        <td class="test-name" id="parameters" style="padding-left: 24px !important;">${param.Para_name}</td>
         <td class="unit">
             <div class="value-column">
                 <div class="formulaIcon"></div>
@@ -1489,9 +1489,10 @@ async function loadfunction() {
 
             } else {
                 const testShortNames = getMachineShortNames(test);
+                row.style.borderTop = "1px solid #cbd5e1";
                 row.innerHTML = `
     <td><input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1"></td>
-    <td class="test-name">${test.Name}</td>
+    <td class="test-name" style="font-weight: 600;">${test.Name}</td>
     <td class="unit">
         <div class="value-column">
             <div class="formulaIcon"></div>
@@ -1568,65 +1569,56 @@ async function loadfunction() {
 
             }
 
-            // Panel-specific details
-            if (isPanel) {
-                const hideInterpretation = panelDetails?.hideInterpretation;
-                const hideMethodInstrument = panelDetails?.hideMethodInstrument;
+            // Test details (method, instrument, interpretation)
+            const hideInterpretation = isPanel ? Boolean(panelDetails?.hideInterpretation) : false;
+            const hideMethodInstrument = isPanel ? Boolean(panelDetails?.hideMethodInstrument) : false;
 
-                if (!hideMethodInstrument || !hideInterpretation) {
-                    const detailsDiv = document.createElement("div");
-                    detailsDiv.classList.add("test-details");
+            if (!hideMethodInstrument || !hideInterpretation) {
+                const detailsDiv = document.createElement("div");
+                detailsDiv.classList.add("test-details");
 
-                    if (!hideMethodInstrument) {
-                        if (test.method) detailsDiv.innerHTML += `<p class="methods">Method: ${test.method || ""}</p>`;
-                        if (test.instrument) detailsDiv.innerHTML += `<p class="methods">Instrument: ${test.instrument || ""}</p>`;
+                if (!hideMethodInstrument) {
+                    if (test.method && test.method.trim()) {
+                        detailsDiv.innerHTML += `<p class="methods">Method: ${test.method.trim()}</p>`;
                     }
-
-                    if (!hideInterpretation && test.interpretation && stripHtmlToText(test.interpretation).trim()) {
-                        const panelInterpText = stripHtmlToText(panelDetails?.interpretation || initialInterpretation || "");
-                        const testInterpText = stripHtmlToText(test.interpretation);
-                        const isSameAsPanelInterp = panelInterpText && testInterpText && (panelInterpText === testInterpText || panelInterpText.includes(testInterpText));
-                        if (!isSameAsPanelInterp) {
-                            detailsDiv.innerHTML += `<p class="test-interp">${test.interpretation}</p>`;
-                        }
-                    }
-
-                    if (detailsDiv.innerHTML.trim()) {
-                        const detailsRow = document.createElement("tr");
-                        detailsRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
-                        const detailsCell = document.createElement("td");
-                        detailsCell.colSpan = 4;
-                        const pagebreakCell = document.createElement("td");
-                        pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
-
-                        detailsCell.appendChild(detailsDiv);
-                        detailsRow.appendChild(pagebreakCell);
-                        detailsRow.appendChild(detailsCell);
-                        tbody.appendChild(detailsRow);
+                    if (test.instrument && test.instrument.trim()) {
+                        detailsDiv.innerHTML += `<p class="methods">Instrument: ${test.instrument.trim()}</p>`;
                     }
                 }
-            } else {
-                const detailsDiv2 = document.createElement("div");
-                detailsDiv2.classList.add("test-details");
 
-                if (test.method) {
-                    detailsDiv2.innerHTML += `<p class="methods">Method: ${test.method || ""}</p>`;
-                }
-                if (test.instrument) {
-                    detailsDiv2.innerHTML += `<p class="methods">Instrument: ${test.instrument || ""}</p>`;
+                if (!hideInterpretation && test.interpretation && stripHtmlToText(test.interpretation).trim()) {
+                    const panelInterpText = stripHtmlToText(panelDetails?.interpretation || "");
+                    const testInterpText = stripHtmlToText(test.interpretation);
+                    const isSameAsPanelInterp = isPanel && panelInterpText && testInterpText && (panelInterpText === testInterpText || panelInterpText.includes(testInterpText));
+                    if (!isSameAsPanelInterp) {
+                        const hasHeader = /<h[1-6][^>]*>\s*(<strong>)?\s*interpretation/i.test(test.interpretation) ||
+                                          /^interpretation/i.test(stripHtmlToText(test.interpretation).trim());
+                        const headerHtml = hasHeader ? "" : `<p style="font-weight: 700; margin: 4px 0 2px 0;">Interpretation:</p>`;
+                        detailsDiv.innerHTML += `<div class="test-interp" contenteditable="true" title="Click to edit interpretation" style="outline: none; margin-top: 4px;">${headerHtml}${test.interpretation}</div>`;
+                    }
                 }
 
-                if (detailsDiv2.innerHTML.trim()) {
-                    const detailsRow2 = document.createElement("tr");
-                    detailsRow2.setAttribute("data-order", test.order); // Set a data attribute for sorting
-                    const detailsCell2 = document.createElement("td");
-                    detailsCell2.colSpan = 4;
+                if (detailsDiv.innerHTML.trim()) {
+                    const detailsRow = document.createElement("tr");
+                    detailsRow.setAttribute("data-order", test.order); // Set a data attribute for sorting
+                    const detailsCell = document.createElement("td");
+                    detailsCell.colSpan = 4;
                     const pagebreakCell = document.createElement("td");
                     pagebreakCell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
-                    detailsCell2.appendChild(detailsDiv2);
-                    detailsRow2.appendChild(pagebreakCell);
-                    detailsRow2.appendChild(detailsCell2);
-                    tbody.appendChild(detailsRow2);
+
+                    const deleteBtn = document.createElement("i");
+                    deleteBtn.className = "fa-solid fa-trash delete-details-row";
+                    deleteBtn.style.cssText = "cursor: pointer; float: right; color: #94a3b8; font-size: 13px; margin: 4px;";
+                    deleteBtn.title = "Remove details / interpretation";
+                    deleteBtn.addEventListener("click", () => {
+                        detailsRow.remove();
+                    });
+
+                    detailsCell.appendChild(deleteBtn);
+                    detailsCell.appendChild(detailsDiv);
+                    detailsRow.appendChild(pagebreakCell);
+                    detailsRow.appendChild(detailsCell);
+                    tbody.appendChild(detailsRow);
                 }
             }
         }
@@ -1664,11 +1656,6 @@ async function loadfunction() {
             initialInterpretation = savedCat.interpretation;
         } else if (panelDetails?.interpretation && stripHtmlToText(panelDetails.interpretation).trim()) {
             initialInterpretation = panelDetails.interpretation;
-        } else if (!isPanel && Array.isArray(data)) {
-            const testWithInterp = data.find((t) => !t.isDocumentedTest && t.interpretation && stripHtmlToText(t.interpretation).trim());
-            if (testWithInterp) {
-                initialInterpretation = testWithInterp.interpretation;
-            }
         }
 
         const shouldRenderInterpRow = isPanel || (!allDocumentedTests && Boolean(initialInterpretation && stripHtmlToText(initialInterpretation).trim()));

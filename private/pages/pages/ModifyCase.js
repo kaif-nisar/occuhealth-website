@@ -774,8 +774,37 @@ async function submitPendingModifyTests() {
     formData.append('clinicalHistory', document.getElementById('clinical-history')?.value || loadedBooking.clinicalHistory || '');
     formData.append('courierName', document.getElementById('courier-name')?.value || loadedBooking.courierName || '');
     formData.append('courierId', document.getElementById('courier-id')?.value || loadedBooking.courierId || '');
+    const subfranchiseeSelect = document.getElementById('franchisee-select');
+    const doctorSelecttag = document.getElementById('doctor-selection');
+    const LabSelecttag = document.getElementById('lab-selection');
+
+    const selectedOptions = subfranchiseeSelect?.options?.[subfranchiseeSelect.selectedIndex];
+    const selectedOptionValue = selectedOptions ? selectedOptions.value : (loadedBooking.subFranchisee || '');
+    const selectedOptionid = selectedOptions ? selectedOptions.getAttribute('id') : (loadedBooking.subFranchiseeId || null);
+
+    const selectedDoctor = doctorSelecttag?.options?.[doctorSelecttag.selectedIndex];
+    const selectedDoctorValue = selectedDoctor ? selectedDoctor.value : (loadedBooking.savedDoctor || '');
+    const selectedDoctorid = selectedDoctor ? selectedDoctor.getAttribute('doctor-id') : (loadedBooking.savedDoctorId || null);
+
+    const selectedLab = LabSelecttag?.options?.[LabSelecttag.selectedIndex];
+    const selectedLabValue = selectedLab ? selectedLab.value : (loadedBooking.savedLab || '');
+    const selectedLabid = selectedLab ? selectedLab.getAttribute('Lab-id') : (loadedBooking.savedLabId || null);
+
+    formData.append('subFranchisee', selectedOptionValue);
+    if (selectedOptionid) formData.append('subFranchiseeId', selectedOptionid);
+    formData.append('savedDoctor', selectedDoctorValue);
+    if (selectedDoctorid) formData.append('savedDoctorId', selectedDoctorid);
+    formData.append('savedLab', selectedLabValue);
+    if (selectedLabid) formData.append('savedLabId', selectedLabid);
+
     formData.append('franchisee', document.getElementById('franchisee-select')?.value || loadedBooking.franchisee || '');
     formData.append('createdbyuser', loadedBooking.createdbyuser || '');
+    if (loadedBooking.discountamount !== undefined && loadedBooking.discountamount !== null) {
+        formData.append('discountamount', String(loadedBooking.discountamount));
+    }
+    if (loadedBooking.discountunit !== undefined && loadedBooking.discountunit !== null) {
+        formData.append('discountunit', String(loadedBooking.discountunit));
+    }
     const total = [...pendingSelections.values()].reduce((sum, item) => sum + getItemPrice(item), 0);
     formData.append('total', String(total));
     formData.append('testIds', JSON.stringify([...pendingSelections.values()].map((item) => getItemId(item))));
