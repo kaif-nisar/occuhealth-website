@@ -21,6 +21,7 @@ import { mergePdfWithBookingAttachments } from '../utils/pdfAttachmentMerger.js'
 import { recordReportPrintAudit, recordReportPrintAuditForMany } from '../services/reportPrintAudit.service.js';
 import { User } from '../models/user.model.js';
 import { isAdminActor } from '../services/bookingFinance.service.js';
+import { resolveNablLogoForReport, applyNablLogoToPdf } from '../utils/nablLogoHelper.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1352,7 +1353,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, isSelectiveRequest = false, res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -1730,13 +1731,21 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             return renderedPdf;
         });
 
-        const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
+        const pdfWithBackground = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
 
-        if (!finalPdfBuffer) {
+        if (!pdfWithBackground) {
             console.error('Final PDF buffer is null');
             res.status(500).send('Failed to generate final PDF');
             return;
         }
+
+        const nablLogoToApply = nablLogoUrl || (await resolveNablLogoForReport({
+            tenantId,
+            bookingId: bookingId || requestBookingId,
+            reportId,
+            user: res?.req?.user
+        }));
+        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
@@ -1829,7 +1838,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, isSelectiveRequest = false, res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -2199,13 +2208,21 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             return renderedPdf;
         });
 
-        const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
+        const pdfWithBackground = (await addBackgroundToPdf(pdfBuffer, backgroundImageUrl)) || pdfBuffer;
 
-        if (!finalPdfBuffer) {
+        if (!pdfWithBackground) {
             console.error('Final PDF buffer is null');
             res.status(500).send('Failed to generate final PDF');
             return;
         }
+
+        const nablLogoToApply = nablLogoUrl || (await resolveNablLogoForReport({
+            tenantId,
+            bookingId,
+            reportId,
+            user: res?.req?.user
+        }));
+        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
@@ -2506,6 +2523,13 @@ const getpdfcontroller = async (req, res) => {
 
         resolvedHtmlContent = sanitizePdfHtmlContent(resolvedHtmlContent);
 
+        const resolvedNablLogoUrl = await resolveNablLogoForReport({
+            tenantId: pdfContext.resolvedTenantId || tid,
+            bookingId: pdfContext.resolvedBookingId || bookingId,
+            reportId: pdfContext.resolvedReportId,
+            user: req.user
+        });
+
         // PDF generation must not create a settings row. A missing row should
         // remain distinguishable from a row containing saved tenant settings.
         let mergedValues;
@@ -2627,6 +2651,7 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.showInvest = false;
             mergedValues.layerone = true;
         }
+        mergedValues.nablLogoUrl = resolvedNablLogoUrl;
 
         // Audit helper: only records when the request was an explicit
         // download/print AND the PDF was actually delivered (never on 4xx/5xx).
@@ -2816,6 +2841,13 @@ const mergePdfsController = async (req, res) => {
                     showCategory: parseBooleanSetting(tenantDefaultSettings?.showCategory ?? gettingcustomization?.showCategory, true),
                     showTestHeading: parseBooleanSetting(tenantDefaultSettings?.showTestHeading ?? gettingcustomization?.showTestHeading, true),
                 };
+
+                mergedValues.nablLogoUrl = await resolveNablLogoForReport({
+                    tenantId: item?.tenantId || tid,
+                    bookingId: item?.bookingId,
+                    reportId: reportId,
+                    user: req.user
+                });
 
                 // Generate individual PDF buffer
                 const pdfBuffer = await generateSinglePdfBuffer(mergedValues, req.user);
@@ -3251,7 +3283,14 @@ async function generateSinglePdfBuffer(mergedValues, user) {
     });
 
     // Add background if needed
-    const finalPdfBuffer = (await addBackgroundToPdf(pdfBuffer, mergedValues.backgroundImageUrl)) || pdfBuffer;
+    const pdfWithBackground = (await addBackgroundToPdf(pdfBuffer, mergedValues.backgroundImageUrl)) || pdfBuffer;
+    const nablLogoToApply = mergedValues.nablLogoUrl || (await resolveNablLogoForReport({
+        tenantId: mergedValues.tenantId,
+        bookingId: mergedValues.bookingId,
+        reportId: mergedValues.reportId,
+        user
+    }));
+    const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
 
     // Adjust margins
     const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
@@ -3323,6 +3362,12 @@ const getpdfcontrolleruser = async (req, res) => {
             customizationBackgroundImageUrl: gettingcustomization?.backgroundImageUrl,
         });
         const defaultsetting = await defaultpdfsetting.findOne({ tenantId: pdfContext.resolvedTenantId || tenantId || req.user?.tenantId?._id }).lean();
+        const resolvedUserNablLogoUrl = await resolveNablLogoForReport({
+            tenantId: pdfContext.resolvedTenantId || tenantId,
+            bookingId: pdfContext.resolvedBookingId || bookingId,
+            reportId: pdfContext.resolvedReportId,
+            user: req.user
+        });
         let mergedValues;
 
         let resolvedHtmlContent = resolvePdfValue(htmlContent, gettingcustomization?.htmlContent, defaultsetting?.htmlContent, "") || "";
@@ -3481,6 +3526,7 @@ const getpdfcontrolleruser = async (req, res) => {
             mergedValues.showInvest = false;
             mergedValues.layerone = true;
         }
+        mergedValues.nablLogoUrl = resolvedUserNablLogoUrl;
 
         // Generate the PDF with merged values
         await pdfgeneratorcontroller2(mergedValues);

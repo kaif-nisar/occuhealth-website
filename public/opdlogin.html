@@ -1074,7 +1074,13 @@
                     }
 
                     // Check if user is a Sales team member (ZSM, RSM, ASM, TH)
-                    if (data.userData.staffType === 'sales' || data.userData.salesDesignation || data.userData.myrole === 'sales') {
+                    const isSalesUser = 
+                        String(data.userData?.staffType || '').toLowerCase() === 'sales' || 
+                        Boolean(data.userData?.salesDesignation) || 
+                        String(data.userData?.myrole || '').toLowerCase() === 'sales' ||
+                        String(data.userData?.role || '').toLowerCase() === 'sales';
+
+                    if (isSalesUser) {
                         window.location.href = `${BASE_URL}/sales/sales.html`;
                         return;
                     }

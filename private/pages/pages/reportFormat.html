@@ -1035,6 +1035,17 @@ body.is-dirty .dirty-dot { display: inline-block; }
 /* Safety valve: an oversized lone block grows the sheet instead of clipping */
 .mode-paginated .sheet-page.sheet-auto { height: auto; min-height: 1123px; }
 .sheet-head { flex: none; padding: 22px var(--pad-x) 14px; border-bottom: 1px solid var(--rule); background: transparent; }
+.sheet-page .nabl-logo-top-right,
+.sheet-head .nabl-logo-top-right {
+    position: absolute;
+    top: 14px;
+    right: 28px;
+    max-width: 90px;
+    max-height: 55px;
+    object-fit: contain;
+    z-index: 10;
+    pointer-events: none;
+}
 .sheet-head:not(.sheet-head--cont) { padding-top: 92px; }
 .sheet-body, .sheet-foot { position: relative; z-index: 1; }
 .sheet-body { flex: 1 1 auto; padding: 16px var(--pad-x) 10px; min-height: 80px; overflow: hidden; background: transparent; }

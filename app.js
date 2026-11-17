@@ -611,6 +611,11 @@ const protectedStatic = (directory) => {
 app.use('/admin', verifyProtectedStaticJWT, (req, res, next) => {
     const user = req.user;
 
+    // Sales staff belong exclusively in the Sales Portal
+    if (user.staffType === 'sales' || Boolean(user.salesDesignation) || user.role === 'sales') {
+        return res.redirect('/sales/sales.html');
+    }
+
     if (user.role === 'admin' || (user.role === 'staff' && user.parentRole === 'admin')) {
         return next();
     }
@@ -620,6 +625,10 @@ app.use('/admin', verifyProtectedStaticJWT, (req, res, next) => {
 
 app.use('/superFranchisee', verifyProtectedStaticJWT, (req, res, next) => {
     const user = req.user;
+
+    if (user.staffType === 'sales' || Boolean(user.salesDesignation) || user.role === 'sales') {
+        return res.redirect('/sales/sales.html');
+    }
 
     if (user.role === 'superFranchisee' || (user.role === 'staff' && user.parentRole === 'superFranchisee')) {
         return next();
@@ -631,6 +640,10 @@ app.use('/superFranchisee', verifyProtectedStaticJWT, (req, res, next) => {
 app.use('/franchisee', verifyProtectedStaticJWT, (req, res, next) => {
     const user = req.user;
 
+    if (user.staffType === 'sales' || Boolean(user.salesDesignation) || user.role === 'sales') {
+        return res.redirect('/sales/sales.html');
+    }
+
     if (user.role === 'franchisee' || (user.role === 'staff' && user.parentRole === 'franchisee')) {
         return next();
     }
@@ -640,6 +653,10 @@ app.use('/franchisee', verifyProtectedStaticJWT, (req, res, next) => {
 
 app.use('/subFranchisee', verifyProtectedStaticJWT, (req, res, next) => {
     const user = req.user;
+
+    if (user.staffType === 'sales' || Boolean(user.salesDesignation) || user.role === 'sales') {
+        return res.redirect('/sales/sales.html');
+    }
 
     if (user.role === 'subFranchisee' || (user.role === 'staff' && user.parentRole === 'subFranchisee')) {
         return next();
@@ -659,6 +676,9 @@ app.use('/sales', verifyProtectedStaticJWT, (req, res, next) => {
         Boolean(user.salesDesignation) ||
         (user.role === 'staff' && (user.staffType === 'sales' || Boolean(user.salesDesignation)))
     ) {
+        if (req.path === '/' || req.path === '') {
+            return res.redirect('/sales/sales.html');
+        }
         return next();
     }
 

@@ -16,6 +16,14 @@ const tenantSchema = new Schema(
       type: String,
       default: ""
     },
+    nabllogo: {
+      type: String,
+      default: ""
+    },
+    nabllogopublicid: {
+      type: String,
+      default: ""
+    },
     modelType: {
       type: String,
       enum: ["4layer", "3layer", "2layer", "1layer"],

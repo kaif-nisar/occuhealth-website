@@ -198,6 +198,9 @@
                 <i class="fas fa-image"></i>
                 <input type="file" id="weblogo" accept="image/*">
             </div>
+            <div id="weblogoPreviewContainer" style="display: none; margin-top: 8px; margin-left: 40px;">
+                <img id="weblogoPreview" src="" alt="Lab Logo" style="max-height: 50px; max-width: 140px; object-fit: contain; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #fafafa;">
+            </div>
         </div>
         <div class="form-group">
             <label>Upload Profile Image <span class="optional">(PNG, JPG)</span></label>
@@ -205,12 +208,22 @@
                 <i class="fas fa-user-circle"></i>
                 <input type="file" id="profileImage" accept="image/*">
             </div>
+            <div id="profileImagePreviewContainer" style="display: none; margin-top: 8px; margin-left: 40px;">
+                <img id="profileImagePreview" src="" alt="Profile Image" style="max-height: 50px; max-width: 140px; object-fit: contain; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #fafafa;">
+            </div>
         </div>
         <div class="form-group">
-            <label>Upload NABL Logo <span class="optional">(PNG, JPG)</span></label>
+            <label>Upload NABL Logo <span class="optional">(PNG, JPG)</span> &mdash; <span style="font-weight: 600; color: #0284c7; font-size: 13px;"><i class="fas fa-stamp"></i> Appears on top-right of all PDF reports</span></label>
             <div class="input-icon">
                 <i class="fas fa-certificate"></i>
                 <input type="file" id="nablLogo" accept="image/*">
+            </div>
+            <div id="nablLogoPreviewContainer" style="display: none; margin-top: 10px; margin-left: 40px;">
+                <span style="font-size: 12px; color: #475569; display: block; margin-bottom: 5px; font-weight: 500;">Current / Selected NABL Logo (PDF Report Top-Right):</span>
+                <div style="display: inline-flex; align-items: center; gap: 12px; background: #f0fdf4; border: 1.5px solid #86efac; padding: 6px 14px; border-radius: 6px;">
+                    <img id="nablLogoPreview" src="" alt="NABL Logo Preview" style="max-height: 55px; max-width: 130px; object-fit: contain; display: block;">
+                    <button type="button" id="removeNablLogoBtn" style="background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 500;" title="Remove NABL logo from reports"><i class="fas fa-trash-alt"></i> Remove</button>
+                </div>
             </div>
         </div>
 

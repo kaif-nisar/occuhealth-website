@@ -168,6 +168,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const userSub = user.subscription || {};
 
   // Create user data for frontend
+  const isSalesStaff = String(user.staffType || '').toLowerCase() === 'sales' || Boolean(user.salesDesignation) || user.role === 'sales';
   const userData = {
     _id: user._id,
     username: user.username,
@@ -175,7 +176,7 @@ const loginUser = asyncHandler(async (req, res) => {
     fullName: user.fullName,
     role: user.createdBy?.role || user.role,
     myrole: user.role,
-    staffType: user.staffType || 'staff',
+    staffType: isSalesStaff ? 'sales' : (user.staffType || 'staff'),
     salesDesignation: user.salesDesignation || null,
     assignedFranchisees: user.assignedFranchisees || [],
     assignedStaff: user.assignedStaff || [],

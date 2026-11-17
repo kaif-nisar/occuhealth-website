@@ -14,6 +14,14 @@ const userSchema = new Schema(
       lowercase: true,
       index: true,
     },
+    logo: {
+      type: String,
+      default: ""
+    },
+    logopublicid: {
+      type: String,
+      default: ""
+    },
     profileimage: {
       type: String,
       default: ""

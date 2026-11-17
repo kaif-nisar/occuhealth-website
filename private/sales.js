@@ -637,7 +637,7 @@
             }
 
             // Allowed: Open the lab report viewer/download
-            window.open(`/pages/pages/labreport.html?bookingId=${bookingId}`, '_blank');
+            window.open(`/sales/pages/pages/labreport.html?bookingId=${bookingId}`, '_blank');
         } catch (err) {
             console.error("Error checking report eligibility:", err);
             alert("Could not verify franchisee wallet balance. Please try again.");

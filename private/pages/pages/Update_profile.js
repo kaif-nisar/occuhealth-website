@@ -1,4 +1,5 @@
 let currentProfileUser = null;
+let removeNablLogoFlag = false;
 
 function getAuthToken() {
     return (
@@ -77,6 +78,46 @@ function populateForm(franchiseeData) {
     document.getElementById("lastName").value = lastName;
     document.getElementById("phoneNo").value = franchiseeData.phoneNo || "";
     document.getElementById("email").value = franchiseeData.email || "";
+
+    // Show existing NABL Logo preview if present
+    const nablPreview = document.getElementById("nablLogoPreview");
+    const nablContainer = document.getElementById("nablLogoPreviewContainer");
+    if (nablPreview && nablContainer) {
+        if (franchiseeData.nabllogo) {
+            nablPreview.src = franchiseeData.nabllogo;
+            nablContainer.style.display = "block";
+            removeNablLogoFlag = false;
+        } else {
+            nablPreview.src = "";
+            nablContainer.style.display = "none";
+        }
+    }
+
+    // Show existing Logo preview if present
+    const logoPreview = document.getElementById("weblogoPreview");
+    const logoContainer = document.getElementById("weblogoPreviewContainer");
+    if (logoPreview && logoContainer) {
+        if (franchiseeData.logo) {
+            logoPreview.src = franchiseeData.logo;
+            logoContainer.style.display = "block";
+        } else {
+            logoPreview.src = "";
+            logoContainer.style.display = "none";
+        }
+    }
+
+    // Show existing Profile Image preview if present
+    const profileImgPreview = document.getElementById("profileImagePreview");
+    const profileImgContainer = document.getElementById("profileImagePreviewContainer");
+    if (profileImgPreview && profileImgContainer) {
+        if (franchiseeData.profileimage) {
+            profileImgPreview.src = franchiseeData.profileimage;
+            profileImgContainer.style.display = "block";
+        } else {
+            profileImgPreview.src = "";
+            profileImgContainer.style.display = "none";
+        }
+    }
 }
 
 async function initializeProfilePage() {
@@ -134,6 +175,8 @@ async function updateFranchiseeData() {
         }
         if (nablLogoInput?.files?.[0]) {
             formData.append("nablLogo", nablLogoInput.files[0]);
+        } else if (removeNablLogoFlag) {
+            formData.append("removeNablLogo", "true");
         }
 
         const response = await fetch(`${BASE_URL}/api/v1/user/superFranchisee-update?_id=${encodeURIComponent(currentProfileUser._id)}`, {
@@ -162,6 +205,64 @@ async function updateFranchiseeData() {
         setLoading(false);
     }
 }
+
+// Live client preview event listeners
+document.getElementById("nablLogo")?.addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+        const file = this.files[0];
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const preview = document.getElementById("nablLogoPreview");
+            const container = document.getElementById("nablLogoPreviewContainer");
+            if (preview && container) {
+                preview.src = e.target.result;
+                container.style.display = "block";
+                removeNablLogoFlag = false;
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById("removeNablLogoBtn")?.addEventListener("click", function () {
+    const fileInput = document.getElementById("nablLogo");
+    if (fileInput) fileInput.value = "";
+    const preview = document.getElementById("nablLogoPreview");
+    const container = document.getElementById("nablLogoPreviewContainer");
+    if (preview) preview.src = "";
+    if (container) container.style.display = "none";
+    removeNablLogoFlag = true;
+});
+
+document.getElementById("weblogo")?.addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const preview = document.getElementById("weblogoPreview");
+            const container = document.getElementById("weblogoPreviewContainer");
+            if (preview && container) {
+                preview.src = e.target.result;
+                container.style.display = "block";
+            }
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+
+document.getElementById("profileImage")?.addEventListener("change", function () {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const preview = document.getElementById("profileImagePreview");
+            const container = document.getElementById("profileImagePreviewContainer");
+            if (preview && container) {
+                preview.src = e.target.result;
+                container.style.display = "block";
+            }
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
 
 document.getElementById("updateButton")?.addEventListener("click", updateFranchiseeData);
 

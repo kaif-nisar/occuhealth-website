@@ -42,6 +42,8 @@ const createStaff = asyncHandler(async (req, res) => {
         throw new ApiError(409, "Username or Email already exists");
     }
 
+    const isSalesStaff = (String(staffType || '').toLowerCase() === 'sales') || Boolean(salesDesignation);
+
     // Create staff with current user as parent
     const staff = await User.create({
         username,
@@ -57,12 +59,12 @@ const createStaff = asyncHandler(async (req, res) => {
         pinCode,
         createdBy: req.user._id,
         parentUser: req.user._id,
-        tenantId: req.user.tenantId?._id, // safe optional chaining
+        tenantId: req.user.tenantId?._id || req.user.tenantId, // supports populated doc or raw ObjectId
         pdfFormat: req.user.pdfFormat || "reportFormat",
-        permissions: (staffType === 'sales' || salesDesignation)
+        permissions: isSalesStaff
             ? Object.assign({ canManageBookings: true, canViewBookings: true, canViewReports: true, canManagePayments: false, canManageUsers: false }, permissions || {})
             : (permissions || {}),
-        staffType: (staffType === 'sales' || salesDesignation) ? 'sales' : (staffType || 'staff'),
+        staffType: isSalesStaff ? 'sales' : (staffType || 'staff'),
         salesDesignation: salesDesignation || null,
         assignedFranchisees: Array.isArray(assignedFranchisees) ? assignedFranchisees : [],
         assignedStaff: Array.isArray(assignedStaff) ? assignedStaff : [],

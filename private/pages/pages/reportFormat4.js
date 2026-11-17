@@ -5,6 +5,20 @@
     const urlParams = await new URLSearchParams(window.location.search);
     let value1 = await urlParams.get('value1');
     let report = await fetchreport(value1);
+    if (report?.nablLogo) {
+        const nablImg = document.createElement('img');
+        nablImg.className = 'nabl-logo-top-right';
+        nablImg.alt = 'NABL Accredited';
+        nablImg.src = report.nablLogo;
+        nablImg.style.cssText = 'position: absolute; top: 12px; right: 24px; max-width: 90px; max-height: 55px; object-fit: contain; z-index: 10; pointer-events: none;';
+        const hdr = document.querySelector('.header') || document.querySelector('.report-details-upperdiv') || document.querySelector('.container') || document.body;
+        if (hdr) {
+            if (getComputedStyle(hdr).position === 'static') {
+                hdr.style.position = 'relative';
+            }
+            hdr.appendChild(nablImg);
+        }
+    }
     const backgroundImageUrl = await fetchTemplateImages();
     value1 = report._id;
     const baseUrl = `${BASE_URL}/pages/pages/download_reports.html`;

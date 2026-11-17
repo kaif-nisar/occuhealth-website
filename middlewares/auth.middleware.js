@@ -9,18 +9,18 @@ const authCache = new Map();
 
 const FULL_USER_SELECT = "-password -refreshToken";
 const FULL_USER_POPULATE = [
-  { path: "createdBy", select: "role tenantId fullName username pdfFormat permissions parentRole" },
+  { path: "createdBy", select: "role tenantId fullName username pdfFormat permissions parentRole staffType salesDesignation" },
   {
     path: "tenantId",
     select: "name modelType code status adminDetails subscriptionPlan logo",
     populate: {
       path: "adminDetails.userId",
-      select: "fullName username role tenantId email pdfFormat",
+      select: "fullName username role tenantId email pdfFormat staffType salesDesignation",
     },
   },
 ];
 
-const STATIC_USER_SELECT = "_id role parentRole permissions fullName username pdfFormat showprintsetting tenantId createdBy";
+const STATIC_USER_SELECT = "_id role parentRole permissions fullName username pdfFormat showprintsetting tenantId createdBy staffType salesDesignation";
 const SUPER_ADMIN_SELECT = "-password -refreshToken";
 const STATIC_FILE_PATTERN = /\.(?:js|css|html|json|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|eot|map)$/i;
 

@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Short: Office Ergonomics Fail (9:16 Vertical Video)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #1a1e29 0%, #0d1017 100%);
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 720px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    p.subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .main-container {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 1280px;
+      width: 100%;
+    }
+
+    /* 9:16 Phone Mockup Container */
+    .phone-mockup {
+      position: relative;
+      width: 360px;
+      height: 640px;
+      background: #000;
+      border-radius: 36px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8),
+                  0 0 0 10px #1e2533,
+                  0 0 0 12px #334155,
+                  0 0 35px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 22px;
+      background: #0f172a;
+      border-radius: 14px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .phone-camera {
+      width: 8px;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 50%;
+      border: 1px solid #334155;
+    }
+
+    .phone-speaker {
+      width: 36px;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 3px;
+    }
+
+    canvas#shortsCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #111;
+      cursor: pointer;
+    }
+
+    /* UI Overlay within Phone (YouTube Shorts style) */
+    .shorts-ui-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 44px 14px 20px;
+    }
+
+    .shorts-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .shorts-side-actions {
+      align-self: flex-end;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .side-icon-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+    }
+
+    .side-icon-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* Control Panel on Desktop */
+    .control-panel {
+      flex: 1;
+      min-width: 340px;
+      max-width: 540px;
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.15s ease;
+      border: none;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    }
+
+    button.primary:active {
+      transform: translateY(1px);
+    }
+
+    button.secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+
+    button.secondary:hover {
+      background: #273549;
+    }
+
+    button.accent {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      color: white;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.35);
+    }
+
+    button.accent:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.45);
+    }
+
+    .timeline-container {
+      background: #0f172a;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid #1e293b;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .scene-pill {
+      display: inline-block;
+      padding: 3px 8px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      accent-color: #ef4444;
+      border-radius: 3px;
+      background: #334155;
+      cursor: pointer;
+    }
+
+    .scene-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .scene-btn {
+      padding: 6px 4px;
+      font-size: 11px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .scene-btn.active {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #fca5a5;
+      font-weight: 700;
+    }
+
+    .record-status-card {
+      background: #0f172a;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid #1e293b;
+      font-size: 13px;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: #10b981;
+    }
+
+    .status-badge.recording {
+      color: #ef4444;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Sound indicator */
+    .sound-banner {
+      background: rgba(234, 179, 8, 0.12);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fde047;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">🔥 YouTube Shorts / TikTok Format (9:16 Vertical)</div>
+    <h1>The Office Ergonomics Nightmare</h1>
+    <p class="subtitle">"How it starts at 9 AM vs where your spine ends up at 4:59 PM"</p>
+  </header>
+
+  <div class="main-container">
+    <!-- 9:16 Phone Canvas Wrapper -->
+    <div class="phone-mockup">
+      <div class="phone-notch">
+        <div class="phone-camera"></div>
+        <div class="phone-speaker"></div>
+      </div>
+
+      <!-- Actual 1080x1920 Canvas (scaled by CSS) -->
+      <canvas id="shortsCanvas" width="1080" height="1920"></canvas>
+
+      <!-- YouTube Shorts UI Elements Overlay -->
+      <div class="shorts-ui-overlay">
+        <div class="shorts-top-bar">
+          <span>Shorts</span>
+          <span style="font-size:11px; opacity:0.8;">HD 60FPS</span>
+        </div>
+
+        <div class="shorts-side-actions">
+          <div class="side-icon-btn">
+            <div class="side-icon-circle">👍</div>
+            <span>242K</span>
+          </div>
+          <div class="side-icon-btn">
+            <div class="side-icon-circle">💬</div>
+            <span>4.8K</span>
+          </div>
+          <div class="side-icon-btn">
+            <div class="side-icon-circle">↗️</div>
+            <span>Share</span>
+          </div>
+          <div class="side-icon-btn">
+            <div class="side-icon-circle">🩻</div>
+            <span>Remix</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop Interactive Controls & Exporter -->
+    <div class="control-panel">
+      <div class="panel-section-title">
+        <span>🎬 Player & Video Recording Controls</span>
+      </div>
+
+      <div class="btn-group">
+        <button id="playPauseBtn" class="primary">
+          <span id="playIcon">⏸</span> <span id="playText">Pause</span>
+        </button>
+        <button id="restartBtn" class="secondary">
+          <span>🔄 Restart</span>
+        </button>
+        <button id="toggleAudioBtn" class="secondary">
+          <span id="audioIcon">🔊</span> <span id="audioText">Mute Audio</span>
+        </button>
+      </div>
+
+      <div class="sound-banner" id="audioBanner">
+        <span>💡 Click anywhere on the video or press Play to unmute synthesized cartoon sound effects & music!</span>
+      </div>
+
+      <!-- Video Downloader -->
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <span>EXPORT AS HIGH-RES VIDEO</span>
+          <span id="recordTimer">00:00</span>
+        </div>
+        <div class="btn-group">
+          <button id="recordLoopBtn" class="accent" style="width: 100%;">
+            <span>📹 Record 1 Full Loop & Download Video (.webm / .mp4)</span>
+          </button>
+        </div>
+        <div class="record-status-card" style="margin-top: 10px;">
+          <div id="statusIndicator" class="status-badge">
+            <span>● Ready to render 1080x1920 60FPS video</span>
+          </div>
+          <span style="font-size: 11px; color: #64748b;">
+            Records internal canvas stream with synchronized audio track. Compatible with YouTube Shorts, TikTok, and Instagram Reels.
+          </span>
+        </div>
+      </div>
+
+      <!-- Scrubber -->
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <span>TIMELINE SCRUBBER</span>
+          <span id="timeDisplay">0.0s / 17.5s</span>
+        </div>
+        <input type="range" id="timelineScrubber" min="0" max="17.5" step="0.05" value="0">
+        
+        <div class="scene-buttons">
+          <button class="scene-btn" data-time="0.0">1. Ideal (9 AM)</button>
+          <button class="scene-btn" data-time="4.0">2. Slump (1 PM)</button>
+          <button class="scene-btn" data-time="8.0">3. Pretzel (4 PM)</button>
+          <button class="scene-btn" data-time="12.0">4. Boss Snap!</button>
+        </div>
+      </div>
+
+      <!-- Animation Customization Options -->
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <span>PLAYBACK SETTINGS</span>
+          <span class="scene-pill" id="currentSceneTag">Scene 1</span>
+        </div>
+        <div class="options-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="loopCheckbox" checked>
+            <span>Auto Loop</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="voiceoverCheckbox" checked>
+            <span>TTS Voice Narration</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="cameraShakeCheckbox" checked>
+            <span>Camera Shake</span>
+          </label>
+        </div>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <button id="snapshotBtn" class="secondary" style="width:100%; font-size:12px; padding:6px 12px;">
+            📸 Snapshot Current Canvas Frame (PNG)
+          </button>
+          <a href="thumbnail.jpg" download="shorts-ai-thumbnail.jpg" style="text-decoration:none;">
+            <button class="secondary" style="width:100%; font-size:12px; padding:6px 12px; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8;">
+              🖼️ View & Download AI Generated 9:16 Thumbnail (JPG)
+            </button>
+          </a>
+        </div>
+      </div>
+
+      <!-- Generated Thumbnail Preview Card -->
+      <div class="timeline-container" style="display: flex; gap: 12px; align-items: center;">
+        <img src="thumbnail.jpg" alt="Generated AI Thumbnail" style="width: 60px; height: 106px; object-fit: cover; border-radius: 8px; border: 1px solid #38bdf8; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div style="font-size: 12px; color: #94a3b8; display: flex; flex-direction: column; gap: 4px;">
+          <strong style="color: #f1f5f9;">AI 9:16 Shorts Thumbnail</strong>
+          <span>High-CTR 3D Caricature artwork with question-mark spinal X-ray.</span>
+          <a href="AI_VIDEO_PRODUCTION_KIT.md" target="_blank" style="color: #38bdf8; text-decoration: none; font-weight: 700;">
+            📄 View Full Production Kit & Prompts →
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. SETUP CANVAS & AUDIO ENGINE
+    // ==========================================
+    const canvas = document.getElementById('shortsCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1080;
+    const H = 1920;
+
+    // Timeline configuration
+    const TOTAL_DURATION = 17.5; // seconds
+    let currentTime = 0;
+    let isPlaying = true;
+    let isMuted = false;
+    let lastTimestamp = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    // Web Audio Synthesizer
+    let audioCtx = null;
+    let masterGain = null;
+    let audioDest = null; // for recording stream
+
+    function initAudio() {
+      if (audioCtx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(isMuted ? 0 : 0.75, audioCtx.currentTime);
+
+      // Create stream destination for MediaRecorder integration
+      audioDest = audioCtx.createMediaStreamDestination();
+      masterGain.connect(audioCtx.destination);
+      masterGain.connect(audioDest);
+
+      document.getElementById('audioBanner').style.display = 'none';
+    }
+
+    // Audio SFX Synthesizers (100% self-contained, no external files)
+    const SFX = {
+      playAngelChord() {
+        if (!audioCtx || isMuted) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio / choir
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            if (!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.3);
+          }, idx * 120);
+        });
+      },
+
+      playClockTick() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.06);
+      },
+
+      playStretchSqueak() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.25);
+        osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.55);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+      },
+
+      playAlarmSiren() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1100, audioCtx.currentTime + 0.2);
+        osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.4);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      },
+
+      playSpineCrack() {
+        if (!audioCtx || isMuted) return;
+        // Crunchy branch/celery snap synthesis
+        for (let i = 0; i < 4; i++) {
+          setTimeout(() => {
+            if (!audioCtx || isMuted) return;
+            const bufferSize = audioCtx.sampleRate * 0.05;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let j = 0; j < bufferSize; j++) {
+              data[j] = Math.random() * 2 - 1;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1600 + (i * 450);
+            filter.Q.value = 5.0;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            noise.start();
+          }, i * 40);
+        }
+      },
+
+      playSlideWhistleDown() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(950, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.8);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.85);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.9);
+      },
+
+      playVineBoom() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.9);
+
+        gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.3);
+      },
+
+      playDrumKick() {
+        if (!audioCtx || isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.16);
+      }
+    };
+
+    // Voice Narration via Web Speech API (with funny comedic pitch)
+    let hasSpokenScene = {};
+    function speakCaption(text, pitch = 1.3, rate = 1.1) {
+      const enabled = document.getElementById('voiceoverCheckbox').checked;
+      if (!enabled || isMuted || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.pitch = pitch;
+      utter.rate = rate;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // Audio Event Trigger Tracker
+    let triggeredAudio = {};
+    function triggerAudioAt(timeThreshold, key, fn) {
+      if (currentTime >= timeThreshold && !triggeredAudio[key]) {
+        triggeredAudio[key] = true;
+        fn();
+      }
+    }
+
+    function resetAudioTriggers() {
+      triggeredAudio = {};
+      hasSpokenScene = {};
+    }
+
+    // ==========================================
+    // 2. SCENE DATA & NARRATIVE DEFINITIONS
+    // ==========================================
+    const SCENES = [
+      {
+        id: 1,
+        title: "9:00 AM: THE 'ERGONOMIC' EMPLOYEE",
+        subtitle: "Spine at 90°. Mind at peace. Ready to conquer.",
+        timeRange: [0.0, 4.0],
+        tag: "Scene 1: 9:00 AM (Ideal)",
+        speech: "Nine a m. Perfect spinal alignment. Today I am untouchable."
+      },
+      {
+        id: 2,
+        title: "1:30 PM: POST-LUNCH GRAVITY",
+        subtitle: "Spine beginning to fold like an origami swan.",
+        timeRange: [4.0, 8.0],
+        tag: "Scene 2: 1:30 PM (The Slump)",
+        speech: "One thirty p m. Just leaning in a little closer to read this email."
+      },
+      {
+        id: 3,
+        title: "4:45 PM: THE HUMAN PRETZEL",
+        subtitle: "Defying all known laws of vertebrate biology.",
+        timeRange: [8.0, 12.0],
+        tag: "Scene 3: 4:45 PM (Full Pretzel)",
+        speech: "Four forty-five. Spine? Never heard of her. Liquid cat mode."
+      },
+      {
+        id: 4,
+        title: "4:59 PM: THE ERGONOMICS AUDIT",
+        subtitle: "BOSS: 'HOW'S THAT NEW 800-DOLLAR CHAIR?'",
+        timeRange: [12.0, 15.2],
+        tag: "Scene 4: 4:59 PM (The Snap!)",
+        speech: "Boss walks in! Quick, act natural!"
+      },
+      {
+        id: 5,
+        title: "X-RAY REPORT: COOKED NOODLE",
+        subtitle: "DON'T FORGET TO STRETCH TODAY 💀",
+        timeRange: [15.2, 17.5],
+        tag: "Scene 5: Outro / Punchline",
+        speech: "Doctor says your spine took a screenshot. Like and subscribe!"
+      }
+    ];
+
+    function getCurrentScene() {
+      return SCENES.find(s => currentTime >= s.timeRange[0] && currentTime < s.timeRange[1]) || SCENES[SCENES.length - 1];
+    }
+
+    // ==========================================
+    // 3. CANVAS CARTOON DRAWING ENGINE
+    // ==========================================
+
+    // Helper: Rounded Rectangle
+    function roundRect(ctx, x, y, w, h, r, fill = true, stroke = false) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    // Particle Stars / Sparkles
+    const particles = [];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        size: Math.random() * 8 + 4,
+        speedY: Math.random() * 2 + 1,
+        angle: Math.random() * Math.PI * 2,
+        color: ['#facc15', '#38bdf8', '#4ade80', '#f43f5e'][Math.floor(Math.random() * 4)]
+      });
+    }
+
+    // Draw Background Environment
+    function drawEnvironment(t, sceneId) {
+      // Office Wall Gradient (shifts with time of day)
+      let wallGrad;
+      if (sceneId === 1) {
+        wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+        wallGrad.addColorStop(0, '#1e293b');
+        wallGrad.addColorStop(0.7, '#0f172a');
+        wallGrad.addColorStop(1, '#020617');
+      } else if (sceneId === 2) {
+        wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+        wallGrad.addColorStop(0, '#292524');
+        wallGrad.addColorStop(0.7, '#1c1917');
+        wallGrad.addColorStop(1, '#0c0a09');
+      } else if (sceneId === 3) {
+        wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+        wallGrad.addColorStop(0, '#1e1b4b');
+        wallGrad.addColorStop(0.7, '#0f172a');
+        wallGrad.addColorStop(1, '#030712');
+      } else if (sceneId === 4) {
+        // Red flashing alarm emergency
+        const flash = Math.sin(t * 16) > 0 ? '#450a0a' : '#1f2937';
+        wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+        wallGrad.addColorStop(0, flash);
+        wallGrad.addColorStop(1, '#09090b');
+      } else {
+        // Neon medical blue dark
+        wallGrad = ctx.createLinearGradient(0, 0, 0, H);
+        wallGrad.addColorStop(0, '#042f2e');
+        wallGrad.addColorStop(0.8, '#021e25');
+        wallGrad.addColorStop(1, '#020617');
+      }
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Floor
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 1380, W, H - 1380);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 1370, W, 10); // Floor baseboard
+
+      // Wall Poster
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 100, 260, 260, 320, 16, true, false);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4;
+      roundRect(ctx, 110, 270, 240, 300, 12, false, true);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 24px Montserrat';
+      ctx.textAlign = 'center';
+      ctx.fillText('SAFETY 1st', 230, 310);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 18px "Plus Jakarta Sans"';
+      ctx.fillText('PROTECT', 230, 350);
+      ctx.fillText('YOUR SPINE', 230, 380);
+      ctx.font = '60px Arial';
+      ctx.fillText('🩻', 230, 460);
+      ctx.font = '16px "Plus Jakarta Sans"';
+      ctx.fillStyle = '#f87171';
+      ctx.fillText('OccuHealth Safe', 230, 520);
+
+      // Wall Clock with spinning hands
+      const clockX = 880;
+      const clockY = 380;
+      ctx.save();
+      ctx.translate(clockX, clockY);
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(0, 0, 90, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+      // Clock marks
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 4;
+      for (let a = 0; a < 12; a++) {
+        ctx.beginPath();
+        const angle = (a * Math.PI) / 6;
+        ctx.moveTo(Math.cos(angle) * 70, Math.sin(angle) * 70);
+        ctx.lineTo(Math.cos(angle) * 80, Math.sin(angle) * 80);
+        ctx.stroke();
+      }
+
+      // Hands
+      let hourAngle = (Math.PI / 6) * 9; // 9:00 AM default
+      let minAngle = 0;
+      if (sceneId === 2) {
+        hourAngle = (Math.PI / 6) * 1.5;
+        minAngle = Math.PI;
+      } else if (sceneId === 3) {
+        hourAngle = (Math.PI / 6) * 4.75;
+        minAngle = Math.PI * 1.5;
+      } else if (sceneId === 4) {
+        hourAngle = (Math.PI / 6) * 4.98;
+        minAngle = Math.PI * 1.95;
+      }
+      // Hour hand
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(hourAngle - Math.PI/2) * 45, Math.sin(hourAngle - Math.PI/2) * 45);
+      ctx.stroke();
+
+      // Minute hand
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(minAngle - Math.PI/2) * 65, Math.sin(minAngle - Math.PI/2) * 65);
+      ctx.stroke();
+      ctx.restore();
+
+      // Office Window with Skyline
+      ctx.save();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 8;
+      ctx.fillStyle = sceneId >= 3 ? '#0f172a' : '#1e3a8a';
+      roundRect(ctx, 430, 240, 360, 260, 20, true, true);
+      // Window grid cross
+      ctx.beginPath();
+      ctx.moveTo(610, 240);
+      ctx.lineTo(610, 500);
+      ctx.moveTo(430, 370);
+      ctx.lineTo(790, 370);
+      ctx.stroke();
+      // Sun or Moon
+      ctx.fillStyle = sceneId >= 3 ? '#f1f5f9' : '#facc15';
+      ctx.beginPath();
+      ctx.arc(680, 320, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Draw Office Desk & Tech Accessories
+    function drawDesk(t) {
+      // Desk surface
+      const deskY = 1050;
+      ctx.fillStyle = '#334155';
+      roundRect(ctx, 500, deskY, 520, 45, 12, true, false);
+
+      // Desk Leg
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(920, deskY + 45, 35, 320);
+      ctx.fillRect(560, deskY + 45, 35, 320);
+
+      // Computer Monitor 1
+      ctx.fillStyle = '#0f172a';
+      // Stand
+      ctx.fillRect(720, deskY - 60, 20, 60);
+      roundRect(ctx, 680, deskY - 10, 100, 12, 6, true);
+      // Screen bezel
+      ctx.fillStyle = '#090d16';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 6;
+      roundRect(ctx, 600, deskY - 320, 310, 260, 16, true, true);
+
+      // Screen glow content
+      const screenGlow = ctx.createLinearGradient(610, deskY - 310, 890, deskY - 70);
+      screenGlow.addColorStop(0, '#0284c7');
+      screenGlow.addColorStop(1, '#0369a1');
+      ctx.fillStyle = screenGlow;
+      roundRect(ctx, 615, deskY - 305, 280, 230, 10, true);
+
+      // Code / spreadsheet lines on screen
+      ctx.fillStyle = '#ffffff';
+      for (let l = 0; l < 8; l++) {
+        const lineW = 60 + ((l * 47) % 180);
+        ctx.fillRect(635, deskY - 280 + (l * 24), lineW, 8);
+      }
+      // Glowing green cursor
+      if (Math.floor(t * 4) % 2 === 0) {
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(810, deskY - 110, 12, 16);
+      }
+
+      // Keyboard
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 3;
+      roundRect(ctx, 550, deskY - 14, 180, 18, 5, true, true);
+      // RGB backlight
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(555, deskY - 6, 170, 3);
+
+      // Mouse
+      ctx.fillStyle = '#475569';
+      roundRect(ctx, 760, deskY - 12, 35, 22, 10, true);
+
+      // Coffee Mug
+      ctx.fillStyle = '#f43f5e';
+      roundRect(ctx, 830, deskY - 60, 48, 55, 6, true);
+      // Mug handle
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(882, deskY - 32, 14, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      // Coffee steam
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const steamY = (t * 40) % 60;
+      ctx.moveTo(854, deskY - 65 - steamY);
+      ctx.quadraticCurveTo(864, deskY - 80 - steamY, 850, deskY - 95 - steamY);
+      ctx.stroke();
+
+      // Sticky note on desk
+      ctx.fillStyle = '#fef08a';
+      ctx.save();
+      ctx.translate(530, deskY - 45);
+      ctx.rotate(-0.1);
+      roundRect(ctx, 0, 0, 55, 45, 4, true);
+      ctx.fillStyle = '#854d0e';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('SIT UP!!', 6, 25);
+      ctx.restore();
+    }
+
+    // Draw Ergonomic Office Chair
+    function drawChair(chairX, chairY, chairSquish, backAngle) {
+      ctx.save();
+      ctx.translate(chairX, chairY);
+
+      // Wheels / 5-Star Base
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-110, 120);
+      ctx.lineTo(0, 95);
+      ctx.lineTo(110, 120);
+      ctx.stroke();
+
+      // Caster wheels
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(-110, 125, 14, 0, Math.PI * 2);
+      ctx.arc(110, 125, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hydraulic Pneumatic Cylinder (Squishes if chair falls!)
+      ctx.fillStyle = '#64748b';
+      const cylinderH = 90 * (1 - chairSquish * 0.75);
+      ctx.fillRect(-18, 95 - cylinderH, 36, cylinderH);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(-10, 95 - cylinderH, 8, cylinderH);
+
+      // Seat cushion
+      const seatY = 95 - cylinderH - 25;
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 5;
+      roundRect(ctx, -120, seatY, 240, 45, 16, true, true);
+
+      // Ergonomic Mesh Backrest (Rotates with backAngle)
+      ctx.save();
+      ctx.translate(-70, seatY);
+      ctx.rotate(backAngle);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 8;
+      roundRect(ctx, -25, -290, 45, 290, 20, true, true);
+
+      // Lumbar Support Cushion
+      ctx.fillStyle = '#38bdf8';
+      roundRect(ctx, -10, -110, 22, 60, 10, true);
+
+      // Headrest
+      ctx.fillStyle = '#0284c7';
+      roundRect(ctx, -18, -340, 50, 45, 12, true);
+      ctx.restore();
+
+      // Armrests
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(-70, seatY);
+      ctx.lineTo(-70, seatY - 70);
+      ctx.lineTo(-20, seatY - 70);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Draw the Star of the Show: Bob the Employee
+    function drawBob(t, sceneId) {
+      ctx.save();
+
+      if (sceneId === 1) {
+        // SCENE 1: 9:00 AM - THE IDEAL POSTURE
+        const chairX = 420;
+        const chairY = 1180;
+        drawChair(chairX, chairY, 0, 0);
+
+        // Angelic Glowing Aura & Halo
+        const glowRad = 180 + Math.sin(t * 6) * 20;
+        const auraGrad = ctx.createRadialGradient(chairX, 760, 40, chairX, 760, glowRad);
+        auraGrad.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
+        auraGrad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath();
+        ctx.arc(chairX, 760, glowRad, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Floating Golden Halo
+        ctx.save();
+        ctx.translate(chairX, 570 + Math.sin(t * 4) * 8);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 75, 24, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+
+        // Sparkle particles
+        particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, (p.y + t * 40) % H, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Bob's Pelvis
+        const hipX = chairX + 20;
+        const hipY = 1110;
+
+        // Perfectly Straight Glowing Spine Line (Green 90-degree alignment)
+        const neckX = chairX + 20;
+        const neckY = 780;
+
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(neckX, neckY);
+        ctx.stroke();
+
+        // 90° Protractor Alignment Graphics
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.7)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(hipX + 160, hipY);
+        ctx.moveTo(neckX, neckY);
+        ctx.lineTo(neckX, neckY - 140);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Protractor Arc
+        ctx.beginPath();
+        ctx.arc(hipX, hipY, 50, -Math.PI/2, 0);
+        ctx.stroke();
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 28px Montserrat';
+        ctx.fillText('90° PERFECT', hipX + 60, hipY - 25);
+
+        // Legs (Exact 90 degrees)
+        const kneeX = hipX + 160;
+        const kneeY = hipY;
+        const footX = kneeX;
+        const footY = 1380;
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 32;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(kneeX, kneeY);
+        ctx.lineTo(footX, footY);
+        ctx.stroke();
+        // Shoes
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, footX - 10, footY - 10, 80, 25, 8, true);
+
+        // Arms typing gracefully
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 24;
+        ctx.beginPath();
+        ctx.moveTo(neckX, 860);
+        ctx.lineTo(neckX + 90, 940);
+        ctx.lineTo(600, 1030 + Math.sin(t * 12) * 5); // gentle typing
+        ctx.stroke();
+
+        // Head
+        drawHead(neckX, neckY - 70, 0, 'happy');
+
+      } else if (sceneId === 2) {
+        // SCENE 2: 1:30 PM - POST-LUNCH GRAVITY SLUMP
+        const chairX = 400;
+        const chairY = 1180;
+        drawChair(chairX, chairY, 0, 0.15);
+
+        const hipX = chairX + 70;
+        const hipY = 1130;
+
+        // Curved Slouching Banana Spine
+        const neckX = chairX + 180;
+        const neckY = 870;
+
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        // S-curve hunch
+        ctx.bezierCurveTo(hipX - 60, hipY - 120, neckX - 120, neckY + 120, neckX, neckY);
+        ctx.stroke();
+
+        // Red Angle Warning
+        ctx.fillStyle = '#f87171';
+        ctx.font = 'bold 28px Montserrat';
+        ctx.fillText('⚠️ 47° SLUMP', neckX - 40, neckY - 90);
+
+        // Legs sprawled forward
+        const kneeX = hipX + 180;
+        const kneeY = hipY - 20;
+        const footX = kneeX + 100;
+        const footY = 1380;
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 32;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(kneeX, kneeY);
+        ctx.lineTo(footX, footY);
+        ctx.stroke();
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, footX - 10, footY - 10, 80, 25, 8, true);
+
+        // Arms heavily resting on desk
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 24;
+        ctx.beginPath();
+        ctx.moveTo(neckX - 20, neckY + 40);
+        ctx.lineTo(neckX + 120, 1030);
+        ctx.lineTo(680, 1035);
+        ctx.stroke();
+
+        // Head extended forward like a turtle
+        drawHead(neckX + 40, neckY - 20, 0.35, 'tired');
+
+      } else if (sceneId === 3) {
+        // SCENE 3: 4:45 PM - THE HUMAN PRETZEL (ABSURD CARTOON)
+        const chairX = 380;
+        const chairY = 1180;
+        drawChair(chairX, chairY, 0.1, 0.5);
+
+        // Bob has melted: Spine is a giant Question Mark ?
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 26;
+        ctx.lineCap = 'round';
+
+        const hipX = chairX - 20;
+        const hipY = 980;
+
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        // Giant question mark curve
+        ctx.bezierCurveTo(chairX + 220, 780, chairX + 100, 1150, chairX + 240, 1260);
+        ctx.stroke();
+
+        // Absurd Legs slung directly over the monitor
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 32;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(chairX - 80, 720);
+        ctx.lineTo(700, 700 + Math.sin(t * 3) * 15); // feet kicking top of monitor!
+        ctx.stroke();
+        // Cartoon socks / feet waving in air
+        ctx.fillStyle = '#f43f5e';
+        roundRect(ctx, 690, 680, 65, 30, 10, true);
+
+        // Arms dangling lifelessly
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 22;
+        ctx.beginPath();
+        ctx.moveTo(chairX + 160, 1180);
+        ctx.lineTo(chairX + 240, 1340);
+        ctx.lineTo(580, 1040); // one finger reaching up to press spacebar
+        ctx.stroke();
+
+        // Head resting nearly on the floor upside down!
+        drawHead(chairX + 260, 1310, Math.PI * 0.85, 'dizzy');
+
+        // Comic steam / question mark overlay
+        ctx.fillStyle = '#f43f5e';
+        ctx.font = 'bold 90px Montserrat';
+        ctx.fillText('?', chairX + 110, 950 + Math.sin(t * 8) * 20);
+
+      } else if (sceneId === 4) {
+        // SCENE 4: 4:59 PM - BOSS WALKS IN & HYPER-SNAP!
+        const chairX = 420;
+        // Chair collapsed / squished!
+        const isPostCrack = (currentTime >= 13.0);
+        const squishFactor = isPostCrack ? 0.95 : 0.0;
+        const chairY = 1180 + (squishFactor * 140);
+        drawChair(chairX, chairY, squishFactor, 0);
+
+        // Flash of lightning crack across the screen!
+        if (isPostCrack && currentTime < 14.2) {
+          ctx.strokeStyle = '#fef08a';
+          ctx.lineWidth = 14;
+          ctx.beginPath();
+          ctx.moveTo(340, 700);
+          ctx.lineTo(460, 820);
+          ctx.lineTo(390, 920);
+          ctx.lineTo(510, 1060);
+          ctx.stroke();
+
+          // Shockwave ripple circles
+          const rippleR = ((currentTime - 13.0) * 800) % 600;
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(chairX + 20, 920, rippleR, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Big Comic CRACK text
+          ctx.fillStyle = '#ef4444';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 8;
+          ctx.font = '900 75px Montserrat';
+          ctx.strokeText('* CRACCCK! *', 240, 680);
+          ctx.fillText('* CRACCCK! *', 240, 680);
+        }
+
+        // Spine during panic snap
+        const hipX = chairX + 20;
+        const hipY = chairY - 70;
+        const neckX = chairX + 20;
+        const neckY = chairY - 400;
+
+        ctx.strokeStyle = isPostCrack ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 24;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        if (isPostCrack) {
+          // Broken zig-zag spine!
+          ctx.lineTo(hipX - 40, hipY - 120);
+          ctx.lineTo(hipX + 50, hipY - 240);
+          ctx.lineTo(neckX, neckY);
+        } else {
+          ctx.lineTo(neckX, neckY);
+        }
+        ctx.stroke();
+
+        // Legs
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 32;
+        ctx.beginPath();
+        ctx.moveTo(hipX, hipY);
+        ctx.lineTo(hipX + 140, hipY + 40);
+        ctx.lineTo(hipX + 140, 1380);
+        ctx.stroke();
+
+        // Panicked Hands on head
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 22;
+        ctx.beginPath();
+        ctx.moveTo(neckX, neckY + 60);
+        ctx.lineTo(neckX - 70, neckY - 20);
+        ctx.lineTo(neckX - 40, neckY - 80);
+        ctx.moveTo(neckX, neckY + 60);
+        ctx.lineTo(neckX + 70, neckY - 20);
+        ctx.lineTo(neckX + 40, neckY - 80);
+        ctx.stroke();
+
+        drawHead(neckX, neckY - 60, (Math.sin(t * 30) * 0.1), 'shock');
+
+      } else {
+        // SCENE 5: X-RAY LAB / DOCTOR PUNCHLINE
+        drawXrayScene(t);
+      }
+
+      ctx.restore();
+    }
+
+    // Draw Head & Cartoon Facial Expressions
+    function drawHead(hx, hy, rotation, mood) {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(rotation);
+
+      // Head Base
+      ctx.fillStyle = '#fed7aa'; // skin tone
+      ctx.strokeStyle = '#ea580c';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, 70, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Hair
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(0, -25, 72, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      // Glasses
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(-55, -20, 45, 35);
+      ctx.strokeRect(10, -20, 45, 35);
+      ctx.beginPath();
+      ctx.moveTo(-10, -5);
+      ctx.lineTo(10, -5);
+      ctx.stroke();
+
+      // Eyes & Mouth based on Mood
+      if (mood === 'happy') {
+        // Cheerful shiny anime eyes
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-32, -3, 8, 0, Math.PI * 2);
+        ctx.arc(32, -3, 8, 0, Math.PI * 2);
+        ctx.fill();
+        // Catchlight
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-30, -5, 3, 0, Math.PI * 2);
+        ctx.arc(34, -5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // Smile
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 20, 25, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+
+      } else if (mood === 'tired') {
+        // Heavy drooping eyelids & red veins
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-45, -10);
+        ctx.lineTo(-20, 0);
+        ctx.moveTo(20, 0);
+        ctx.lineTo(45, -10);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(-32, 2, 5, 0, Math.PI * 2);
+        ctx.arc(32, 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Droopy mouth
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-20, 35);
+        ctx.lineTo(20, 32);
+        ctx.stroke();
+
+      } else if (mood === 'dizzy') {
+        // Spiral cartoon eyes
+        ctx.strokeStyle = '#7c3aed';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(-32, -2, 14, 0, Math.PI * 1.5);
+        ctx.arc(32, -2, 14, 0, Math.PI * 1.5);
+        ctx.stroke();
+
+        // Tongue sticking out :P
+        ctx.fillStyle = '#f43f5e';
+        roundRect(ctx, -8, 25, 26, 30, 8, true);
+
+      } else if (mood === 'shock') {
+        // Huge bulging eyes popping out of head!
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(-35, -5, 24, 0, Math.PI * 2);
+        ctx.arc(35, -5, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tiny pinpoint pupils
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(-35, -5, 6, 0, Math.PI * 2);
+        ctx.arc(35, -5, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Screaming O-mouth
+        ctx.fillStyle = '#450a0a';
+        ctx.beginPath();
+        ctx.ellipse(0, 35, 22, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // Draw Scene 5: Outro / X-Ray Medical Card
+    function drawXrayScene(t) {
+      // Glow background
+      const grad = ctx.createRadialGradient(W / 2, 850, 50, W / 2, 850, 600);
+      grad.addColorStop(0, '#0f766e');
+      grad.addColorStop(1, '#042f2e');
+      ctx.fillStyle = grad;
+      roundRect(ctx, 140, 420, 800, 920, 28, true, false);
+
+      // X-Ray Lightbox Frame
+      ctx.strokeStyle = '#2dd4bf';
+      ctx.lineWidth = 8;
+      roundRect(ctx, 160, 440, 760, 880, 20, false, true);
+
+      // Header Tag
+      ctx.fillStyle = '#2dd4bf';
+      ctx.font = 'bold 36px Montserrat';
+      ctx.textAlign = 'center';
+      ctx.fillText('PATIENT: BOB (AGE 28)', W / 2, 510);
+      ctx.fillStyle = '#99f6e4';
+      ctx.font = 'bold 24px "Plus Jakarta Sans"';
+      ctx.fillText('DIAGNOSIS: QUESTION MARK SYNDROME 🩻', W / 2, 555);
+
+      // Spine X-ray glowing neon bone
+      ctx.save();
+      ctx.translate(W / 2, 890);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 26;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 30;
+
+      // Draw bone question mark
+      ctx.beginPath();
+      ctx.moveTo(0, 160);
+      ctx.lineTo(0, 120);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, 60);
+      ctx.bezierCurveTo(90, 0, 90, -140, 0, -180);
+      ctx.bezierCurveTo(-70, -210, -70, -290, 0, -320);
+      ctx.stroke();
+      ctx.restore();
+
+      // Ribs sticking out comical
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 8;
+      for (let r = -2; r <= 2; r++) {
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - 80, 840 + (r * 40));
+        ctx.quadraticCurveTo(W / 2, 820 + (r * 40), W / 2 + 80, 840 + (r * 40));
+        ctx.stroke();
+      }
+
+      // Prescription Banner
+      ctx.fillStyle = '#fef08a';
+      roundRect(ctx, 200, 1220, 680, 80, 16, true);
+      ctx.fillStyle = '#854d0e';
+      ctx.font = 'bold 28px Montserrat';
+      ctx.textAlign = 'center';
+      ctx.fillText('PRESCRIPTION: STAND UP & STRETCH NOW!', W / 2, 1270);
+
+      // YouTube Shorts Follow CTA Box
+      const bounce = Math.sin(t * 8) * 12;
+      ctx.fillStyle = '#ef4444';
+      roundRect(ctx, 220, 1420 + bounce, 640, 110, 30, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 42px Montserrat';
+      ctx.fillText('🔔 SUBSCRIBE TO SAVE A SPINE', W / 2, 1490 + bounce);
+    }
+
+    // Dynamic Viral Subtitles (YouTube Shorts style with high retention word bounce)
+    function drawCaptions(scene, t) {
+      const boxY = 1620;
+
+      // Subtitle Backdrop
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      roundRect(ctx, 90, boxY, 900, 180, 24, true);
+
+      // Title Banner
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#facc15';
+      ctx.font = '900 44px Montserrat';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 12;
+      ctx.fillText(scene.title, W / 2, boxY + 68);
+
+      // Subtitle Text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 32px "Plus Jakarta Sans"';
+      ctx.fillText(scene.subtitle, W / 2, boxY + 128);
+
+      // Top Progress Bar (YouTube Shorts style)
+      const progress = (currentTime / TOTAL_DURATION);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(40, 70, W - 80, 10);
+      ctx.fillStyle = '#ef4444';
+      roundRect(ctx, 40, 70, (W - 80) * progress, 10, 5, true);
+    }
+
+    // Camera Shake Effect
+    function getCameraShake(sceneId) {
+      const enabled = document.getElementById('cameraShakeCheckbox').checked;
+      if (!enabled) return { x: 0, y: 0 };
+      if (sceneId === 4 && currentTime >= 13.0 && currentTime < 14.5) {
+        // Violent shockwave shake
+        const intensity = (14.5 - currentTime) * 20;
+        return {
+          x: (Math.random() - 0.5) * intensity,
+          y: (Math.random() - 0.5) * intensity
+        };
+      }
+      return { x: 0, y: 0 };
+    }
+
+    // ==========================================
+    // 4. MAIN ANIMATION LOOP
+    // ==========================================
+    function render(t) {
+      ctx.save();
+      ctx.clearRect(0, 0, W, H);
+
+      const scene = getCurrentScene();
+      const shake = getCameraShake(scene.id);
+      ctx.translate(shake.x, shake.y);
+
+      // Render Scene
+      drawEnvironment(t, scene.id);
+      if (scene.id !== 5) {
+        drawDesk(t);
+      }
+      drawBob(t, scene.id);
+      drawCaptions(scene, t);
+
+      ctx.restore();
+    }
+
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentTime += delta;
+
+        // Check Loop
+        if (currentTime >= TOTAL_DURATION) {
+          const autoLoop = document.getElementById('loopCheckbox').checked;
+          if (autoLoop) {
+            currentTime = 0;
+            resetAudioTriggers();
+            if (isRecording) {
+              stopRecording();
+            }
+          } else {
+            currentTime = TOTAL_DURATION - 0.01;
+            isPlaying = false;
+            updatePlayButtonUI();
+          }
+        }
+
+        // Timeline triggers
+        handleTimeTriggers(currentTime);
+      }
+
+      render(currentTime);
+      updateTimelineUI();
+
+      requestAnimationFrame(animate);
+    }
+
+    // Synchronized Sound Triggers
+    function handleTimeTriggers(t) {
+      // Scene 1: Angelic Chime & speech
+      triggerAudioAt(0.2, 'scene1_sound', () => {
+        SFX.playAngelChord();
+        speakCaption(SCENES[0].speech);
+      });
+
+      // Scene 2: Clock ticking whoosh
+      triggerAudioAt(4.0, 'scene2_sound', () => {
+        SFX.playClockTick();
+        setTimeout(() => SFX.playClockTick(), 120);
+        speakCaption(SCENES[1].speech);
+      });
+
+      // Scene 3: Stretching rubber / noodle squeak
+      triggerAudioAt(8.0, 'scene3_sound', () => {
+        SFX.playStretchSqueak();
+        speakCaption(SCENES[2].speech);
+      });
+
+      // Scene 4: Boss alert sirens & loud bone crack!
+      triggerAudioAt(12.0, 'scene4_alert', () => {
+        SFX.playAlarmSiren();
+        speakCaption(SCENES[3].speech);
+      });
+
+      triggerAudioAt(13.0, 'scene4_crack', () => {
+        SFX.playSpineCrack();
+        SFX.playSlideWhistleDown();
+      });
+
+      triggerAudioAt(13.5, 'scene4_boom', () => {
+        SFX.playVineBoom();
+      });
+
+      // Scene 5: Outro doctor punchline
+      triggerAudioAt(15.2, 'scene5_outro', () => {
+        SFX.playAngelChord();
+        speakCaption(SCENES[4].speech);
+      });
+    }
+
+    // ==========================================
+    // 5. UI CONTROLS & EVENT LISTENERS
+    // ==========================================
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playIcon = document.getElementById('playIcon');
+    const playText = document.getElementById('playText');
+    const restartBtn = document.getElementById('restartBtn');
+    const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioText = document.getElementById('audioText');
+    const timelineScrubber = document.getElementById('timelineScrubber');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const currentSceneTag = document.getElementById('currentSceneTag');
+    const recordLoopBtn = document.getElementById('recordLoopBtn');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const snapshotBtn = document.getElementById('snapshotBtn');
+
+    function updatePlayButtonUI() {
+      playIcon.textContent = isPlaying ? '⏸' : '▶️';
+      playText.textContent = isPlaying ? 'Pause' : 'Play';
+    }
+
+    function updateTimelineUI() {
+      timelineScrubber.value = currentTime;
+      timeDisplay.textContent = `${currentTime.toFixed(1)}s / ${TOTAL_DURATION.toFixed(1)}s`;
+      const scene = getCurrentScene();
+      currentSceneTag.textContent = scene.tag;
+
+      // Update scene buttons
+      document.querySelectorAll('.scene-btn').forEach(btn => {
+        const btnTime = parseFloat(btn.dataset.time);
+        const isActive = (currentTime >= btnTime && currentTime < btnTime + 4.0);
+        btn.classList.toggle('active', isActive);
+      });
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      initAudio();
+      isPlaying = !isPlaying;
+      updatePlayButtonUI();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      initAudio();
+      currentTime = 0;
+      resetAudioTriggers();
+      isPlaying = true;
+      updatePlayButtonUI();
+    });
+
+    toggleAudioBtn.addEventListener('click', () => {
+      initAudio();
+      isMuted = !isMuted;
+      if (masterGain) {
+        masterGain.gain.setValueAtTime(isMuted ? 0 : 0.75, audioCtx.currentTime);
+      }
+      audioIcon.textContent = isMuted ? '🔇' : '🔊';
+      audioText.textContent = isMuted ? 'Unmute Audio' : 'Mute Audio';
+    });
+
+    timelineScrubber.addEventListener('input', (e) => {
+      currentTime = parseFloat(e.target.value);
+      resetAudioTriggers();
+      render(currentTime);
+    });
+
+    document.querySelectorAll('.scene-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        initAudio();
+        currentTime = parseFloat(btn.dataset.time);
+        resetAudioTriggers();
+        isPlaying = true;
+        updatePlayButtonUI();
+      });
+    });
+
+    canvas.addEventListener('click', () => {
+      initAudio();
+      isPlaying = !isPlaying;
+      updatePlayButtonUI();
+    });
+
+    // Thumbnail Snapshot
+    snapshotBtn.addEventListener('click', () => {
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `youtube-short-thumbnail-${Math.floor(currentTime)}s.png`;
+      a.click();
+    });
+
+    // ==========================================
+    // 6. VIDEO RECORDER (MediaRecorder MP4/WebM)
+    // ==========================================
+    recordLoopBtn.addEventListener('click', () => {
+      initAudio();
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    function startRecording() {
+      try {
+        isRecording = true;
+        recordedChunks = [];
+        currentTime = 0;
+        resetAudioTriggers();
+        isPlaying = true;
+        updatePlayButtonUI();
+
+        // Capture canvas stream at 60 FPS
+        const videoStream = canvas.captureStream(60);
+
+        // Combine canvas video track + synthesized audio track
+        let combinedStream = videoStream;
+        if (audioDest && audioDest.stream && audioDest.stream.getAudioTracks().length > 0) {
+          combinedStream = new MediaStream([
+            ...videoStream.getVideoTracks(),
+            ...audioDest.stream.getAudioTracks()
+          ]);
+        }
+
+        const mimeTypes = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm',
+          'video/mp4'
+        ];
+        const selectedMime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'video/webm';
+
+        mediaRecorder = new MediaRecorder(combinedStream, {
+          mimeType: selectedMime,
+          videoBitsPerSecond: 8000000 // 8 Mbps high quality 1080x1920
+        });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            recordedChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: selectedMime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          const ext = selectedMime.includes('mp4') ? 'mp4' : 'webm';
+          a.download = `office-ergonomics-short-1080x1920.${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+
+          statusIndicator.className = 'status-badge';
+          statusIndicator.innerHTML = '<span>✅ Video Downloaded successfully!</span>';
+          recordLoopBtn.innerHTML = '<span>📹 Record 1 Full Loop & Download Video (.webm / .mp4)</span>';
+          isRecording = false;
+        };
+
+        mediaRecorder.start();
+        statusIndicator.className = 'status-badge recording';
+        statusIndicator.innerHTML = '<span>🔴 RECORDING IN PROGRESS (1080x1920 60FPS)...</span>';
+        recordLoopBtn.innerHTML = '<span>⏹ Stop & Save Video</span>';
+      } catch (err) {
+        console.error("Recording error:", err);
+        alert("MediaRecorder error: " + err.message);
+        isRecording = false;
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false;
+    }
+
+    // Start Animation on Load
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

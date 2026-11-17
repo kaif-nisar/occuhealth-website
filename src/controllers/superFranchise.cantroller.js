@@ -59,27 +59,31 @@ const sfUpdate = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid ObjectId format");
     }
 
-    // Check required fields
-    if (
-        [fullName, email, username, password, phoneNo].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All fields are required");
-    }
-
     // Find the superfranchisee
     const superFranchisee = await User.findById(_id);
     if (!superFranchisee) {
         throw new ApiError(404, "Superfranchisee not found");
     }
 
+    const effectiveFullName = fullName !== undefined && fullName.trim() !== "" ? fullName.trim() : superFranchisee.fullName;
+    const effectiveEmail = email !== undefined && email.trim() !== "" ? email.trim() : superFranchisee.email;
+    const effectiveUsername = username !== undefined && username.trim() !== "" ? username.trim() : superFranchisee.username;
+    const effectivePassword = password !== undefined && password.trim() !== "" ? password.trim() : superFranchisee.password;
+    const effectivePhoneNo = phoneNo !== undefined && phoneNo.trim() !== "" ? phoneNo.trim() : superFranchisee.phoneNo;
+
+    // Check required fields
+    if (!effectiveFullName || !effectiveEmail || !effectiveUsername) {
+        throw new ApiError(400, "Full name, email, and username are required");
+    }
+
     // ✅ NEW: Check for duplicate email, username, and phone (excluding current user)
-    const normalizedEmail = email.toLowerCase().trim();
-    const normalizedUsername = username.toLowerCase().trim();
-    const normalizedPhone = phoneNo.toString().trim();
-    const superFranchiseePhone = superFranchisee.phoneNo.toString().trim();
+    const normalizedEmail = effectiveEmail.toLowerCase().trim();
+    const normalizedUsername = effectiveUsername.toLowerCase().trim();
+    const normalizedPhone = (effectivePhoneNo || "").toString().trim();
+    const superFranchiseePhone = (superFranchisee.phoneNo || "").toString().trim();
 
     // Check if email already exists (and it's not the current user's email)
-    if (normalizedEmail !== superFranchisee.email.toLowerCase()) {
+    if (normalizedEmail !== (superFranchisee.email || "").toLowerCase()) {
       const existingEmail = await User.findOne({ email: normalizedEmail });
       if (existingEmail) {
         throw new ApiError(400, "Email already registered. Please use a different email.");
@@ -87,7 +91,7 @@ const sfUpdate = asyncHandler(async (req, res) => {
     }
 
     // Check if username already exists (and it's not the current user's username)
-    if (normalizedUsername !== superFranchisee.username.toLowerCase()) {
+    if (normalizedUsername !== (superFranchisee.username || "").toLowerCase()) {
       const existingUsername = await User.findOne({ username: normalizedUsername });
       if (existingUsername) {
         throw new ApiError(400, "Username already taken. Please use a different username.");
@@ -95,7 +99,7 @@ const sfUpdate = asyncHandler(async (req, res) => {
     }
 
     // Check if phone already exists (and it's not the current user's phone)
-    if (normalizedPhone !== superFranchiseePhone) {
+    if (normalizedPhone && normalizedPhone !== superFranchiseePhone) {
       const existingPhone = await User.findOne({ phoneNo: normalizedPhone });
       if (existingPhone) {
         throw new ApiError(400, "Phone number already registered. Please use a different phone number.");
@@ -104,18 +108,18 @@ const sfUpdate = asyncHandler(async (req, res) => {
 
     // Prepare object to update
     const updateData = {
-        fullName,
-        email,
-        username,
-        password,
+        fullName: effectiveFullName,
+        email: effectiveEmail,
+        username: effectiveUsername,
+        password: effectivePassword,
         state,
         city,
         district,
         postOffice,
         pinCode,
         address,
-        phoneNo,
-        isActive,
+        phoneNo: effectivePhoneNo,
+        isActive: isActive !== undefined ? isActive : superFranchisee.isActive,
         clinicName,
         canManageOverdraft: req.body.canManageOverdraft || false
     };
@@ -127,8 +131,10 @@ const sfUpdate = asyncHandler(async (req, res) => {
             console.log("logoResult:", logoResult);
             
             if (logoResult?.secure_url) {
-                const updatedSuperFranchiseetenant = await Tenant.findOneAndUpdate(
-                    { "adminDetails.userId": _id.toString() },
+                updateData.logo = logoResult.secure_url;
+                updateData.logopublicid = logoResult.public_id;
+                await Tenant.findOneAndUpdate(
+                    { $or: [{ "adminDetails.userId": _id.toString() }, { _id: superFranchisee.tenantId }] },
                     {
                         logo: logoResult.secure_url,
                         logopublicid: logoResult.public_id
@@ -151,8 +157,29 @@ const sfUpdate = asyncHandler(async (req, res) => {
             if (nablLogoResult?.secure_url) {
                 updateData.nabllogo = nablLogoResult.secure_url;
                 updateData.nabllogopublicid = nablLogoResult.public_id;
+                await Tenant.findOneAndUpdate(
+                    { $or: [{ "adminDetails.userId": _id.toString() }, { _id: superFranchisee.tenantId }] },
+                    {
+                        nabllogo: nablLogoResult.secure_url,
+                        nabllogopublicid: nablLogoResult.public_id
+                    },
+                    { new: true }
+                );
             }
         }
+    }
+
+    if (req.body.removeNablLogo === "true" || req.body.removeNablLogo === true) {
+        updateData.nabllogo = "";
+        updateData.nabllogopublicid = "";
+        await Tenant.findOneAndUpdate(
+            { $or: [{ "adminDetails.userId": _id.toString() }, { _id: superFranchisee.tenantId }] },
+            {
+                nabllogo: "",
+                nabllogopublicid: ""
+            },
+            { new: true }
+        );
     }
 
     // Update the franchisee

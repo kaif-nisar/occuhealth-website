@@ -9,6 +9,7 @@ import { newBooking } from "../models/NewBooking.model.js";
 import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { recordButtonActionAudit } from "../services/reportActionAudit.service.js";
+import { resolveNablLogoForReport } from "../utils/nablLogoHelper.js";
 
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
@@ -582,6 +583,12 @@ const getReportController = asyncHandler(async (req, res) => {
     responsePayload.layerOne = usertenant?.modelType || "";
     responsePayload.savedPdfLayout = reportCustomization?.htmlContent || null;
     responsePayload.bookingTableData = bookingDoc?.tableData || [];
+    responsePayload.nablLogo = await resolveNablLogoForReport({
+        tenantId: resolvedTenantId,
+        bookingId: Report.bookingId,
+        reportId: Report._id,
+        user: req.user
+    });
 
     return res.status(200).json({
         ...responsePayload,
@@ -625,6 +632,7 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
     const responsePayload = { ...Report };
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
+    responsePayload.nablLogo = await resolveNablLogoForReport({ tenantId: Report.tenantId || tenantId, bookingId: Report.bookingId, reportId: Report._id, user: null });
 
     return res.status(200).json({
         ...responsePayload,

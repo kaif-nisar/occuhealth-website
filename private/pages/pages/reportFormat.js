@@ -1,4 +1,4 @@
-﻿/* ============================================================================
+/* ============================================================================
     OccuHealth LIS · Pathology Report Layout (Format 1) — redesigned UI layer
     ----------------------------------------------------------------------------
     · Same backend contract as legacy:
@@ -61,6 +61,7 @@
         report: null,
         reportId: null,
         backgroundImageUrl: null,
+        nablLogoUrl: null,
         doctorsData: null,
         bodyChildren: [],      /* canonical ordered children of .container2 */
         sheets: [],
@@ -1226,6 +1227,15 @@
             tpl.alt = '';
             tpl.src = state.backgroundImageUrl;
             head.appendChild(tpl);
+        }
+
+        if (state.nablLogoUrl) {
+            const nablImg = document.createElement('img');
+            nablImg.className = 'nabl-logo-top-right';
+            nablImg.alt = 'NABL Accredited';
+            nablImg.src = state.nablLogoUrl;
+            nablImg.onerror = () => { nablImg.style.display = 'none'; };
+            head.appendChild(nablImg);
         }
 
         if (first) {
@@ -2399,6 +2409,7 @@
             if (!report || !report._id) throw new Error('Report data is unavailable.');
             state.report = report;
             state.reportId = report._id;
+            state.nablLogoUrl = report.nablLogo || null;
             const [backgroundImageUrl, doctorsData] = await Promise.all([
                 fetchTemplateImages(),
                 fetchDoctorsSign(),
