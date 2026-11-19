@@ -35,8 +35,16 @@ class AuthService {
     }
 
     await StorageService.saveToken(token);
-    final user = UserModel.fromJson(data as Map<String, dynamic>, token: token);
+    var user = UserModel.fromJson(data as Map<String, dynamic>, token: token);
     await StorageService.saveUser(user);
+
+    // Hydrate full profile (including assigned pdfFormat) from get-current-user
+    try {
+      final hydrated = await getCurrentUser();
+      if (hydrated != null && hydrated.id.isNotEmpty) {
+        user = hydrated;
+      }
+    } catch (_) {}
 
     return user;
   }

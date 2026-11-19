@@ -263,13 +263,13 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // SECTION 1: Patient Demographics
+                  // SECTION 1: Patient demographic fields (Name, Age, Unit, Gender, Phone)
                   _cardSection(
-                    title: '1. Patient Information (मरीज का विवरण)',
+                    title: '1. Patient Information',
                     icon: Icons.person_rounded,
                     children: [
                       CustomTextField(
-                        label: 'Patient Full Name * (मरीज का नाम)',
+                        label: 'Patient Full Name *',
                         hint: 'Enter patient full name',
                         controller: _patientNameController,
                         prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.textMuted),
@@ -281,7 +281,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                           Expanded(
                             flex: 2,
                             child: CustomTextField(
-                              label: 'Age * (उम्र)',
+                              label: 'Age *',
                               hint: 'e.g. 32',
                               controller: _ageValueController,
                               keyboardType: TextInputType.number,
@@ -334,7 +334,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Gender (लिंग)',
+                                  'Gender',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -370,7 +370,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                       ),
                       const SizedBox(height: 14),
                       CustomTextField(
-                        label: 'Patient Mobile Number (फोन नंबर)',
+                        label: 'Patient Mobile Number',
                         hint: '10-digit mobile number',
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
@@ -381,17 +381,17 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // SECTION 2: Doctor & Lab Selection + Add Options
+                  // SECTION 2: Referring Doctor & Laboratory selection with quick-add dialogs
                   _cardSection(
-                    title: '2. Doctor & Laboratory (डॉक्टर व लैब)',
+                    title: '2. Doctor & Laboratory',
                     icon: Icons.local_hospital_outlined,
                     children: [
-                      // Doctor Selection with + Add Doctor button
+                      // Referring doctor selector with + Add New Doctor shortcut
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Referring Doctor (डॉक्टर)',
+                            'Referring Doctor',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
                           ),
                           InkWell(
@@ -438,12 +438,12 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Lab Selection with + Add Lab button
+                      // Laboratory / Hospital selector with + Add New Lab button
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Laboratory / Hospital (लैब / अस्पताल)',
+                            'Laboratory / Hospital',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
                           ),
                           InkWell(
@@ -490,9 +490,9 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // File Attachment (Requisition / Prescription)
+                      // Prescription / Requisition file attachment
                       const Text(
-                        'Prescription / Requisition File (फाइल अटैच करें)',
+                        'Prescription / Requisition File',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 6),
@@ -507,7 +507,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                           onPressed: () => _pickAttachment(prov),
                           icon: const Icon(Icons.attach_file_rounded, color: AppColors.primary),
                           label: const Text(
-                            'Upload Prescription / Requisition (फाइल चुनें)',
+                            'Upload Prescription / Requisition',
                             style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -542,9 +542,9 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // SECTION 3: Test Selection (Interactive, Categories, Quick Search, Chips)
+                  // SECTION 3: Interactive test, panel & package selection
                   _cardSection(
-                    title: '3. Select Tests & Packages (टेस्ट चुनें)',
+                    title: '3. Select Tests & Packages',
                     icon: Icons.science_outlined,
                     children: [
                       // Search Bar
@@ -770,14 +770,14 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
                   // SECTION 5: Discount & Billing Summary
                   _cardSection(
-                    title: '5. Discount & Billing (बिलिंग विवरण)',
+                    title: '5. Discount & Billing',
                     icon: Icons.receipt_long_rounded,
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: CustomTextField(
-                              label: 'Discount (छूट ₹)',
+                              label: 'Discount (₹)',
                               hint: '0',
                               controller: _discountController,
                               keyboardType: TextInputType.number,
@@ -836,9 +836,9 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // SUBMIT BUTTON
+                  // Submit Booking button
                   CustomButton(
-                    text: 'Confirm & Book Test (बुकिंग लगाएं)',
+                    text: 'Confirm & Book Test',
                     variant: ButtonVariant.primary,
                     height: 54,
                     isLoading: prov.isSubmitting,

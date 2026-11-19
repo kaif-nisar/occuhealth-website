@@ -31,6 +31,13 @@ export const checkStaffPermission = (permission) => {
             return next();
         }
 
+        // Sales personnel have access to view reports and manage bookings for their tagged network
+        if (req.user.staffType === 'sales' || Boolean(req.user.salesDesignation)) {
+            if (permission === 'canViewReports' || permission === 'canManageBookings') {
+                return next();
+            }
+        }
+
         // For staff role, check if they have the required permission
         if (!req.user.permissions || !req.user.permissions[permission]) {
             return res.status(403).json({ message: "You don't have permission to perform this action" });

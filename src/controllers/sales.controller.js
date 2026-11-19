@@ -34,7 +34,7 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
     const tenantObjectId = new mongoose.Types.ObjectId(authTenantId);
 
     const {
-        period = 'month', // 'today', 'week', 'month', 'custom'
+        period = 'month', // 'today', 'week', 'month', 'all', 'custom'
         startDate,
         endDate,
         month, // 'YYYY-MM'
@@ -78,6 +78,11 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
             rangeEnd = now;
             daysCount = Math.max(1, now.getDate());
         }
+    } else if (period === 'all') {
+        // All time: beginning of system till now
+        rangeStart = new Date(0);
+        rangeEnd = now;
+        daysCount = Math.max(1, Math.ceil((rangeEnd.getTime() - new Date('2024-01-01').getTime()) / (1000 * 60 * 60 * 24)));
     } else if (period === 'custom') {
         if (startDate) {
             const pStart = new Date(startDate);
@@ -106,20 +111,67 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
     const effectiveUserId = targetUserId || req.user._id;
     const hierarchy = await resolveSalesHierarchy(effectiveUserId, authTenantId);
 
-    // 3. Resolve Target Franchisee Scope based on filters
+    // 3. Resolve Target Franchisee Scope & Scoped User based on filters
     let activeFranchiseeIds = [];
+    let scopedUser = null;
+    let effectiveTargetAmount = 0;
 
     if (filterType === 'franchisee' && filterId && mongoose.Types.ObjectId.isValid(filterId)) {
         activeFranchiseeIds = [new mongoose.Types.ObjectId(filterId)];
+        const franDoc = await User.findById(filterId).select('_id fullName username clinicName role bookingWallet phoneNo monthlySalesTarget').lean();
+        if (franDoc) {
+            scopedUser = {
+                _id: franDoc._id,
+                name: franDoc.clinicName || franDoc.fullName,
+                username: franDoc.username,
+                designation: franDoc.role || 'franchisee',
+                phoneNo: franDoc.phoneNo,
+                walletBalance: franDoc.bookingWallet || 0,
+                monthlySalesTarget: franDoc.monthlySalesTarget || 0
+            };
+            if (franDoc.monthlySalesTarget) {
+                effectiveTargetAmount = Number(franDoc.monthlySalesTarget);
+            }
+        }
     } else if (filterType === 'th' && filterId && mongoose.Types.ObjectId.isValid(filterId)) {
         const subHierarchy = await resolveSalesHierarchy(filterId, authTenantId);
         activeFranchiseeIds = subHierarchy.flatIds.franchiseeIds;
+        scopedUser = {
+            _id: subHierarchy.user._id,
+            name: subHierarchy.user.fullName,
+            username: subHierarchy.user.username,
+            designation: 'TH',
+            phoneNo: subHierarchy.user.phoneNo,
+            monthlySalesTarget: subHierarchy.user.monthlySalesTarget || 200000,
+            franchisees: subHierarchy.downline?.franchisees || []
+        };
+        effectiveTargetAmount = Number(subHierarchy.user.monthlySalesTarget || 200000);
     } else if (filterType === 'asm' && filterId && mongoose.Types.ObjectId.isValid(filterId)) {
         const subHierarchy = await resolveSalesHierarchy(filterId, authTenantId);
         activeFranchiseeIds = subHierarchy.flatIds.franchiseeIds;
+        scopedUser = {
+            _id: subHierarchy.user._id,
+            name: subHierarchy.user.fullName,
+            username: subHierarchy.user.username,
+            designation: 'ASM',
+            phoneNo: subHierarchy.user.phoneNo,
+            monthlySalesTarget: subHierarchy.user.monthlySalesTarget || 0,
+            ths: subHierarchy.downline?.ths || []
+        };
+        effectiveTargetAmount = Number(subHierarchy.user.monthlySalesTarget || 0);
     } else if (filterType === 'rsm' && filterId && mongoose.Types.ObjectId.isValid(filterId)) {
         const subHierarchy = await resolveSalesHierarchy(filterId, authTenantId);
         activeFranchiseeIds = subHierarchy.flatIds.franchiseeIds;
+        scopedUser = {
+            _id: subHierarchy.user._id,
+            name: subHierarchy.user.fullName,
+            username: subHierarchy.user.username,
+            designation: 'RSM',
+            phoneNo: subHierarchy.user.phoneNo,
+            monthlySalesTarget: subHierarchy.user.monthlySalesTarget || 0,
+            asms: subHierarchy.downline?.asms || []
+        };
+        effectiveTargetAmount = Number(subHierarchy.user.monthlySalesTarget || 0);
     } else {
         // 'all' -> all franchisees in hierarchy
         activeFranchiseeIds = hierarchy.flatIds.franchiseeIds;
@@ -144,8 +196,23 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
     let defaultTargetPerLab = 200000;
     let totalTargetAmount = 0;
 
-    if (hierarchy.user.monthlySalesTarget && hierarchy.user.monthlySalesTarget > 0 && filterType === 'all') {
-        totalTargetAmount = hierarchy.user.monthlySalesTarget;
+    if (effectiveTargetAmount > 0) {
+        totalTargetAmount = effectiveTargetAmount;
+    } else if (filterType === 'all') {
+        if (hierarchy.user.monthlySalesTarget && hierarchy.user.monthlySalesTarget > 0) {
+            totalTargetAmount = Number(hierarchy.user.monthlySalesTarget);
+        } else if (hierarchy.level === 'ASM' && hierarchy.downline?.ths?.length > 0) {
+            totalTargetAmount = hierarchy.downline.ths.reduce((acc, t) => acc + (Number(t.monthlySalesTarget) || defaultTargetPerLab), 0);
+        } else if (hierarchy.level === 'RSM' && hierarchy.downline?.asms?.length > 0) {
+            totalTargetAmount = hierarchy.downline.asms.reduce((acc, a) => acc + (Number(a.monthlySalesTarget) || 500000), 0);
+        } else if (hierarchy.level === 'TH') {
+            totalTargetAmount = Number(hierarchy.user.monthlySalesTarget) || defaultTargetPerLab;
+        } else {
+            activeFranchiseeObjectIds.forEach(fId => {
+                const t = targetMap.get(fId.toString());
+                totalTargetAmount += t?.amount !== undefined ? Number(t.amount) : defaultTargetPerLab;
+            });
+        }
     } else {
         activeFranchiseeObjectIds.forEach(fId => {
             const t = targetMap.get(fId.toString());
@@ -165,7 +232,14 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
         const bookingMatch = {
             tenantId: tenantObjectId,
             status: { $ne: 'cancelled' },
-            $and: [
+            $or: [
+                { createdBy: { $in: matchIds } },
+                { subFranchiseeId: { $in: matchIds } }
+            ]
+        };
+
+        if (period !== 'all') {
+            bookingMatch.$and = [
                 {
                     $or: [
                         { createdAt: { $gte: rangeStart, $lte: rangeEnd } },
@@ -176,15 +250,9 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
                             ]
                         }
                     ]
-                },
-                {
-                    $or: [
-                        { createdBy: { $in: matchIds } },
-                        { subFranchiseeId: { $in: matchIds } }
-                    ]
                 }
-            ]
-        };
+            ];
+        }
 
         const aggregationResult = await newBooking.aggregate([
             { $match: bookingMatch },
@@ -342,21 +410,29 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
     const achievementPct = totalTargetAmount > 0 ? Math.min(Math.round((totalRevenue / totalTargetAmount) * 100), 1000) : 0;
     const deficitAmount = Math.max(0, totalTargetAmount - totalRevenue);
 
-    // 7. Format Daily Timeline
+    // 7. Format Daily Timeline with Cumulative Revenue & Run-Rate
+    let runningRevenue = 0;
+    const dailyTargetRunRate = daysCount > 0 ? Math.round(totalTargetAmount / daysCount) : 0;
+
     const formattedTimeline = bookingAggregates.dailyTimeline.map(item => {
         const pad = n => String(n).padStart(2, '0');
         const dateStr = `${item._id.year}-${pad(item._id.month)}-${pad(item._id.day)}`;
+        const rev = Number(item.revenue || 0);
+        runningRevenue += rev;
         return {
             date: dateStr,
-            revenue: Number(item.revenue || 0),
+            revenue: rev,
+            cumulativeRevenue: runningRevenue,
+            targetBenchmark: dailyTargetRunRate,
             samples: Number(item.samples || 0),
             tubes: Number(item.tubes || 0),
             tests: Number(item.tests || 0)
         };
     });
 
-    // 8. Build Downline Performance Table based on designation
+    // 8. Build Downline Performance Table & Target Comparison based on designation & active filter
     let breakdownRows = [];
+    let targetComparison = [];
     const desig = hierarchy.user.salesDesignation;
 
     // Helper to sum stats for a list of franchisee IDs
@@ -375,50 +451,52 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
             targetAmt += t?.amount !== undefined ? Number(t.amount) : defaultTargetPerLab;
         });
         const pct = targetAmt > 0 ? Math.round((rev / targetAmt) * 100) : 0;
-        return { revenue: rev, samples: samp, tubes, tests, target: targetAmt, achievementPct: pct };
+        return { revenue: rev, bookings: samp, samples: samp, tubes, tests, target: targetAmt, achievementPct: pct };
     };
 
-    if (desig === 'ZSM' && hierarchy.downline?.rsms) {
-        breakdownRows = hierarchy.downline.rsms.map(rsm => {
-            // Collect all franchisees under this RSM
-            let rsmFrans = [];
-            (rsm.asms || []).forEach(asm => {
-                (asm.ths || []).forEach(th => {
-                    (th.franchisees || []).forEach(f => rsmFrans.push(f._id));
-                });
-            });
-            const stats = getStatsForFranchiseeIds(rsmFrans);
+    // Scenario A: Scoped specifically to a TH (either viewed by ASM/RSM/ZSM/Admin or drilldown)
+    if (filterType === 'th' && scopedUser?.franchisees) {
+        breakdownRows = scopedUser.franchisees.map(f => {
+            const stats = getStatsForFranchiseeIds([f._id]);
+            const bookingData = franchiseeSalesMap.get(f._id.toString());
             return {
-                id: rsm._id,
-                name: rsm.fullName,
-                username: rsm.username,
-                designation: 'RSM',
-                phoneNo: rsm.phoneNo,
-                subordinateCount: `${rsm.asmCount || 0} ASMs • ${rsm.thCount || 0} THs • ${rsmFrans.length} Labs`,
+                id: f._id,
+                name: f.fullName,
+                clinicName: f.clinicName || f.fullName,
+                username: f.username,
+                designation: f.role || 'franchisee',
+                phoneNo: f.phoneNo,
+                walletBalance: Number(f.bookingWallet || 0),
+                isWalletPositive: Number(f.bookingWallet || 0) >= 0,
+                lastBookingDate: bookingData?.lastBooking || null,
                 ...stats
             };
         });
-    } else if (desig === 'RSM' && hierarchy.downline?.asms) {
-        breakdownRows = hierarchy.downline.asms.map(asm => {
-            let asmFrans = [];
-            (asm.ths || []).forEach(th => {
-                (th.franchisees || []).forEach(f => asmFrans.push(f._id));
-            });
-            const stats = getStatsForFranchiseeIds(asmFrans);
-            return {
-                id: asm._id,
-                name: asm.fullName,
-                username: asm.username,
-                designation: 'ASM',
-                phoneNo: asm.phoneNo,
-                subordinateCount: `${asm.thCount || 0} THs • ${asmFrans.length} Labs`,
-                ...stats
-            };
-        });
-    } else if (desig === 'ASM' && hierarchy.downline?.ths) {
-        breakdownRows = hierarchy.downline.ths.map(th => {
+
+        targetComparison = [
+            {
+                id: scopedUser._id,
+                name: scopedUser.name,
+                designation: 'TH',
+                target: totalTargetAmount,
+                revenue: totalRevenue,
+                achievementPct,
+                deficit: deficitAmount,
+                bookings: totalSamples,
+                samples: totalSamples,
+                tubes: totalTubes,
+                tests: totalTests,
+                labsCount: scopedUser.franchisees.length
+            }
+        ];
+    }
+    // Scenario B: Scoped specifically to an ASM
+    else if (filterType === 'asm' && scopedUser?.ths) {
+        breakdownRows = scopedUser.ths.map(th => {
             const thFrans = (th.franchisees || []).map(f => f._id);
             const stats = getStatsForFranchiseeIds(thFrans);
+            const thTarget = Number(th.monthlySalesTarget || defaultTargetPerLab);
+            const pct = thTarget > 0 ? Math.round((stats.revenue / thTarget) * 100) : 0;
             return {
                 id: th._id,
                 name: th.fullName,
@@ -426,11 +504,106 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
                 designation: 'TH',
                 phoneNo: th.phoneNo,
                 subordinateCount: `${thFrans.length} Labs Tagged`,
-                ...stats
+                target: thTarget,
+                revenue: stats.revenue,
+                bookings: stats.samples,
+                samples: stats.samples,
+                tubes: stats.tubes,
+                tests: stats.tests,
+                achievementPct: pct,
+                deficit: Math.max(0, thTarget - stats.revenue)
             };
         });
-    } else {
-        // TH level or Franchisee drilldown: list individual Franchisees
+        targetComparison = breakdownRows.map(r => ({ ...r }));
+    }
+    // Scenario C: ZSM view of RSMs
+    else if (desig === 'ZSM' && hierarchy.downline?.rsms) {
+        breakdownRows = hierarchy.downline.rsms.map(rsm => {
+            let rsmFrans = [];
+            (rsm.asms || []).forEach(asm => {
+                (asm.ths || []).forEach(th => {
+                    (th.franchisees || []).forEach(f => rsmFrans.push(f._id));
+                });
+            });
+            const stats = getStatsForFranchiseeIds(rsmFrans);
+            const rsmTarget = Number(rsm.monthlySalesTarget || 1500000);
+            const pct = rsmTarget > 0 ? Math.round((stats.revenue / rsmTarget) * 100) : 0;
+            return {
+                id: rsm._id,
+                name: rsm.fullName,
+                username: rsm.username,
+                designation: 'RSM',
+                phoneNo: rsm.phoneNo,
+                subordinateCount: `${rsm.asmCount || 0} ASMs • ${rsm.thCount || 0} THs • ${rsmFrans.length} Labs`,
+                target: rsmTarget,
+                revenue: stats.revenue,
+                bookings: stats.samples,
+                samples: stats.samples,
+                tubes: stats.tubes,
+                tests: stats.tests,
+                achievementPct: pct,
+                deficit: Math.max(0, rsmTarget - stats.revenue)
+            };
+        });
+        targetComparison = breakdownRows.map(r => ({ ...r }));
+    }
+    // Scenario D: RSM view of ASMs
+    else if (desig === 'RSM' && hierarchy.downline?.asms) {
+        breakdownRows = hierarchy.downline.asms.map(asm => {
+            let asmFrans = [];
+            (asm.ths || []).forEach(th => {
+                (th.franchisees || []).forEach(f => asmFrans.push(f._id));
+            });
+            const stats = getStatsForFranchiseeIds(asmFrans);
+            const asmTarget = Number(asm.monthlySalesTarget || 500000);
+            const pct = asmTarget > 0 ? Math.round((stats.revenue / asmTarget) * 100) : 0;
+            return {
+                id: asm._id,
+                name: asm.fullName,
+                username: asm.username,
+                designation: 'ASM',
+                phoneNo: asm.phoneNo,
+                subordinateCount: `${asm.thCount || 0} THs • ${asmFrans.length} Labs`,
+                target: asmTarget,
+                revenue: stats.revenue,
+                bookings: stats.samples,
+                samples: stats.samples,
+                tubes: stats.tubes,
+                tests: stats.tests,
+                achievementPct: pct,
+                deficit: Math.max(0, asmTarget - stats.revenue)
+            };
+        });
+        targetComparison = breakdownRows.map(r => ({ ...r }));
+    }
+    // Scenario E: ASM view of THs (Aggregated default)
+    else if (desig === 'ASM' && hierarchy.downline?.ths) {
+        breakdownRows = hierarchy.downline.ths.map(th => {
+            const thFrans = (th.franchisees || []).map(f => f._id);
+            const stats = getStatsForFranchiseeIds(thFrans);
+            const thTarget = Number(th.monthlySalesTarget || defaultTargetPerLab);
+            const pct = thTarget > 0 ? Math.round((stats.revenue / thTarget) * 100) : 0;
+            return {
+                id: th._id,
+                name: th.fullName,
+                username: th.username,
+                designation: 'TH',
+                phoneNo: th.phoneNo,
+                subordinateCount: `${thFrans.length} Labs Tagged`,
+                target: thTarget,
+                revenue: stats.revenue,
+                bookings: stats.samples,
+                samples: stats.samples,
+                tubes: stats.tubes,
+                tests: stats.tests,
+                achievementPct: pct,
+                deficit: Math.max(0, thTarget - stats.revenue)
+            };
+        });
+        targetComparison = breakdownRows.map(r => ({ ...r }));
+    }
+    // Scenario F: TH level or individual Franchisee list
+    else {
         const franchiseeList = hierarchy.downline?.franchisees || hierarchy.allFranchisees || [];
         breakdownRows = franchiseeList.map(f => {
             const stats = getStatsForFranchiseeIds([f._id]);
@@ -448,11 +621,29 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
                 ...stats
             };
         });
+
+        targetComparison = [
+            {
+                id: hierarchy.user._id,
+                name: hierarchy.user.fullName,
+                designation: 'TH',
+                target: totalTargetAmount,
+                revenue: totalRevenue,
+                achievementPct,
+                deficit: deficitAmount,
+                bookings: totalSamples,
+                samples: totalSamples,
+                tubes: totalTubes,
+                tests: totalTests,
+                labsCount: franchiseeList.length
+            }
+        ];
     }
 
     return res.status(200).json(
         new ApiResponse(200, {
             user: hierarchy.user,
+            scopedUser: scopedUser || null,
             counts: hierarchy.counts,
             period,
             month: targetMonth,
@@ -460,13 +651,15 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
             scope: {
                 filterType,
                 filterId: filterId || 'all',
-                totalLabsInScope: activeFranchiseeObjectIds.length
+                totalLabsInScope: activeFranchiseeObjectIds.length,
+                scopedName: scopedUser?.name || 'All Managed Units'
             },
             kpis: {
                 targetAmount: totalTargetAmount,
                 totalRevenue,
                 achievementPct,
                 deficitAmount,
+                totalBookings: totalSamples,
                 totalSamples,
                 totalTests,
                 totalTubes,
@@ -479,6 +672,14 @@ export const getSalesBusinessAnalytics = asyncHandler(async (req, res) => {
                 avgTestsPerSample: Number(avgTestsPerSample.toFixed(1))
             },
             timeline: formattedTimeline,
+            targetLine: {
+                targetAmount: totalTargetAmount,
+                dailyTargetRunRate,
+                achievedAmount: totalRevenue,
+                deficitAmount,
+                achievementPct
+            },
+            targetComparison,
             tubeTypes: bookingAggregates.tubeTypes || [],
             topTests: bookingAggregates.topTests || [],
             breakdownRows
@@ -500,11 +701,11 @@ export const getAvailableDownlines = asyncHandler(async (req, res) => {
 
     const upperDesig = designation.toUpperCase();
 
-    // When creating TH -> Return all Franchisees / Sub-Franchisees
+    // When creating TH -> Return all Franchisees / Sub-Franchisees / Super-Franchisees
     if (upperDesig === 'TH') {
         const franchisees = await User.find({
             tenantId: tid,
-            role: { $in: ['franchisee', 'subFranchisee'] },
+            role: { $in: ['franchisee', 'subFranchisee', 'superFranchisee'] },
             isActive: true
         })
         .select('_id fullName username email phoneNo clinicName bookingWallet address city state role createdBy')
@@ -766,7 +967,13 @@ export const getSalesBookings = asyncHandler(async (req, res) => {
             },
             canDownloadReport: canDownload,
             isreportready: b.isreportready || false,
-            isSignedOff: b.isSignedOff || false
+            isSignedOff: Boolean(
+                b.isSignedOff ||
+                (b.signedBy && typeof b.signedBy === 'string' && b.signedBy.trim() !== '' && b.signedBy !== 'null') ||
+                b.signOff === true ||
+                b.signOff === 'true'
+            ),
+            signedBy: b.signedBy || ''
         };
     });
 

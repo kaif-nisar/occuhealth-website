@@ -91,6 +91,9 @@
                 <button type="button" class="sp-adm-period active" data-period="month" style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; background: #fff; color: #2563eb; cursor: pointer;">1 Month</button>
                 <button type="button" class="sp-adm-period" data-period="week" style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: #64748b; cursor: pointer;">1 Week</button>
                 <button type="button" class="sp-adm-period" data-period="today" style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: #64748b; cursor: pointer;">Today</button>
+                <button type="button" class="sp-adm-period" data-period="all" style="padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: #64748b; cursor: pointer;">
+                    <i class="fa-solid fa-infinity"></i> All Time
+                </button>
             </div>
 
             <label style="font-size: 13px; font-weight: 600; color: #334155;">Target Month:</label>
@@ -98,8 +101,8 @@
         </div>
     </div>
 
-    <!-- 5 KPI Cards (Matching Franchisee Business & Standalone Portal) -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <!-- 6 KPI Cards (Matching Franchisee Business & Standalone Portal) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Sales Target</span>
@@ -116,6 +119,15 @@
             </div>
             <div style="font-size: 24px; font-weight: 800; color: #059669; margin-top: 6px;" id="adminKpiRevenue">₹0</div>
             <div style="font-size: 12px; color: #64748b; margin-top: 4px;" id="adminKpiAvgRev">Avg: ₹0 / day</div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Bookings</span>
+                <i class="fa-solid fa-receipt" style="color: #2563eb; font-size: 20px;"></i>
+            </div>
+            <div style="font-size: 24px; font-weight: 800; color: #2563eb; margin-top: 6px;" id="adminKpiBookings">0</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Registered Patients</div>
         </div>
 
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">

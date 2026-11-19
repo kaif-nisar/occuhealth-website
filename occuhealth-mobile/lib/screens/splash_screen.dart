@@ -72,57 +72,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo Icon
+                // Official OccuHealth brand logo from bundled assets
                 Container(
-                  width: 90,
-                  height: 90,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(24),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 20,
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        blurRadius: 24,
                         offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
+                  child: Image.asset(
+                    'assets/logo.png',
+                    height: 68,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
                       Icons.local_hospital_rounded,
-                      size: 50,
-                      color: Colors.white,
+                      size: 56,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Brand Name
-                RichText(
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Occu',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      TextSpan(
-                        text: 'Health',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 16),
                 const Text(
                   'Diagnostic Laboratory & Health Network',
                   style: TextStyle(

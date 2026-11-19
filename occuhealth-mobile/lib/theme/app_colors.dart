@@ -14,6 +14,8 @@ class AppColors {
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceSecondary = Color(0xFFF1F5F9);
+  static const Color surfaceVariant = Color(0xFFF1F5F9);
+  static const Color slateDark = Color(0xFF1E293B);
 
   // Borders & Dividers
   static const Color border = Color(0xFFE2E8F0);

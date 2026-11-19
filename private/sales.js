@@ -17,6 +17,7 @@
     let myFranchisees = [];
     let timelineChartInstance = null;
     let tubeChartInstance = null;
+    let targetChartInstance = null;
 
     // DOM Elements
     const elements = {
@@ -38,7 +39,15 @@
         modeBtns: document.querySelectorAll('.sp-mode-btn'),
         refreshBtn: document.getElementById('spRefreshBtn'),
 
+        // Active Scope Banner
+        activeScopeBanner: document.getElementById('spActiveScopeBanner'),
+        scopeBannerTitle: document.getElementById('spScopeBannerTitle'),
+        scopeBannerSub: document.getElementById('spScopeBannerSub'),
+        clearScopeBtn: document.getElementById('spClearScopeBtn'),
+
         // KPIs
+        kpiTargetCardLabel: document.getElementById('kpiTargetCardLabel'),
+        kpiTargetSubtext: document.getElementById('kpiTargetSubtext'),
         kpiTargetAmount: document.getElementById('kpiTargetAmount'),
         kpiTargetAchieved: document.getElementById('kpiTargetAchieved'),
         kpiTargetPct: document.getElementById('kpiTargetPct'),
@@ -49,6 +58,9 @@
         kpiAvgRevenuePerDay: document.getElementById('kpiAvgRevenuePerDay'),
         kpiAvgTicket: document.getElementById('kpiAvgTicket'),
 
+        kpiTotalBookings: document.getElementById('kpiTotalBookings'),
+        kpiBookingsSubtext: document.getElementById('kpiBookingsSubtext'),
+
         kpiTotalSamples: document.getElementById('kpiTotalSamples'),
         kpiAvgSamplesPerDay: document.getElementById('kpiAvgSamplesPerDay'),
 
@@ -57,6 +69,10 @@
 
         kpiTotalTubes: document.getElementById('kpiTotalTubes'),
         kpiAvgTubesPerDay: document.getElementById('kpiAvgTubesPerDay'),
+
+        // Charts
+        targetChartTitle: document.getElementById('spTargetChartTitle'),
+        targetChartSubtext: document.getElementById('spTargetChartSubtext'),
 
         // Tables & Lists
         tableTitle: document.getElementById('spTableTitle'),
@@ -166,6 +182,16 @@
                     activeFilterType = type;
                     activeFilterId = id;
                 }
+                loadAnalytics();
+            });
+        }
+
+        // Clear scope drilldown button
+        if (elements.clearScopeBtn) {
+            elements.clearScopeBtn.addEventListener('click', () => {
+                if (elements.scopeSelect) elements.scopeSelect.value = 'all';
+                activeFilterType = 'all';
+                activeFilterId = 'all';
                 loadAnalytics();
             });
         }
@@ -325,29 +351,54 @@
             if (!json.success || !json.data) return;
 
             const data = json.data;
-            renderKPIs(data.kpis);
-            renderCharts(data.timeline, data.tubeTypes);
-            renderBreakdownTable(data.breakdownRows);
+
+            // Handle Active Scope Drilldown Banner
+            if (activeFilterType !== 'all' && data.scopedUser) {
+                if (elements.activeScopeBanner) elements.activeScopeBanner.style.display = 'flex';
+                if (elements.scopeBannerTitle) {
+                    elements.scopeBannerTitle.innerHTML = `<i class="fa-solid fa-bullseye"></i> Viewing Unit: <strong>${data.scopedUser.name}</strong> <span class="sp-desig-pill sp-pill-${(data.scopedUser.designation || 'th').toLowerCase()}" style="margin-left: 8px;">${data.scopedUser.designation}</span>`;
+                }
+                if (elements.scopeBannerSub) {
+                    elements.scopeBannerSub.textContent = `Showing dedicated performance for ${data.scope?.totalLabsInScope || 0} assigned franchise labs • Target: ${formatINR(data.kpis?.targetAmount)}`;
+                }
+            } else {
+                if (elements.activeScopeBanner) elements.activeScopeBanner.style.display = 'none';
+            }
+
+            renderKPIs(data.kpis, data.period);
+            renderCharts(data.timeline, data.tubeTypes, data.targetComparison || [], data.targetLine || {}, data.scopedUser);
+            renderBreakdownTable(data.breakdownRows || [], data.scope, data.scopedUser);
         } catch (err) {
             console.error("Error loading sales analytics:", err);
         }
     }
 
     // Render KPI Cards
-    function renderKPIs(kpis = {}) {
+    function renderKPIs(kpis = {}, period = 'month') {
         if (!kpis) return;
+
+        // Label update based on period
+        if (elements.kpiTargetCardLabel) {
+            elements.kpiTargetCardLabel.textContent = (period === 'all') ? 'All-Time Quota / Target' : 'Monthly Quota / Target';
+        }
 
         // Target vs Achieved
         if (elements.kpiTargetAmount) elements.kpiTargetAmount.textContent = formatINR(kpis.targetAmount);
         if (elements.kpiTargetAchieved) elements.kpiTargetAchieved.textContent = `Achieved: ${formatINR(kpis.totalRevenue)}`;
         if (elements.kpiTargetPct) elements.kpiTargetPct.textContent = `${kpis.achievementPct || 0}%`;
-        if (elements.kpiTargetFill) elements.kpiTargetFill.style.width = `${Math.min(100, kpis.achievementPct || 0)}%`;
+        if (elements.kpiTargetFill) {
+            elements.kpiTargetFill.style.width = `${Math.min(100, kpis.achievementPct || 0)}%`;
+            elements.kpiTargetFill.style.background = (kpis.achievementPct >= 100) ? '#10b981' : ((kpis.achievementPct >= 50) ? '#2563eb' : '#f59e0b');
+        }
         if (elements.kpiTargetDeficit) elements.kpiTargetDeficit.textContent = `Remaining: ${formatINR(kpis.deficitAmount)}`;
 
         // Revenue
         if (elements.kpiTotalRevenue) elements.kpiTotalRevenue.textContent = formatINR(kpis.totalRevenue);
         if (elements.kpiAvgRevenuePerDay) elements.kpiAvgRevenuePerDay.textContent = `${formatINR(kpis.avgRevenuePerDay)} / day`;
-        if (elements.kpiAvgTicket) elements.kpiAvgTicket.textContent = `Avg / Sample: ${formatINR(kpis.avgTicketSize)}`;
+        if (elements.kpiAvgTicket) elements.kpiAvgTicket.textContent = `Avg / Booking: ${formatINR(kpis.avgTicketSize)}`;
+
+        // Total Bookings
+        if (elements.kpiTotalBookings) elements.kpiTotalBookings.textContent = Number(kpis.totalBookings || kpis.totalSamples || 0).toLocaleString();
 
         // Samples
         if (elements.kpiTotalSamples) elements.kpiTotalSamples.textContent = Number(kpis.totalSamples || 0).toLocaleString();
@@ -362,16 +413,151 @@
         if (elements.kpiAvgTubesPerDay) elements.kpiAvgTubesPerDay.textContent = `${kpis.avgTubesPerDay || 0} / day`;
     }
 
-    // Render Charts
-    function renderCharts(timeline = [], tubeTypes = []) {
+    // Render Charts (Target Comparison, Timeline with Benchmark, Tube Breakdown)
+    function renderCharts(timeline = [], tubeTypes = [], targetComparison = [], targetLine = {}, scopedUser = null) {
+        const targetCanvas = document.getElementById('spTargetChart');
         const timelineCanvas = document.getElementById('spTimelineChart');
         const tubeCanvas = document.getElementById('spTubeChart');
 
-        // Timeline Trend Chart
+        // 1. Target vs Achievement Graphical Chart
+        if (targetCanvas && window.Chart) {
+            if (targetChartInstance) targetChartInstance.destroy();
+
+            const isMultiUnit = targetComparison.length > 1;
+
+            if (elements.targetChartTitle) {
+                if (isMultiUnit) {
+                    elements.targetChartTitle.innerHTML = `<i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> Team Head Target vs. Achieved Comparison`;
+                    if (elements.targetChartSubtext) elements.targetChartSubtext.textContent = `Comparing quota vs live booking sales for ${targetComparison.length} Team Heads`;
+                } else {
+                    const subjectName = scopedUser?.name || currentUser?.fullName || 'Sales Executive';
+                    elements.targetChartTitle.innerHTML = `<i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> Target Goal &amp; Run-Rate for ${subjectName}`;
+                    if (elements.targetChartSubtext) elements.targetChartSubtext.textContent = `Target: ${formatINR(targetLine.targetAmount)} • Achieved: ${targetLine.achievementPct || 0}%`;
+                }
+            }
+
+            if (isMultiUnit) {
+                // Grouped Bar Chart comparing each TH side-by-side
+                const labels = targetComparison.map(t => t.name || 'Executive');
+                const targets = targetComparison.map(t => Number(t.target || 0));
+                const achieved = targetComparison.map(t => Number(t.revenue || 0));
+
+                targetChartInstance = new Chart(targetCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Monthly Target (₹)',
+                                data: targets,
+                                backgroundColor: 'rgba(59, 130, 246, 0.35)',
+                                borderColor: '#2563eb',
+                                borderWidth: 1.5,
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Achieved Sales (₹)',
+                                data: achieved,
+                                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                                borderColor: '#059669',
+                                borderWidth: 1.5,
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    afterBody: function(context) {
+                                        const idx = context[0].dataIndex;
+                                        const item = targetComparison[idx];
+                                        if (item) {
+                                            return `Achieved: ${item.achievementPct || 0}%\nBookings: ${item.bookings || 0}\nTagged Labs: ${item.labsCount || 0}`;
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₹' + (value >= 100000 ? (value / 100000).toFixed(1) + 'L' : value.toLocaleString('en-IN'));
+                                    }
+                                },
+                                grid: { color: '#f1f5f9' }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Single Unit Overview: Target vs Achieved vs Remaining
+                const targetAmt = Number(targetLine.targetAmount || 0);
+                const achievedAmt = Number(targetLine.achievedAmount || 0);
+                const remainingAmt = Number(targetLine.deficitAmount || 0);
+
+                targetChartInstance = new Chart(targetCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Target Quota', 'Achieved Sales', 'Remaining Gap'],
+                        datasets: [{
+                            label: 'Amount (₹)',
+                            data: [targetAmt, achievedAmt, remainingAmt],
+                            backgroundColor: [
+                                'rgba(37, 99, 235, 0.8)',
+                                'rgba(16, 185, 129, 0.85)',
+                                'rgba(245, 158, 11, 0.8)'
+                            ],
+                            borderColor: ['#1d4ed8', '#059669', '#d97706'],
+                            borderWidth: 1.5,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + formatINR(context.raw);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₹' + (value >= 100000 ? (value / 100000).toFixed(1) + 'L' : value.toLocaleString('en-IN'));
+                                    }
+                                },
+                                grid: { color: '#f1f5f9' }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 2. Timeline Trend Chart with Target Benchmark Line
         if (timelineCanvas && window.Chart) {
             const labels = timeline.map(t => t.date.slice(5)); // MM-DD
             const revData = timeline.map(t => t.revenue);
             const sampleData = timeline.map(t => t.samples);
+            const benchmarkData = timeline.map(t => t.targetBenchmark || 0);
 
             if (timelineChartInstance) timelineChartInstance.destroy();
 
@@ -381,7 +567,7 @@
                     labels,
                     datasets: [
                         {
-                            label: 'Daily Revenue (₹)',
+                            label: 'Daily Sales (₹)',
                             data: revData,
                             borderColor: '#2563eb',
                             backgroundColor: 'rgba(37, 99, 235, 0.1)',
@@ -390,7 +576,18 @@
                             yAxisID: 'y'
                         },
                         {
-                            label: 'Samples Count',
+                            label: 'Target Benchmark (Run-Rate)',
+                            data: benchmarkData,
+                            borderColor: '#f59e0b',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Samples Logged',
                             data: sampleData,
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -405,14 +602,29 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left', grid: { color: '#f1f5f9' } },
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + (value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value);
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false }
+                        }
                     }
                 }
             });
         }
 
-        // Tube Types Chart
+        // 3. Tube Types Chart
         if (tubeCanvas && window.Chart) {
             const tubeLabels = tubeTypes.map(t => t._id || 'Plain');
             const tubeCounts = tubeTypes.map(t => t.count);
@@ -442,34 +654,67 @@
     }
 
     // Render Breakdown Table
-    function renderBreakdownTable(rows = []) {
+    function renderBreakdownTable(rows = [], scope = {}, scopedUser = null) {
         if (!elements.tableTbody) return;
 
         const desig = currentUser?.salesDesignation || 'TH';
+        const isScopedToTH = scope?.filterType === 'th';
+        const isScopedToASM = scope?.filterType === 'asm';
+
+        // Dynamic Table Title & Header
         if (elements.tableTitle) {
-            if (desig === 'ZSM') elements.tableTitle.innerHTML = `<i class="fa-solid fa-crown text-amber"></i> Regional Sales Managers (RSM) Performance`;
-            else if (desig === 'RSM') elements.tableTitle.innerHTML = `<i class="fa-solid fa-network-wired text-purple"></i> Area Sales Managers (ASM) Performance`;
-            else if (desig === 'ASM') elements.tableTitle.innerHTML = `<i class="fa-solid fa-users text-emerald"></i> Team Heads (TH) Performance`;
-            else elements.tableTitle.innerHTML = `<i class="fa-solid fa-store text-blue"></i> Tagged Labs &amp; Sub-Franchisees Performance`;
+            if (isScopedToTH) {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-store text-blue"></i> Assigned Franchise Labs under ${scopedUser?.name || 'Selected Team Head'}`;
+            } else if (isScopedToASM) {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-users text-emerald"></i> Team Heads (TH) under ${scopedUser?.name || 'Selected ASM'}`;
+            } else if (desig === 'ZSM') {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-crown text-amber"></i> Regional Sales Managers (RSM) Performance`;
+            } else if (desig === 'RSM') {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-network-wired text-purple"></i> Area Sales Managers (ASM) Performance`;
+            } else if (desig === 'ASM') {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-users text-emerald"></i> Team Heads (TH) Target vs. Achieved Performance`;
+            } else {
+                elements.tableTitle.innerHTML = `<i class="fa-solid fa-store text-blue"></i> My Tagged Franchise Labs Performance`;
+            }
         }
 
         // Table Header
         if (elements.tableThead) {
-            elements.tableThead.innerHTML = `
-                <tr>
-                    <th>#</th>
-                    <th>Unit / Executive</th>
-                    <th>Designation</th>
-                    <th>Managed Network</th>
-                    <th>Total Revenue</th>
-                    <th>Samples</th>
-                    <th>Tubes</th>
-                    <th>Quota / Target</th>
-                    <th>Achieved %</th>
-                    <th>Account Health</th>
-                    <th>Action</th>
-                </tr>
-            `;
+            if (isScopedToTH || desig === 'TH' || (!isScopedToASM && desig !== 'ASM' && desig !== 'RSM' && desig !== 'ZSM')) {
+                // Labs Table
+                elements.tableThead.innerHTML = `
+                    <tr>
+                        <th>#</th>
+                        <th>Franchise / Lab Name</th>
+                        <th>Type</th>
+                        <th>Contact &amp; Username</th>
+                        <th>Total Sales</th>
+                        <th>Bookings</th>
+                        <th>Samples</th>
+                        <th>Tubes</th>
+                        <th>Wallet Balance</th>
+                        <th>Account Health</th>
+                        <th>Action</th>
+                    </tr>
+                `;
+            } else {
+                // Team Heads / Managers Table
+                elements.tableThead.innerHTML = `
+                    <tr>
+                        <th>#</th>
+                        <th>Executive / Manager</th>
+                        <th>Designation</th>
+                        <th>Managed Territory</th>
+                        <th>Monthly Target</th>
+                        <th>Achieved Sales</th>
+                        <th>Bookings</th>
+                        <th>Samples</th>
+                        <th>Achieved %</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                `;
+            }
         }
 
         if (!rows.length) {
@@ -479,54 +724,94 @@
 
         elements.tableTbody.innerHTML = rows.map((r, i) => {
             const isFranchiseeRow = r.walletBalance !== undefined;
-            const walletBadge = isFranchiseeRow
-                ? `<span class="sp-wallet-badge ${r.isWalletPositive ? 'sp-wallet-pos' : 'sp-wallet-neg'}">
-                    <i class="fa-solid ${r.isWalletPositive ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ₹${r.walletBalance.toFixed(0)}
-                   </span>`
-                : `<span style="color:#64748b; font-size:12px;">Active Unit</span>`;
 
-            return `
-                <tr>
-                    <td><strong>${i + 1}</strong></td>
-                    <td>
-                        <strong>${r.name || r.clinicName}</strong>
-                        <div style="font-size: 11px; color: #64748b;">${r.phoneNo || r.username}</div>
-                    </td>
-                    <td><span class="sp-desig-pill sp-pill-${(r.designation || 'th').toLowerCase()}">${r.designation || 'Unit'}</span></td>
-                    <td><span style="font-size: 12px; color: #475569;">${r.subordinateCount || 'Direct Lab'}</span></td>
-                    <td><strong style="color: #059669;">${formatINR(r.revenue)}</strong></td>
-                    <td>${Number(r.samples || 0).toLocaleString()}</td>
-                    <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 12px; font-weight:600;">${r.tubes || 0}</span></td>
-                    <td>${formatINR(r.target)}</td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: 700; color: ${r.achievementPct >= 100 ? '#059669' : '#2563eb'};">${r.achievementPct}%</span>
-                            <div style="width: 40px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                                <div style="width: ${Math.min(100, r.achievementPct)}%; height: 100%; background: ${r.achievementPct >= 100 ? '#10b981' : '#2563eb'};"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>${walletBadge}</td>
-                    <td>
-                        ${isFranchiseeRow ? `
-                            <button type="button" class="sp-btn sp-btn-primary sp-btn-sm" onclick="salesOpenBookingFor('${r.id}')">
+            if (isFranchiseeRow) {
+                const walletBadge = `<span class="sp-wallet-badge ${r.isWalletPositive ? 'sp-wallet-pos' : 'sp-wallet-neg'}">
+                    <i class="fa-solid ${r.isWalletPositive ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ₹${Number(r.walletBalance || 0).toFixed(0)}
+                </span>`;
+
+                return `
+                    <tr>
+                        <td><strong>${i + 1}</strong></td>
+                        <td>
+                            <strong style="color: #0f172a; font-size: 14px;">${r.name || r.clinicName}</strong>
+                            <div style="font-size: 11px; color: #64748b;">${r.city ? r.city + ' • ' : ''}@${r.username}</div>
+                        </td>
+                        <td><span class="sp-desig-pill sp-pill-th">${r.designation || 'Lab'}</span></td>
+                        <td>
+                            <div><i class="fa-solid fa-phone" style="font-size: 11px; color:#64748b;"></i> ${r.phoneNo || 'N/A'}</div>
+                        </td>
+                        <td><strong style="color: #059669; font-size: 14px;">${formatINR(r.revenue)}</strong></td>
+                        <td><span style="font-weight: 700; color: #2563eb;">${Number(r.bookings || r.samples || 0).toLocaleString()}</span></td>
+                        <td>${Number(r.samples || 0).toLocaleString()}</td>
+                        <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 12px; font-weight:600;">${r.tubes || 0}</span></td>
+                        <td>${walletBadge}</td>
+                        <td>
+                            <span style="font-size: 12px; font-weight: 600; color: ${r.isWalletPositive ? '#059669' : '#e11d48'};">
+                                <i class="fa-solid ${r.isWalletPositive ? 'fa-check' : 'fa-triangle-exclamation'}"></i> ${r.isWalletPositive ? 'Healthy' : 'Blocked'}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="sp-btn sp-btn-primary sp-btn-sm" onclick="salesOpenBookingFor('${r.id}')" title="Book test for this lab">
                                 <i class="fa-solid fa-plus"></i> Book
                             </button>
-                        ` : `
-                            <button type="button" class="sp-btn sp-btn-outline sp-btn-sm" onclick="salesDrilldown('${r.designation?.toLowerCase()}', '${r.id}')">
-                                <i class="fa-solid fa-magnifying-glass"></i> View
+                        </td>
+                    </tr>
+                `;
+            } else {
+                // Executive / TH Row
+                const pct = Number(r.achievementPct || 0);
+                const pctColor = pct >= 100 ? '#059669' : (pct >= 50 ? '#2563eb' : '#d97706');
+
+                return `
+                    <tr>
+                        <td><strong>${i + 1}</strong></td>
+                        <td>
+                            <strong style="color: #0f172a; font-size: 14px;">${r.name}</strong>
+                            <div style="font-size: 11px; color: #64748b;">${r.phoneNo || ('@' + r.username)}</div>
+                        </td>
+                        <td><span class="sp-desig-pill sp-pill-${(r.designation || 'th').toLowerCase()}">${r.designation || 'TH'}</span></td>
+                        <td><span style="font-size: 12px; color: #475569; font-weight: 600;">${r.subordinateCount || 'Assigned Labs'}</span></td>
+                        <td><strong style="color: #1e293b;">${formatINR(r.target)}</strong></td>
+                        <td><strong style="color: #059669; font-size: 14px;">${formatINR(r.revenue)}</strong></td>
+                        <td><span style="font-weight: 700; color: #2563eb;">${Number(r.bookings || r.samples || 0).toLocaleString()}</span></td>
+                        <td>${Number(r.samples || 0).toLocaleString()}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-weight: 700; color: ${pctColor};">${pct}%</span>
+                                <div style="width: 48px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                                    <div style="width: ${Math.min(100, pct)}%; height: 100%; background: ${pctColor};"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="font-size: 12px; font-weight: 600; color: ${pct >= 100 ? '#059669' : '#64748b'};">
+                                ${pct >= 100 ? '<i class="fa-solid fa-circle-check" style="color:#059669;"></i> Achieved' : (pct > 0 ? 'In Progress' : 'No Sales')}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="sp-btn sp-btn-primary sp-btn-sm" onclick="salesDrilldown('${(r.designation || 'th').toLowerCase()}', '${r.id}')" title="Drilldown into this unit's dashboard">
+                                <i class="fa-solid fa-chart-simple"></i> View Labs
                             </button>
-                        `}
-                    </td>
-                </tr>
-            `;
+                        </td>
+                    </tr>
+                `;
+            }
         }).join('');
     }
 
     // Global action: Drilldown to sub-unit
-    window.salesDrilldown = function (type, id) {
+    window.salesDrilldown = function (type, id, name = '') {
         if (!elements.scopeSelect) return;
-        elements.scopeSelect.value = `${type}:${id}`;
+        const targetVal = `${type}:${id}`;
+        const exists = Array.from(elements.scopeSelect.options).some(opt => opt.value === targetVal);
+        if (!exists) {
+            const newOpt = document.createElement('option');
+            newOpt.value = targetVal;
+            newOpt.textContent = `📍 ${name || (type.toUpperCase() + ' Unit')}`;
+            elements.scopeSelect.appendChild(newOpt);
+        }
+        elements.scopeSelect.value = targetVal;
         activeFilterType = type;
         activeFilterId = id;
         loadAnalytics();
@@ -570,42 +855,54 @@
             }
 
             elements.reportsTbody.innerHTML = json.data.bookings.map((b, i) => {
-                const canDownload = b.canDownloadReport;
+                const canDownload = Boolean(b.canDownloadReport);
                 const fran = b.franchisee || {};
                 const walletBal = Number(fran.walletBalance || 0);
+                const isSigned = Boolean(b.isSignedOff);
+
+                const statusHtml = isSigned
+                    ? `<div style="display: flex; flex-direction: column; gap: 4px;">
+                         <span class="sp-badge-signed">
+                             <i class="fa-solid fa-file-signature"></i> Signed Off
+                         </span>
+                         ${b.signedBy ? `<span style="font-size: 10.5px; color: #059669; font-weight: 600;"><i class="fa-solid fa-user-check"></i> ${escapeHtml(b.signedBy)}</span>` : ''}
+                       </div>`
+                    : `<span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; display: inline-flex; align-items: center; gap: 5px;">
+                         <i class="fa-regular fa-clock" style="color: #f59e0b;"></i> ${escapeHtml(b.status || 'Pending')}
+                       </span>`;
+
+                const actionHtml = isSigned
+                    ? `<button type="button" 
+                         class="sp-btn ${canDownload ? 'sp-btn-primary' : 'sp-btn-locked'} sp-btn-sm" 
+                         onclick="openLetterheadDownloadModal('${b._id}', '${escapeHtml(b.bookingId)}', '${escapeHtml(b.patientName)}', ${canDownload}, '${escapeHtml(fran.clinicName || fran.fullName || '')}', ${walletBal})">
+                         <i class="fa-solid ${canDownload ? 'fa-file-pdf' : 'fa-lock'}"></i>
+                         ${canDownload ? 'Download Report' : 'Locked (Negative)'}
+                       </button>`
+                    : `<span class="sp-badge-pending-signoff" title="This report is not signed off yet. Download button unlocks once signed off.">
+                         <i class="fa-solid fa-hourglass-half"></i> Pending Sign-Off
+                       </span>`;
 
                 return `
                     <tr>
                         <td><strong>${b.bookingId || 'N/A'}</strong></td>
                         <td>${new Date(b.createdAt).toLocaleDateString()}</td>
                         <td>
-                            <strong>${b.patientName}</strong>
+                            <strong>${escapeHtml(b.patientName)}</strong>
                             <div style="font-size: 11px; color: #64748b;">${b.age ? b.age + ' yrs' : ''} • ${b.gender || ''}</div>
                         </td>
                         <td>
-                            <strong>${fran.clinicName || fran.fullName}</strong>
-                            <div style="font-size: 11px; color: #64748b;">@${fran.username}</div>
+                            <strong>${escapeHtml(fran.clinicName || fran.fullName || 'Lab')}</strong>
+                            <div style="font-size: 11px; color: #64748b;">@${escapeHtml(fran.username || '')}</div>
                         </td>
-                        <td>${b.doctorName || 'Self'}</td>
+                        <td>${escapeHtml(b.doctorName || 'Self')}</td>
                         <td>
                             <span class="sp-wallet-badge ${canDownload ? 'sp-wallet-pos' : 'sp-wallet-neg'}">
                                 <i class="fa-solid ${canDownload ? 'fa-wallet' : 'fa-triangle-exclamation'}"></i>
                                 ₹${walletBal.toFixed(0)}
                             </span>
                         </td>
-                        <td>
-                            <span style="padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #334155;">
-                                ${b.status}
-                            </span>
-                        </td>
-                        <td>
-                            <button type="button" 
-                                class="sp-btn ${canDownload ? 'sp-btn-primary' : 'sp-btn-outline'} sp-btn-sm" 
-                                onclick="salesDownloadReport('${b._id}', '${b.bookingId}', ${canDownload}, '${escapeHtml(fran.clinicName || fran.fullName)}', ${walletBal})">
-                                <i class="fa-solid ${canDownload ? 'fa-file-pdf' : 'fa-lock'}"></i>
-                                ${canDownload ? 'Download Report' : 'Locked (Negative)'}
-                            </button>
-                        </td>
+                        <td>${statusHtml}</td>
+                        <td>${actionHtml}</td>
                     </tr>
                 `;
             }).join('');
@@ -617,17 +914,19 @@
         }
     }
 
-    // Global action: Report Download with Strict Wallet Verification
-    window.salesDownloadReport = async function (mongoId, bookingId, canDownload, franchiseeName, walletBal) {
-        // If frontend already knows wallet is negative, block immediately
-        if (!canDownload || walletBal < 0) {
+    // Global action: Open Download Report Modal with Letterhead Selection
+    window.openLetterheadDownloadModal = async function (mongoId, bookingId, patientName, canDownload, franchiseeName, walletBal) {
+        // Step 1: If frontend already knows wallet is negative, block immediately
+        if (!canDownload || Number(walletBal || 0) < 0) {
             showRestrictedModal(franchiseeName, walletBal);
             return;
         }
 
-        // Real-time backend pre-flight check
+        // Step 2: Real-time backend pre-flight check to ensure wallet hasn't gone negative
         try {
-            const checkRes = await fetch(`${BASE_URL}/api/v1/sales/check-report-eligibility/${mongoId}`);
+            const checkRes = await fetch(`${BASE_URL}/api/v1/sales/check-report-eligibility/${mongoId}`, {
+                credentials: 'include'
+            });
             const checkJson = await checkRes.json();
 
             if (!checkRes.ok || !checkJson.success || !checkJson.data?.allowed) {
@@ -635,14 +934,221 @@
                 showRestrictedModal(franchiseeName, bal);
                 return;
             }
-
-            // Allowed: Open the lab report viewer/download
-            window.open(`/sales/pages/pages/labreport.html?bookingId=${bookingId}`, '_blank');
         } catch (err) {
             console.error("Error checking report eligibility:", err);
-            alert("Could not verify franchisee wallet balance. Please try again.");
+            // Non-blocking fallback if network check fails, proceed with initial verification
+        }
+
+        // Step 3: Remove any existing modals
+        document.querySelectorAll('.sp-modal-backdrop').forEach(el => el.remove());
+
+        // Step 4: Render the Letterhead Selection Modal
+        const modal = document.createElement('div');
+        modal.className = 'sp-modal-backdrop';
+        modal.id = 'spLetterheadModal';
+        modal.innerHTML = `
+            <div class="sp-modal-box" style="max-width: 620px;">
+                <div class="sp-modal-icon-blue">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <h3 style="text-align: center; margin-bottom: 4px; color: #0f172a; font-size: 21px; font-weight: 700;">
+                    Download Lab Report
+                </h3>
+                <p style="text-align: center; color: #64748b; font-size: 13.5px; margin-bottom: 6px;">
+                    Select your preferred report format for direct in-page download
+                </p>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <span style="display: inline-block; background: #f1f5f9; padding: 4px 12px; border-radius: 20px; font-size: 12px; color: #334155;">
+                        <strong style="color: #0f172a;">${escapeHtml(patientName)}</strong> &bull; Booking ID: <code style="color: #2563eb; font-weight: 700;">${escapeHtml(bookingId)}</code>
+                    </span>
+                </div>
+
+                <!-- 2-Option Card Grid: With vs Without Letterhead -->
+                <div class="sp-format-card-grid">
+                    <!-- Option 1: With Letterhead -->
+                    <div class="sp-format-card" onclick="executeSalesPdfDownload('${escapeHtml(bookingId)}', '${escapeHtml(patientName)}', 'with', this)">
+                        <span class="sp-format-card-badge badge-with">Standard</span>
+                        <div>
+                            <div class="sp-format-icon sp-format-icon-blue">
+                                <i class="fa-solid fa-file-medical"></i>
+                            </div>
+                            <div class="sp-format-title">
+                                With Letterhead
+                            </div>
+                            <div style="font-size: 11px; font-weight: 600; color: #2563eb; margin-bottom: 6px;">
+                                (लेटरहेड व लोगो सहित)
+                            </div>
+                            <div class="sp-format-subtext">
+                                Full digital report complete with lab logo, header, address, test results &amp; sign-off stamps. Best for direct patient delivery.
+                            </div>
+                        </div>
+                        <button type="button" class="sp-format-action-btn sp-btn-with">
+                            <i class="fa-solid fa-download"></i> Download With Letterhead
+                        </button>
+                    </div>
+
+                    <!-- Option 2: Without Letterhead -->
+                    <div class="sp-format-card format-without" onclick="executeSalesPdfDownload('${escapeHtml(bookingId)}', '${escapeHtml(patientName)}', 'without', this)">
+                        <span class="sp-format-card-badge badge-without">Stationery</span>
+                        <div>
+                            <div class="sp-format-icon sp-format-icon-teal">
+                                <i class="fa-solid fa-print"></i>
+                            </div>
+                            <div class="sp-format-title">
+                                Without Letterhead
+                            </div>
+                            <div style="font-size: 11px; font-weight: 600; color: #0d9488; margin-bottom: 6px;">
+                                (बिना लेटरहेड / सादा)
+                            </div>
+                            <div class="sp-format-subtext">
+                                Leaves official top &amp; bottom margins blank. Formatted specifically for printing on pre-printed lab letterhead stationery.
+                            </div>
+                        </div>
+                        <button type="button" class="sp-format-action-btn sp-btn-without">
+                            <i class="fa-solid fa-print"></i> Download Without Letterhead
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Loading State -->
+                <div id="spDlLoadingState" style="display: none; margin-top: 18px; padding: 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; text-align: center; color: #1e40af; font-size: 13px; font-weight: 600;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; margin-right: 8px;"></i>
+                    <span>Preparing report and generating official PDF... Please wait a moment.</span>
+                </div>
+
+                <!-- Footer Cancel Button -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 18px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" class="sp-btn sp-btn-outline" onclick="this.closest('.sp-modal-backdrop').remove()">
+                        <i class="fa-solid fa-xmark"></i> Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+    };
+
+    // Global action: Execute Direct In-Page PDF Download (With or Without Letterhead)
+    window.executeSalesPdfDownload = async function (bookingId, patientName, format, clickedCard) {
+        const loadingBox = document.getElementById('spDlLoadingState');
+        const modalBox = document.getElementById('spLetterheadModal');
+        
+        // Show loading state and prevent duplicate clicks
+        if (loadingBox) loadingBox.style.display = 'block';
+        if (modalBox) {
+            const btns = modalBox.querySelectorAll('button, .sp-format-card');
+            btns.forEach(b => {
+                b.style.pointerEvents = 'none';
+                b.style.opacity = '0.7';
+            });
+        }
+
+        try {
+            // 1. Fetch Report Data to resolve MongoDB report ID
+            const reportDataRes = await fetch(`${BASE_URL}/api/v1/user/ReportData`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ value1: bookingId, bookingId: bookingId })
+            });
+
+            if (!reportDataRes.ok) {
+                const errJson = await reportDataRes.json().catch(() => null);
+                throw new Error(errJson?.message || 'Could not fetch report details for this booking.');
+            }
+
+            const reportDoc = await reportDataRes.json();
+            const reportId = reportDoc?._id || reportDoc?.data?._id;
+
+            if (!reportId) {
+                throw new Error('Report document not found. The report may still be in process.');
+            }
+
+            // 2. Request PDF Generation from get-pdf endpoint
+            // checkBox: false = WITH letterhead, checkBox: true = WITHOUT letterhead
+            const isWithout = (format === 'without');
+            const pdfRes = await fetch(`${BASE_URL}/api/v1/user/get-pdf`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    value1: reportId,
+                    bookingId: bookingId,
+                    checkBox: isWithout,
+                    auditAction: 'DOWNLOAD'
+                })
+            });
+
+            if (!pdfRes.ok) {
+                const errJson = await pdfRes.json().catch(() => null);
+                if (errJson?.restricted) {
+                    if (modalBox) modalBox.remove();
+                    showRestrictedModal('Franchisee', errJson.walletBalance);
+                    return;
+                }
+                throw new Error(errJson?.message || 'PDF generation failed on server.');
+            }
+
+            // 3. Receive PDF Blob and trigger browser direct download
+            const blob = await pdfRes.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+
+            const safePatientName = String(patientName || 'Report')
+                .trim()
+                .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+                .replace(/\s+/g, '_');
+            const formatSuffix = isWithout ? '_WithoutLetterhead' : '_WithLetterhead';
+            a.download = `${bookingId}_${safePatientName}${formatSuffix}.pdf`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+            // 4. Close modal and show success toast
+            if (modalBox) modalBox.remove();
+            showSalesToast(`✓ ${format === 'without' ? 'Without Letterhead' : 'With Letterhead'} report downloaded for ${patientName}!`, 'success');
+
+        } catch (err) {
+            console.error("Sales report download error:", err);
+            alert(`Download Failed: ${err.message || 'Unknown error occurred while generating PDF.'}`);
+            // Restore modal buttons
+            if (loadingBox) loadingBox.style.display = 'none';
+            if (modalBox) {
+                const btns = modalBox.querySelectorAll('button, .sp-format-card');
+                btns.forEach(b => {
+                    b.style.pointerEvents = 'auto';
+                    b.style.opacity = '1';
+                });
+            }
         }
     };
+
+    // Backward compatibility wrapper in case old buttons reference salesDownloadReport
+    window.salesDownloadReport = function (mongoId, bookingId, canDownload, franchiseeName, walletBal) {
+        window.openLetterheadDownloadModal(mongoId, bookingId, 'Patient', canDownload, franchiseeName, walletBal);
+    };
+
+    // Notification toast helper
+    function showSalesToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = 'sp-toast-notification';
+        toast.style.borderColor = (type === 'success') ? '#10b981' : '#3b82f6';
+        toast.innerHTML = `
+            <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}" style="color: ${type === 'success' ? '#34d399' : '#60a5fa'}; font-size: 18px;"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    }
 
     function showRestrictedModal(franchiseeName, walletBal) {
         const negativeAmount = Math.abs(Number(walletBal || 0)).toFixed(2);

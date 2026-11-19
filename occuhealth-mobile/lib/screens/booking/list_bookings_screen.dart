@@ -6,6 +6,7 @@ import '../../models/booking_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/report_download_sheet.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/summary_card.dart';
 import '../reports/enter_result_screen.dart';
@@ -75,7 +76,7 @@ OccuHealth Diagnostic Network
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('List Bookings (लिस्ट बुकिंग)'),
+            const Text('List Bookings'),
             Text(
               'Page ${bookingProv.page} of ${bookingProv.totalPages} • ${bookingProv.total} Total',
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textMuted),
@@ -503,12 +504,74 @@ OccuHealth Diagnostic Network
           const Divider(height: 1),
           const SizedBox(height: 10),
 
-          // Action Buttons:
-          // For Franchise: Share / Download Receipt
-          // For Admin: Share Receipt + [Enter Result] (Strictly hidden for Franchise!)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // Status-aware action buttons:
+          // - Download Report PDF is enabled ONLY for completed / partially completed / signed-off reports.
+          // - Franchise roles only see Download Report (when ready) + Receipt Slip (strict RBAC).
+          // - Admin additionally sees Enter Result (and Report Format only after sign-off).
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              if (b.isReportDownloadable)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    ReportDownloadSheet.show(
+                      context,
+                      bookingId: b.bookingId,
+                      patientName: b.patientName,
+                    );
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Report PDF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                )
+              else
+                // Muted indicator when report is still pending / not signed off yet
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Report is not ready for download yet. It will be available once completed and signed off.',
+                        ),
+                        backgroundColor: AppColors.slateDark,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.hourglass_empty_rounded, size: 14, color: AppColors.textMuted),
+                        SizedBox(width: 5),
+                        Text(
+                          'Report Not Ready',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -517,14 +580,14 @@ OccuHealth Diagnostic Network
                 ),
                 onPressed: () => _shareBookingReceipt(b),
                 icon: const Icon(Icons.share_outlined, size: 16),
-                label: const Text('Receipt Slip (रसीद)', style: TextStyle(fontSize: 12)),
+                label: const Text('Receipt Slip', style: TextStyle(fontSize: 12)),
               ),
-              if (isAdmin) ...[
-                const SizedBox(width: 8),
+              if (isAdmin)
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
@@ -538,6 +601,7 @@ OccuHealth Diagnostic Network
                           gender: b.formattedGender,
                           phone: b.patientPhone,
                           status: b.status,
+                          isSignedOff: b.isSignedOff,
                         ),
                       ),
                     );
@@ -545,7 +609,6 @@ OccuHealth Diagnostic Network
                   icon: const Icon(Icons.edit_note_rounded, size: 16, color: Colors.white),
                   label: const Text('Enter Result', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
-              ],
             ],
           ),
         ],

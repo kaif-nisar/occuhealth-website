@@ -85,6 +85,10 @@ class BookingModel {
     this.rawJson,
   });
 
+  /// Convenience alias for [year] so callers referencing age always get the raw age value.
+  String get age => year;
+
+  /// Formats the patient's age with a unit (defaults to 'Yrs' for plain numeric strings).
   String get formattedAge {
     if (year.isEmpty) return '—';
     final str = year.trim();
@@ -94,6 +98,7 @@ class BookingModel {
     return str;
   }
 
+  /// Normalizes gender codes into a clean display label.
   String get formattedGender {
     final g = gender.trim().toLowerCase();
     if (g == 'male' || g == 'm') return 'Male';
@@ -102,6 +107,7 @@ class BookingModel {
     return gender.isNotEmpty ? gender : 'N/A';
   }
 
+  /// Returns a human-readable status label for UI badges.
   String get statusDisplay {
     final s = status.trim().toLowerCase();
     if (s == 'booked') return 'Booked';
@@ -112,6 +118,22 @@ class BookingModel {
     if (s.contains('clinical')) return 'Clinical';
     if (s.contains('cancel')) return 'Cancelled';
     return status.isNotEmpty ? status : 'Pending';
+  }
+
+  /// Returns true only when the report has been signed off or marked Completed / Partially Completed.
+  /// Pending, Booked, Hold, Clinical, or Cancelled bookings must NOT enable PDF download.
+  bool get isReportDownloadable {
+    final s = status.trim().toLowerCase();
+    if (s.contains('cancel')) return false;
+    return isSignedOff || s == 'completed' || s.contains('partial');
+  }
+
+  /// Returns true only after the Admin has signed off the report on the Report Format page
+  /// (or the booking has reached Completed / Partially Completed status via sign-off).
+  bool get canShowReportFormat {
+    final s = status.trim().toLowerCase();
+    if (s.contains('cancel')) return false;
+    return isSignedOff || s == 'completed' || s.contains('partial');
   }
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -176,7 +198,11 @@ class BookingModel {
       barcodeList: barcodes,
       createdByUser: createdUser,
       createdByRole: createdRole,
-      isSignedOff: json['signOffAudit']?['isSignedOff'] == true || json['isSignedOff'] == true,
+      // Detect sign-off across all backend response formats (audit object or direct boolean flags)
+      isSignedOff: json['signOffAudit']?['isSignedOff'] == true ||
+          json['isSignedOff'] == true ||
+          json['signoff'] == true ||
+          json['isreportready'] == true,
       fileUrl: json['file']?.toString() ?? json['fileUrl']?.toString(),
       clinicalHistory: json['clinicalHistory']?.toString(),
       discountAmount: double.tryParse(discountVal.toString()) ?? 0.0,

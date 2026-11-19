@@ -37,6 +37,13 @@ class UserModel {
   bool get canEnterResult => isAdmin;
   bool get canAccessReportFormat => isAdmin;
 
+  // Assigned website report format page (e.g. reportFormat, reportFormat1, reportFormat3, reportFormat4)
+  String get assignedReportFormat {
+    final fmt = (pdfFormat ?? '').trim();
+    if (fmt.isNotEmpty) return fmt;
+    return 'reportFormat';
+  }
+
   String get roleDisplay {
     switch (role.toLowerCase()) {
       case 'admin':
@@ -58,18 +65,37 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json, {String? token}) {
     final userData = json['userData'] ?? json['user'] ?? json;
+    final roleStr = userData['role']?.toString() ?? 'franchisee';
+    final createdByMap = userData['createdBy'] is Map ? userData['createdBy'] as Map : null;
+    final tenantMap = userData['tenantId'] is Map<String, dynamic>
+        ? userData['tenantId'] as Map<String, dynamic>
+        : (userData['tenant'] is Map<String, dynamic> ? userData['tenant'] as Map<String, dynamic> : null);
+
+    String? resolvedPdfFormat;
+    if (roleStr.toLowerCase() == 'staff') {
+      resolvedPdfFormat = createdByMap?['pdfFormat']?.toString() ?? userData['pdfFormat']?.toString();
+    } else {
+      resolvedPdfFormat = userData['pdfFormat']?.toString() ?? createdByMap?['pdfFormat']?.toString();
+    }
+    if ((resolvedPdfFormat == null || resolvedPdfFormat.trim().isEmpty) && tenantMap != null) {
+      final adminDetails = tenantMap['adminDetails'];
+      if (adminDetails is Map && adminDetails['userId'] is Map) {
+        resolvedPdfFormat = adminDetails['userId']['pdfFormat']?.toString();
+      }
+    }
+
     return UserModel(
       id: userData['_id']?.toString() ?? userData['id']?.toString() ?? '',
       username: userData['username']?.toString() ?? '',
       fullName: userData['fullName']?.toString() ?? userData['name']?.toString() ?? userData['username']?.toString() ?? '',
       email: userData['email']?.toString() ?? '',
-      role: userData['role']?.toString() ?? 'franchisee',
+      role: roleStr,
       phone: userData['phoneNumber']?.toString() ?? userData['phone']?.toString(),
       labName: userData['LabName']?.toString() ?? userData['labName']?.toString(),
       logoUrl: userData['logo']?.toString(),
-      pdfFormat: userData['pdfFormat']?.toString(),
+      pdfFormat: resolvedPdfFormat,
       token: token ?? json['accessToken']?.toString() ?? json['token']?.toString(),
-      tenant: userData['tenantId'] is Map<String, dynamic> ? userData['tenantId'] : null,
+      tenant: tenantMap,
     );
   }
 

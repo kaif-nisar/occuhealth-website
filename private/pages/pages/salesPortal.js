@@ -18,6 +18,7 @@ function initEmbeddedSalesPortal() {
         kpiAchieved: document.getElementById('adminKpiAchieved'),
         kpiRevenue: document.getElementById('adminKpiRevenue'),
         kpiAvgRev: document.getElementById('adminKpiAvgRev'),
+        kpiBookings: document.getElementById('adminKpiBookings'),
         kpiSamples: document.getElementById('adminKpiSamples'),
         kpiAvgSamples: document.getElementById('adminKpiAvgSamples'),
         kpiTests: document.getElementById('adminKpiTests'),
@@ -103,6 +104,7 @@ function initEmbeddedSalesPortal() {
                 if (el.kpiAchieved) el.kpiAchieved.textContent = `Achieved: ${formatINR(kpis.totalRevenue)} (${kpis.achievementPct || 0}%)`;
                 if (el.kpiRevenue) el.kpiRevenue.textContent = formatINR(kpis.totalRevenue);
                 if (el.kpiAvgRev) el.kpiAvgRev.textContent = `Daily Avg: ${formatINR(kpis.avgRevenuePerDay)} / day`;
+                if (el.kpiBookings) el.kpiBookings.textContent = Number(kpis.totalBookings || kpis.totalSamples || 0).toLocaleString();
                 if (el.kpiSamples) el.kpiSamples.textContent = Number(kpis.totalSamples || 0).toLocaleString();
                 if (el.kpiAvgSamples) el.kpiAvgSamples.textContent = `Daily Avg: ${kpis.avgSamplesPerDay || 0} / day`;
                 if (el.kpiTests) el.kpiTests.textContent = Number(kpis.totalTests || 0).toLocaleString();

@@ -123,27 +123,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Icon
+                  // Official OccuHealth brand logo matching the website portal
                   Center(
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.border),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(
+                      child: Image.asset(
+                        'assets/logo.png',
+                        height: 58,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
                           Icons.local_hospital_rounded,
-                          size: 40,
-                          color: Colors.white,
+                          size: 44,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -235,9 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Login Button
+                  // Submit credentials button
                   CustomButton(
-                    text: 'Sign In (लॉग इन करें)',
+                    text: 'Sign In',
                     variant: ButtonVariant.primary,
                     height: 52,
                     isLoading: auth.isLoading,
@@ -246,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // Help Footer
-                  Center(
+                  const Center(
                     child: Text(
                       'OccuHealth Diagnostics System • Secure Auth v2.0',
                       style: TextStyle(

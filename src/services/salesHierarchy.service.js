@@ -9,7 +9,7 @@ import { User } from "../models/user.model.js";
  */
 export async function resolveSalesHierarchy(userOrId, tenantId = null) {
     let user;
-    if (userOrId && typeof userOrId === 'object' && userOrId._id) {
+    if (userOrId && typeof userOrId === 'object' && (userOrId.username || userOrId.role) && userOrId._id) {
         user = userOrId;
     } else if (mongoose.Types.ObjectId.isValid(userOrId)) {
         user = await User.findById(userOrId).lean();
@@ -85,7 +85,7 @@ export async function resolveSalesHierarchy(userOrId, tenantId = null) {
         const createdFranchisees = await User.find({
             tenantId: tid,
             createdBy: user._id,
-            role: { $in: ['franchisee', 'subFranchisee'] }
+            role: { $in: ['franchisee', 'subFranchisee', 'superFranchisee'] }
         }).select('_id').lean();
 
         const allFranchiseeIdStrings = Array.from(new Set([
@@ -100,7 +100,7 @@ export async function resolveSalesHierarchy(userOrId, tenantId = null) {
         const franchisees = await User.find({
             _id: { $in: franchiseeObjectIds }
         })
-        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state')
+        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state monthlySalesTarget')
         .sort({ fullName: 1 })
         .lean();
 
@@ -177,7 +177,7 @@ export async function resolveSalesHierarchy(userOrId, tenantId = null) {
         const franchisees = await User.find({
             _id: { $in: franchiseeObjectIds }
         })
-        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state')
+        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state monthlySalesTarget')
         .sort({ fullName: 1 })
         .lean();
 
@@ -278,7 +278,7 @@ export async function resolveSalesHierarchy(userOrId, tenantId = null) {
         const franchisees = await User.find({
             _id: { $in: allFranchiseeIds.map(id => new mongoose.Types.ObjectId(id)) }
         })
-        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state')
+        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state monthlySalesTarget')
         .sort({ fullName: 1 })
         .lean();
 
@@ -413,7 +413,7 @@ export async function resolveSalesHierarchy(userOrId, tenantId = null) {
         const franchisees = await User.find({
             _id: { $in: allFranchiseeIds.map(id => new mongoose.Types.ObjectId(id)) }
         })
-        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state')
+        .select('_id fullName username email phoneNo clinicName bookingWallet isActive role address city state monthlySalesTarget')
         .sort({ fullName: 1 })
         .lean();
 

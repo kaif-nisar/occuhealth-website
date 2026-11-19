@@ -113,9 +113,12 @@
                                 <i class="fa-regular fa-calendar"></i> Quick Period:
                             </label>
                             <div class="sp-pill-buttons" role="group">
-                                <button type="button" class="sp-pill-btn sp-period-btn" data-period="today">1 Day</button>
+                                <button type="button" class="sp-pill-btn sp-period-btn" data-period="today">Today</button>
                                 <button type="button" class="sp-pill-btn sp-period-btn" data-period="week">1 Week</button>
                                 <button type="button" class="sp-pill-btn sp-period-btn active" data-period="month">1 Month</button>
+                                <button type="button" class="sp-pill-btn sp-period-btn" data-period="all" title="View all-time total data">
+                                    <i class="fa-solid fa-infinity"></i> All Time (Total)
+                                </button>
                             </div>
                         </div>
 
@@ -134,13 +137,31 @@
                     </div>
                 </div>
 
-                <!-- 5 Executive KPI Cards -->
+                <!-- Active Scope Drill-down Indicator Banner -->
+                <div id="spActiveScopeBanner" class="sp-scope-banner" style="display: none;">
+                    <div class="sp-scope-banner-content">
+                        <i class="fa-solid fa-filter-circle-dollar" style="font-size: 24px; color: #2563eb;"></i>
+                        <div>
+                            <div style="font-weight: 700; font-size: 15px; color: #1e3a8a;" id="spScopeBannerTitle">
+                                Filtered Unit: TH Name
+                            </div>
+                            <div style="font-size: 12px; color: #3b82f6;" id="spScopeBannerSub">
+                                Showing dedicated data for all assigned franchise labs
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="sp-btn sp-btn-outline sp-btn-sm" id="spClearScopeBtn" style="background:#fff; color:#2563eb; border-color:#93c5fd;">
+                        <i class="fa-solid fa-arrow-left"></i> Back to All Managed Units
+                    </button>
+                </div>
+
+                <!-- 6 Executive KPI Cards -->
                 <div class="sp-kpi-grid">
                     <!-- 1. Target vs Achieved -->
                     <div class="sp-kpi-card">
                         <div class="sp-kpi-top">
                             <div>
-                                <span class="sp-kpi-title">Monthly Quota / Target</span>
+                                <span class="sp-kpi-title" id="kpiTargetCardLabel">Monthly Quota / Target</span>
                                 <div class="sp-kpi-value" id="kpiTargetAmount">₹0</div>
                             </div>
                             <div class="sp-kpi-icon sp-icon-target">
@@ -150,15 +171,15 @@
                         <div class="sp-progress-wrap">
                             <div class="sp-progress-meta">
                                 <span id="kpiTargetAchieved">Achieved: ₹0</span>
-                                <span id="kpiTargetPct">0%</span>
+                                <span id="kpiTargetPct" style="font-weight: 700;">0%</span>
                             </div>
                             <div class="sp-progress-bar">
                                 <div class="sp-progress-fill" id="kpiTargetFill" style="width: 0%;"></div>
                             </div>
                         </div>
-                        <div style="font-size: 12px; color: #64748b; display: flex; justify-content: space-between;">
+                        <div style="font-size: 12px; color: #64748b; display: flex; justify-content: space-between; margin-top: 4px;">
                             <span id="kpiTargetDeficit">Remaining: ₹0</span>
-                            <span style="color: #2563eb; font-weight: 600;">Monthly Target</span>
+                            <span style="color: #2563eb; font-weight: 600;" id="kpiTargetSubtext">Sales Target</span>
                         </div>
                     </div>
 
@@ -178,11 +199,31 @@
                             <strong id="kpiAvgRevenuePerDay">₹0 / day</strong>
                         </div>
                         <div style="font-size: 12px; color: #64748b; margin-top: 6px;" id="kpiAvgTicket">
-                            Avg / Sample: ₹0
+                            Avg / Booking: ₹0
                         </div>
                     </div>
 
-                    <!-- 3. Patient Samples -->
+                    <!-- 3. Total Bookings -->
+                    <div class="sp-kpi-card">
+                        <div class="sp-kpi-top">
+                            <div>
+                                <span class="sp-kpi-title">Total Bookings Count</span>
+                                <div class="sp-kpi-value" id="kpiTotalBookings" style="color: #2563eb;">0</div>
+                            </div>
+                            <div class="sp-kpi-icon sp-icon-bookings">
+                                <i class="fa-solid fa-receipt"></i>
+                            </div>
+                        </div>
+                        <div class="sp-avg-strip">
+                            <span><i class="fa-solid fa-hospital-user"></i> Patient Registrations:</span>
+                            <strong id="kpiBookingsSubtext">Live Bookings</strong>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            Across all assigned franchise labs
+                        </div>
+                    </div>
+
+                    <!-- 4. Patient Samples -->
                     <div class="sp-kpi-card">
                         <div class="sp-kpi-top">
                             <div>
@@ -198,11 +239,11 @@
                             <strong id="kpiAvgSamplesPerDay">0 / day</strong>
                         </div>
                         <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
-                            Total Registered Bookings
+                            Sample vials received &amp; logged
                         </div>
                     </div>
 
-                    <!-- 4. Number of Tests -->
+                    <!-- 5. Number of Tests -->
                     <div class="sp-kpi-card">
                         <div class="sp-kpi-top">
                             <div>
@@ -218,11 +259,11 @@
                             <strong id="kpiAvgTestsPerDay">0 / day</strong>
                         </div>
                         <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
-                            Lab Investigations Performed
+                            Pathology &amp; biochemistry investigations
                         </div>
                     </div>
 
-                    <!-- 5. Total Tubes Booked -->
+                    <!-- 6. Total Tubes Booked -->
                     <div class="sp-kpi-card">
                         <div class="sp-kpi-top">
                             <div>
@@ -243,25 +284,49 @@
                     </div>
                 </div>
 
-                <!-- Graphical Visualizations (Timeline & Tube Types) -->
-                <div class="sp-charts-grid">
+                <!-- Graphical Visualizations: Target Achievement, Timeline Trend & Tube Types -->
+                <div class="sp-charts-grid-3">
+                    <!-- Chart 1: Target vs Achievement Comparison -->
+                    <div class="sp-chart-card">
+                        <div class="sp-chart-header">
+                            <h3 class="sp-chart-title" id="spTargetChartTitle">
+                                <i class="fa-solid fa-bullseye" style="color: #2563eb;"></i> Target vs. Achieved Sales Comparison
+                            </h3>
+                            <span id="spTargetChartSubtext" style="font-size: 12px; color: #64748b; font-weight: 500;">
+                                Team Quota Tracking
+                            </span>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="spTargetChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Revenue & Sample Timeline with Target Benchmark Line -->
                     <div class="sp-chart-card">
                         <div class="sp-chart-header">
                             <h3 class="sp-chart-title">
-                                <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> Revenue &amp; Sample Timeline Trend
+                                <i class="fa-solid fa-chart-line" style="color: #059669;"></i> Sales Timeline &amp; Target Benchmark
                             </h3>
+                            <span style="font-size: 12px; color: #64748b; font-weight: 500;">
+                                Daily vs Benchmark Line
+                            </span>
                         </div>
-                        <div style="height: 280px; position: relative;">
+                        <div style="height: 300px; position: relative;">
                             <canvas id="spTimelineChart"></canvas>
                         </div>
                     </div>
-                    <div class="sp-chart-card">
+
+                    <!-- Chart 3: Tube Types Breakdown -->
+                    <div class="sp-chart-card sp-chart-full-width">
                         <div class="sp-chart-header">
                             <h3 class="sp-chart-title">
-                                <i class="fa-solid fa-vials" style="color: #d97706;"></i> Tube Types Breakdown (Vacutainers)
+                                <i class="fa-solid fa-vials" style="color: #d97706;"></i> Vacutainer &amp; Tube Volume Distribution
                             </h3>
+                            <span style="font-size: 12px; color: #64748b; font-weight: 500;">
+                                EDTA, Serum, Fluoride, Citrate &amp; Plain
+                            </span>
                         </div>
-                        <div style="height: 280px; position: relative;">
+                        <div style="height: 240px; position: relative;">
                             <canvas id="spTubeChart"></canvas>
                         </div>
                     </div>
@@ -376,8 +441,9 @@
                                 <i class="fa-solid fa-file-medical" style="color: #2563eb;"></i> Patient Lab Reports
                             </h3>
                             <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
-                                Access and download lab reports for your tagged franchisees. 
-                                <strong style="color: #e11d48;">Note:</strong> Reports can only be downloaded if the franchisee account balance is positive.
+                                Access and download signed-off lab reports for your tagged network. 
+                                <strong style="color: #2563eb;">Features:</strong> Direct PDF download with/without letterhead. 
+                                <strong style="color: #e11d48;">Policy:</strong> Download unlocks only after pathologist sign-off and with positive franchisee wallet balance.
                             </p>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">

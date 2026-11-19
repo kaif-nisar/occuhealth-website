@@ -61,12 +61,12 @@ class BookingSuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 18),
 
-            // Title
+            // Success Confirmation Heading
             const Text(
-              'बुकिंग सफलतापूर्वक दर्ज हो गई!',
+              'Booking Confirmed!',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
                 letterSpacing: -0.3,
@@ -74,7 +74,7 @@ class BookingSuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Booking Placed Successfully',
+              'Patient booking has been submitted successfully.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -84,7 +84,7 @@ class BookingSuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 18),
 
-            // Summary Info Card
+            // Booking Summary Details Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -107,10 +107,10 @@ class BookingSuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // PROMINENT ACTION BUTTON 1: ENTER RESULT (Admin Only)
+            // Action 1: Enter Result (Strictly Admin Only)
             if (isAdmin) ...[
               CustomButton(
-                text: 'Enter Result (रिजल्ट डालें)',
+                text: 'Enter Result',
                 variant: ButtonVariant.primary,
                 height: 52,
                 icon: const Icon(Icons.edit_document, size: 20, color: Colors.white),
@@ -122,9 +122,9 @@ class BookingSuccessDialog extends StatelessWidget {
               const SizedBox(height: 12),
             ],
 
-            // PROMINENT ACTION BUTTON 2: LIST BOOKING (For Everyone)
+            // Action 2: View List Bookings (Visible to all roles)
             CustomButton(
-              text: 'List Booking (बुकिंग लिस्ट देखें)',
+              text: 'List Bookings',
               variant: isAdmin ? ButtonVariant.secondary : ButtonVariant.primary,
               height: 52,
               icon: Icon(
@@ -139,14 +139,14 @@ class BookingSuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // ACTION BUTTON 3: Book Another
+            // Action 3: Register another patient
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 onNewBooking();
               },
               child: const Text(
-                '+ Book Another Patient (नया मरीज जोड़ें)',
+                '+ Book Another Patient',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

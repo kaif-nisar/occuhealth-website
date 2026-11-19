@@ -39,10 +39,12 @@ class ApiClient {
     return headers;
   }
 
+  /// Formats low-level HTTP / browser fetch exceptions into actionable English messages.
   static String _formatErrorMessage(Object e) {
     final errStr = e.toString();
     if (errStr.contains('Failed to fetch') || errStr.contains('XMLHttpRequest') || errStr.contains('ClientException')) {
-      return 'ब्राउज़र CORS ब्लॉक (Browser CORS Restriction): Google Chrome लाइव सर्वर (occuhealth.in) की क्रॉस-ऑरिजिन रिक्वेस्ट को ब्लॉक कर रहा है।\nहल: टर्मिनल में यह चलाएं:\nflutter run -d chrome --web-browser-flag "--disable-web-security"\nया Windows ऐप के रूप में चलाएं:\nflutter run -d windows';
+      return 'Browser CORS Restriction: The browser blocked the cross-origin request to the server.\n'
+          'Please launch the app using "node mobile_preview.js" or run as a native mobile/desktop build.';
     }
     return 'Unexpected error: $errStr';
   }

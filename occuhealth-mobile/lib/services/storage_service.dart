@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
@@ -41,13 +42,32 @@ class StorageService {
     await prefs.setString(_serverUrlKey, cleanUrl);
   }
 
+  static String get effectiveDefaultBaseUrl {
+    if (kIsWeb) {
+      final host = Uri.base.host;
+      final isLocalHost = host == 'localhost' ||
+          host == '127.0.0.1' ||
+          host.startsWith('192.168.') ||
+          host.startsWith('10.') ||
+          host.startsWith('172.');
+      if (isLocalHost && Uri.base.port == 8080) {
+        return 'http://$host:3005';
+      }
+    }
+    return defaultBaseUrl;
+  }
+
   static Future<String> getServerUrl() async {
     final prefs = await SharedPreferences.getInstance();
     final url = prefs.getString(_serverUrlKey);
     if (url != null && url.isNotEmpty) {
-      return url.trim().replaceAll(RegExp(r'/+$'), '');
+      final clean = url.trim().replaceAll(RegExp(r'/+$'), '');
+      if (clean == defaultBaseUrl) {
+        return effectiveDefaultBaseUrl;
+      }
+      return clean;
     }
-    return defaultBaseUrl;
+    return effectiveDefaultBaseUrl;
   }
 
   static Future<void> clearAll() async {

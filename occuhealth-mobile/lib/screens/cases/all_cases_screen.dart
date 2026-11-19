@@ -4,6 +4,7 @@ import '../../models/booking_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/report_download_sheet.dart';
 import '../../widgets/status_badge.dart';
 import '../reports/enter_result_screen.dart';
 import '../reports/report_format_screen.dart';
@@ -208,40 +209,106 @@ class _AllCasesScreenState extends State<AllCasesScreen> {
 
           const Divider(height: 16),
 
-          // Action Buttons: Enter Result & Report Format
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // Status-aware Admin action buttons:
+          // - Download PDF is enabled ONLY when the report is signed off / completed / partially completed.
+          // - Report Format is displayed ONLY after the admin has signed off the report at least once.
+          // - Enter Result is always visible as the primary first step in the lab workflow.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // Report Format Button
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  side: const BorderSide(color: AppColors.border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ReportFormatScreen(
-                        bookingId: b.bookingId,
-                        patientName: b.patientName,
-                        doctorName: b.doctorName,
-                        date: b.date,
-                        isSignedOff: b.isSignedOff,
+              // Download PDF Button (active only when report is ready)
+              if (b.isReportDownloadable)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    ReportDownloadSheet.show(
+                      context,
+                      bookingId: b.bookingId,
+                      patientName: b.patientName,
+                    );
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Download PDF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                )
+              else
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Report is not ready yet. Please enter results and sign off the report first.',
+                        ),
+                        backgroundColor: AppColors.slateDark,
+                        duration: Duration(seconds: 3),
                       ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: AppColors.primary),
-                label: const Text('Report Format (फॉर्मेट)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 8),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.hourglass_empty_rounded, size: 14, color: AppColors.textMuted),
+                        SizedBox(width: 5),
+                        Text(
+                          'Report Not Ready',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-              // Enter Result Button
+              // Report Format Button (shown ONLY after the report has been signed off)
+              if (b.canShowReportFormat)
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    side: const BorderSide(color: AppColors.border),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ReportFormatScreen(
+                          bookingId: b.bookingId,
+                          patientName: b.patientName,
+                          doctorName: b.doctorName,
+                          date: b.date,
+                          isSignedOff: b.isSignedOff,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 16, color: AppColors.primary),
+                  label: const Text('Report Format', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+
+              // Enter Result Button (opens exact website labreport.html page)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
@@ -255,12 +322,13 @@ class _AllCasesScreenState extends State<AllCasesScreen> {
                         gender: b.formattedGender,
                         phone: b.patientPhone,
                         status: b.status,
+                        isSignedOff: b.isSignedOff,
                       ),
                     ),
                   );
                 },
                 icon: const Icon(Icons.edit_note_rounded, size: 16, color: Colors.white),
-                label: const Text('Enter Result (रिजल्ट)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                label: const Text('Enter Result', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
