@@ -170,15 +170,54 @@ const SaveReportController = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, and fill all test values");
     }
 
-    const existingBooking = await newBooking.findOne({
-        $or: [
-            { bookingId: resolvedBookingId },
-            ...(mongoose.Types.ObjectId.isValid(resolvedBookingId) ? [{ _id: resolvedBookingId }] : [])
-        ],
-        tenantId
-    }).select("status isreportready tableData testIds bookingId");
+    // 1. Resolve booking (tenant-scoped first, with global fallback)
+    let existingBooking = null;
+    if (tenantId) {
+        existingBooking = await newBooking.findOne({
+            $or: [
+                { bookingId: resolvedBookingId },
+                ...(mongoose.Types.ObjectId.isValid(resolvedBookingId) ? [{ _id: resolvedBookingId }] : [])
+            ],
+            tenantId
+        }).select("status isreportready tableData testIds bookingId tenantId");
+    }
+    if (!existingBooking) {
+        existingBooking = await newBooking.findOne({
+            $or: [
+                { bookingId: resolvedBookingId },
+                ...(mongoose.Types.ObjectId.isValid(resolvedBookingId) ? [{ _id: resolvedBookingId }] : [])
+            ]
+        }).select("status isreportready tableData testIds bookingId tenantId");
+    }
 
     const actualBookingId = existingBooking?.bookingId || resolvedBookingId;
+
+    // 2. Resolve existing report in reports collection
+    let existingReport = null;
+    if (tenantId) {
+        existingReport = await reports.findOne({
+            bookingId: actualBookingId,
+            tenantId: tenantId
+        });
+    }
+    if (!existingReport) {
+        existingReport = await reports.findOne({
+            bookingId: actualBookingId
+        });
+    }
+    if (!existingReport && mongoose.Types.ObjectId.isValid(resolvedBookingId)) {
+        existingReport = await reports.findOne({
+            _id: resolvedBookingId
+        });
+    }
+    if (!existingReport && booking?._id && mongoose.Types.ObjectId.isValid(booking._id)) {
+        existingReport = await reports.findOne({
+            _id: booking._id
+        });
+    }
+
+    const effectiveTenantId = existingBooking?.tenantId || existingReport?.tenantId || tenantId;
+
     const currentBookingStatus = existingBooking?.status || booking.status || "pending";
     let bookingStatus = currentBookingStatus;
     const sampleDetails = buildUniqueSampleDetails(reportData);
@@ -243,7 +282,9 @@ const SaveReportController = asyncHandler(async (req, res) => {
     delete updateFields.tableData;
 
     delete updateFields.tenantId;
-    updateFields.tenantId = tenantId;
+    if (effectiveTenantId) {
+        updateFields.tenantId = effectiveTenantId;
+    }
 
     if (req.user?._id && !updateFields.createdBy) {
         updateFields.createdBy = req.user._id;
@@ -259,17 +300,25 @@ const SaveReportController = asyncHandler(async (req, res) => {
         updateFields.patientPhone = "";
     }
 
-    const savedREport = await reports.findOneAndUpdate(
-        {
-            bookingId: actualBookingId,
-            tenantId: tenantId,
-        },
-        updateFields,
-        {
-            upsert: true,
-            new: true
-        }
-    );
+    let savedREport;
+    if (existingReport?._id) {
+        // Direct update by _id prevents any E11000 duplicate key error on bookingId_1
+        savedREport = await reports.findByIdAndUpdate(
+            existingReport._id,
+            updateFields,
+            { new: true }
+        );
+    } else {
+        // For new documents, match by bookingId (not bookingId + tenantId) so upsert aligns with unique index
+        savedREport = await reports.findOneAndUpdate(
+            { bookingId: actualBookingId },
+            updateFields,
+            {
+                upsert: true,
+                new: true
+            }
+        );
+    }
 
     if (!savedREport) {
         throw new ApiError(400, "please try again after sometime, report not saved");
@@ -278,7 +327,11 @@ const SaveReportController = asyncHandler(async (req, res) => {
     if (saveMode === "final") {
         const customizationIdentity = [{ bookingId: actualBookingId }];
         if (savedREport._id) customizationIdentity.push({ reportId: savedREport._id });
-        await customization.deleteMany({ tenantId, $or: customizationIdentity });
+        const customFilter = { $or: customizationIdentity };
+        if (effectiveTenantId) {
+            customFilter.tenantId = effectiveTenantId;
+        }
+        await customization.deleteMany(customFilter);
     }
 
     if (existingBooking) {
@@ -312,7 +365,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
             await newBooking.findOneAndUpdate(
                 {
                     bookingId: actualBookingId,
-                    tenantId
+                    ...(effectiveTenantId ? { tenantId: effectiveTenantId } : {})
                 },
                 bookingUpdateFields,
                 { new: true }
