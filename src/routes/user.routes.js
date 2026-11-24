@@ -8,6 +8,11 @@ import { setTenantContext } from "../../middlewares/tenantContextMiddleware.js";
 import { upload } from "../../middlewares/multer_middlewares.js";
 import { authorizeRoles, checkStaffPermission, adminOnly } from "../../middlewares/role.middleware.js";
 import { User } from "../models/user.model.js";
+import {
+  getNablSettingsController,
+  saveNablSettingsController,
+  uploadNablLogoController
+} from "../controllers/nablSettings.controller.js";
 
 import {
   registerSuperAdmin,
@@ -1068,6 +1073,16 @@ router.route("/adding-pdf-data").post(verifyJWT, savingPdfDatacontroller)
 
 // Save tenant-level PDF defaults
 router.route("/save-pdf-settings").post(verifyJWT, checkStaffPermission("canManageTest"), savePdfSettingsController)
+
+// NABL Accreditation Logo Management Routes
+router.route("/get-nabl-settings").get(verifyJWT, checkStaffPermission("canManageTest"), getNablSettingsController);
+router.route("/save-nabl-settings").post(verifyJWT, checkStaffPermission("canManageTest"), saveNablSettingsController);
+router.route("/upload-nabl-logo").post(
+  verifyJWT,
+  checkStaffPermission("canManageTest"),
+  upload.fields([{ name: "nablLogo", maxCount: 1 }]),
+  uploadNablLogoController
+);
 
 // // getting template
 router.route("/generate-barcode").post(verifyJWT, barcodegeneratecontroller)

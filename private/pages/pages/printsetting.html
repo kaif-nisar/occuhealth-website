@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print Settings</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="nablLogoSettings.css">
     <style>
         :root {
             --ps-primary: #1a73e8;
@@ -1121,6 +1122,151 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- NABL Accreditation Logo Layout Settings Accordion -->
+                <div class="accordion-item" id="nabl-accordion-item">
+                    <button onclick="toggleAccordion(this)" type="button" id="nabl-accordion-btn">
+                        <span><i class="fas fa-certificate" style="color: #2563eb; margin-right: 6px;"></i> NABL Logo Settings</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="accordion-content" id="nabl-accordion-content">
+                        <div class="nabl-settings-card">
+                            <!-- Status Banner -->
+                            <div class="nabl-status-banner no-logo" id="nabl-status-banner">
+                                <div class="nabl-thumbnail-wrapper">
+                                    <img src="" alt="NABL Logo" class="nabl-thumbnail-img" id="nabl-thumbnail-img" style="display: none;">
+                                </div>
+                                <div class="nabl-status-info">
+                                    <div class="nabl-status-title">
+                                        NABL Accreditation
+                                        <span class="nabl-status-badge missing" id="nabl-status-badge">Checking...</span>
+                                    </div>
+                                    <p class="nabl-status-desc" id="nabl-status-desc">Loading accreditation status...</p>
+                                </div>
+                            </div>
+
+                            <!-- Quick Upload / Replace -->
+                            <div class="nabl-upload-row">
+                                <label class="nabl-file-label" for="nabl-quick-upload-input" title="Upload new NABL logo image">
+                                    <i class="fas fa-cloud-arrow-up"></i> Upload / Change NABL Logo
+                                </label>
+                                <input type="file" id="nabl-quick-upload-input" accept="image/*" style="display: none;">
+                            </div>
+
+                            <!-- Position Presets -->
+                            <div>
+                                <div class="nabl-section-title">
+                                    <span>Position Presets</span>
+                                </div>
+                                <div class="nabl-presets-grid">
+                                    <button type="button" class="nabl-preset-btn active" id="nabl-preset-top-right" title="Top Right corner">
+                                        <i class="fas fa-arrow-up-right-from-square"></i> Top Right
+                                    </button>
+                                    <button type="button" class="nabl-preset-btn" id="nabl-preset-top-center" title="Top Center">
+                                        <i class="fas fa-arrows-up-to-line"></i> Top Center
+                                    </button>
+                                    <button type="button" class="nabl-preset-btn" id="nabl-preset-top-left" title="Top Left corner">
+                                        <i class="fas fa-arrow-up-left-from-square"></i> Top Left
+                                    </button>
+                                    <button type="button" class="nabl-preset-btn" id="nabl-preset-bottom-right" title="Bottom Right corner">
+                                        <i class="fas fa-arrow-down-right-from-square"></i> Bottom Right
+                                    </button>
+                                    <button type="button" class="nabl-preset-btn" id="nabl-preset-bottom-left" title="Bottom Left corner">
+                                        <i class="fas fa-arrow-down-left-from-square"></i> Bottom Left
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Coordinate Controls -->
+                            <div class="nabl-control-group">
+                                <div class="nabl-section-title">Fine-Tune Position</div>
+                                <!-- Horizontal X -->
+                                <div class="nabl-control-item">
+                                    <div class="nabl-label-row">
+                                        <span class="nabl-label"><i class="fas fa-arrows-left-right"></i> Horizontal (X from Left)</span>
+                                        <span class="nabl-value-badge" id="nabl-badge-x">170 mm</span>
+                                    </div>
+                                    <div class="nabl-slider-row">
+                                        <input type="range" id="nabl-slider-x" class="nabl-range-slider" min="0" max="190" step="1" value="170">
+                                        <input type="number" id="nabl-input-x" class="nabl-num-input" min="0" max="190" step="1" value="170">
+                                    </div>
+                                </div>
+                                <!-- Vertical Y -->
+                                <div class="nabl-control-item">
+                                    <div class="nabl-label-row">
+                                        <span class="nabl-label"><i class="fas fa-arrows-up-down"></i> Vertical (Y from Top)</span>
+                                        <span class="nabl-value-badge" id="nabl-badge-y">5 mm</span>
+                                    </div>
+                                    <div class="nabl-slider-row">
+                                        <input type="range" id="nabl-slider-y" class="nabl-range-slider" min="0" max="275" step="1" value="5">
+                                        <input type="number" id="nabl-input-y" class="nabl-num-input" min="0" max="275" step="1" value="5">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dimension Controls -->
+                            <div class="nabl-control-group">
+                                <div class="nabl-section-title">Logo Dimensions</div>
+                                <!-- Width -->
+                                <div class="nabl-control-item">
+                                    <div class="nabl-label-row">
+                                        <span class="nabl-label"><i class="fas fa-text-width"></i> Logo Width</span>
+                                        <span class="nabl-value-badge" id="nabl-badge-width">30 mm</span>
+                                    </div>
+                                    <div class="nabl-slider-row">
+                                        <input type="range" id="nabl-slider-width" class="nabl-range-slider" min="10" max="80" step="1" value="30">
+                                        <input type="number" id="nabl-input-width" class="nabl-num-input" min="10" max="80" step="1" value="30">
+                                    </div>
+                                </div>
+                                <!-- Height -->
+                                <div class="nabl-control-item">
+                                    <div class="nabl-label-row">
+                                        <span class="nabl-label"><i class="fas fa-text-height"></i> Logo Height</span>
+                                        <span class="nabl-value-badge" id="nabl-badge-height">18 mm</span>
+                                    </div>
+                                    <div class="nabl-slider-row">
+                                        <input type="range" id="nabl-slider-height" class="nabl-range-slider" min="6" max="60" step="1" value="18">
+                                        <input type="number" id="nabl-input-height" class="nabl-num-input" min="6" max="60" step="1" value="18">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Options -->
+                            <div class="nabl-options-card">
+                                <label class="nabl-checkbox-row">
+                                    <input type="checkbox" id="nabl-lock-aspect" checked>
+                                    <span>Lock Aspect Ratio (Prevents distortion)</span>
+                                </label>
+                                <label class="nabl-checkbox-row">
+                                    <input type="checkbox" id="nabl-visibility" checked>
+                                    <span>Show NABL Logo on PDF Reports</span>
+                                </label>
+                                <div style="margin-top: 8px; border-top: 1px dashed #e2e8f0; padding-top: 8px;">
+                                    <span style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Page Placement:</span>
+                                    <label class="nabl-checkbox-row" style="margin-bottom: 4px;">
+                                        <input type="radio" name="nablPageOption" id="nabl-page-all" value="all-pages" checked>
+                                        <span>Show on All Pages</span>
+                                    </label>
+                                    <label class="nabl-checkbox-row">
+                                        <input type="radio" name="nablPageOption" id="nabl-page-first" value="first-page">
+                                        <span>Show on First Page Only</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="nabl-actions-row">
+                                <button type="button" class="nabl-save-btn" id="nabl-save-btn">
+                                    <i class="fas fa-save"></i> Save NABL Settings
+                                </button>
+                                <button type="button" class="nabl-reset-btn" id="nabl-reset-btn" title="Reset to standard default">
+                                    <i class="fas fa-rotate-left"></i> Reset
+                                </button>
+                            </div>
+                            <div class="nabl-toast-msg" id="nabl-toast-msg"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1203,6 +1349,7 @@
             </div>
         </div>
     <script src="printsetting.js?v=2.3"></script>
+    <script src="nablLogoSettings.js"></script>
 </body>
 
 </html>

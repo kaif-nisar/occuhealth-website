@@ -22,6 +22,7 @@ import { recordReportPrintAudit, recordReportPrintAuditForMany } from '../servic
 import { User } from '../models/user.model.js';
 import { isAdminActor } from '../services/bookingFinance.service.js';
 import { resolveNablLogoForReport, applyNablLogoToPdf } from '../utils/nablLogoHelper.js';
+import { sanitizeNablSettings } from '../services/nablLogoSettings.service.js';
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1353,7 +1354,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext, bookingId: requestBookingId,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", nablSettings = null, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -1745,7 +1746,7 @@ const pdfgeneratorcontroller2 = async ({ pdfformat, layerone, tenantId, bookingI
             reportId,
             user: res?.req?.user
         }));
-        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
+        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply, nablSettings)) || pdfWithBackground;
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
@@ -1838,7 +1839,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
     marginLeft, investigationmargin, showlab, showdoctorfirst,
     showdoctorsecond, fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
     fileInputDoctorlefttext, fileInputDoctorrighttext, DownloadPdf, headerContentGap,
-    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", res }) => {
+    showCategory = true, showTestHeading = true, isSelectiveRequest = false, nablLogoUrl = "", nablSettings = null, res }) => {
 
     // investigationmargin is the measured header height. Keep the body at the user-configured gap below it.
     investigationmargin = finitePdfNumber(investigationmargin, 135, { min: 60, max: 300 });
@@ -2222,7 +2223,7 @@ const pdfgeneratorcontroller3 = async ({ pdfformat, layerone, tenantId, bookingI
             reportId,
             user: res?.req?.user
         }));
-        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
+        const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply, nablSettings)) || pdfWithBackground;
 
         const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
 
@@ -2652,6 +2653,15 @@ const getpdfcontroller = async (req, res) => {
             mergedValues.layerone = true;
         }
         mergedValues.nablLogoUrl = resolvedNablLogoUrl;
+        mergedValues.nablSettings = {
+            nablLogoWidth: req.body.nablLogoWidth !== undefined ? Number(req.body.nablLogoWidth) : (defaultSettings?.nablLogoWidth ?? 30),
+            nablLogoHeight: req.body.nablLogoHeight !== undefined ? Number(req.body.nablLogoHeight) : (defaultSettings?.nablLogoHeight ?? 18),
+            nablLogoX: req.body.nablLogoX !== undefined ? Number(req.body.nablLogoX) : (defaultSettings?.nablLogoX ?? 170),
+            nablLogoY: req.body.nablLogoY !== undefined ? Number(req.body.nablLogoY) : (defaultSettings?.nablLogoY ?? 5),
+            nablLogoPosition: req.body.nablLogoPosition || defaultSettings?.nablLogoPosition || 'top-right',
+            nablLogoPageOption: req.body.nablLogoPageOption || defaultSettings?.nablLogoPageOption || 'all-pages',
+            nablLogoVisible: req.body.nablLogoVisible !== undefined ? Boolean(req.body.nablLogoVisible) : (defaultSettings?.nablLogoVisible ?? true),
+        };
 
         // Audit helper: only records when the request was an explicit
         // download/print AND the PDF was actually delivered (never on 4xx/5xx).
@@ -2701,6 +2711,13 @@ const saveOrUpdatePdfSetting = async ({
     headerContentGap,
     showCategory,
     showTestHeading,
+    nablLogoWidth,
+    nablLogoHeight,
+    nablLogoX,
+    nablLogoY,
+    nablLogoPosition,
+    nablLogoPageOption,
+    nablLogoVisible,
 }) => {
     try {
         // tenantId के आधार पर रिकॉर्ड खोजें
@@ -2725,6 +2742,13 @@ const saveOrUpdatePdfSetting = async ({
                 headerContentGap,
                 showCategory,
                 showTestHeading,
+                nablLogoWidth,
+                nablLogoHeight,
+                nablLogoX,
+                nablLogoY,
+                nablLogoPosition,
+                nablLogoPageOption,
+                nablLogoVisible,
             });
 
             return newSetting;
@@ -2747,6 +2771,13 @@ const saveOrUpdatePdfSetting = async ({
                 headerContentGap,
                 showCategory,
                 showTestHeading,
+                nablLogoWidth,
+                nablLogoHeight,
+                nablLogoX,
+                nablLogoY,
+                nablLogoPosition,
+                nablLogoPageOption,
+                nablLogoVisible,
             };
 
             for (let key in fields) {
@@ -3290,7 +3321,7 @@ async function generateSinglePdfBuffer(mergedValues, user) {
         reportId: mergedValues.reportId,
         user
     }));
-    const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply)) || pdfWithBackground;
+    const finalPdfBuffer = (await applyNablLogoToPdf(pdfWithBackground, nablLogoToApply, mergedValues?.nablSettings)) || pdfWithBackground;
 
     // Adjust margins
     const finalpdfbufferwithmargin = await adjustPdfMargins(finalPdfBuffer, 0, 0);
@@ -3662,6 +3693,16 @@ const savePdfSettingsController = async (req, res) => {
             return res.status(400).json({ message: 'Invalid print layout, font size, or spacing value' });
         }
 
+        const nablSettingsToSave = (
+            req.body.nablLogoWidth !== undefined ||
+            req.body.nablLogoHeight !== undefined ||
+            req.body.nablLogoX !== undefined ||
+            req.body.nablLogoY !== undefined ||
+            req.body.nablLogoPosition !== undefined ||
+            req.body.nablLogoPageOption !== undefined ||
+            req.body.nablLogoVisible !== undefined
+        ) ? sanitizeNablSettings(req.body) : {};
+
         const settings = await saveOrUpdatePdfSetting({
             tenantId,
             createdBy,
@@ -3678,6 +3719,7 @@ const savePdfSettingsController = async (req, res) => {
             marginRight: String(layoutValues.marginRight),
             marginLeft: String(layoutValues.marginLeft),
             headerContentGap: layoutValues.headerContentGap,
+            ...nablSettingsToSave,
         });
 
         return res.status(200).json(settings);
@@ -3736,6 +3778,9 @@ const getCustomizationByReportId = async (req, res) => {
                 }
             }
         }
+
+        // Attach resolved NABL logo URL for active tenant / report
+        result.nablLogoUrl = await resolveNablLogoForReport({ tenantId, reportId, user: req.user }) || '';
 
         // Return the merged document
         return res.status(200).json(result);

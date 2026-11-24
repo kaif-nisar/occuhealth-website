@@ -6,6 +6,11 @@ import { User } from '../models/user.model.js';
 import { Tenant } from '../models/tenant.model.js';
 import { reports } from '../models/reportData.model.js';
 import { newBooking } from '../models/NewBooking.model.js';
+import {
+    sanitizeNablSettings,
+    computePdfLogoPlacement,
+    DEFAULT_NABL_SETTINGS
+} from '../services/nablLogoSettings.service.js';
 
 // In-memory cache for NABL logo buffers to avoid downloading the same image repeatedly
 const nablLogoBufferCache = new Map();
@@ -161,12 +166,24 @@ export async function resolveNablLogoForReport({ tenantId, bookingId, reportId, 
 }
 
 /**
- * Apply the NABL logo image to the top-right corner of each page in the PDF buffer.
- * Preserves original PDF buffer in case of any issues.
+ * Apply the NABL logo image to the PDF buffer using user-customized position,
+ * size, and page options (or falling back to standard top-right defaults).
+ * 
+ * @param {Buffer} inputPdfBuffer - The generated PDF buffer
+ * @param {string} nablLogoUrl - HTTP(S) URL or Data URI of the NABL accreditation logo
+ * @param {Object} [nablSettings] - Optional custom layout settings (width, height, X, Y, page option)
+ * @returns {Promise<Buffer>} Modified PDF buffer with NABL logo applied
  */
-export async function applyNablLogoToPdf(inputPdfBuffer, nablLogoUrl) {
+export async function applyNablLogoToPdf(inputPdfBuffer, nablLogoUrl, nablSettings = null) {
     if (!inputPdfBuffer) return null;
     if (!nablLogoUrl || typeof nablLogoUrl !== 'string' || !nablLogoUrl.trim()) {
+        return inputPdfBuffer;
+    }
+
+    // Sanitize user settings with strict bounds checks
+    const settings = sanitizeNablSettings(nablSettings || {});
+    if (settings.nablLogoVisible === false) {
+        // User explicitly toggled off NABL logo visibility in print settings
         return inputPdfBuffer;
     }
 
@@ -195,29 +212,30 @@ export async function applyNablLogoToPdf(inputPdfBuffer, nablLogoUrl) {
             return inputPdfBuffer;
         }
 
-        // Standard accreditation badge size: max 85pt wide, 50pt high, keeping aspect ratio
-        const maxTargetWidth = 85;
-        const maxTargetHeight = 50;
-        const scale = Math.min(maxTargetWidth / img.width, maxTargetHeight / img.height, 1);
-        const renderWidth = Math.round(img.width * scale);
-        const renderHeight = Math.round(img.height * scale);
+        const isFirstPageOnly = settings.nablLogoPageOption === 'first-page';
+        const pagesToStamp = isFirstPageOnly ? [pages[0]] : pages;
 
-        // Position: top-right corner on every page
-        const rightMargin = 20; // 20pt from right edge
-        const topMargin = 15;   // 15pt from top edge
+        for (let i = 0; i < pagesToStamp.length; i++) {
+            const page = pagesToStamp[i];
+            const { width: pagePtWidth, height: pagePtHeight } = page.getSize();
 
-        for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            const { width, height } = page.getSize();
-            const x = width - renderWidth - rightMargin;
-            const y = height - renderHeight - topMargin;
-
-            page.drawImage(embeddedLogo, {
-                x,
-                y,
-                width: renderWidth,
-                height: renderHeight,
+            // Compute exact rendering dimensions & PDF-lib coordinates
+            const placement = computePdfLogoPlacement({
+                pagePtWidth,
+                pagePtHeight,
+                imgRawWidth: img.width,
+                imgRawHeight: img.height,
+                settings
             });
+
+            if (placement.shouldDraw && placement.width > 0 && placement.height > 0) {
+                page.drawImage(embeddedLogo, {
+                    x: placement.x,
+                    y: placement.y,
+                    width: placement.width,
+                    height: placement.height,
+                });
+            }
         }
 
         const modifiedPdfBytes = await pdfDoc.save();

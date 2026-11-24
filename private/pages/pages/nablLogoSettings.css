@@ -1,0 +1,506 @@
+/**
+ * ============================================================================
+ * NABL LOGO SETTINGS STYLESHEET
+ * ============================================================================
+ * File: private/pages/pages/nablLogoSettings.css
+ * 
+ * Purpose:
+ * Clean, modern, responsive styling for the NABL accreditation logo position
+ * and size customizer in Print Settings (printsetting.html).
+ * ============================================================================
+ */
+
+/* Container & Cards */
+.nabl-settings-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 0;
+}
+
+/* Status Banner & Preview */
+.nabl-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.nabl-status-banner.has-logo {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.nabl-status-banner.no-logo {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.nabl-thumbnail-wrapper {
+    width: 64px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    overflow: hidden;
+    padding: 2px;
+}
+
+.nabl-thumbnail-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.nabl-status-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.nabl-status-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nabl-status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.nabl-status-badge.active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.nabl-status-badge.missing {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.nabl-status-desc {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+    line-height: 1.35;
+}
+
+/* Quick Upload Area */
+.nabl-upload-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.nabl-file-label {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nabl-file-label:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+/* Presets Grid */
+.nabl-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nabl-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.nabl-preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 9px 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: center;
+}
+
+.nabl-preset-btn i {
+    font-size: 14px;
+    color: #64748b;
+    transition: color 0.18s ease;
+}
+
+.nabl-preset-btn:hover {
+    border-color: #93c5fd;
+    background: #f8fafc;
+    color: #1e40af;
+}
+
+.nabl-preset-btn:hover i {
+    color: #2563eb;
+}
+
+.nabl-preset-btn.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: 0 0 0 1px #2563eb;
+}
+
+.nabl-preset-btn.active i {
+    color: #2563eb;
+}
+
+/* Coordinate & Size Sliders */
+.nabl-control-group {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.nabl-control-item {
+    margin-bottom: 12px;
+}
+
+.nabl-control-item:last-child {
+    margin-bottom: 0;
+}
+
+.nabl-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.nabl-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nabl-value-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #dbeafe;
+    padding: 1px 6px;
+    border-radius: 4px;
+    min-width: 48px;
+    text-align: right;
+}
+
+.nabl-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nabl-range-slider {
+    flex: 1;
+    height: 5px;
+    border-radius: 3px;
+    background: #cbd5e1;
+    outline: none;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+.nabl-num-input {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    text-align: center;
+    background: #fff;
+}
+
+.nabl-num-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* Radio / Checkbox Options */
+.nabl-options-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.nabl-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.nabl-checkbox-row:last-child {
+    margin-bottom: 0;
+}
+
+.nabl-checkbox-row input {
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+/* Action Buttons */
+.nabl-actions-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.nabl-save-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #16a34a;
+    border: 1px solid #15803d;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.15);
+    transition: all 0.2s ease;
+}
+
+.nabl-save-btn:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(22, 163, 74, 0.25);
+}
+
+.nabl-save-btn:active {
+    transform: translateY(0);
+}
+
+.nabl-reset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nabl-reset-btn:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* Toast Message */
+.nabl-toast-msg {
+    display: none;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+    text-align: center;
+    animation: fadeIn 0.25s ease;
+}
+
+.nabl-toast-msg.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.nabl-toast-msg.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+/* ============================================================================
+   INTERACTIVE DRAGGABLE OVERLAY OVER PDF PREVIEW
+   ============================================================================ */
+#nabl-interactive-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 25;
+    overflow: hidden;
+    display: none; /* activated when NABL accordion is opened */
+}
+
+#nabl-interactive-overlay.active {
+    display: block;
+}
+
+/* The Draggable / Resizable Box */
+.nabl-draggable-proxy {
+    position: absolute;
+    pointer-events: auto;
+    cursor: move;
+    border: 2px dashed #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    user-select: none;
+    touch-action: none;
+}
+
+.nabl-draggable-proxy:hover {
+    border-color: #1d4ed8;
+    background: rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.nabl-draggable-proxy.is-dragging {
+    border-style: solid;
+    border-color: #1d4ed8;
+    background: rgba(37, 99, 235, 0.25);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
+    cursor: grabbing;
+}
+
+/* Embedded preview image inside draggable box */
+.nabl-proxy-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+}
+
+/* Floating coordinate & dimension badge */
+.nabl-proxy-badge {
+    position: absolute;
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    opacity: 0.92;
+}
+
+/* Resize Handle (Bottom-Right Corner) */
+.nabl-resize-handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    right: -4px;
+    bottom: -4px;
+    background: #2563eb;
+    border: 2px solid #ffffff;
+    border-radius: 3px;
+    cursor: nwse-resize;
+    pointer-events: auto;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s ease;
+}
+
+.nabl-resize-handle:hover {
+    transform: scale(1.25);
+    background: #1d4ed8;
+}
+
+/* Visual Dragging Indicator Hint */
+.nabl-drag-hint-banner {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 30;
+    animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -10px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+

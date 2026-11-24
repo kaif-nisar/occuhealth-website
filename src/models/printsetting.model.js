@@ -129,6 +129,14 @@ const customizationSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    // NABL Accreditation Logo Position & Size Settings (mm / presets)
+    nablLogoWidth: { type: Number, default: 30 },
+    nablLogoHeight: { type: Number, default: 18 },
+    nablLogoX: { type: Number, default: 170 },
+    nablLogoY: { type: Number, default: 5 },
+    nablLogoPosition: { type: String, default: 'top-right' },
+    nablLogoPageOption: { type: String, default: 'all-pages' },
+    nablLogoVisible: { type: Boolean, default: true },
     attachments: [
         {
             url: String,

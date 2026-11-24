@@ -68,6 +68,35 @@ const customizationSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // NABL Accreditation Logo Position & Size Settings
+    nablLogoWidth: {
+      type: Number,
+      default: 30, // Width in mm (~85 pt)
+    },
+    nablLogoHeight: {
+      type: Number,
+      default: 18, // Height in mm (~50 pt)
+    },
+    nablLogoX: {
+      type: Number,
+      default: 170, // X position in mm from left edge
+    },
+    nablLogoY: {
+      type: Number,
+      default: 5, // Y position in mm from top edge
+    },
+    nablLogoPosition: {
+      type: String,
+      default: "top-right", // Preset: 'top-right', 'top-left', 'top-center', 'bottom-right', 'bottom-left', 'custom'
+    },
+    nablLogoPageOption: {
+      type: String,
+      default: "all-pages", // 'all-pages' or 'first-page'
+    },
+    nablLogoVisible: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

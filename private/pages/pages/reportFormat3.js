@@ -11,7 +11,20 @@
         nablImg.className = 'nabl-logo-top-right';
         nablImg.alt = 'NABL Accredited';
         nablImg.src = report.nablLogo;
-        nablImg.style.cssText = 'position: absolute; top: 12px; right: 24px; max-width: 90px; max-height: 55px; object-fit: contain; z-index: 10; pointer-events: none;';
+        const ns = report.nablSettings || {
+            nablLogoWidth: report.nablLogoWidth,
+            nablLogoHeight: report.nablLogoHeight,
+            nablLogoX: report.nablLogoX,
+            nablLogoY: report.nablLogoY,
+            nablLogoVisible: report.nablLogoVisible
+        };
+        const maxW = (ns && ns.nablLogoWidth) ? `${ns.nablLogoWidth}mm` : '90px';
+        const maxH = (ns && ns.nablLogoHeight) ? `${ns.nablLogoHeight}mm` : '55px';
+        const leftVal = (ns && ns.nablLogoX !== undefined) ? `${ns.nablLogoX}mm` : 'auto';
+        const rightVal = (ns && ns.nablLogoX !== undefined) ? 'auto' : '24px';
+        const topVal = (ns && ns.nablLogoY !== undefined) ? `${ns.nablLogoY}mm` : '12px';
+        const isVis = (ns && ns.nablLogoVisible === false) ? 'display: none;' : '';
+        nablImg.style.cssText = `position: absolute; top: ${topVal}; left: ${leftVal}; right: ${rightVal}; max-width: ${maxW}; max-height: ${maxH}; object-fit: contain; z-index: 10; pointer-events: none; ${isVis}`;
         const hdr = document.querySelector('.header') || document.querySelector('.container2') || document.body;
         if (hdr) {
             if (getComputedStyle(hdr).position === 'static') {

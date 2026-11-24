@@ -48,10 +48,13 @@ function toggleAccordion(button) {
     });
 
     async function savePrintSettings(layout = readLayoutSettings(), general = readGeneralSettings()) {
+        const nablData = (window.NablLogoSettingsManager && typeof window.NablLogoSettingsManager.getState === 'function')
+            ? window.NablLogoSettingsManager.getState()
+            : {};
         const response = await fetch(BASE_URL + '/api/v1/user/save-pdf-settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...general, ...layout })
+            body: JSON.stringify({ ...general, ...layout, ...nablData })
         });
         if (!response.ok) {
             const result = await response.json().catch(() => ({}));
@@ -484,6 +487,9 @@ function toggleAccordion(button) {
         const resolvedGap = (Number.isFinite(rawGap) && rawGap >= 0.1 && rawGap <= 10) ? rawGap : 1;
 
         const currentGeneral = readGeneralSettings();
+        const nablData = (window.NablLogoSettingsManager && typeof window.NablLogoSettingsManager.getState === 'function')
+            ? window.NablLogoSettingsManager.getState()
+            : {};
 
         try {
             if (loader) {
@@ -506,7 +512,8 @@ function toggleAccordion(button) {
                     showTestHeading: showTestHeading !== undefined ? showTestHeading : currentGeneral.showTestHeading,
                     showlab, showdoctorfirst, showdoctorsecond,
                     fileInputLab, fileInputDoctorleft, fileInputDoctorright, fileInputLabtext,
-                    fileInputDoctorlefttext, fileInputDoctorrighttext
+                    fileInputDoctorlefttext, fileInputDoctorrighttext,
+                    ...nablData
                 })
             });
 
@@ -538,6 +545,7 @@ function toggleAccordion(button) {
             }
         }
     }
+    window.autogeneratingpdf = autogeneratingpdf;
 
     const checkBox = document.getElementById('check1');
     if (checkBox) {

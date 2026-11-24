@@ -1235,6 +1235,31 @@
             nablImg.alt = 'NABL Accredited';
             nablImg.src = state.nablLogoUrl;
             nablImg.onerror = () => { nablImg.style.display = 'none'; };
+
+            // Apply custom NABL position & size if configured in report settings
+            const ns = state.report?.nablSettings || state.nablSettings || (state.report && {
+                nablLogoWidth: state.report.nablLogoWidth,
+                nablLogoHeight: state.report.nablLogoHeight,
+                nablLogoX: state.report.nablLogoX,
+                nablLogoY: state.report.nablLogoY,
+                nablLogoVisible: state.report.nablLogoVisible
+            });
+            if (ns) {
+                if (ns.nablLogoVisible === false) {
+                    nablImg.style.display = 'none';
+                } else {
+                    if (ns.nablLogoWidth) nablImg.style.maxWidth = `${ns.nablLogoWidth}mm`;
+                    if (ns.nablLogoHeight) nablImg.style.maxHeight = `${ns.nablLogoHeight}mm`;
+                    if (ns.nablLogoX !== undefined) {
+                        nablImg.style.left = `${ns.nablLogoX}mm`;
+                        nablImg.style.right = 'auto';
+                    }
+                    if (ns.nablLogoY !== undefined) {
+                        nablImg.style.top = `${ns.nablLogoY}mm`;
+                    }
+                }
+            }
+
             head.appendChild(nablImg);
         }
 
