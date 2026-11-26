@@ -61,14 +61,31 @@
         <!-- Command & Filter Toolbar -->
         <section class="fb-toolbar">
             <div class="fb-toolbar-row">
-                <!-- Franchisee Dropdown Selector -->
+                <!-- Franchisee Dropdown Selector (Searchable) -->
                 <div class="fb-filter-group fb-franchisee-select-wrap">
-                    <label for="fbFranchiseeSelect" class="fb-filter-label">
+                    <label for="fbFranchiseeTrigger" class="fb-filter-label">
                         <i class="fa-solid fa-store"></i> Franchisee Selection:
                     </label>
-                    <select id="fbFranchiseeSelect" class="fb-select">
+                    <select id="fbFranchiseeSelect" class="fb-select" style="display: none;" aria-hidden="true" tabindex="-1">
                         <option value="all">⚡ All Franchisees (Aggregated)</option>
                     </select>
+                    <div class="fb-searchable-select" id="fbFranchiseeDropdown">
+                        <button type="button" class="fb-ss-trigger" id="fbFranchiseeTrigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span class="fb-ss-trigger-text" id="fbFranchiseeTriggerText">⚡ All Franchisees (Aggregated)</span>
+                            <span class="fb-ss-trigger-actions">
+                                <span class="fb-ss-clear-selection" id="fbFranchiseeClearSelection" title="Reset to All Franchisees" style="display: none;" role="button" aria-label="Reset selection">&times;</span>
+                                <i class="fa-solid fa-chevron-down fb-ss-chevron"></i>
+                            </span>
+                        </button>
+                        <div class="fb-ss-menu" id="fbFranchiseeMenu" role="listbox" style="display: none;">
+                            <div class="fb-ss-search-box">
+                                <i class="fa-solid fa-magnifying-glass fb-ss-search-icon"></i>
+                                <input type="text" id="fbFranchiseeSearchInput" class="fb-ss-search-input" placeholder="Search franchisee name or @username..." autocomplete="off" />
+                                <button type="button" id="fbFranchiseeSearchClear" class="fb-ss-search-clear" title="Clear search" style="display: none;">&times;</button>
+                            </div>
+                            <div class="fb-ss-options" id="fbFranchiseeOptions"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Quick Period Filter Buttons (1 Day, 1 Week, 1 Month, Custom) -->
@@ -951,6 +968,249 @@
 .fb-input:focus {
     border-color: var(--fb-primary);
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+/* Searchable Franchisee Dropdown */
+.fb-searchable-select {
+    position: relative;
+    width: 100%;
+}
+
+.fb-ss-trigger {
+    width: 100%;
+    height: 38px;
+    padding: 6px 10px 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fb-slate-800);
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: var(--fb-radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
+}
+
+.fb-ss-trigger:hover {
+    border-color: var(--fb-slate-400);
+}
+
+.fb-ss-trigger.is-open,
+.fb-ss-trigger:focus {
+    outline: none;
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+.fb-ss-trigger-text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fb-ss-trigger-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.fb-ss-clear-selection {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--fb-slate-100);
+    color: var(--fb-slate-500);
+    font-size: 13px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.fb-ss-clear-selection:hover {
+    background: var(--fb-rose-light);
+    color: var(--fb-rose);
+}
+
+.fb-ss-chevron {
+    font-size: 11px;
+    color: var(--fb-slate-400);
+    transition: transform 0.18s ease;
+}
+
+.fb-ss-trigger.is-open .fb-ss-chevron {
+    transform: rotate(180deg);
+    color: var(--fb-primary);
+}
+
+.fb-ss-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    min-width: min(260px, 100%);
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+    z-index: 1200;
+    overflow: hidden;
+}
+
+.fb-ss-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: var(--fb-slate-50);
+    border-bottom: 1px solid var(--fb-slate-200);
+}
+
+.fb-ss-search-icon {
+    position: absolute;
+    left: 17px;
+    font-size: 12px;
+    color: var(--fb-slate-400);
+    pointer-events: none;
+}
+
+.fb-ss-search-input {
+    width: 100%;
+    height: 32px;
+    padding: 4px 26px 4px 28px;
+    font-size: 12.5px;
+    font-family: inherit;
+    color: var(--fb-slate-800);
+    background: #ffffff;
+    border: 1px solid var(--fb-slate-200);
+    border-radius: 6px;
+    outline: none;
+}
+
+.fb-ss-search-input:focus {
+    border-color: var(--fb-primary);
+    box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.1);
+}
+
+.fb-ss-search-clear {
+    position: absolute;
+    right: 13px;
+    background: transparent;
+    border: none;
+    color: var(--fb-slate-400);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.fb-ss-search-clear:hover {
+    color: var(--fb-slate-700);
+}
+
+.fb-ss-options {
+    max-height: 230px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.fb-ss-option {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--fb-slate-700);
+    transition: background 0.1s ease;
+}
+
+.fb-ss-option:hover,
+.fb-ss-option.is-highlighted {
+    background: var(--fb-primary-light);
+    color: var(--fb-slate-900);
+}
+
+.fb-ss-option.is-selected {
+    background: #dbeafe;
+    color: var(--fb-primary);
+    font-weight: 700;
+}
+
+.fb-ss-option-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+}
+
+.fb-ss-option-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fb-ss-option-name mark {
+    background: #fef08a;
+    color: #0f172a;
+    padding: 0 2px;
+    border-radius: 3px;
+}
+
+.fb-ss-option-role {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--fb-slate-100);
+    color: var(--fb-slate-600);
+    flex-shrink: 0;
+}
+
+.fb-ss-option-role.role-super {
+    background: var(--fb-purple-light);
+    color: var(--fb-purple);
+}
+
+.fb-ss-option-role.role-sub {
+    background: var(--fb-amber-light);
+    color: var(--fb-amber);
+}
+
+.fb-ss-option-role.role-franchisee {
+    background: var(--fb-primary-light);
+    color: var(--fb-primary);
+}
+
+.fb-ss-option-user {
+    font-size: 11px;
+    color: var(--fb-slate-400);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.fb-ss-empty {
+    padding: 16px 10px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--fb-slate-400);
 }
 
 /* Quick Period Pill Buttons */

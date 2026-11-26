@@ -22,6 +22,8 @@
     let sortBy = 'revenue-desc';
 
     let dashboardData = null;
+    let dropdownFranchiseesList = [];
+    let highlightedDropdownIndex = -1;
     let charts = {
         timeline: null,
         tubeTypes: null,
@@ -181,24 +183,247 @@
         }
     }
 
+    function escapeHtmlText(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function highlightSearchMatch(text, query) {
+        const raw = String(text ?? '');
+        const cleanQuery = String(query || '').trim();
+        if (!cleanQuery) return escapeHtmlText(raw);
+
+        const lowerRaw = raw.toLowerCase();
+        const lowerQuery = cleanQuery.toLowerCase();
+        const idx = lowerRaw.indexOf(lowerQuery);
+        if (idx === -1) return escapeHtmlText(raw);
+
+        const before = escapeHtmlText(raw.slice(0, idx));
+        const match = escapeHtmlText(raw.slice(idx, idx + cleanQuery.length));
+        const after = escapeHtmlText(raw.slice(idx + cleanQuery.length));
+        return `${before}<mark>${match}</mark>${after}`;
+    }
+
+    function getRoleMeta(role) {
+        if (role === 'superFranchisee') return { badge: '[Super]', short: 'Super', cls: 'role-super' };
+        if (role === 'subFranchisee') return { badge: '[Sub]', short: 'Sub', cls: 'role-sub' };
+        return { badge: '[Franchisee]', short: 'Franchisee', cls: 'role-franchisee' };
+    }
+
+    function getFilteredSortedDropdownItems(query = '') {
+        const q = String(query || '').trim().toLowerCase();
+        const items = Array.isArray(dropdownFranchiseesList) ? dropdownFranchiseesList : [];
+
+        if (!q) {
+            return items;
+        }
+
+        const scored = [];
+        for (const f of items) {
+            const fullName = String(f.fullName || '').toLowerCase();
+            const username = String(f.username || '').toLowerCase();
+            const roleShort = getRoleMeta(f.role).short.toLowerCase();
+
+            let score = Infinity;
+            if (fullName === q || username === q) {
+                score = 0;
+            } else if (fullName.startsWith(q)) {
+                score = 1;
+            } else if (username.startsWith(q)) {
+                score = 2;
+            } else if (fullName.includes(` ${q}`)) {
+                score = 3;
+            } else if (fullName.includes(q)) {
+                score = 4;
+            } else if (username.includes(q)) {
+                score = 5;
+            } else if (roleShort.includes(q)) {
+                score = 6;
+            }
+
+            if (score !== Infinity) {
+                scored.push({ item: f, score });
+            }
+        }
+
+        scored.sort((a, b) => {
+            if (a.score !== b.score) return a.score - b.score;
+            return String(a.item.fullName || '').localeCompare(String(b.item.fullName || ''));
+        });
+
+        return scored.map(entry => entry.item);
+    }
+
+    function syncFranchiseeDropdownUI() {
+        const select = document.getElementById('fbFranchiseeSelect');
+        const triggerText = document.getElementById('fbFranchiseeTriggerText');
+        const clearSelBtn = document.getElementById('fbFranchiseeClearSelection');
+
+        const selectedValue = currentFranchiseeId || 'all';
+        if (select) {
+            select.value = selectedValue;
+        }
+
+        if (triggerText) {
+            if (selectedValue === 'all') {
+                triggerText.textContent = '⚡ All Franchisees (Aggregated)';
+            } else {
+                const matched = dropdownFranchiseesList.find(f => String(f._id) === String(selectedValue));
+                if (matched) {
+                    const roleMeta = getRoleMeta(matched.role);
+                    triggerText.textContent = `${roleMeta.badge} ${matched.fullName} (${matched.username})`;
+                } else if (select?.options[select.selectedIndex]) {
+                    triggerText.textContent = select.options[select.selectedIndex].text;
+                } else {
+                    triggerText.textContent = 'Selected Franchisee';
+                }
+            }
+        }
+
+        if (clearSelBtn) {
+            clearSelBtn.style.display = selectedValue !== 'all' ? 'inline-flex' : 'none';
+        }
+    }
+
+    function renderFranchiseeDropdownOptions(query = '') {
+        const optionsContainer = document.getElementById('fbFranchiseeOptions');
+        if (!optionsContainer) return;
+
+        const cleanQuery = String(query || '').trim();
+        const lowerQuery = cleanQuery.toLowerCase();
+        const matchedItems = getFilteredSortedDropdownItems(cleanQuery);
+
+        const optionRows = [];
+        const includeAllOption = !cleanQuery || 'all franchisees aggregated'.includes(lowerQuery);
+
+        if (includeAllOption) {
+            optionRows.push({
+                value: 'all',
+                html: `
+                    <span class="fb-ss-option-main">
+                        <span class="fb-ss-option-name">⚡ All Franchisees (Aggregated)</span>
+                    </span>
+                `
+            });
+        }
+
+        matchedItems.forEach(f => {
+            const roleMeta = getRoleMeta(f.role);
+            optionRows.push({
+                value: String(f._id),
+                html: `
+                    <span class="fb-ss-option-main">
+                        <span class="fb-ss-option-role ${roleMeta.cls}">${escapeHtmlText(roleMeta.short)}</span>
+                        <span class="fb-ss-option-name">${highlightSearchMatch(f.fullName || f.username, cleanQuery)}</span>
+                    </span>
+                    <span class="fb-ss-option-user">@${highlightSearchMatch(f.username || '', cleanQuery)}</span>
+                `
+            });
+        });
+
+        if (optionRows.length === 0) {
+            highlightedDropdownIndex = -1;
+            optionsContainer.innerHTML = `<div class="fb-ss-empty">No franchisees matching "${escapeHtmlText(cleanQuery)}"</div>`;
+            return;
+        }
+
+        optionsContainer.innerHTML = '';
+        highlightedDropdownIndex = cleanQuery ? 0 : -1;
+
+        optionRows.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'fb-ss-option';
+            btn.setAttribute('role', 'option');
+            btn.setAttribute('data-value', opt.value);
+
+            const isSelected = String(opt.value) === String(currentFranchiseeId || 'all');
+            if (isSelected) btn.classList.add('is-selected');
+            if (idx === highlightedDropdownIndex) btn.classList.add('is-highlighted');
+
+            btn.innerHTML = opt.html;
+            btn.addEventListener('click', () => {
+                selectFranchiseeFromDropdown(opt.value, true);
+            });
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function openFranchiseeDropdown() {
+        const menu = document.getElementById('fbFranchiseeMenu');
+        const trigger = document.getElementById('fbFranchiseeTrigger');
+        const searchInput = document.getElementById('fbFranchiseeSearchInput');
+        const clearBtn = document.getElementById('fbFranchiseeSearchClear');
+        if (!menu || !trigger) return;
+
+        menu.style.display = 'block';
+        trigger.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+
+        if (searchInput) {
+            searchInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            renderFranchiseeDropdownOptions('');
+            setTimeout(() => searchInput.focus(), 0);
+        } else {
+            renderFranchiseeDropdownOptions('');
+        }
+    }
+
+    function closeFranchiseeDropdown() {
+        const menu = document.getElementById('fbFranchiseeMenu');
+        const trigger = document.getElementById('fbFranchiseeTrigger');
+        if (!menu || !trigger) return;
+
+        menu.style.display = 'none';
+        trigger.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        highlightedDropdownIndex = -1;
+    }
+
+    function selectFranchiseeFromDropdown(value, shouldFetch = true) {
+        const nextValue = value || 'all';
+        const changed = String(currentFranchiseeId) !== String(nextValue);
+        currentFranchiseeId = nextValue;
+        syncFranchiseeDropdownUI();
+        closeFranchiseeDropdown();
+
+        if (shouldFetch && changed) {
+            fetchFranchiseeAnalytics();
+        }
+    }
+
     // Populate Franchisee Select Dropdown
     function populateDropdownFranchisees(list) {
         const select = document.getElementById('fbFranchiseeSelect');
-        if (!select || select.dataset.populated === 'true') return;
+        if (!select) return;
 
-        const currentVal = select.value;
+        dropdownFranchiseesList = Array.isArray(list) ? list : [];
+
+        const currentVal = currentFranchiseeId || select.value || 'all';
         select.innerHTML = '<option value="all">⚡ All Franchisees (Aggregated)</option>';
 
-        list.forEach(f => {
+        dropdownFranchiseesList.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f._id;
-            const roleBadge = f.role === 'superFranchisee' ? '[Super]' : (f.role === 'subFranchisee' ? '[Sub]' : '[Franchisee]');
-            opt.textContent = `${roleBadge} ${f.fullName} (${f.username})`;
+            const roleMeta = getRoleMeta(f.role);
+            opt.textContent = `${roleMeta.badge} ${f.fullName} (${f.username})`;
             select.appendChild(opt);
         });
 
-        select.value = currentVal || 'all';
+        select.value = currentVal;
         select.dataset.populated = 'true';
+        syncFranchiseeDropdownUI();
+
+        const menu = document.getElementById('fbFranchiseeMenu');
+        if (menu && menu.style.display === 'block') {
+            const q = document.getElementById('fbFranchiseeSearchInput')?.value || '';
+            renderFranchiseeDropdownOptions(q);
+        }
     }
 
     // ==========================================
@@ -1345,12 +1570,7 @@
 
         document.getElementById('fbDrilldownFilterBtn')?.addEventListener('click', () => {
             modal.style.display = 'none';
-            const select = document.getElementById('fbFranchiseeSelect');
-            if (select) {
-                select.value = franchisee._id;
-                currentFranchiseeId = franchisee._id;
-                fetchFranchiseeAnalytics();
-            }
+            selectFranchiseeFromDropdown(franchisee._id, true);
         });
     }
 
@@ -1407,14 +1627,108 @@
     // 🎛️ EVENT LISTENERS & INITIALIZATION
     // ==========================================
     function setupEventListeners() {
-        // 1. Franchisee Select Dropdown
+        // 1. Franchisee Searchable Select Dropdown
         const franchiseeSelect = document.getElementById('fbFranchiseeSelect');
         if (franchiseeSelect) {
             franchiseeSelect.addEventListener('change', (e) => {
                 currentFranchiseeId = e.target.value;
+                syncFranchiseeDropdownUI();
                 fetchFranchiseeAnalytics();
             });
         }
+
+        const dropdownWrap = document.getElementById('fbFranchiseeDropdown');
+        const triggerBtn = document.getElementById('fbFranchiseeTrigger');
+        const clearSelBtn = document.getElementById('fbFranchiseeClearSelection');
+        const dropdownMenu = document.getElementById('fbFranchiseeMenu');
+        const dropdownSearchInput = document.getElementById('fbFranchiseeSearchInput');
+        const dropdownSearchClear = document.getElementById('fbFranchiseeSearchClear');
+
+        if (clearSelBtn) {
+            clearSelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectFranchiseeFromDropdown('all', true);
+            });
+        }
+
+        if (triggerBtn && dropdownMenu) {
+            triggerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = dropdownMenu.style.display === 'block';
+                if (isOpen) {
+                    closeFranchiseeDropdown();
+                } else {
+                    openFranchiseeDropdown();
+                }
+            });
+        }
+
+        if (dropdownSearchInput) {
+            dropdownSearchInput.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (dropdownSearchClear) {
+                    dropdownSearchClear.style.display = val ? 'inline-block' : 'none';
+                }
+                renderFranchiseeDropdownOptions(val);
+            });
+
+            dropdownSearchInput.addEventListener('keydown', (e) => {
+                const optionsContainer = document.getElementById('fbFranchiseeOptions');
+                const optionEls = optionsContainer ? Array.from(optionsContainer.querySelectorAll('.fb-ss-option')) : [];
+
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeFranchiseeDropdown();
+                    triggerBtn?.focus();
+                    return;
+                }
+
+                if (e.key === 'ArrowDown' && optionEls.length > 0) {
+                    e.preventDefault();
+                    highlightedDropdownIndex = (highlightedDropdownIndex + 1) % optionEls.length;
+                    optionEls.forEach((el, idx) => el.classList.toggle('is-highlighted', idx === highlightedDropdownIndex));
+                    optionEls[highlightedDropdownIndex]?.scrollIntoView({ block: 'nearest' });
+                    return;
+                }
+
+                if (e.key === 'ArrowUp' && optionEls.length > 0) {
+                    e.preventDefault();
+                    highlightedDropdownIndex = highlightedDropdownIndex <= 0 ? optionEls.length - 1 : highlightedDropdownIndex - 1;
+                    optionEls.forEach((el, idx) => el.classList.toggle('is-highlighted', idx === highlightedDropdownIndex));
+                    optionEls[highlightedDropdownIndex]?.scrollIntoView({ block: 'nearest' });
+                    return;
+                }
+
+                if (e.key === 'Enter' && optionEls.length > 0) {
+                    e.preventDefault();
+                    const targetEl = optionEls[highlightedDropdownIndex >= 0 ? highlightedDropdownIndex : 0];
+                    const selectedVal = targetEl?.getAttribute('data-value');
+                    if (selectedVal) {
+                        selectFranchiseeFromDropdown(selectedVal, true);
+                    }
+                }
+            });
+        }
+
+        if (dropdownSearchClear && dropdownSearchInput) {
+            dropdownSearchClear.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdownSearchInput.value = '';
+                dropdownSearchClear.style.display = 'none';
+                renderFranchiseeDropdownOptions('');
+                dropdownSearchInput.focus();
+            });
+        }
+
+        if (window.__fbDropdownDocClickHandler) {
+            document.removeEventListener('click', window.__fbDropdownDocClickHandler);
+        }
+        window.__fbDropdownDocClickHandler = (e) => {
+            if (dropdownWrap && !dropdownWrap.contains(e.target)) {
+                closeFranchiseeDropdown();
+            }
+        };
+        document.addEventListener('click', window.__fbDropdownDocClickHandler);
 
         // 2. Quick Period Buttons (Scoped specifically to .fb-period-group)
         document.querySelectorAll('.fb-period-group .fb-pill-btn').forEach(btn => {
