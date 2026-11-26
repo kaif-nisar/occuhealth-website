@@ -23,6 +23,31 @@ import { User } from '../models/user.model.js';
 import { isAdminActor } from '../services/bookingFinance.service.js';
 import { resolveNablLogoForReport, applyNablLogoToPdf } from '../utils/nablLogoHelper.js';
 import { sanitizeNablSettings } from '../services/nablLogoSettings.service.js';
+import {
+    generateReportFormat5Pdf,
+    generateReportFormat5PdfBuffer
+} from './reportFormat5Pdf.controller.js';
+
+// Shared dependency bundle injected into standalone Format 5 PDF controller
+const getFormat5PdfDeps = () => ({
+    withQueuedPdfPage,
+    waitForPdfDocumentReady,
+    renderPdfWithFallback,
+    inlinePdfHtmlSegments,
+    flattenPdfToSecureBuffer,
+    addBackgroundToPdf,
+    buildPdfFilename,
+    finitePdfNumber,
+    parseBooleanSetting,
+    enforceSecureReportPdf,
+    sanitizeNablSettings,
+    resolveNablLogoForReport,
+    applyNablLogoToPdf,
+    mergePdfWithBookingAttachments,
+    customization,
+    reports,
+    defaultpdfsetting,
+});
 
 // Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -686,6 +711,8 @@ const isTopLevelPdfSection = ($el) => {
 
 const sanitizePdfHtmlContent = (html) => {
     if (!html || typeof html !== 'string') return html;
+    // Format 5 uses its own 4-column semantic table structure and sanitizer
+    if (/oh5-category-section|oh5-results-table/.test(html)) return html;
     try {
         const $ = cheerio.load(html, null, false);
 
@@ -2678,6 +2705,22 @@ const getpdfcontroller = async (req, res) => {
             });
         };
 
+        if (mergedValues.pdfformat === "reportFormat5") {
+            const explicitRowSpacing =
+                req.body?.RowSpacing !== undefined && req.body?.RowSpacing !== null && req.body?.RowSpacing !== ""
+                    ? Number(req.body.RowSpacing)
+                    : undefined;
+            const resolvedFormat5RowSpacing = Number.isFinite(explicitRowSpacing)
+                ? explicitRowSpacing
+                : (defaultSettings?.RowSpacing ?? gettingcustomization?.RowSpacing ?? 1);
+            await generateReportFormat5Pdf(
+                { ...mergedValues, RowSpacing: resolvedFormat5RowSpacing, user: req.user },
+                getFormat5PdfDeps()
+            );
+            await recordAuditIfDelivered();
+            return;
+        }
+
         if (mergedValues.pdfformat === "reportFormat4") {
             await pdfgeneratorcontroller3(mergedValues);
             await recordAuditIfDelivered();
@@ -2945,6 +2988,18 @@ async function generateSinglePdfBuffer(mergedValues, user) {
         pdfformat = user.pdfFormat;
     } else {
         pdfformat = user?.createdBy?.pdfFormat || user?.pdfFormat;
+    }
+
+    if (pdfformat === "reportFormat5") {
+        return await generateReportFormat5PdfBuffer(
+            {
+                ...mergedValues,
+                pdfformat,
+                layerone: user?.tenantId?.modelType === "1layer",
+                user,
+            },
+            getFormat5PdfDeps()
+        );
     }
 
     const format3 = pdfformat === "reportFormat3" ? true : false;
@@ -3558,6 +3613,26 @@ const getpdfcontrolleruser = async (req, res) => {
             mergedValues.layerone = true;
         }
         mergedValues.nablLogoUrl = resolvedUserNablLogoUrl;
+
+        // If QR request omitted pdfFormat, resolve the tenant admin's assigned format from DB
+        if (!mergedValues.pdfformat && mergedValues.tenantId) {
+            const tenantAdmin = await User.findOne({ tenantId: mergedValues.tenantId, role: "admin" })
+                .select("pdfFormat")
+                .lean();
+            if (tenantAdmin?.pdfFormat) {
+                mergedValues.pdfformat = tenantAdmin.pdfFormat;
+            }
+        }
+
+        if (mergedValues.pdfformat === "reportFormat5") {
+            await generateReportFormat5Pdf(mergedValues, getFormat5PdfDeps());
+            return;
+        }
+
+        if (mergedValues.pdfformat === "reportFormat4") {
+            await pdfgeneratorcontroller3(mergedValues);
+            return;
+        }
 
         // Generate the PDF with merged values
         await pdfgeneratorcontroller2(mergedValues);

@@ -10,6 +10,135 @@ import { defaultpdfsetting } from "../models/defaultpdfsettings.model.js";
 import { customization } from "../models/printsetting.model.js";
 import { recordButtonActionAudit } from "../services/reportActionAudit.service.js";
 import { resolveNablLogoForReport } from "../utils/nablLogoHelper.js";
+import { testSchema } from "../models/newTest.model.js";
+import { addPannel } from "../models/AddPannel.model.js";
+import { Package } from "../models/addPackage.model.js";
+
+const normalizeInvLookupKey = (value) =>
+    String(value ?? "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+
+/**
+ * Resolves compact clinical Investigation names for report headers:
+ * - For booked Tests / Panels: resolves `Short_name` (or `defaultShortName`) from DB when defined.
+ * - For booked Packages: preserves exact `packageName`.
+ * Safe fallback keeps original item names if no short name is configured.
+ */
+const resolveInvestigationShortNames = async ({ Report = null, bookingDoc = null, tenantId = null } = {}) => {
+    try {
+        const tenantFilter = tenantId ? { tenantId } : {};
+
+        // Collect raw entries preferring booking.tableData (preserves package grouping),
+        // falling back to Report.uniquetestArray or CategoryAndTest headers.
+        const rawEntries = [];
+        const bookedTable = Array.isArray(bookingDoc?.tableData) ? bookingDoc.tableData : [];
+        if (bookedTable.length > 0) {
+            bookedTable.forEach((row) => {
+                const name = String(row?.testName ?? "").trim();
+                if (name) rawEntries.push(name);
+            });
+        }
+
+        if (rawEntries.length === 0 && Array.isArray(Report?.uniquetestArray)) {
+            Report.uniquetestArray.forEach((entry) => {
+                const name = String(entry ?? "").trim();
+                if (name) rawEntries.push(name);
+            });
+        }
+
+        if (rawEntries.length === 0 && Array.isArray(Report?.CategoryAndTest)) {
+            Report.CategoryAndTest.forEach((cat) => {
+                if (cat?.packageName) rawEntries.push(String(cat.packageName).trim());
+                else if (cat?.panelName) rawEntries.push(String(cat.panelName).trim());
+                else if (cat?.title && !String(cat.title).includes("Unknown Title")) rawEntries.push(String(cat.title).trim());
+                else if (cat?.category) rawEntries.push(String(cat.category).trim());
+            });
+        }
+
+        if (rawEntries.length === 0) return [];
+
+        const [testsList, panelsList, packagesList] = await Promise.all([
+            testSchema.find(tenantFilter).select("Name Short_name defaultShortName").lean(),
+            addPannel.find(tenantFilter).select("name Short_name").lean(),
+            Package.find(tenantFilter).select("packageName").lean(),
+        ]);
+
+        const packageMap = new Map();
+        packagesList.forEach((pkg) => {
+            const pName = String(pkg?.packageName ?? "").trim();
+            if (pName) packageMap.set(normalizeInvLookupKey(pName), pName);
+        });
+
+        const panelMap = new Map();
+        panelsList.forEach((pan) => {
+            const fullName = String(pan?.name ?? "").trim();
+            const shortName = String(pan?.Short_name ?? "").trim();
+            if (fullName) {
+                panelMap.set(normalizeInvLookupKey(fullName), shortName || fullName);
+            }
+            if (shortName) {
+                panelMap.set(normalizeInvLookupKey(shortName), shortName);
+            }
+        });
+
+        const testMap = new Map();
+        testsList.forEach((tst) => {
+            const fullName = String(tst?.Name ?? "").trim();
+            const shortName = String(tst?.Short_name ?? "").trim() || String(tst?.defaultShortName ?? "").trim();
+            if (fullName) {
+                testMap.set(normalizeInvLookupKey(fullName), shortName || fullName);
+            }
+            if (shortName) {
+                testMap.set(normalizeInvLookupKey(shortName), shortName);
+            }
+        });
+
+        const resolveToken = (token) => {
+            const clean = String(token ?? "").trim();
+            if (!clean) return "";
+            const key = normalizeInvLookupKey(clean);
+            if (packageMap.has(key)) return packageMap.get(key);
+            if (panelMap.has(key)) return panelMap.get(key);
+            if (testMap.has(key)) return testMap.get(key);
+            return clean;
+        };
+
+        const resolved = [];
+        const seen = new Set();
+        const pushUnique = (val) => {
+            const clean = String(val ?? "").trim();
+            if (!clean) return;
+            const k = normalizeInvLookupKey(clean);
+            if (!seen.has(k)) {
+                seen.add(k);
+                resolved.push(clean);
+            }
+        };
+
+        rawEntries.forEach((raw) => {
+            const wholeKey = normalizeInvLookupKey(raw);
+            // Check full string first (protects package/test names that themselves contain commas)
+            if (packageMap.has(wholeKey) || panelMap.has(wholeKey) || testMap.has(wholeKey)) {
+                pushUnique(resolveToken(raw));
+                return;
+            }
+            // Otherwise split comma-joined strings (e.g. "Complete Blood Count, Liver Function Test")
+            String(raw)
+                .split(",")
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .forEach((part) => pushUnique(resolveToken(part)));
+        });
+
+        return resolved;
+    } catch (err) {
+        console.warn("Could not resolve investigation short names:", err?.message);
+        return [];
+    }
+};
 
 const PARTIALLY_COMPLETED_STATUS = "Partially Completed";
 
@@ -190,7 +319,7 @@ const SaveReportController = asyncHandler(async (req, res) => {
         }).select("status isreportready tableData testIds bookingId tenantId");
     }
 
-    const actualBookingId = existingBooking?.bookingId || resolvedBookingId;
+    const actualBookingId = String(existingBooking?.bookingId || resolvedBookingId || "").trim();
 
     // 2. Resolve existing report in reports collection
     let existingReport = null;
@@ -205,14 +334,15 @@ const SaveReportController = asyncHandler(async (req, res) => {
             bookingId: actualBookingId
         });
     }
+    if (!existingReport) {
+        // Case-insensitive regex fallback for robust matching
+        existingReport = await reports.findOne({
+            bookingId: { $regex: new RegExp(`^${actualBookingId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
+    }
     if (!existingReport && mongoose.Types.ObjectId.isValid(resolvedBookingId)) {
         existingReport = await reports.findOne({
             _id: resolvedBookingId
-        });
-    }
-    if (!existingReport && booking?._id && mongoose.Types.ObjectId.isValid(booking._id)) {
-        existingReport = await reports.findOne({
-            _id: booking._id
         });
     }
 
@@ -300,24 +430,71 @@ const SaveReportController = asyncHandler(async (req, res) => {
         updateFields.patientPhone = "";
     }
 
-    let savedREport;
-    if (existingReport?._id) {
-        // Direct update by _id prevents any E11000 duplicate key error on bookingId_1
-        savedREport = await reports.findByIdAndUpdate(
-            existingReport._id,
-            updateFields,
+    // Always guarantee bookingId and reg_id match actualBookingId
+    updateFields.bookingId = actualBookingId;
+    updateFields.reg_id = actualBookingId;
+
+    let savedREport = null;
+
+    // Helper for direct update without upsert
+    const executeDirectUpdate = async (filter) => {
+        return await reports.findOneAndUpdate(
+            filter,
+            { $set: updateFields },
             { new: true }
         );
-    } else {
-        // For new documents, match by bookingId (not bookingId + tenantId) so upsert aligns with unique index
-        savedREport = await reports.findOneAndUpdate(
-            { bookingId: actualBookingId },
-            updateFields,
-            {
-                upsert: true,
-                new: true
+    };
+
+    // Helper for upsert by bookingId with automatic duplicate key recovery
+    const executeSafeUpsert = async () => {
+        try {
+            return await reports.findOneAndUpdate(
+                { bookingId: actualBookingId },
+                { $set: updateFields },
+                {
+                    upsert: true,
+                    new: true
+                }
+            );
+        } catch (upsertErr) {
+            // E11000 duplicate key error means a document with actualBookingId already exists in the collection.
+            // Immediately resolve it via direct update without crashing!
+            if (upsertErr.code === 11000 || (upsertErr.message && upsertErr.message.includes("E11000"))) {
+                console.warn(`[SaveReportController] E11000 duplicate key on upsert for ${actualBookingId}. Resolving via direct update...`);
+                let recovered = await executeDirectUpdate({ bookingId: actualBookingId });
+                if (!recovered) {
+                    recovered = await executeDirectUpdate({
+                        bookingId: { $regex: new RegExp(`^${actualBookingId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+                    });
+                }
+                return recovered;
             }
-        );
+            throw upsertErr;
+        }
+    };
+
+    if (existingReport?._id) {
+        try {
+            savedREport = await reports.findByIdAndUpdate(
+                existingReport._id,
+                { $set: updateFields },
+                { new: true }
+            );
+        } catch (findErr) {
+            if (findErr.code === 11000 || (findErr.message && findErr.message.includes("E11000"))) {
+                console.warn(`[SaveReportController] E11000 on findByIdAndUpdate for ${actualBookingId}. Falling back to safe upsert...`);
+                savedREport = await executeSafeUpsert();
+            } else {
+                throw findErr;
+            }
+        }
+    } else {
+        savedREport = await executeSafeUpsert();
+    }
+
+    // Safety fallback: if somehow still null, attempt direct lookup
+    if (!savedREport) {
+        savedREport = await reports.findOne({ bookingId: actualBookingId });
     }
 
     if (!savedREport) {
@@ -618,12 +795,13 @@ const getReportController = asyncHandler(async (req, res) => {
     }
 
     const resolvedTenantId = Report.tenantId || tenantId;
-    const [user, usertenant, reportCustomization, tenantDefaults, bookingDoc] = await Promise.all([
+    const [user, usertenant, reportCustomization, tenantDefaults, bookingDoc, investigationShortNames] = await Promise.all([
         User.findOne({ _id: req.user._id, tenantId }).select("pdfFormat").lean(),
         Tenant.findById(resolvedTenantId).select("modelType").lean(),
         customization.findOne({ reportId: Report._id, tenantId: resolvedTenantId }).lean(),
         defaultpdfsetting.findOne({ tenantId: resolvedTenantId }).lean(),
         newBooking.findOne({ bookingId: Report.bookingId, ...(resolvedTenantId ? { tenantId: resolvedTenantId } : {}) }).select("tableData testIds").lean(),
+        resolveInvestigationShortNames({ Report, tenantId: resolvedTenantId }),
     ]);
 
     const printSettings = {
@@ -636,6 +814,11 @@ const getReportController = asyncHandler(async (req, res) => {
     responsePayload.layerOne = usertenant?.modelType || "";
     responsePayload.savedPdfLayout = reportCustomization?.htmlContent || null;
     responsePayload.bookingTableData = bookingDoc?.tableData || [];
+    // Include refined investigation short names from DB when bookingDoc wasn't loaded at initial Promise.all
+    const resolvedShortNames = (bookingDoc?.tableData?.length > 0)
+        ? await resolveInvestigationShortNames({ Report, bookingDoc, tenantId: resolvedTenantId })
+        : investigationShortNames;
+    responsePayload.investigationShortNames = resolvedShortNames;
     responsePayload.nablLogo = await resolveNablLogoForReport({
         tenantId: resolvedTenantId,
         bookingId: Report.bookingId,
@@ -671,12 +854,15 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please try again after sometime, report not found");
     }
 
-    const [user, usertenant, reportCustomization, tenantDefaults] = await Promise.all([
+    const [adminUser, fallbackUser, usertenant, reportCustomization, tenantDefaults, userBookingDoc] = await Promise.all([
+        User.findOne({ tenantId, role: "admin" }).select("pdfFormat").lean(),
         User.findOne({ tenantId }).select("pdfFormat").lean(),
         Tenant.findById(tenantId).select("modelType").lean(),
         customization.findOne({ reportId: Report._id, tenantId }).lean(),
         defaultpdfsetting.findOne({ tenantId }).lean(),
+        newBooking.findOne({ bookingId: Report.bookingId, ...(tenantId ? { tenantId } : {}) }).select("tableData testIds").lean(),
     ]);
+    const user = adminUser || fallbackUser;
     const printSettings = {
         ...(reportCustomization || {}),
         ...(tenantDefaults || {}),
@@ -685,6 +871,11 @@ const getReportControlleruser = asyncHandler(async (req, res) => {
     const responsePayload = { ...Report };
     responsePayload.pdfFormat = user?.pdfFormat || "";
     responsePayload.layerOne = usertenant?.modelType || "";
+    responsePayload.investigationShortNames = await resolveInvestigationShortNames({
+        Report,
+        bookingDoc: userBookingDoc,
+        tenantId: Report.tenantId || tenantId,
+    });
     responsePayload.nablLogo = await resolveNablLogoForReport({ tenantId: Report.tenantId || tenantId, bookingId: Report.bookingId, reportId: Report._id, user: null });
 
     return res.status(200).json({
@@ -741,5 +932,6 @@ export {
     editReportController,
     editReportsignofffieldController,
     getReportControlleruser,
-    updateReportCategorizedPdf
+    updateReportCategorizedPdf,
+    resolveInvestigationShortNames
 }

@@ -10,6 +10,7 @@
     format2: `${BASE_URL}/images/format2.png`,
     format3: `${BASE_URL}/images/format3.png`,
     format4: `${BASE_URL}/images/format4.svg`,
+    format5: `${BASE_URL}/images/format5.svg`,
   };
 
   Object.entries(formatPreviewMap).forEach(([className, imageUrl]) => {

@@ -54,10 +54,12 @@ async function loadInfoandDownloadreport() {
                 },
                 // body: JSON.stringify({ htmlContent, cssContent, header, footer, backgroundImageUrl, value1 }),
                 body: JSON.stringify({
-                    value1: patientDetails._id, labinchargesign, checkBox, labinchargeinfo, backgroundImageUrl, headermargin, footermargin, marginRight
-                    , footermargin, marginRight, marginLeft, labinchargeinfo,
+                    value1: patientDetails._id, labinchargesign, checkBox, labinchargeinfo, backgroundImageUrl, headermargin, footermargin, marginRight,
+                    marginLeft,
                     labinchargesignurl, selectedFontSize, RowSpacing, HighLow, HLinred,
-                    BoldRow, showInvest, DownloadPdf, bookingId, tenantId
+                    BoldRow, showInvest, DownloadPdf, bookingId, tenantId,
+                    pdfFormat: patientDetails.pdfFormat,
+                    layerOne: patientDetails.layerOne
                 })
             });
 
