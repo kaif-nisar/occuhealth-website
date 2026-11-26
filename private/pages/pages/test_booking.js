@@ -15,6 +15,32 @@ function printAuditBadge(booking) {
 
 // ============= Utility Functions =============
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatTestEntry(test) {
+  const testName = String(test?.testName || 'N/A').trim();
+  const sampleType = String(test?.typeOfSample || test?.sampleType || '').trim();
+  const barcode = String(test?.barcodeId || test?.confirmBarcodeId || '').trim();
+  const samplePart = sampleType ? ` (${sampleType})` : '';
+  const barcodePart = barcode ? ` - ${barcode}` : '';
+  return escapeHtml(`${testName}${samplePart}${barcodePart}`);
+}
+
+function formatGenderAndAge(booking) {
+  const genderText = booking?.gender ? String(booking.gender).trim() : 'N/A';
+  const rawAge = booking?.year;
+  const hasAge = rawAge !== undefined && rawAge !== null && String(rawAge).trim() !== '';
+  const agePart = hasAge ? ` (${String(rawAge).trim()})` : '';
+  return escapeHtml(`${genderText}${agePart}`);
+}
+
 function formatBookingDate(dateVal) {
   if (!dateVal) return 'N/A';
   const d = new Date(dateVal);
@@ -155,13 +181,15 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
     // Populate the table
     bookings.data.forEach((booking, index) => {
       // Format tests from tableData
-      const tests = Array.isArray(booking.tableData)
-        ? booking.tableData.map(test => `${test.testName} (${test.typeOfSample}) - ${test.barcodeId}`).join('<br>')
+      const tests = Array.isArray(booking.tableData) && booking.tableData.length > 0
+        ? booking.tableData.map(formatTestEntry).join('<br>')
         : 'No tests available';
 
       const sampleId = Array.isArray(booking.tableData) && booking.tableData[0]?.barcodeId
         ? booking.tableData[0].barcodeId
         : 'N/A';
+
+      const genderDisplay = formatGenderAndAge(booking);
 
       const row = document.createElement('tr');
 
@@ -186,19 +214,19 @@ async function fetchBookings(startDate = '', endDate = '', franchiseeId = '') {
 
       row.innerHTML = `
             <td class="p-3 border">${index + 1}</td>
-            <td class="p-3 border"><a href="#" class="text-blue-600 hover:underline font-medium">${booking.bookingId}</a></td>
+            <td class="p-3 border"><a href="#" class="text-blue-600 hover:underline font-medium">${escapeHtml(booking.bookingId)}</a></td>
             <td class="p-3 border whitespace-nowrap">
-              <div class="font-medium text-gray-800">${formatBookingDate(booking.date || booking.createdAt)}</div>
-              <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><i class="fa-regular fa-clock text-[10px]"></i>${formatBookingTime(booking.time, booking.createdAt)}</div>
+              <div class="font-medium text-gray-800">${escapeHtml(formatBookingDate(booking.date || booking.createdAt))}</div>
+              <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><i class="fa-regular fa-clock text-[10px]"></i>${escapeHtml(formatBookingTime(booking.time, booking.createdAt))}</div>
             </td>
-            <td class="p-3 border">${booking.patientName}</td>
-            <td class="p-3 border">${booking.gender} (${booking.year})</td>
+            <td class="p-3 border">${escapeHtml(booking.patientName)}</td>
+            <td class="p-3 border">${genderDisplay}</td>
             <td class="p-3 border text-sm">${tests}</td>
-            <td class="p-3 border font-mono text-sm">${sampleId || 'N/A'}</td>
-            <td class="p-3 border font-bold">${booking.status}</td>
+            <td class="p-3 border font-mono text-sm">${escapeHtml(sampleId || 'N/A')}</td>
+            <td class="p-3 border font-bold">${escapeHtml(booking.status)}</td>
             <td class="p-3 border" style="text-align:center;white-space:nowrap;">${printAuditBadge(booking)}</td>
             <td class="p-3 border">
-              <button onclick='editpage("${booking.bookingId}")' 
+              <button onclick='editpage("${escapeHtml(booking.bookingId)}")' 
                       class="edit-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 active:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer border-0">
                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                 Edit

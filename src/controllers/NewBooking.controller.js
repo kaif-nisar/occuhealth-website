@@ -21,7 +21,7 @@ import { customization } from "../models/printsetting.model.js";
 import { transitionBookingStatus, enqueueStatusDeliveries } from "../services/bookingStatus.service.js";
 import { processBookingFinancials, completeBookingFinancials } from "../services/bookingFinance.service.js";
 
-const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.barcodeId savedDoctor savedLab isreportready printAudit actionAudit signOffAudit signedBy signedAt isSignedOff";
+const BOOKING_LIST_PROJECTION = "bookingId date time patientName patientPhone gender year doctorName labName franchisee status total createdAt updatedAt createdBy createdbyuser tableData.testName tableData.typeOfSample tableData.barcodeId savedDoctor savedLab isreportready printAudit actionAudit signOffAudit signedBy signedAt isSignedOff";
 const LAB_REPORT_TEST_SELECT = "order Name Short_name category parameters sampleType method instrument interpretation isDocumentedTest";
 const LAB_REPORT_PANEL_SELECT = "order name category testsId interpretation sample_types hideInterpretation hideMethodInstrument";
 const BOOKING_ATTACHMENT_FORMAT = "bookingAttachments";

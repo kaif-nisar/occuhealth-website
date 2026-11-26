@@ -1,121 +1,212 @@
+import mongoose from "mongoose";
 import { testTemplate } from "../models/testTemplate.model.js";
+
+function resolveTemplateActor(user = {}) {
+    const tid = user?.tenantId?._id || user?.tenantId || null;
+    const uid = user?._id || null;
+    const isTenantLabOperator =
+        user?.role === "admin" ||
+        (user?.role === "staff" && user?.parentRole === "admin");
+
+    return { tid, uid, isTenantLabOperator };
+}
 
 const saveTestTemplate = async (req, res) => {
     try {
-        const { testId, templateName, content } = req.body;
+        const { testId, templateName, content } = req.body || {};
+        const { tid, uid } = resolveTemplateActor(req.user);
 
-        const tid = req.user.tenantId._id;
-        const uid = req.user._id;
+        const cleanTestId = String(testId || "").trim();
+        const cleanTemplateName = String(templateName || "").trim();
+        const cleanContent = String(content || "").trim();
 
-        if (!testId || !templateName || !content) {
+        if (!tid || !uid) {
+            return res.status(401).json({ message: "Unauthorized request." });
+        }
+
+        if (!cleanTestId || !cleanTemplateName || !cleanContent) {
             console.error("Missing required fields");
             return res.status(400).json({ message: "testId, templateName, and content are required fields." });
         }
 
-        // Check if a document with the given testId exists
-        let templateDoc = await testTemplate.findOne({ 
-            testId,
+        if (!mongoose.Types.ObjectId.isValid(cleanTestId)) {
+            return res.status(400).json({ message: "Invalid testId." });
+        }
+
+        // Check if a document with the given testId exists for this user and tenant
+        let templateDoc = await testTemplate.findOne({
+            testId: cleanTestId,
             tenantId: tid,
             createdBy: uid
-         });
+        });
+
+        let actionMessage = "Template saved successfully.";
 
         if (templateDoc) {
-            // Document exists, add the new template to the `templates` array
-            templateDoc.templates.push({ templateName, content });
+            const existingIndex = (templateDoc.templates || []).findIndex(
+                (t) => String(t?.templateName || "").trim().toLowerCase() === cleanTemplateName.toLowerCase()
+            );
+
+            if (existingIndex >= 0) {
+                templateDoc.templates[existingIndex].templateName = cleanTemplateName;
+                templateDoc.templates[existingIndex].content = cleanContent;
+                actionMessage = "Template updated successfully.";
+            } else {
+                templateDoc.templates.push({
+                    templateName: cleanTemplateName,
+                    content: cleanContent,
+                });
+            }
         } else {
-            // Document does not exist, create a new one
             templateDoc = new testTemplate({
                 tenantId: tid,
                 createdBy: uid,
-                testId,
-                templates: [{ templateName, content }],
+                testId: cleanTestId,
+                templates: [{
+                    templateName: cleanTemplateName,
+                    content: cleanContent,
+                }],
             });
         }
 
-        // Save the document
         const saved = await templateDoc.save();
-        console.log("Saved Document:", saved);
-
         if (!saved) {
             console.error("Template not saved");
-            return res.status(400).json({ message: "Template not saved" });
+            return res.status(400).json({ message: "Template not saved." });
         }
 
         return res.status(200).json({
-            message: "Template added successfully",
-            data: templateDoc,
+            success: true,
+            message: actionMessage,
+            data: saved,
         });
     } catch (error) {
         console.error("Error adding template:", error.message);
-        return res.status(500).json({ error: "Failed to add template" });
+        return res.status(500).json({ message: "Failed to save template.", error: error.message });
     }
 };
 
 const deleteTemplateByName = async (req, res) => {
     try {
-        const { templateName } = req.body;
-        const uid = req.user._id;
-        const tid = req.user.tenantId._id;
+        const { templateName, testId } = req.body || {};
+        const { tid, uid, isTenantLabOperator } = resolveTemplateActor(req.user);
 
+        const cleanTemplateName = String(templateName || "").trim();
+        const cleanTestId = String(testId || "").trim();
 
-        if (!templateName) {
+        if (!tid || !uid) {
+            return res.status(401).json({ message: "Unauthorized request." });
+        }
+
+        if (!cleanTemplateName) {
             console.error("Missing required field: templateName");
             return res.status(400).json({ message: "templateName is a required field." });
         }
 
-        // Find the document that contains the given templateName
-        let templateDoc = await testTemplate.findOne({
-            "templates.templateName": templateName,
-            tenantId: tid,
-            createdBy: uid
-        });
-
-        if (!templateDoc) {
-            return res.status(404).json({ message: `No template found with the name "${templateName}".` });
+        if (cleanTestId && !mongoose.Types.ObjectId.isValid(cleanTestId)) {
+            return res.status(400).json({ message: "Invalid testId." });
         }
 
-        // Filter out the template with the matching templateName
-        const initialLength = templateDoc.templates.length;
+        const baseFilter = {
+            tenantId: tid,
+            "templates.templateName": cleanTemplateName,
+            ...(cleanTestId ? { testId: cleanTestId } : {}),
+        };
+
+        // Prefer current user's template document first, then tenant lab documents for admin/staff
+        let templateDoc = await testTemplate.findOne({
+            ...baseFilter,
+            createdBy: uid,
+        });
+
+        if (!templateDoc && isTenantLabOperator) {
+            templateDoc = await testTemplate.findOne(baseFilter);
+        }
+
+        if (!templateDoc) {
+            return res.status(404).json({ message: `No template found with the name "${cleanTemplateName}".` });
+        }
+
         templateDoc.templates = templateDoc.templates.filter(
-            (template) => template.templateName !== templateName
+            (template) => String(template?.templateName || "").trim() !== cleanTemplateName
         );
 
-        // Save the updated document
         const saved = await templateDoc.save();
-        console.log("Updated Document:", saved);
 
         return res.status(200).json({
             ok: true,
-            message: `Template "${templateName}" deleted successfully.`,
-            data: templateDoc,
+            message: `Template "${cleanTemplateName}" deleted successfully.`,
+            data: saved,
         });
     } catch (error) {
         console.error("Error deleting template:", error.message);
-        return res.status(500).json({ error: "Failed to delete template" });
+        return res.status(500).json({ message: "Failed to delete template.", error: error.message });
     }
 };
 
 const getTemplatesByTestId = async (req, res) => {
     try {
-        const { testId } = req.body;
+        const { testId } = req.body || {};
+        const { tid, uid, isTenantLabOperator } = resolveTemplateActor(req.user);
+        const cleanTestId = String(testId || "").trim();
 
-        const uid = req.user._id;
-        const tid = req.user.tenantId._id;
-
-        if (!testId) {
-            return res.status(200).json({ message: "testId is required." });
+        if (!tid || !uid) {
+            return res.status(401).json({ message: "Unauthorized request." });
         }
 
-        // Check if the document exists for the given testId
-        const templateDoc = await testTemplate.findOne({ 
+        if (!cleanTestId) {
+            return res.status(400).json({ message: "testId is required." });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(cleanTestId)) {
+            return res.status(400).json({ message: "Invalid testId." });
+        }
+
+        if (isTenantLabOperator) {
+            const templateDocs = await testTemplate.find({
+                tenantId: tid,
+                testId: cleanTestId,
+            }).lean();
+
+            if (!templateDocs || templateDocs.length === 0) {
+                return res.status(200).json({ message: "No templates found for this testId.", data: { templates: [] } });
+            }
+
+            // Merge templates across the lab tenant, preferring current user's versions on name collision
+            const sortedDocs = [...templateDocs].sort((a, b) => {
+                const aIsOwner = String(a?.createdBy) === String(uid) ? 0 : 1;
+                const bIsOwner = String(b?.createdBy) === String(uid) ? 0 : 1;
+                return aIsOwner - bIsOwner;
+            });
+
+            const mergedByName = new Map();
+            for (const doc of sortedDocs) {
+                for (const tpl of doc?.templates || []) {
+                    const key = String(tpl?.templateName || "").trim().toLowerCase();
+                    if (key && !mergedByName.has(key)) {
+                        mergedByName.set(key, tpl);
+                    }
+                }
+            }
+
+            return res.status(200).json({
+                message: "Templates retrieved successfully.",
+                data: {
+                    testId: cleanTestId,
+                    tenantId: tid,
+                    templates: Array.from(mergedByName.values()),
+                },
+            });
+        }
+
+        const templateDoc = await testTemplate.findOne({
             tenantId: tid,
             createdBy: uid,
-            testId
-         });
+            testId: cleanTestId,
+        }).lean();
 
         if (!templateDoc) {
-            console.log("No templates found for testId:", testId);
-            return res.status(200).json({ message: "No templates found for this testId." });
+            return res.status(200).json({ message: "No templates found for this testId.", data: { templates: [] } });
         }
 
         return res.status(200).json({
@@ -124,11 +215,12 @@ const getTemplatesByTestId = async (req, res) => {
         });
     } catch (error) {
         console.error("Error retrieving templates:", error.message);
-        return res.status(500).json({ error: "Failed to retrieve templates." });
+        return res.status(500).json({ message: "Failed to retrieve templates.", error: error.message });
     }
 };
 
-export { saveTestTemplate,
+export {
+    saveTestTemplate,
     getTemplatesByTestId,
     deleteTemplateByName
- };
+};

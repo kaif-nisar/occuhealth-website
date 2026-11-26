@@ -767,7 +767,9 @@ async function loadfunction() {
             finalButton.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    finalButton.click();
+                    if (!finalButton.disabled) {
+                        finalButton.click();
+                    }
                 }
             });
         }
@@ -776,8 +778,18 @@ async function loadfunction() {
     // ✅ CKEditor initialization with proper button setup
     const editorInstances = new Map();
     const previousContentMap = new Map(); // ✅ Global map for storing previous content
+    const pendingEditorContentMap = new Map(); // ✅ Content queued before async CKEditor mount completes
+    let ckEditorLoadPromise = null;
 
-    const initEditor = (uniqueTestId, interpretation) => {
+    function hasMeaningfulEditorContent(html) {
+        if (!html || typeof html !== "string") return false;
+        if (stripHtmlToText(html).trim()) return true;
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
+        return temp.querySelector("img, table, svg, hr, canvas") !== null;
+    }
+
+    const initEditor = (uniqueTestId, interpretation, testId = uniqueTestId) => {
         console.log("initEditor - CKEditor");
 
         const editorElement = document.querySelector(`#editorContent-${uniqueTestId}`);
@@ -787,16 +799,23 @@ async function loadfunction() {
             return;
         }
 
+        // Keep original default interpretation available immediately even while CKEditor loads
+        if (interpretation && !previousContentMap.has(uniqueTestId)) {
+            previousContentMap.set(uniqueTestId, interpretation);
+        }
+
         if (editorInstances.has(uniqueTestId)) {
             editorInstances.get(uniqueTestId).destroy()
                 .then(() => {
-                    createNewEditor(uniqueTestId, interpretation, editorElement);
+                    editorInstances.delete(uniqueTestId);
+                    createNewEditor(uniqueTestId, interpretation, editorElement, testId);
                 })
                 .catch(() => {
-                    createNewEditor(uniqueTestId, interpretation, editorElement);
+                    editorInstances.delete(uniqueTestId);
+                    createNewEditor(uniqueTestId, interpretation, editorElement, testId);
                 });
         } else {
-            createNewEditor(uniqueTestId, interpretation, editorElement);
+            createNewEditor(uniqueTestId, interpretation, editorElement, testId);
         }
     };
 
@@ -804,81 +823,120 @@ async function loadfunction() {
         if (window.CKEDITOR && window.CKEDITOR.DecoupledEditor) {
             return window.CKEDITOR;
         }
-        if (!document.querySelector('script[src*="ckeditor5"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.css";
-            document.head.appendChild(link);
+        if (ckEditorLoadPromise) {
+            return ckEditorLoadPromise;
+        }
 
-            const script = document.createElement("script");
-            script.src = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.umd.js";
-            document.head.appendChild(script);
-        }
-        for (let i = 0; i < 60; i++) {
-            if (window.CKEDITOR && window.CKEDITOR.DecoupledEditor) {
-                return window.CKEDITOR;
+        ckEditorLoadPromise = (async () => {
+            if (!document.head.querySelector('link[href*="ckeditor5"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.css";
+                document.head.appendChild(link);
             }
-            await new Promise((r) => setTimeout(r, 100));
+
+            let headScript = document.head.querySelector('script[src*="ckeditor5"]');
+            if (!headScript) {
+                await new Promise((resolve) => {
+                    const script = document.createElement("script");
+                    script.src = "https://cdn.ckeditor.com/ckeditor5/43.3.1/ckeditor5.umd.js";
+                    script.onload = resolve;
+                    script.onerror = resolve;
+                    document.head.appendChild(script);
+                    headScript = script;
+                });
+            }
+
+            for (let i = 0; i < 60; i++) {
+                if (window.CKEDITOR && window.CKEDITOR.DecoupledEditor) {
+                    return window.CKEDITOR;
+                }
+                await new Promise((r) => setTimeout(r, 100));
+            }
+            return window.CKEDITOR || null;
+        })();
+
+        const ck = await ckEditorLoadPromise;
+        if (!ck || !ck.DecoupledEditor) {
+            ckEditorLoadPromise = null;
         }
-        return window.CKEDITOR || null;
+        return ck;
     }
 
-    async function createNewEditor(uniqueTestId, interpretation, editorElement) {
+    async function createNewEditor(uniqueTestId, interpretation, editorElement, testId = uniqueTestId) {
+        const fallbackInitialContent = pendingEditorContentMap.has(uniqueTestId)
+            ? pendingEditorContentMap.get(uniqueTestId)
+            : (interpretation || "");
+
         const ck = await ensureCKEditor();
         if (!ck || !ck.DecoupledEditor) {
-            console.error("CKEDITOR is not available for createNewEditor.");
+            console.error("CKEDITOR is not available for createNewEditor. Enabling contentEditable fallback.");
+            editorElement.setAttribute("contenteditable", "true");
+            if (fallbackInitialContent && !editorElement.innerHTML.trim()) {
+                editorElement.innerHTML = fallbackInitialContent;
+            }
+            pendingEditorContentMap.delete(uniqueTestId);
+            setupEditorButtons(uniqueTestId, testId);
             return;
         }
         const { DecoupledEditor } = ck;
 
+        const plugins = [
+            ck.Alignment,
+            ck.Autoformat,
+            ck.BlockQuote,
+            ck.Bold,
+            ck.Code,
+            ck.CodeBlock,
+            ck.Essentials,
+            ck.FindAndReplace,
+            ck.FontBackgroundColor,
+            ck.FontColor,
+            ck.FontFamily,
+            ck.FontSize,
+            ck.Heading,
+            ck.Highlight,
+            ck.HorizontalLine,
+            ck.ImageBlock,
+            ck.ImageCaption,
+            ck.ImageInline,
+            ck.ImageInsert,
+            ck.ImageResize,
+            ck.ImageStyle,
+            ck.ImageTextAlternative,
+            ck.ImageToolbar,
+            ck.Indent,
+            ck.IndentBlock,
+            ck.Italic,
+            ck.Link,
+            ck.LinkImage,
+            ck.List,
+            ck.ListProperties,
+            ck.MediaEmbed,
+            ck.PageBreak,
+            ck.Paragraph,
+            ck.RemoveFormat,
+            ck.SpecialCharacters,
+            ck.SpecialCharactersEssentials,
+            ck.Strikethrough,
+            ck.Subscript,
+            ck.Superscript,
+            ck.Table,
+            ck.TableToolbar,
+            ck.TextTransformation,
+            ck.TodoList,
+            ck.Underline,
+            ck.WordCount
+        ].filter(Boolean);
+
+        // Remove any stale toolbar before mounting a fresh editor instance
+        const parentNode = editorElement.parentNode;
+        if (parentNode) {
+            parentNode.querySelectorAll(":scope > .custom-toolbar").forEach((el) => el.remove());
+        }
+
         DecoupledEditor.create(editorElement, {
-            plugins: [
-                ck.Alignment,
-                ck.Autoformat,
-                ck.BlockQuote,
-                window.CKEDITOR.Bold,
-                window.CKEDITOR.Code,
-                window.CKEDITOR.CodeBlock,
-                window.CKEDITOR.Essentials,
-                window.CKEDITOR.FindAndReplace,
-                window.CKEDITOR.FontBackgroundColor,
-                window.CKEDITOR.FontColor,
-                window.CKEDITOR.FontFamily,
-                window.CKEDITOR.FontSize,
-                window.CKEDITOR.Heading,
-                window.CKEDITOR.Highlight,
-                window.CKEDITOR.HorizontalLine,
-                window.CKEDITOR.ImageBlock,
-                window.CKEDITOR.ImageCaption,
-                window.CKEDITOR.ImageInline,
-                window.CKEDITOR.ImageInsert,
-                window.CKEDITOR.ImageResize,
-                window.CKEDITOR.ImageStyle,
-                window.CKEDITOR.ImageTextAlternative,
-                window.CKEDITOR.ImageToolbar,
-                window.CKEDITOR.Indent,
-                window.CKEDITOR.IndentBlock,
-                window.CKEDITOR.Italic,
-                window.CKEDITOR.Link,
-                window.CKEDITOR.LinkImage,
-                window.CKEDITOR.List,
-                window.CKEDITOR.ListProperties,
-                window.CKEDITOR.MediaEmbed,
-                window.CKEDITOR.PageBreak,
-                window.CKEDITOR.Paragraph,
-                window.CKEDITOR.RemoveFormat,
-                window.CKEDITOR.SpecialCharacters,
-                window.CKEDITOR.SpecialCharactersEssentials,
-                window.CKEDITOR.Strikethrough,
-                window.CKEDITOR.Subscript,
-                window.CKEDITOR.Superscript,
-                window.CKEDITOR.Table,
-                window.CKEDITOR.TableToolbar,
-                window.CKEDITOR.TextTransformation,
-                window.CKEDITOR.TodoList,
-                window.CKEDITOR.Underline,
-                window.CKEDITOR.WordCount
-            ],
+            plugins,
             toolbar: {
                 items: [
                     'undo', 'redo',
@@ -925,10 +983,18 @@ async function loadfunction() {
             .then(editor => {
                 editorInstances.set(uniqueTestId, editor);
 
-                // ✅ Store original content in global map
+                // ✅ Store original content in global map; apply any queued saved value if present
                 if (interpretation) {
-                    editor.setData(interpretation);
                     previousContentMap.set(uniqueTestId, interpretation);
+                }
+
+                const initialData = pendingEditorContentMap.has(uniqueTestId)
+                    ? pendingEditorContentMap.get(uniqueTestId)
+                    : (interpretation || "");
+                pendingEditorContentMap.delete(uniqueTestId);
+
+                if (initialData) {
+                    editor.setData(initialData);
                 }
 
                 console.log(`✅ CKEditor initialized: ${uniqueTestId}`);
@@ -939,101 +1005,219 @@ async function loadfunction() {
                 editorElement.parentNode.insertBefore(toolbarContainer, editorElement);
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
 
-                // ✅ CRITICAL: Button event listeners ko editor ready hone ke BAAD attach karo
-                setupEditorButtons(uniqueTestId);
+                setupEditorButtons(uniqueTestId, testId);
             })
-            .catch(error => console.error(error));
+            .catch(error => {
+                console.error("Error creating CKEditor instance:", error);
+                editorElement.setAttribute("contenteditable", "true");
+                if (fallbackInitialContent && !editorElement.innerHTML.trim()) {
+                    editorElement.innerHTML = fallbackInitialContent;
+                }
+                pendingEditorContentMap.delete(uniqueTestId);
+                setupEditorButtons(uniqueTestId, testId);
+            });
     }
 
-    // ✅ Separate function for button setup (called AFTER editor is ready)
-    function setupEditorButtons(uniqueTestId) {
-        const test = { _id: uniqueTestId }; // Get test object reference if needed
-        // Get button references
+    // ✅ Separate function for button setup (safe to call before or after editor init)
+    function setupEditorButtons(uniqueTestId, testId = uniqueTestId) {
+        const effectiveTestId = String(testId || uniqueTestId || "").trim();
         const saveAsDefaultButton = document.querySelector(`[data-editor-id="${uniqueTestId}"][data-action="save-default"]`);
         const saveTemplateButton = document.querySelector(`[data-editor-id="${uniqueTestId}"][data-action="save-template"]`);
         const restoreDefaultButton = document.querySelector(`[data-editor-id="${uniqueTestId}"][data-action="restore-default"]`);
         const restorePreviousButton = document.querySelector(`[data-editor-id="${uniqueTestId}"][data-action="restore-previous"]`);
 
         // ✅ Save as Default
-        if (saveAsDefaultButton) {
-            saveAsDefaultButton.addEventListener("click", () => {
+        if (saveAsDefaultButton && saveAsDefaultButton.dataset.bound !== "true") {
+            saveAsDefaultButton.dataset.bound = "true";
+            saveAsDefaultButton.addEventListener("click", async () => {
+                const editorContent = getEditorContent(uniqueTestId);
+                if (!hasMeaningfulEditorContent(editorContent)) {
+                    alert("Please enter report content before saving as default.");
+                    return;
+                }
+
                 const userConfirmed = confirm("Are you sure you want to save this template as default?");
                 if (!userConfirmed) return;
 
-                const editorContent = getEditorContent(uniqueTestId);
-
-                fetch(`${BASE_URL}/api/v1/user/updateTestInterpretation`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        testId: test._id,
-                        interpretation: editorContent,
-                    }),
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data ? "Content saved as default successfully!" : "Failed to save interpretation.");
-                    })
-                    .catch(() => {
-                        alert("An error occurred while saving the interpretation.");
+                try {
+                    const response = await fetch(`${BASE_URL}/api/v1/user/updateTestInterpretation`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            testId: effectiveTestId,
+                            interpretation: editorContent,
+                        }),
                     });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        alert(data?.message || data?.error || "Failed to save default interpretation.");
+                        return;
+                    }
+                    previousContentMap.set(uniqueTestId, editorContent);
+                    alert("Content saved as default successfully!");
+                } catch {
+                    alert("An error occurred while saving the interpretation.");
+                }
             });
         }
 
         // ✅ Save Template
-        if (saveTemplateButton) {
+        if (saveTemplateButton && saveTemplateButton.dataset.bound !== "true") {
+            saveTemplateButton.dataset.bound = "true";
             saveTemplateButton.addEventListener("click", () => {
+                const initialContent = getEditorContent(uniqueTestId);
+                if (!hasMeaningfulEditorContent(initialContent)) {
+                    alert("Please enter report content in the editor before saving a template.");
+                    return;
+                }
+
+                const existingPopup = document.getElementById("lrSaveTemplatePopup");
+                if (existingPopup) {
+                    existingPopup.remove();
+                }
+
                 const popup = document.createElement("div");
-                popup.className = "popup-overlay";
+                popup.id = "lrSaveTemplatePopup";
+                popup.className = "lr-template-popup-overlay";
                 popup.innerHTML = `
-                <div class="popup-content">
-                    <h1>ADD New Template</h1>
-                    <div class="popup-form">
-                        <label for="templateName">* Template Name</label>
-                        <input type="text" id="templateName" name="templateName" placeholder="Enter template name">
+                <div class="lr-template-popup-card" role="dialog" aria-modal="true" aria-labelledby="lrSaveTemplateTitle">
+                    <div class="lr-template-popup-header">
+                        <h1 id="lrSaveTemplateTitle"><i class="fa-solid fa-bookmark"></i> Add New Template</h1>
+                        <button type="button" class="lr-template-popup-close" id="lrCloseTemplateModal" aria-label="Close">&times;</button>
                     </div>
-                    <button id="saveTemplate">Save</button>
+                    <div class="lr-template-popup-body">
+                        <div class="lr-template-popup-form">
+                            <label for="lrTemplateNameInput">* Template Name</label>
+                            <input type="text" id="lrTemplateNameInput" name="templateName" placeholder="Enter template name" autocomplete="off">
+                        </div>
+                        <div class="lr-template-popup-error" id="lrTemplateModalError"></div>
+                    </div>
+                    <div class="lr-template-popup-footer">
+                        <button type="button" class="lr-template-cancel-btn" id="lrCancelTemplateModal">Cancel</button>
+                        <button type="button" class="lr-template-save-btn" id="saveTemplate">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Template
+                        </button>
+                    </div>
                 </div>
             `;
 
                 document.body.appendChild(popup);
 
+                const nameInput = popup.querySelector("#lrTemplateNameInput");
+                const errorBox = popup.querySelector("#lrTemplateModalError");
                 const saveButton = popup.querySelector("#saveTemplate");
-                saveButton.addEventListener("click", () => {
-                    const templateName = document.getElementById("templateName").value;
-                    const editorContent = getEditorContent(uniqueTestId);
+                const closeBtn = popup.querySelector("#lrCloseTemplateModal");
+                const cancelBtn = popup.querySelector("#lrCancelTemplateModal");
 
-                    fetch(`${BASE_URL}/api/v1/user/saveTestTemplate`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            testId: test._id,
-                            templateName,
-                            content: editorContent,
-                        }),
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            alert(data.message || "Template saved successfully!");
-                            popup.remove();
-                            addNewTemplate(templateName, editorContent, uniqueTestId);
-                            fetchTemplates(uniqueTestId, test._id);
-                        })
-                        .catch(() => {
-                            alert("Failed to save template.");
-                        });
-                });
+                const showModalError = (msg) => {
+                    if (!errorBox) return;
+                    if (!msg) {
+                        errorBox.style.display = "none";
+                        errorBox.textContent = "";
+                    } else {
+                        errorBox.textContent = msg;
+                        errorBox.style.display = "block";
+                    }
+                };
 
+                const closeModal = () => {
+                    document.removeEventListener("keydown", onKeyDown);
+                    popup.remove();
+                };
+
+                const onKeyDown = (event) => {
+                    if (event.key === "Escape") {
+                        closeModal();
+                    }
+                };
+                document.addEventListener("keydown", onKeyDown);
+
+                if (closeBtn) closeBtn.addEventListener("click", closeModal);
+                if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
                 popup.addEventListener("click", (event) => {
                     if (event.target === popup) {
-                        popup.remove();
+                        closeModal();
                     }
                 });
+
+                let isSavingTemplate = false;
+                const handleSaveTemplate = async () => {
+                    if (isSavingTemplate) return;
+
+                    const templateName = String(nameInput?.value || "").trim();
+                    const editorContent = getEditorContent(uniqueTestId);
+
+                    if (!templateName) {
+                        showModalError("Please enter a template name.");
+                        nameInput?.focus();
+                        return;
+                    }
+
+                    if (!hasMeaningfulEditorContent(editorContent)) {
+                        showModalError("Template content cannot be empty. Please write report content first.");
+                        return;
+                    }
+
+                    if (!effectiveTestId) {
+                        showModalError("Unable to identify test ID for this documented report.");
+                        return;
+                    }
+
+                    showModalError("");
+                    isSavingTemplate = true;
+                    saveButton.disabled = true;
+                    const originalBtnHtml = saveButton.innerHTML;
+                    saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+                    try {
+                        const response = await fetch(`${BASE_URL}/api/v1/user/saveTestTemplate`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                testId: effectiveTestId,
+                                templateName,
+                                content: editorContent,
+                            }),
+                        });
+
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            showModalError(data?.message || data?.error || "Failed to save template.");
+                            return;
+                        }
+
+                        closeModal();
+                        loadedTemplateEditors.add(uniqueTestId);
+                        await fetchTemplates(uniqueTestId, effectiveTestId);
+                        alert(data?.message || "Template saved successfully!");
+                    } catch (err) {
+                        console.error("Save template error:", err);
+                        showModalError("Failed to save template. Please check your connection and try again.");
+                    } finally {
+                        isSavingTemplate = false;
+                        if (document.body.contains(saveButton)) {
+                            saveButton.disabled = false;
+                            saveButton.innerHTML = originalBtnHtml;
+                        }
+                    }
+                };
+
+                saveButton.addEventListener("click", handleSaveTemplate);
+                if (nameInput) {
+                    nameInput.addEventListener("keydown", (event) => {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleSaveTemplate();
+                        }
+                    });
+                    setTimeout(() => nameInput.focus(), 0);
+                }
             });
         }
 
         // ✅ Restore Default
-        if (restoreDefaultButton) {
+        if (restoreDefaultButton && restoreDefaultButton.dataset.bound !== "true") {
+            restoreDefaultButton.dataset.bound = "true";
             restoreDefaultButton.addEventListener("click", () => {
                 const defaultContent = previousContentMap.get(uniqueTestId);
                 if (defaultContent) {
@@ -1046,7 +1230,8 @@ async function loadfunction() {
         }
 
         // ✅ Restore Previous
-        if (restorePreviousButton) {
+        if (restorePreviousButton && restorePreviousButton.dataset.bound !== "true") {
+            restorePreviousButton.dataset.bound = "true";
             restorePreviousButton.addEventListener("click", () => {
                 const previousContent = previousContentMap.get(`${uniqueTestId}_previous`);
                 if (previousContent) {
@@ -1063,31 +1248,41 @@ async function loadfunction() {
     function getEditorContent(uniqueTestId) {
         const editor = editorInstances.get(uniqueTestId);
 
-        if (!editor) {
-            console.warn(`Editor not found for: ${uniqueTestId}`);
-            return '';
+        if (editor) {
+            try {
+                const data = editor.getData();
+                return data || '';
+            } catch (error) {
+                console.error(`Error getting editor data for ${uniqueTestId}:`, error);
+                return '';
+            }
         }
 
-        try {
-            const data = editor.getData();
-            return data || '';
-        } catch (error) {
-            console.error(`Error getting editor data for ${uniqueTestId}:`, error);
-            return '';
+        if (pendingEditorContentMap.has(uniqueTestId)) {
+            return pendingEditorContentMap.get(uniqueTestId) || '';
         }
+
+        const domEl = document.getElementById(`editorContent-${uniqueTestId}`);
+        return domEl?.innerHTML || '';
     }
 
     // Helper function: Set editor content safely
     function setEditorContent(uniqueTestId, content) {
+        const normalizedContent = content || '';
         const editor = editorInstances.get(uniqueTestId);
 
         if (!editor) {
-            console.warn(`Editor not found for: ${uniqueTestId}`);
-            return false;
+            pendingEditorContentMap.set(uniqueTestId, normalizedContent);
+            const domEl = document.getElementById(`editorContent-${uniqueTestId}`);
+            if (domEl && domEl.getAttribute("contenteditable") === "true") {
+                domEl.innerHTML = normalizedContent;
+            }
+            return true;
         }
 
         try {
-            editor.setData(content || '');
+            pendingEditorContentMap.delete(uniqueTestId);
+            editor.setData(normalizedContent);
             return true;
         } catch (error) {
             console.error(`Error setting editor data for ${uniqueTestId}:`, error);
@@ -1098,6 +1293,7 @@ async function loadfunction() {
     // ✅ Modified fetchTemplates function
     async function fetchTemplates(uniqueTestId, testId) {
         const apiDataDiv = document.querySelector(`#apiData-${uniqueTestId}`);
+        if (!apiDataDiv) return;
 
         try {
             const response = await fetch(`${BASE_URL}/api/v1/user/getTemplatesByTestId`, {
@@ -1107,7 +1303,9 @@ async function loadfunction() {
             });
 
             if (!response.ok) {
-                console.log(`HTTP error! status: ${response.status}`);
+                console.warn(`HTTP error fetching templates! status: ${response.status}`);
+                apiDataDiv.innerHTML = "No templates available.";
+                return;
             }
 
             const responseData = await response.json();
@@ -1117,7 +1315,7 @@ async function loadfunction() {
                 apiDataDiv.innerHTML = "No templates available.";
             } else {
                 apiDataDiv.innerHTML = "";
-                templates.forEach((template) => addTemplate(template, uniqueTestId));
+                templates.forEach((template) => addTemplate(template, uniqueTestId, testId));
             }
         } catch (error) {
             console.error("Error fetching templates:", error);
@@ -1126,15 +1324,17 @@ async function loadfunction() {
     }
 
     // ✅ Modified addTemplate function with proper event handling
-    function addTemplate(template, uniqueTestId) {
+    function addTemplate(template, uniqueTestId, testId = uniqueTestId) {
         const apiDataDiv = document.querySelector(`#apiData-${uniqueTestId}`);
+        if (!apiDataDiv) return;
+
         const templateDiv = document.createElement("div");
         templateDiv.className = "template-item";
 
         const templateNameSpan = document.createElement("span");
         templateNameSpan.textContent = template.templateName;
         templateNameSpan.style.cursor = "pointer";
-        templateNameSpan.setAttribute("title", "Double click to choose");
+        templateNameSpan.setAttribute("title", "Click to apply template");
 
         // ✅ Template apply karne par previous content save karo
         templateNameSpan.addEventListener("click", () => {
@@ -1154,31 +1354,47 @@ async function loadfunction() {
         deleteIcon.style.cursor = "pointer";
         deleteIcon.style.color = "red";
         deleteIcon.style.marginLeft = "10px";
-        deleteIcon.setAttribute("title", "Double click to delete template");
+        deleteIcon.setAttribute("title", "Click to delete template");
 
-        deleteIcon.addEventListener("click", () => deleteTemplate(template.templateName, templateDiv));
+        deleteIcon.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteTemplate(template.templateName, templateDiv, uniqueTestId, testId);
+        });
 
         templateDiv.appendChild(templateNameSpan);
         templateDiv.appendChild(deleteIcon);
         apiDataDiv.appendChild(templateDiv);
     }
 
-    function addNewTemplate(templateName, content, uniqueTestId) {
+    function addNewTemplate(templateName, content, uniqueTestId, testId = uniqueTestId) {
         const template = { templateName, content };
-        addTemplate(template, uniqueTestId);
+        addTemplate(template, uniqueTestId, testId);
     }
 
-    function deleteTemplate(templateName, templateDiv) {
+    function deleteTemplate(templateName, templateDiv, uniqueTestId = null, testId = null) {
+        if (!confirm(`Are you sure you want to delete the template "${templateName}"?`)) {
+            return;
+        }
+
         fetch(`${BASE_URL}/api/v1/user/deleteTemplateByName`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ templateName }),
+            body: JSON.stringify({
+                templateName,
+                ...(testId ? { testId } : {}),
+            }),
         })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.ok) {
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.ok) {
                     alert(data.message || "Template deleted successfully!");
                     templateDiv.remove();
+                    if (uniqueTestId) {
+                        const apiDataDiv = document.querySelector(`#apiData-${uniqueTestId}`);
+                        if (apiDataDiv && apiDataDiv.querySelectorAll(".template-item").length === 0) {
+                            apiDataDiv.innerHTML = "No templates available.";
+                        }
+                    }
                 } else {
                     alert(data.message || "Failed to delete template.");
                 }
@@ -1268,13 +1484,18 @@ async function loadfunction() {
             if (!test) continue;
             if (test.isDocumentedTest) {
                 console.log("documented test");
-                const uniqueTestId = `${test._id}`; // Combine test._id and test.order for unique ID
-                const row = document.createElement("tr");
-                row.setAttribute("data-order", test.order);
-                row.setAttribute("data-id", test._id);
+                const testIdStr = String(test._id || "").trim();
+                let uniqueTestId = testIdStr;
+                let dupCounter = 1;
+                while (document.getElementById(`editorContent-${uniqueTestId}`) || editorInstances.has(uniqueTestId)) {
+                    dupCounter += 1;
+                    uniqueTestId = `${testIdStr}__dup${dupCounter}`;
+                }
 
                 const detailsRow = document.createElement("tr");
                 detailsRow.setAttribute("data-order", test.order);
+                detailsRow.setAttribute("data-id", testIdStr);
+                detailsRow.setAttribute("data-test-name", test.Name || test.Short_name || "");
                 const pagebreakcell = document.createElement("td");
                 pagebreakcell.innerHTML = '<input type="checkbox" id="pagebreak" name="pagebreak" tabindex="-1">';
                 const detailsCell = document.createElement("td");
@@ -1293,7 +1514,7 @@ async function loadfunction() {
                 apiDataDiv.id = `apiData-${uniqueTestId}`;
                 apiDataDiv.className = "api-data";
                 apiDataDiv.style.marginTop = "10px";
-                apiDataDiv.textContent = "Templates load on demand.";
+                apiDataDiv.textContent = "Loading templates...";
                 detailsDiv.appendChild(apiDataDiv);
 
                 const buttonsDiv = document.createElement("div");
@@ -1301,6 +1522,7 @@ async function loadfunction() {
 
                 const createButton = (text, className, clickHandler, iconHTML = null) => {
                     const button = document.createElement("button");
+                    button.type = "button";
                     button.className = className;
                     button.style.marginRight = "10px";
 
@@ -1370,12 +1592,14 @@ async function loadfunction() {
                     }
 
                     loadedTemplateEditors.add(uniqueTestId);
-                    apiDataDiv.textContent = "Loading additional data...";
-                    await fetchTemplates(uniqueTestId, test._id);
+                    apiDataDiv.textContent = "Loading templates...";
+                    await fetchTemplates(uniqueTestId, testIdStr);
                 };
 
                 setTimeout(() => {
-                    initEditor(uniqueTestId, test.interpretation);
+                    setupEditorButtons(uniqueTestId, testIdStr);
+                    initEditor(uniqueTestId, test.interpretation, testIdStr);
+                    ensureTemplatesLoaded();
                 }, 0);
 
                 detailsDiv.addEventListener("focusin", ensureTemplatesLoaded, { once: true });
@@ -2480,14 +2704,8 @@ async function loadfunction() {
                     checkbox.checked = matchingData?.pagebreak || false;
 
                     if (matchingData) {
-                        // ✅ CKEditor में content set karna
-                        // Pehle check karo ki editor ready hai ya nahi
-                        setTimeout(() => {
-                            const success = setEditorContent(uniqueTestId, matchingData.currentvalue);
-                            if (!success) {
-                                console.warn(`Failed to set content for editor: ${uniqueTestId}`);
-                            }
-                        }, 1500); // Editor initialize hone ka time do
+                        // Queue or apply content immediately once CKEditor is mounted
+                        setEditorContent(uniqueTestId, matchingData.currentvalue);
                     }
                 }
             }
@@ -3378,7 +3596,7 @@ async function loadfunction() {
                     const editorId = editorContainer.id;
                     const uniqueTestId = editorId.replace('editorContent-', '');
                     editorContent = sanitizeDetailsHtml(getEditorContent(uniqueTestId));
-                    if (!isBlankOrDotOnlyValue(stripHtmlToText(editorContent))) {
+                    if (hasMeaningfulEditorContent(editorContent) && !isBlankOrDotOnlyValue(stripHtmlToText(editorContent) || (hasMeaningfulEditorContent(editorContent) ? "media" : ""))) {
                         isDocumented = true;
                         tableHasMeaningfulRows = true;
                         reportMeta.hasMeaningfulRows = true;
@@ -3391,7 +3609,7 @@ async function loadfunction() {
                     const isParameter = row.querySelector("#parameters") !== null;
                     const isMultiHeader = row.querySelector(".test-name") !== null && (valueInput === null || valueInput === "") && !isParameter && !isDocumented;
                     const hasMeaningfulValue = !isBlankOrDotOnlyValue(valueInput);
-                    const hasDocumentedContent = !isBlankOrDotOnlyValue(stripHtmlToText(editorContent));
+                    const hasDocumentedContent = isDocumented || (hasMeaningfulEditorContent(editorContent) && !isBlankOrDotOnlyValue(stripHtmlToText(editorContent)));
 
                     // Blank result rows should not travel to the backend, but the report still needs
                     // the rest of the table structure to stay intact.
@@ -3818,7 +4036,7 @@ async function loadfunction() {
 
                 console.log(`Checking editor: ${uniqueTestId}`, editorContent); // Debug
 
-                if (!isBlankOrDotOnlyValue(sanitizedEditorValue)) {
+                if (!isBlankOrDotOnlyValue(sanitizedEditorValue) || hasMeaningfulEditorContent(editorContent)) {
                     isdocumented = true;
                     const data = {
                         currentvalue: editorContent,
@@ -3926,12 +4144,34 @@ async function loadfunction() {
 
     // Add an event listener for the submit button to trigger the API call
     const finalBtn = document.getElementById("finalBtn");
+    let isFinalizing = false;
     if (finalBtn) {
         finalBtn.addEventListener("click", async (event) => {
             event.preventDefault(); // Prevent default form submission
-            await checkFields(true);
-            await editdoctorsvisibility();
-            await saveTablesToDatabase(true);
+            if (isFinalizing) return;
+            isFinalizing = true;
+            finalBtn.disabled = true;
+            const originalHtml = finalBtn.innerHTML;
+            finalBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Finalizing...`;
+
+            try {
+                const returned = await checkFields(true);
+                if (returned === false) {
+                    finalBtn.disabled = false;
+                    finalBtn.innerHTML = originalHtml;
+                    isFinalizing = false;
+                    return;
+                }
+                await editdoctorsvisibility();
+                await saveTablesToDatabase(true);
+            } catch (err) {
+                console.error("Error finalizing report:", err);
+                alert(err?.message || "An error occurred while finalizing the report.");
+            } finally {
+                isFinalizing = false;
+                finalBtn.disabled = false;
+                finalBtn.innerHTML = originalHtml;
+            }
         });
     }
 
