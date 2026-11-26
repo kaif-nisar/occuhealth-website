@@ -128,6 +128,20 @@
         color: white;
     }
 
+    .popup-buttons .lose-btn {
+        background-color: #d97706;
+        color: white;
+    }
+
+    .popup-buttons .lose-btn.is-highlighted {
+        box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35);
+    }
+
+    .popup-buttons .accept-btn.is-already-accepted {
+        background-color: #94a3b8;
+        cursor: not-allowed;
+    }
+
     .popup-buttons .close-btn {
         background-color: #6c757d;
         color: white;
@@ -135,6 +149,50 @@
 
     .popup-buttons button:hover {
         opacity: 0.9;
+    }
+
+    .popup-buttons button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .popup-notice {
+        margin-top: 12px;
+        margin-bottom: 4px;
+        padding: 12px 14px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        text-align: left;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .popup-notice.warning {
+        background-color: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-left: 4px solid #d97706;
+        color: #92400e;
+    }
+
+    .popup-notice.error {
+        background-color: #fee2e2;
+        border: 1px solid #ef4444;
+        border-left: 4px solid #dc2626;
+        color: #991b1b;
+    }
+
+    .popup-notice i {
+        margin-top: 3px;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .popup-notice-title {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 2px;
     }
 
     .text {
@@ -190,6 +248,7 @@
     <div class="popup-overlay" id="popupOverlay">
         <div class="popup-content">
             <h3 id="popupTitle">Booking Information</h3>
+            <div id="popupNotice" class="popup-notice" style="display: none;" role="alert"></div>
             <div id="popupMessage" class="popup-message">
 
             </div>
@@ -198,7 +257,7 @@
                         class="fa-regular fa-circle-check"></i>Accept</button>
                 <button class="reject-btn" id="rejectBtn" onclick="rejectBooking()"><i
                         class="fa-regular fa-square-minus"></i>Reject</button>
-                <button class="reject-btn" id="rejectBtnbarcode" onclick="rejectBarcode()"><i
+                <button class="lose-btn" id="rejectBtnbarcode" onclick="rejectBarcode()"><i
                         class="fa-solid fa-barcode"></i>Lose</button>
                 <button class="close-btn" onclick="closePopup()"><i class="fa-solid fa-circle-xmark"></i>Close</button>
             </div>

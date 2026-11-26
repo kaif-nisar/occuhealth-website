@@ -3023,49 +3023,141 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
 
     const { barcode, status, bookingId } = req.body;
     const tenantId = req.user.tenantId._id;
+    const barcodeValue = String(barcode?.barcode || "").trim();
+    const cleanBookingId = String(bookingId || "").trim();
 
-    // Check if barcode already exists in another booking
-    const existingBarcode = await acceptedBarcode.findOne({
-        tenantId,
-        bookingId: { $ne: bookingId },
-        "barcodes.barcode": barcode.barcode,
-        status: { $ne: "cancelled" }
-    }).select("_id").lean();
-
-    if (existingBarcode) {
-        console.log("booking already present in another booking");
-        return res.status(400).json({ message: "This barcode is already accepted in another booking." });
+    if (!barcodeValue || !cleanBookingId) {
+        return res.status(400).json({
+            success: false,
+            message: "Barcode ID and Booking ID are required."
+        });
     }
 
+    if (!status || status.toLowerCase() !== "pending") {
+        return res.status(400).json({
+            success: false,
+            message: "Booking not accepted. Please try again."
+        });
+    }
 
-    await acceptedBarcode.updateOne(
-        {
+    const targetBooking = await newBooking.findOne({
+        tenantId,
+        bookingId: cleanBookingId
+    }).select("patientName bookingId status").lean();
+
+    if (!targetBooking) {
+        return res.status(404).json({
+            success: false,
+            message: "Booking not found."
+        });
+    }
+
+    const currentStatusLower = String(targetBooking.status || "").trim().toLowerCase();
+    if (currentStatusLower === "cancelled" || currentStatusLower === "canceled") {
+        return res.status(400).json({
+            success: false,
+            message: "This booking has been cancelled and its sample cannot be accepted."
+        });
+    }
+
+    // Check if barcode is already accepted in this booking
+    const alreadyAcceptedInBooking = await acceptedBarcode.findOne({
+        tenantId,
+        bookingId: cleanBookingId,
+        "barcodes.barcode": barcodeValue
+    }).select("_id barcodes").lean();
+
+    if (alreadyAcceptedInBooking) {
+        const acceptedEntry = (alreadyAcceptedInBooking.barcodes || []).find(
+            (item) => String(item?.barcode || "").trim() === barcodeValue
+        );
+        return res.status(409).json({
+            success: false,
+            alreadyAccepted: true,
+            canLose: true,
+            acceptedAt: acceptedEntry?.createdAt || acceptedEntry?.updatedAt || null,
+            message: "Not accepted: This sample has already been accepted. If you want to lose it, click the Lose button."
+        });
+    }
+
+    // Check if barcode already exists in another active booking
+    const otherAcceptedDocs = await acceptedBarcode.find({
+        tenantId,
+        bookingId: { $ne: cleanBookingId },
+        "barcodes.barcode": barcodeValue
+    }).select("_id bookingId").lean();
+
+    if (otherAcceptedDocs.length > 0) {
+        const otherBookingIds = otherAcceptedDocs.map((doc) => doc.bookingId).filter(Boolean);
+        const activeOtherBooking = await newBooking.findOne({
             tenantId,
-            bookingId
-        },
-        {
-            $setOnInsert: {
-                tenantId,
-                bookingId
+            bookingId: { $in: otherBookingIds },
+            status: { $nin: ["cancelled", "canceled", "Cancelled", "Canceled"] }
+        }).select("_id").lean();
+
+        if (activeOtherBooking) {
+            console.log("booking already present in another booking");
+            return res.status(409).json({
+                success: false,
+                alreadyAccepted: true,
+                inAnotherBooking: true,
+                canLose: false,
+                message: "This barcode has already been accepted in another booking."
+            });
+        }
+    }
+
+    const barcodePayload = {
+        ...barcode,
+        barcode: barcodeValue
+    };
+
+    const existingAcceptedDoc = await acceptedBarcode.findOne({
+        tenantId,
+        bookingId: cleanBookingId
+    }).select("_id").lean();
+
+    if (existingAcceptedDoc) {
+        const pushedDoc = await acceptedBarcode.findOneAndUpdate(
+            {
+                _id: existingAcceptedDoc._id,
+                "barcodes.barcode": { $ne: barcodeValue }
             },
-            $addToSet: { barcodes: barcode }
-        },
-        { upsert: true }
-    );
+            {
+                $push: { barcodes: barcodePayload }
+            },
+            { new: true }
+        );
 
-    let updatedStatus;
+        if (!pushedDoc) {
+            return res.status(409).json({
+                success: false,
+                alreadyAccepted: true,
+                canLose: true,
+                message: "Not accepted: This sample has already been accepted. If you want to lose it, click the Lose button."
+            });
+        }
+    } else {
+        await acceptedBarcode.create({
+            tenantId,
+            bookingId: cleanBookingId,
+            barcodes: [barcodePayload]
+        });
+    }
 
-    if (status && status.toLowerCase() == "pending") {
+    let updatedStatus = targetBooking;
+
+    if (currentStatusLower === "booked" || currentStatusLower === "hold" || currentStatusLower === "clinical" || !currentStatusLower) {
         updatedStatus = await newBooking.findOneAndUpdate(
             {
                 tenantId,
-                bookingId
+                bookingId: cleanBookingId
             },
             {
                 status: "pending",
                 $push: {
                     statusHistory: {
-                        previousStatus: "booked",
+                        previousStatus: targetBooking.status || "booked",
                         newStatus: "pending",
                         reason: "Barcode sample accepted",
                         changedBy: req.user._id,
@@ -3079,8 +3171,10 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
     }
 
     if (!updatedStatus) {
-        return res.status(400).json({ message: "booking no accepted, please try again" });
-        // throw new Error("status not updated");
+        return res.status(400).json({
+            success: false,
+            message: "Booking not accepted. Please try again."
+        });
     }
 
     // ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â° staff ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¾ parentUser ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¹ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥Ãƒâ€¹Ã¢â‚¬Â  ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¤ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â­ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ notify ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤Ãƒâ€šÃ‚Â°ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¥ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¡ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡
@@ -3107,7 +3201,10 @@ const updatebookingstatus = asyncHandler(async (req, res) => {
         });
     }
 
-    return res.status(200).json({ message: "this barcode sample accepted and booking status updated" });
+    return res.status(200).json({
+        success: true,
+        message: "Sample accepted successfully and booking status updated."
+    });
 })
 
 const rejectBookingcontroller = async (req, res) => {
@@ -3291,33 +3388,58 @@ const statusBookingcontroller = async (req, res) => {
 }
 
 const deleteBarcode = asyncHandler(async (req, res) => {
-    const { barcodeId } = req.body;
+    const { barcodeId, bookingId } = req.body;
     const tenantId = req.user.tenantId._id;
+    const cleanBarcodeId = String(barcodeId || "").trim();
+    const cleanBookingId = String(bookingId || "").trim();
 
-    if (!barcodeId) {
-        return res.status(400).json({ error: "barcodeId and bookingId are required" });
+    if (!cleanBarcodeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Barcode ID is required.",
+            error: "barcodeId is required"
+        });
     }
 
-    const savedBarcode = await acceptedBarcode.findOne(
-        {
+    const query = {
+        tenantId,
+        "barcodes.barcode": cleanBarcodeId,
+        status: { $ne: "cancelled" }
+    };
+    if (cleanBookingId) {
+        query.bookingId = cleanBookingId;
+    }
+
+    let savedBarcode = await acceptedBarcode.findOne(query).select("_id bookingId barcodes").lean();
+    if (!savedBarcode && cleanBookingId) {
+        savedBarcode = await acceptedBarcode.findOne({
             tenantId,
-            "barcodes.barcode": barcodeId,
+            "barcodes.barcode": cleanBarcodeId,
             status: { $ne: "cancelled" }
-        }
-    ).select("_id bookingId barcodes").lean();
+        }).select("_id bookingId barcodes").lean();
+    }
 
     if (!savedBarcode) {
-        return res.status(404).json({ message: "this barcode is not recieved" });
+        return res.status(404).json({
+            success: false,
+            message: "This sample has not been accepted yet."
+        });
     }
 
-    const barcodeExists = savedBarcode.barcodes?.some(barcode => barcode.barcode === barcodeId);
+    const barcodeExists = savedBarcode.barcodes?.some(
+        (barcode) => String(barcode?.barcode || "").trim() === cleanBarcodeId
+    );
     if (!barcodeExists) {
-        return res.status(404).json({ error: "Barcode not found" });
+        return res.status(404).json({
+            success: false,
+            message: "Sample barcode not found.",
+            error: "Barcode not found"
+        });
     }
 
     const updatedDocument = await acceptedBarcode.findByIdAndUpdate(
         savedBarcode._id,
-        { $pull: { barcodes: { barcode: barcodeId } } },
+        { $pull: { barcodes: { barcode: cleanBarcodeId } } },
         { new: true }
     );
 
@@ -3344,14 +3466,22 @@ const deleteBarcode = asyncHandler(async (req, res) => {
         });
     }
 
-    return res.status(200).json({ message: "this Barcode sample deleted successfully", updatedDocument });
+    return res.status(200).json({
+        success: true,
+        message: "Sample has been lost successfully. You can accept it again if needed.",
+        updatedDocument
+    });
 });
 
 const getbarcodebooking = asyncHandler(async (req, res) => {
-    const { barcodeId } = req.body;
+    const cleanBarcodeId = String(req.body?.barcodeId || "").trim();
     const tid = req.user.tenantId._id;
 
-    const data = await getbarcodetestsandpanels(tid, barcodeId);
+    if (!cleanBarcodeId) {
+        return res.status(400).json({ message: "Barcode ID is required." });
+    }
+
+    const data = await getbarcodetestsandpanels(tid, cleanBarcodeId);
 
     return res.status(200).json(data);
 })
@@ -3497,6 +3627,36 @@ async function getbarcodetestsandpanels(tid, barcodeId) {
     const testnames = [...new Set(allNames)];
     const testObjects = Array.from(testObjectsMap.values());
 
+    const cleanBarcodeId = String(barcodeId || "").trim();
+    const acceptedDocs = await acceptedBarcode.find({
+        tenantId: tid,
+        "barcodes.barcode": cleanBarcodeId
+    }).select("bookingId barcodes").lean();
+
+    const sameBookingAcceptedDoc = acceptedDocs.find(
+        (doc) => doc.bookingId === barcodeBooking.bookingId
+    );
+    let activeAcceptedDoc = sameBookingAcceptedDoc || null;
+    let acceptedInOtherBooking = false;
+
+    if (!activeAcceptedDoc && acceptedDocs.length > 0) {
+        const otherBookingIds = acceptedDocs.map((doc) => doc.bookingId).filter(Boolean);
+        const activeOtherBooking = await newBooking.findOne({
+            tenantId: tid,
+            bookingId: { $in: otherBookingIds },
+            status: { $nin: ["cancelled", "canceled", "Cancelled", "Canceled"] }
+        }).select("bookingId").lean();
+
+        if (activeOtherBooking) {
+            activeAcceptedDoc = acceptedDocs.find((doc) => doc.bookingId === activeOtherBooking.bookingId) || null;
+            acceptedInOtherBooking = Boolean(activeAcceptedDoc);
+        }
+    }
+
+    const acceptedEntry = (activeAcceptedDoc?.barcodes || []).find(
+        (item) => String(item?.barcode || "").trim() === cleanBarcodeId
+    );
+
     return {
         booking: barcodeBooking,
         bookedtest: barcodeobject.testName,
@@ -3504,7 +3664,10 @@ async function getbarcodetestsandpanels(tid, barcodeId) {
         sampletype: barcodeobject.typeOfSample,
         testandpannels: testnames,
         testIds: testObjects,
-        barcodeobject
+        barcodeobject,
+        isAccepted: Boolean(acceptedEntry),
+        acceptedInOtherBooking,
+        acceptedAt: acceptedEntry?.createdAt || acceptedEntry?.updatedAt || null
     };
 }
 
