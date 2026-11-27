@@ -327,7 +327,7 @@ const addsample = async (req, res) => {
 
 // create admin sample correct 
 const addsampleadmin = async (req, res) => {
-    const { Name, user } = req.body;
+    const Name = String(req.body?.Name || req.body?.sample || "").trim();
     let userId;
     if (req.user.role === 'staff') {
         userId = req.user.parentUser
@@ -413,9 +413,10 @@ const fetchsample = async (req, res) => {
 
 // admin fetch samples correct 
 const fetchsampleadmin = async (req, res) => {
-
+    const tid = req.user.tenantId?._id || req.user.tenantId;
+    if (!tid) return res.status(400).json({ message: "Tenant is not configured for this account." });
     const samples = await sampleSchema.find({
-        tenantId: req.user.tenantId._id
+        tenantId: tid
     })
         .select("Name createdBy tenantId isBaseSample originalSampleId purchasedFromBaseSample createdByRole createdAt updatedAt")
         .sort({ Name: 1, createdAt: -1 })
@@ -427,6 +428,34 @@ const fetchsampleadmin = async (req, res) => {
 
     return res.status(200).json({ message: "sample added successfully", data: samples });
 }
+
+const updateSampleTenant = asyncHandler(async (req, res) => {
+    const tid = req.user.tenantId?._id || req.user.tenantId;
+    const Name = String(req.body?.Name || "").trim();
+    if (!tid || !mongoose.Types.ObjectId.isValid(req.params.id) || !Name) {
+        return res.status(400).json({ message: "A valid sample name is required." });
+    }
+    const duplicate = await sampleSchema.findOne({ tenantId: tid, Name, _id: { $ne: req.params.id } }).lean();
+    if (duplicate) return res.status(409).json({ message: "A sample with this name already exists." });
+    const sample = await sampleSchema.findOneAndUpdate(
+        { _id: req.params.id, tenantId: tid }, { $set: { Name } }, { new: true, runValidators: true }
+    ).lean();
+    if (!sample) return res.status(404).json({ message: "Sample not found." });
+    return res.status(200).json({ message: "Sample updated successfully.", data: sample });
+});
+
+const deleteSampleTenant = asyncHandler(async (req, res) => {
+    const tid = req.user.tenantId?._id || req.user.tenantId;
+    if (!tid || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: "A valid sample is required." });
+    }
+    const sample = await sampleSchema.findOne({ _id: req.params.id, tenantId: tid }).lean();
+    if (!sample) return res.status(404).json({ message: "Sample not found." });
+    const usageCount = await testSchema.countDocuments({ tenantId: tid, sampleType: sample.Name });
+    if (usageCount) return res.status(409).json({ message: `This sample is used by ${usageCount} test(s). Reassign those tests before deleting it.` });
+    await sampleSchema.deleteOne({ _id: sample._id, tenantId: tid });
+    return res.status(200).json({ message: "Sample deleted successfully." });
+});
 // Todo: Update test interpretation
 const updateTestInterpretation = asyncHandler(async (req, res) => {
 
@@ -2281,6 +2310,8 @@ export {
     updateTestCateadmin,
     getAllTestCateadmin,
     fetchsampleadmin,
+    updateSampleTenant,
+    deleteSampleTenant,
     addUnitadmin,
     addsampleadmin,
     editTesttenant,

@@ -78,6 +78,8 @@ import {
   updateTestCateadmin,
   getAllTestCateadmin,
   fetchsampleadmin,
+  updateSampleTenant,
+  deleteSampleTenant,
   addUnitadmin,
   addsampleadmin,
   addingTesttenant,
@@ -1168,6 +1170,7 @@ router.route("/addsample").post(verifySuperAdmin, authorizeRoles(["superAdmin", 
 router.route("/addsample-tenant").post(verifyJWT, addsampleadmin);
 router.route("/fetchsample").get(verifySuperAdmin, authorizeRoles(["superAdmin", "staff"]), checkStaffPermission("canManageTest"), fetchsample);
 router.route("/fetchsample-tenant").get(verifyJWT, fetchsampleadmin);
+router.route("/samples-tenant/:id").patch(verifyJWT, checkStaffPermission('canManageTest'), updateSampleTenant).delete(verifyJWT, checkStaffPermission('canManageTest'), deleteSampleTenant);
 // Check tenant subscription status (protected - requires auth)
 router.route(
   "/check-subscription").post(

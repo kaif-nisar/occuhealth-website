@@ -116,22 +116,24 @@
             saveSampleBtn.addEventListener("click", async () => {
                 const sampleVal = newSampleNameInput.value.trim();
                 if (!sampleVal) return;
-                // Add to dropdown immediately
-                const opt = document.createElement("option");
-                opt.value = sampleVal;
-                opt.textContent = sampleVal;
-                opt.selected = true;
-                sampleTypeSelect.appendChild(opt);
-
-                sampleModal.style.display = "none";
-                showToast("Sample type added", "success");
-
-                // Background sync
-                fetch(`${BASE_URL}/api/v1/user/add-sample-tenant`, {
+                const exists = Array.from(sampleTypeSelect.options).some(option => option.value.toLowerCase() === sampleVal.toLowerCase());
+                if (exists) { showToast("This sample type already exists", "error"); return; }
+                saveSampleBtn.disabled = true;
+                try {
+                    const res = await fetch(`${BASE_URL}/api/v1/user/addsample-tenant`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ sample: sampleVal })
-                }).catch(() => {});
+                    body: JSON.stringify({ Name: sampleVal })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) { showToast(data.message || "Could not save sample type", "error"); return; }
+                    const opt = document.createElement("option");
+                    opt.value = sampleVal; opt.textContent = sampleVal; opt.selected = true;
+                    sampleTypeSelect.appendChild(opt);
+                    sampleModal.style.display = "none";
+                    showToast("Sample type added", "success");
+                } catch (error) { showToast("Could not save sample type", "error"); }
+                finally { saveSampleBtn.disabled = false; }
             });
         }
     }
