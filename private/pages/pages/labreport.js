@@ -337,74 +337,24 @@ async function loadfunction() {
         return matchedTest?.Short_name || entryName;
     }
 
-    // ✅ Investigations ke liye booked naam (booking.tableData.testName) use hote hain —
-    //    jaisa book hua waisa hi. Package book hua ho to sirf package ka naam aata hai,
-    //    uske andar ke test/panel spread ho kar nahi aate. Sirf wahi barcode count hote hain
-    //    jo receive (accept) ho chuke hain.
-    function getBookedInvestigationNames() {
-        const tableRows = Array.isArray(booking?.tableData) ? booking.tableData : [];
-        const receivedSet = new Set(
-            receivedBarcodeIds
-                .map((id) => normalizeShortName(id))
-                .filter(Boolean)
-        );
+    function buildInvestigationHeaderList(singleTests = [], panels = []) {
+        // Use the resolved investigations returned by the booking endpoint.
+        // booking.tableData.testName can contain only the package label, which
+        // hides its actual tests and panels from the report page summary.
+        const bookedNames = [
+            ...singleTests.map((test) => test?.Name).filter(Boolean),
+            ...panels.map((panel) => panel?.name).filter(Boolean)
+        ];
+        const seen = new Set();
 
-        if (tableRows.length === 0 || receivedSet.size === 0) {
-            return [];
-        }
-
-        const bookedNames = [];
-
-        tableRows.forEach((row) => {
-            const rowBarcodes = [row?.barcodeId, row?.confirmBarcodeId]
-                .map((value) => normalizeShortName(value))
-                .filter(Boolean);
-            const isReceivedRow = rowBarcodes.some((rowBarcode) => receivedSet.has(rowBarcode));
-
-            if (!isReceivedRow) {
-                return;
-            }
-
-            String(row?.testName ?? "")
-                .split(",")
-                .map((name) => name.trim())
-                .filter(Boolean)
-                .forEach((name) => {
-                    if (!bookedNames.includes(name)) {
-                        bookedNames.push(name);
-                    }
-                });
-        });
-
-        return bookedNames;
-    }
-
-    function buildInvestigationHeaderList(singleTests = []) {
-        // ✅ Pehla aur sahi source: booking.tableData se booked naam. Isse package
-        //    book hone par sirf package ka naam dikhta hai (Andar ke tests/panels
-        //    alag-alag spread ho kar nahi dikhte).
-        const bookedInvestigationNames = getBookedInvestigationNames();
-
-        if (bookedInvestigationNames.length > 0) {
-            return bookedInvestigationNames.map((name) => getInvestigationDisplayName(name, singleTests));
-        }
-
-        // Fallback: agar booking.tableData available na ho to purana behaviour.
-        const bookedNames = [];
-
-        acceptedSampleIndex.forEach((row) => {
-            row.testNames
-                .map((item) => item.trim())
-                .filter(Boolean)
-                .forEach((item) => {
-                    const displayName = getInvestigationDisplayName(item, singleTests);
-                    if (!bookedNames.includes(displayName)) {
-                        bookedNames.push(displayName);
-                    }
-                });
-        });
-
-        return bookedNames;
+        return bookedNames
+            .map((name) => getInvestigationDisplayName(name, singleTests))
+            .filter((name) => {
+                const key = normalizeShortName(name).toLowerCase();
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
     }
 
     function stripHtmlToText(value) {
@@ -2574,7 +2524,7 @@ async function loadfunction() {
         console.log("data is here:", testpanels);
 
         const { singleTests = [], panels = [] } = testpanels;
-        uniquetestArray2 = buildInvestigationHeaderList(singleTests);
+        uniquetestArray2 = buildInvestigationHeaderList(singleTests, panels);
 
         const getCatName = (cat) => {
             if (!cat) return "General";

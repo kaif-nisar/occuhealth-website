@@ -3847,30 +3847,49 @@ const getTestNameController = async (req, res) => {
             ]
         }).select("bookingId createdAt barcodes").lean();
 
-        if (!barcodes || !Array.isArray(barcodes.barcodes) || barcodes.barcodes.length === 0) {
-            const bookingDoc = await newBooking.findOne({
-                tenantId: tid,
-                $or: [
-                    { bookingId },
-                    ...(mongoose.Types.ObjectId.isValid(bookingId) ? [{ _id: bookingId }] : [])
-                ]
-            }).select("bookingId createdAt tableData").lean();
+        const bookingDoc = await newBooking.findOne({
+            tenantId: tid,
+            $or: [
+                { bookingId },
+                ...(mongoose.Types.ObjectId.isValid(bookingId) ? [{ _id: bookingId }] : [])
+            ]
+        }).select("bookingId createdAt tableData").lean();
 
-            if (bookingDoc && Array.isArray(bookingDoc.tableData) && bookingDoc.tableData.length > 0) {
+        const bookingBarcodeEntries = (bookingDoc?.tableData || []).map((row) => ({
+            barcode: row.barcodeId,
+            sampleType: row.typeOfSample,
+            testandpannelArray: String(row.testName || "").split(",").map((s) => s.trim()).filter(Boolean),
+            testIds: (row.ids || []).map((item) => ({
+                id: item.id || item._id,
+                collectionName: item.collectionName
+            })).filter((item) => item.id && item.collectionName)
+        }));
+
+        if (!barcodes || !Array.isArray(barcodes.barcodes) || barcodes.barcodes.length === 0) {
+            if (bookingBarcodeEntries.length > 0) {
                 barcodes = {
                     bookingId: bookingDoc.bookingId,
                     createdAt: bookingDoc.createdAt,
-                    barcodes: bookingDoc.tableData.map((row) => ({
-                        barcode: row.barcodeId,
-                        sampleType: row.typeOfSample,
-                        testandpannelArray: String(row.testName || "").split(",").map((s) => s.trim()).filter(Boolean),
-                        testIds: (row.ids || []).map((item) => ({
-                            id: item.id,
-                            collectionName: item.collectionName
-                        }))
-                    }))
+                    barcodes: bookingBarcodeEntries
                 };
             }
+        } else {
+            // Accepted barcode records in older bookings contain only the
+            // sample-filtered package children. Merge the original booking IDs
+            // as well so report rendering can expand every booked package member.
+            const bookingEntriesByBarcode = new Map(
+                bookingBarcodeEntries.map((entry) => [String(entry.barcode || "").trim(), entry])
+            );
+            barcodes.barcodes.forEach((entry) => {
+                const originalBookingEntry = bookingEntriesByBarcode.get(String(entry.barcode || "").trim());
+                if (!originalBookingEntry) return;
+                const merged = new Map();
+                [...(entry.testIds || []), ...(originalBookingEntry.testIds || [])].forEach((item) => {
+                    if (!item?.id || !item?.collectionName) return;
+                    merged.set(`${item.collectionName}_${item.id}`, item);
+                });
+                entry.testIds = [...merged.values()];
+            });
         }
 
         if (!barcodes || !Array.isArray(barcodes.barcodes) || barcodes.barcodes.length === 0) {
@@ -3982,25 +4001,53 @@ const getTestNameController = async (req, res) => {
                 ? addPannel.find(buildCatalogueQuery(directPanelObjectIds, "originalPanelId")).select(`${LAB_REPORT_PANEL_SELECT} tenantId originalPanelId`).lean()
                 : Promise.resolve([]),
             packageObjectIds.length
-                ? Package.find(buildCatalogueQuery(packageObjectIds, "originalPackageId")).select("testIds pannelIds tenantId originalPackageId").lean()
+                ? Package.find(buildCatalogueQuery(packageObjectIds, "originalPackageId")).select("testIds pannelIds testname pannelname tenantId originalPackageId").lean()
                 : Promise.resolve([])
         ]);
 
         const packageTestObjectIds = normalizeObjectIds(packageDocs.flatMap((pkg) => pkg.testIds || []));
         const packagePanelObjectIds = normalizeObjectIds(packageDocs.flatMap((pkg) => pkg.pannelIds || []));
+        // Older packages stored their members by name only. Keep resolving those
+        // records too so reports do not silently omit their booked investigations.
+        const packageTestNames = [...new Set(packageDocs.flatMap((pkg) => pkg.testname || []).map((name) => String(name || "").trim()).filter(Boolean))];
+        const packagePanelNames = [...new Set(packageDocs.flatMap((pkg) => pkg.pannelname || []).map((name) => String(name || "").trim()).filter(Boolean))];
 
         const [packageTestsRaw, packagePanelsRaw] = await Promise.all([
-            packageTestObjectIds.length
-                ? testSchema.find(buildCatalogueQuery(packageTestObjectIds, "originalTestId")).select(`${LAB_REPORT_TEST_SELECT} tenantId originalTestId`).lean()
+            packageTestObjectIds.length || packageTestNames.length
+                ? testSchema.find({
+                    $or: [
+                        ...(packageTestObjectIds.length ? [buildCatalogueQuery(packageTestObjectIds, "originalTestId")] : []),
+                        ...(packageTestNames.length ? [
+                            { tenantId: tid, Name: { $in: packageTestNames } },
+                            { $and: [{ Name: { $in: packageTestNames } }, { $or: [{ tenantId: null }, { tenantId: { $exists: false } }] }] }
+                        ] : [])
+                    ]
+                }).select(`${LAB_REPORT_TEST_SELECT} tenantId originalTestId`).lean()
                 : Promise.resolve([]),
-            packagePanelObjectIds.length
-                ? addPannel.find(buildCatalogueQuery(packagePanelObjectIds, "originalPanelId")).select(`${LAB_REPORT_PANEL_SELECT} tenantId originalPanelId`).lean()
+            packagePanelObjectIds.length || packagePanelNames.length
+                ? addPannel.find({
+                    $or: [
+                        ...(packagePanelObjectIds.length ? [buildCatalogueQuery(packagePanelObjectIds, "originalPanelId")] : []),
+                        ...(packagePanelNames.length ? [
+                            { tenantId: tid, name: { $in: packagePanelNames } },
+                            { $and: [{ name: { $in: packagePanelNames } }, { $or: [{ tenantId: null }, { tenantId: { $exists: false } }] }] }
+                        ] : [])
+                    ]
+                }).select(`${LAB_REPORT_PANEL_SELECT} tenantId originalPanelId`).lean()
                 : Promise.resolve([])
         ]);
 
         const allTestsMap = buildLookupMap([...directTests, ...packageTestsRaw], "originalTestId");
         const allPanelsMap = buildLookupMap([...directPanelsRaw, ...packagePanelsRaw], "originalPanelId");
         const packageMap = buildLookupMap(packageDocs, "originalPackageId");
+        const packageTestsByName = buildLookupMap(packageTestsRaw, "originalTestId");
+        const packagePanelsByName = buildLookupMap(packagePanelsRaw, "originalPanelId");
+        const findByName = (map, name, field) => {
+            const normalizedName = String(name || "").trim().toLowerCase();
+            if (!normalizedName) return null;
+            const matches = [...map.values()].filter((item) => String(item?.[field] || "").trim().toLowerCase() === normalizedName);
+            return matches.find((item) => item.tenantId?.toString() === tid.toString()) || matches[0] || null;
+        };
 
         const nestedPanelTestObjectIds = normalizeObjectIds(
             [...directPanelsRaw, ...packagePanelsRaw].flatMap((panel) => panel.testsId || [])
@@ -4078,17 +4125,20 @@ const getTestNameController = async (req, res) => {
                 (matchedPackage.testIds || []).forEach((testId) => {
                     const testDoc = allTestsMap.get(testId.toString());
                     if (!testDoc) return;
-                    if (!barcode.typeOfSample || normalizeSampleType(testDoc.sampleType) === normalizeSampleType(barcode.typeOfSample)) {
-                        addSingleTest(testDoc);
-                    }
+                    addSingleTest(testDoc);
                 });
 
                 (matchedPackage.pannelIds || []).forEach((panelId) => {
                     const panelDoc = allPanelsMap.get(panelId.toString());
                     if (!panelDoc) return;
-                    if (!barcode.typeOfSample || (panelDoc.sample_types || []).some(sampleType => normalizeSampleType(sampleType) === normalizeSampleType(barcode.typeOfSample))) {
-                        addPanel(panelDoc);
-                    }
+                    addPanel(panelDoc);
+                });
+
+                (matchedPackage.testname || []).forEach((testName) => {
+                    addSingleTest(findByName(packageTestsByName, testName, "Name"));
+                });
+                (matchedPackage.pannelname || []).forEach((panelName) => {
+                    addPanel(findByName(packagePanelsByName, panelName, "name"));
                 });
             });
         });
